@@ -34,6 +34,7 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.util.LocalBottomSheetHandler
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 
 @Composable
@@ -229,7 +230,13 @@ private fun SponsorDisclaimer(
             LocalTextStyle provides MaterialTheme.typography.bodyLarge,
         ) {
             Text(
-                text = stringResource(id = R.string.search_provider_sponsored_description, sponsor),
+                text = stringResource(
+                    productStringId(
+                        R.string.search_provider_sponsored_description,
+                        R.string.expressive_search_provider_description,
+                    ),
+                    sponsor,
+                ),
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .padding(top = 16.dp),

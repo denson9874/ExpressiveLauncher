@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.lawnchairApp
 import app.lawnchair.ui.ModalBottomSheetContent
+import app.lawnchair.util.productStringId
 import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.R
 
@@ -60,12 +61,22 @@ fun ServiceWarningDialog(
             Column {
                 Text(
                     text = stringResource(
-                        R.string.generic_a11y_hint,
+                        productStringId(
+                            R.string.generic_a11y_hint,
+                            R.string.expressive_generic_a11y_hint,
+                        ),
                         stringResource(action),
                     ),
                 )
                 Spacer(Modifier.height(8.dp))
-                Text(text = stringResource(R.string.generic_a11y_disclaimer))
+                Text(
+                    text = stringResource(
+                        productStringId(
+                            R.string.generic_a11y_disclaimer,
+                            R.string.expressive_generic_a11y_disclaimer,
+                        ),
+                    ),
+                )
             }
         },
         buttons = {

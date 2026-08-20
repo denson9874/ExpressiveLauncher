@@ -98,6 +98,7 @@
     -->
     <dimen name="fastscroll_width">58dp</dimen>
     <dimen name="fastscroll_end_margin">-26dp</dimen>
+    <dimen name="fastscroll_end_inset">3dp</dimen>
     <!-- Extra margin between bottom of the scrollbar and the search bar protection layer. -->
     <dimen name="fastscroll_bottom_margin_floating_search">4dp</dimen>
 

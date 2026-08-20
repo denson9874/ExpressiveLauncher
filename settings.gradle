@@ -28,7 +28,7 @@ develocity {
     }
 }
 
-rootProject.name = "lawnchair"
+rootProject.name = "expressive-launcher-l3"
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -117,4 +117,3 @@ include ':dagger'
 include ':concurrent'
 //include ':compose'
 include ':modules:widgetpicker'
-

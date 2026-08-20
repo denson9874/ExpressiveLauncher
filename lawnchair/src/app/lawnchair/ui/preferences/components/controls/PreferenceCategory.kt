@@ -16,8 +16,14 @@
 
 package app.lawnchair.ui.preferences.components.controls
 
+import android.animation.ValueAnimator
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -26,9 +32,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -50,6 +59,30 @@ fun PreferenceCategory(
     description: String? = null,
 ) {
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val animationsEnabled = ValueAnimator.areAnimatorsEnabled()
+    val glyphScale by animateFloatAsState(
+        targetValue = when {
+            !animationsEnabled -> 1f
+            isPressed -> 1.12f
+            isSelected -> 1.06f
+            else -> 1f
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "preference category glyph scale",
+    )
+    val glyphRotation by animateFloatAsState(
+        targetValue = if (animationsEnabled && isPressed) 6f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "preference category glyph rotation",
+    )
     PreferenceTemplate(
         title = {
             Text(
@@ -70,7 +103,13 @@ fun PreferenceCategory(
                 Icon(
                     painter = painterResource(id = iconResource),
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            scaleX = glyphScale
+                            scaleY = glyphScale
+                            rotationZ = glyphRotation
+                        },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -79,6 +118,7 @@ fun PreferenceCategory(
             mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
             onNavigate()
         },
+        interactionSource = interactionSource,
     )
 }
 

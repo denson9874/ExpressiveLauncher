@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.font.FontCache
+import app.lawnchair.util.Constants.LAWNICONS_PACKAGE_NAME
 import app.lawnchair.util.getApkVersionComparison
 import app.lawnchair.util.isGestureNavContractCompatible
 import app.lawnchair.util.isOnePlusStock
@@ -66,13 +67,29 @@ class PreferenceManager @Inject constructor(
         Unit
     }
 
-    val iconPackPackage = StringPref("pref_iconPackPackage", "", reloadIcons)
+    /**
+     * Lawnicons is the first-run default when it is installed and enabled. An explicit stored
+     * empty value still means System icons because [StringPref] only consults this default when
+     * the preference key is absent.
+     */
+    val iconPackPackage = StringPref(
+        "pref_iconPackPackage",
+        defaultIconPackPackage(),
+        reloadIcons,
+    )
     val themedIconPackPackage = StringPref("pref_themedIconPackPackage", "", reloadIcons)
     val allowRotation = BoolPref("pref_allowRotation", false)
     val wrapAdaptiveIcons = BoolPref("prefs_wrapAdaptive", true)
     val transparentIconBackground = BoolPref("prefs_transparentIconBackground", false)
     val shadowBGIcons = BoolPref("pref_shadowBGIcons", true)
     val addIconToHome = BoolPref("pref_add_icon_to_home", true)
+
+    private fun defaultIconPackPackage(): String = try {
+        val applicationInfo = context.packageManager.getApplicationInfo(LAWNICONS_PACKAGE_NAME, 0)
+        LAWNICONS_PACKAGE_NAME.takeIf { applicationInfo.enabled }.orEmpty()
+    } catch (_: Exception) {
+        ""
+    }
 
     private val isPhone: Boolean get() = deviceType == InvariantDeviceProfile.TYPE_PHONE
     private val isTablet: Boolean get() = deviceType == InvariantDeviceProfile.TYPE_TABLET

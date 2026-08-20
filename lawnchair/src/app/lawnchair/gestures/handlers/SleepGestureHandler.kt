@@ -26,6 +26,7 @@ import android.content.Intent
 import android.os.Build
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.util.productStringId
 import app.lawnchair.util.requireSystemService
 import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.R
@@ -99,12 +100,20 @@ class SleepMethodDeviceAdmin(context: Context) : SleepGestureHandler.SleepMethod
                 )
                 .putExtra(
                     DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                    launcher.getString(R.string.dt2s_admin_hint),
+                    launcher.getString(
+                        productStringId(
+                            R.string.dt2s_admin_hint,
+                            R.string.expressive_dt2s_admin_hint,
+                        ),
+                    ),
                 )
             ComposeBottomSheet.show(launcher) {
                 ServiceWarningDialog(
                     title = R.string.dt2s_admin_hint_title,
-                    action = R.string.dt2s_admin_hint,
+                    action = productStringId(
+                        R.string.dt2s_admin_hint,
+                        R.string.expressive_dt2s_admin_hint,
+                    ),
                     settingsIntent = intent,
                 ) { close(true) }
             }

@@ -43,10 +43,12 @@ import android.view.ViewConfiguration;
 import android.view.WindowInsets;
 import android.widget.TextView;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.launcher3.BuildConfig;
 import com.android.launcher3.FastScrollRecyclerView;
 import com.android.launcher3.Flags;
 import com.android.launcher3.R;
@@ -103,6 +105,9 @@ public class RecyclerViewFastScroller extends View {
 
     private final static int MAX_TRACK_ALPHA = 30;
     private final static int SCROLL_BAR_VIS_DURATION = 150;
+    private static final int SCROLL_BAR_HIDE_DELAY_MILLIS = 420;
+    private static final int SCROLL_BAR_FADE_DURATION_MILLIS = 180;
+    private static final int SCROLL_BAR_MAX_ALPHA = 255;
 
     private static final List<Rect> SYSTEM_GESTURE_EXCLUSION_RECT =
             Collections.singletonList(new Rect());
@@ -121,6 +126,9 @@ public class RecyclerViewFastScroller extends View {
     // Current width of the track
     private int mWidth;
     private ObjectAnimator mWidthAnimator;
+    private int mVisualAlpha = SCROLL_BAR_MAX_ALPHA;
+    private ObjectAnimator mVisualAlphaAnimator;
+    private final Runnable mHideScrollbarRunnable = this::fadeOutTransientScrollbar;
 
     private final Paint mThumbPaint;
     protected final int mThumbHeight;
@@ -224,11 +232,27 @@ public class RecyclerViewFastScroller extends View {
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 mDy = dy;
 
+                if (dy != 0) {
+                    revealTransientScrollbar();
+                }
+
                 // TODO(winsonc): If we want to animate the section heads while scrolling, we can
                 //                initiate that here if the recycler view scroll state is not
                 //                RecyclerView.SCROLL_STATE_IDLE.
 
                 mRv.onUpdateScrollbar(dy);
+            }
+
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                if (!usesTransientAllAppsScrollbar()) {
+                    return;
+                }
+                if (newState == SCROLL_STATE_IDLE) {
+                    scheduleTransientScrollbarFade();
+                } else {
+                    revealTransientScrollbar();
+                }
             }
         });
     }
@@ -346,6 +370,7 @@ public class RecyclerViewFastScroller extends View {
         }
         mTouchOffsetY += (lastY - downY);
         animatePopupVisibility(true);
+        revealTransientScrollbar();
         showActiveScrollbar(true);
     }
 
@@ -390,6 +415,7 @@ public class RecyclerViewFastScroller extends View {
             animatePopupVisibility(false);
             showActiveScrollbar(false);
         }
+        scheduleTransientScrollbarFade();
     }
 
     @Override
@@ -397,9 +423,23 @@ public class RecyclerViewFastScroller extends View {
         if (mThumbOffsetY < 0 || mRv == null) {
             return;
         }
+        if (usesTransientAllAppsScrollbar() && mVisualAlpha == 0) {
+            return;
+        }
+        int originalThumbAlpha = mThumbPaint.getAlpha();
+        int originalTrackAlpha = mTrackPaint.getAlpha();
+        if (usesTransientAllAppsScrollbar()) {
+            mThumbPaint.setAlpha(mVisualAlpha);
+            mTrackPaint.setAlpha(MAX_TRACK_ALPHA * mVisualAlpha / SCROLL_BAR_MAX_ALPHA);
+        }
         int saveCount = canvas.save();
-        canvas.translate(getWidth() / 2, mRv.getScrollBarTop());
-        mThumbDrawOffset.set(getWidth() / 2, mRv.getScrollBarTop());
+        int thumbCenterX = getWidth() / 2;
+        if (usesTransientAllAppsScrollbar()) {
+            int endInset = getResources().getDimensionPixelSize(R.dimen.fastscroll_end_inset);
+            thumbCenterX = Utilities.isRtl(getResources()) ? endInset : getWidth() - endInset;
+        }
+        canvas.translate(thumbCenterX, mRv.getScrollBarTop());
+        mThumbDrawOffset.set(thumbCenterX, mRv.getScrollBarTop());
         // Draw the track
         float halfW = mWidth / 2;
         boolean useLetterFastScroller = shouldUseLetterFastScroller();
@@ -412,9 +452,11 @@ public class RecyclerViewFastScroller extends View {
                 translateX = halfW * 5;
             }
             canvas.translate(translateX, mThumbOffsetY);
-        } else {
+        } else if (!usesTransientAllAppsScrollbar()) {
             canvas.drawRoundRect(-halfW, 0, halfW, mRv.getScrollbarTrackHeight(),
                     mWidth, mWidth, mTrackPaint);
+            canvas.translate(0, mThumbOffsetY);
+        } else {
             canvas.translate(0, mThumbOffsetY);
         }
         mThumbDrawOffset.y += mThumbOffsetY;
@@ -443,11 +485,74 @@ public class RecyclerViewFastScroller extends View {
             setSystemGestureExclusionRects(SYSTEM_GESTURE_EXCLUSION_RECT);
         }
         canvas.restoreToCount(saveCount);
+        mThumbPaint.setAlpha(originalThumbAlpha);
+        mTrackPaint.setAlpha(originalTrackAlpha);
     }
 
     boolean shouldUseLetterFastScroller() {
-        return Flags.letterFastScroller()
+        return !BuildConfig.STANDARD_HOME_ONLY
+                && Flags.letterFastScroller()
                 && getScrollerLocation() == FastScrollerLocation.ALL_APPS_SCROLLER;
+    }
+
+    private boolean usesTransientAllAppsScrollbar() {
+        return BuildConfig.STANDARD_HOME_ONLY
+                && mFastScrollerLocation == FastScrollerLocation.ALL_APPS_SCROLLER;
+    }
+
+    private void revealTransientScrollbar() {
+        if (!usesTransientAllAppsScrollbar()) {
+            return;
+        }
+        removeCallbacks(mHideScrollbarRunnable);
+        if (mVisualAlphaAnimator != null) {
+            mVisualAlphaAnimator.cancel();
+        }
+        if (mVisualAlpha != SCROLL_BAR_MAX_ALPHA) {
+            mVisualAlpha = SCROLL_BAR_MAX_ALPHA;
+            invalidate();
+        }
+        if (mRv == null || (mRv.getScrollState() == SCROLL_STATE_IDLE && !mIsDragging)) {
+            scheduleTransientScrollbarFade();
+        }
+    }
+
+    private void scheduleTransientScrollbarFade() {
+        if (!usesTransientAllAppsScrollbar() || mIsDragging) {
+            return;
+        }
+        removeCallbacks(mHideScrollbarRunnable);
+        postDelayed(mHideScrollbarRunnable, SCROLL_BAR_HIDE_DELAY_MILLIS);
+    }
+
+    private void fadeOutTransientScrollbar() {
+        if (!usesTransientAllAppsScrollbar() || mIsDragging) {
+            return;
+        }
+        if (mVisualAlphaAnimator != null) {
+            mVisualAlphaAnimator.cancel();
+        }
+        mVisualAlphaAnimator = ObjectAnimator.ofInt(
+                this,
+                "transientScrollbarAlpha",
+                mVisualAlpha,
+                0);
+        mVisualAlphaAnimator.setDuration(SCROLL_BAR_FADE_DURATION_MILLIS);
+        mVisualAlphaAnimator.start();
+    }
+
+    @Keep
+    public void setTransientScrollbarAlpha(int alpha) {
+        if (mVisualAlpha == alpha) {
+            return;
+        }
+        mVisualAlpha = alpha;
+        invalidate();
+    }
+
+    @Keep
+    public int getTransientScrollbarAlpha() {
+        return mVisualAlpha;
     }
 
     @Override
@@ -501,6 +606,17 @@ public class RecyclerViewFastScroller extends View {
 
     public void setFastScrollerLocation(@NonNull FastScrollerLocation location) {
         mFastScrollerLocation = location;
+        mVisualAlpha = usesTransientAllAppsScrollbar() ? 0 : SCROLL_BAR_MAX_ALPHA;
+        invalidate();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        removeCallbacks(mHideScrollbarRunnable);
+        if (mVisualAlphaAnimator != null) {
+            mVisualAlphaAnimator.cancel();
+        }
+        super.onDetachedFromWindow();
     }
 
     private void animatePopupVisibility(boolean visible) {

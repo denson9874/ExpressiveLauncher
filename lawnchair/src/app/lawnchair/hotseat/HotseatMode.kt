@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import app.lawnchair.util.isPackageInstalledAndEnabled
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 
 sealed class HotseatMode(
@@ -31,7 +32,10 @@ sealed class HotseatMode(
 }
 
 object LawnchairHotseat : HotseatMode(
-    nameResourceId = R.string.hotseat_mode_lawnchair,
+    nameResourceId = productStringId(
+        R.string.hotseat_mode_lawnchair,
+        R.string.expressive_hotseat_mode,
+    ),
     layoutResourceId = R.layout.search_container_hotseat,
 ) {
     override fun toString() = "lawnchair"

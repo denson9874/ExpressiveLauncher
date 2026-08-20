@@ -28,6 +28,7 @@ import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.preview.PreferenceGroupPreviewContainer
 import app.lawnchair.ui.util.preview.PreviewLawnchair
 import app.lawnchair.util.isOnePlusStock
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 
@@ -139,7 +140,12 @@ private fun QuickSwitchIgnoredWarning(
 ) {
     LawnchairTheme {
         WarningPreference(
-            text = stringResource(id = R.string.quickswitch_ignored_warning),
+            text = stringResource(
+                productStringId(
+                    R.string.quickswitch_ignored_warning,
+                    R.string.expressive_quickswitch_warning,
+                ),
+            ),
             modifier = modifier.padding(horizontal = 16.dp),
             standalone = true,
             colors = ListItemDefaults.segmentedColors(

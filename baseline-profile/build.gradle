@@ -19,6 +19,7 @@ android {
         github { dimension = "channel" }
         nightly { dimension = "channel" }
         play { dimension = "channel" }
+        expressive { dimension = "channel" }
     }
 
     testOptions.managedDevices.localDevices {

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Parcelable
 import app.lawnchair.LawnchairApp
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 import java.io.File
 import kotlinx.parcelize.Parcelize
@@ -58,7 +59,15 @@ data class BugReport(
             }
             type = "text/plain"
         }
-        val chooser = Intent.createChooser(sendIntent, context.getText(R.string.lawnchair_bug_report))
+        val chooser = Intent.createChooser(
+            sendIntent,
+            context.getText(
+                productStringId(
+                    R.string.lawnchair_bug_report,
+                    R.string.expressive_bug_report,
+                ),
+            ),
+        )
         if (sendIntent.clipData != null) {
             chooser.clipData = sendIntent.clipData
             chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

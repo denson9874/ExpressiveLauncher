@@ -43,6 +43,7 @@ import app.lawnchair.ui.preferences.components.controls.SliderPreference
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import app.lawnchair.util.productStringId
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.R
 
@@ -184,7 +185,12 @@ fun HomeScreenGridPreferences(
                                     FakeExpandedGridPreference(
                                         columns = columns.intValue * 2,
                                         rows = rows.intValue,
-                                        description = stringResource(id = R.string.unfolded_grid_description),
+                                        description = stringResource(
+                                            productStringId(
+                                                R.string.unfolded_grid_description,
+                                                R.string.expressive_unfolded_grid_description,
+                                            ),
+                                        ),
                                     )
                                 }
                             }

@@ -58,6 +58,7 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.theme.isSelectedThemeDark
 import app.lawnchair.ui.theme.preferenceGroupColor
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 import com.kieronquinn.app.smartspacer.sdk.SmartspacerConstants
 
@@ -85,7 +86,12 @@ fun SmartspacePreferences(
             MainSwitchPreference(
                 adapter = smartspaceAdapter,
                 label = stringResource(R.string.smartspace_widget_toggle_label),
-                description = stringResource(id = R.string.smartspace_widget_toggle_description).takeIf { modeIsLawnchair },
+                description = stringResource(
+                    productStringId(
+                        R.string.smartspace_widget_toggle_description,
+                        R.string.expressive_smartspace_widget_toggle_description,
+                    ),
+                ).takeIf { modeIsLawnchair },
             ) {
                 if (modeIsLawnchair) {
                     SmartspacePreview()

@@ -5,6 +5,7 @@ import android.app.prediction.AppPredictionManager
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.annotation.StringRes
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 
 sealed class PredictionMode(
@@ -40,7 +41,12 @@ object SystemPredictor : PredictionMode(R.string.prediction_mode_system) {
     }
 }
 
-object LawnchairPredictor : PredictionMode(R.string.prediction_mode_lawnchair) {
+object LawnchairPredictor : PredictionMode(
+    productStringId(
+        R.string.prediction_mode_lawnchair,
+        R.string.expressive_prediction_mode,
+    ),
+) {
 
     override fun toString() = "lawnchair"
 

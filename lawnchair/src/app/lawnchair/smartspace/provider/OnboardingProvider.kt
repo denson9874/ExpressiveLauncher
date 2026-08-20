@@ -11,6 +11,7 @@ import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceScores
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import app.lawnchair.util.getApkVersionComparison
+import app.lawnchair.util.productStringId
 import com.android.launcher3.LauncherPrefs.Companion.getPrefs
 import com.android.launcher3.R
 import com.android.launcher3.util.OnboardingPrefs
@@ -97,7 +98,12 @@ class OnboardingProvider(context: Context) :
                     headerAction = SmartspaceAction(
                         id = "onboarding-swipe-action",
                         icon = null,
-                        title = context.getString(R.string.onboarding_welcome),
+                        title = context.getString(
+                            productStringId(
+                                R.string.onboarding_welcome,
+                                R.string.expressive_onboarding_welcome,
+                            ),
+                        ),
                         subtitle = context.getString(R.string.onboarding_swipe_up),
                         pendingIntent = null,
                     ),
@@ -112,7 +118,12 @@ class OnboardingProvider(context: Context) :
                     headerAction = SmartspaceAction(
                         id = "onboarding-settings-action",
                         icon = Icon.createWithResource(context, R.drawable.ic_lightbulb),
-                        title = context.getString(R.string.onboarding_open_settings_title),
+                        title = context.getString(
+                            productStringId(
+                                R.string.onboarding_open_settings_title,
+                                R.string.expressive_onboarding_open_settings_title,
+                            ),
+                        ),
                         subtitle = context.getString(R.string.onboarding_open_settings_subtitle),
                         pendingIntent = lawnSettingsPendingIntent,
                     ),
@@ -129,7 +140,12 @@ class OnboardingProvider(context: Context) :
                     headerAction = SmartspaceAction(
                         id = "onboarding-upgrade-action",
                         icon = Icon.createWithResource(context, R.drawable.ic_lightbulb),
-                        title = context.getString(R.string.onboarding_major_upgrade_title),
+                        title = context.getString(
+                            productStringId(
+                                R.string.onboarding_major_upgrade_title,
+                                R.string.expressive_onboarding_major_upgrade_title,
+                            ),
+                        ),
                         subtitle = context.getString(R.string.onboarding_major_upgrade_subtitle),
                         pendingIntent = lawnOnboardingPendingIntent,
                     ),

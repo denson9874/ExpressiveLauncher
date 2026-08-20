@@ -21,6 +21,7 @@ import app.lawnchair.ui.preferences.components.controls.ClickablePreference
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayoutLazyColumn
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.preferences.navigation.CreateBackup
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.android.launcher3.util.OnboardingPrefs.ALL_APPS_VISITED_COUNT
@@ -82,7 +83,11 @@ fun FeatureFlagsPreference(modifier: Modifier = Modifier) {
 
         preferenceCategory(
             "Workspace grid layout",
-            "To share your current workspace, use Lawnchair's backup and restore system.",
+            if (BuildConfig.STANDARD_HOME_ONLY) {
+                "To share your current workspace, use Expressive Launcher L3's backup and restore system."
+            } else {
+                "To share your current workspace, use Lawnchair's backup and restore system."
+            },
         )
         item(key = "open_backup_system") {
             val navController = LocalNavController.current

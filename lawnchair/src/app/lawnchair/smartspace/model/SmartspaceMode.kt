@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import app.lawnchair.util.isPackageInstalledAndEnabled
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 
 sealed class SmartspaceMode(
@@ -34,7 +35,10 @@ sealed class SmartspaceMode(
 }
 
 object LawnchairSmartspace : SmartspaceMode(
-    nameResourceId = R.string.smartspace_mode_lawnchair,
+    nameResourceId = productStringId(
+        R.string.smartspace_mode_lawnchair,
+        R.string.expressive_smartspace_mode,
+    ),
     layoutResourceId = R.layout.smartspace_container,
 ) {
     override fun toString() = "lawnchair"

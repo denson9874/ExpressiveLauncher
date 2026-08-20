@@ -14,6 +14,7 @@ import android.graphics.drawable.Icon
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import app.lawnchair.util.productStringId
 import app.lawnchair.util.requireSystemService
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
@@ -30,7 +31,15 @@ class BugReportReceiver : BroadcastReceiver() {
     }
 
     private fun copyReport(context: Context, report: BugReport) {
-        val clipData = ClipData.newPlainText(context.getString(R.string.lawnchair_bug_report), report.link ?: report.contents)
+        val clipData = ClipData.newPlainText(
+            context.getString(
+                productStringId(
+                    R.string.lawnchair_bug_report,
+                    R.string.expressive_bug_report,
+                ),
+            ),
+            report.link ?: report.contents,
+        )
         context.requireSystemService<ClipboardManager>().setPrimaryClip(clipData)
         Toast.makeText(context, R.string.copied_toast, Toast.LENGTH_LONG).show()
     }

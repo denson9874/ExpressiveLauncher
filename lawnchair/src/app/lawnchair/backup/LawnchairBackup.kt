@@ -127,7 +127,8 @@ class LawnchairBackup(
         )
 
         fun generateBackupFileName(): String {
-            val fileName = "Lawnchair_Backup ${SimpleDateFormat.getDateTimeInstance().format(Date())}"
+            val productName = if (BuildConfig.STANDARD_HOME_ONLY) "ExpressiveLauncherL3" else "Lawnchair"
+            val fileName = "${productName}_Backup ${SimpleDateFormat.getDateTimeInstance().format(Date())}"
             return "$fileName.lawnchairbackup"
         }
 

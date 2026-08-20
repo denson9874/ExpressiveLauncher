@@ -3,13 +3,17 @@ package app.lawnchair.theme.color
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
+import app.lawnchair.util.productStringId
 import com.android.launcher3.R
 
 enum class ColorMode(
     @StringRes val labelResourceId: Int,
 ) {
     AUTO(
-        labelResourceId = R.string.managed_by_lawnchair,
+        labelResourceId = productStringId(
+            R.string.managed_by_lawnchair,
+            R.string.expressive_managed_by_launcher,
+        ),
     ),
     LIGHT(
         labelResourceId = R.string.color_light,

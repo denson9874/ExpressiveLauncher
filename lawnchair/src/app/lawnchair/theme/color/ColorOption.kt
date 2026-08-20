@@ -4,6 +4,7 @@ import android.graphics.Color
 import androidx.compose.ui.res.stringResource
 import app.lawnchair.ui.preferences.components.colorpreference.ColorPreferenceEntry
 import app.lawnchair.ui.theme.getSystemAccent
+import app.lawnchair.util.productStringId
 import app.lawnchair.wallpaper.WallpaperManagerCompat
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -65,7 +66,14 @@ sealed class ColorOption {
 
         override val colorPreferenceEntry = ColorPreferenceEntry<ColorOption>(
             this,
-            { stringResource(id = R.string.managed_by_lawnchair) },
+            {
+                stringResource(
+                    productStringId(
+                        R.string.managed_by_lawnchair,
+                        R.string.expressive_managed_by_launcher,
+                    ),
+                )
+            },
             { 0 },
         )
 

@@ -160,6 +160,8 @@ android {
         buildConfigField "String", "MAJOR_VERSION", "\"${majorVersion}\""
         buildConfigField "String", "COMMIT_HASH", "\"${buildCommit}\""
         buildConfigField "boolean", "ENABLE_AUTO_INSTALLS_LAYOUT", "false"
+        buildConfigField "boolean", "STANDARD_HOME_ONLY", "false"
+        resValue("string", "derived_app_name", "Lawnchair")
 
         manifestPlaceholders.quickstepMinSdk = quickstepMinSdk
         manifestPlaceholders.quickstepMaxSdk = quickstepMaxSdk
@@ -227,7 +229,6 @@ android {
 
         debug {
             applicationIdSuffix ".debug"
-            resValue("string", "derived_app_name", "Lawnchair (Debug)")
 
             manifestPlaceholders.quickstepMinSdk = "0"
             manifestPlaceholders.quickstepMaxSdk = "100000"
@@ -236,7 +237,6 @@ android {
         }
 
         release {
-            resValue("string", "derived_app_name", "Lawnchair")
             minifyEnabled true
             shrinkResources true
             pseudoLocalesEnabled false
@@ -282,9 +282,13 @@ android {
             isDefault true
         }
 
-        configureEach {
-            resValue("string", "launcher_component", "${applicationId}/app.lawnchair.LawnchairLauncher")
+        expressive {
+            applicationId "dev.launcher.expressive.l3"
+            dimension "channel"
+            buildConfigField "boolean", "STANDARD_HOME_ONLY", "true"
+            resValue("string", "derived_app_name", "Expressive Launcher L3")
         }
+
     }
 
     sourceSets {
@@ -336,6 +340,13 @@ android {
             manifest.srcFile "quickstep/AndroidManifest-launcher.xml"
         }
 
+        lawnWithQuickstepExpressive {
+            manifest.srcFile "expressive/AndroidManifest-launcher.xml"
+            // Combined source sets outrank the Lawnchair app flavor. Product branding and
+            // standard-Home dimensions therefore survive resource merging for this variant.
+            res.srcDirs = ["expressive/res"]
+        }
+
         withQuickstep {
             res.srcDirs = ['quickstep/res', 'quickstep/recents_ui_overrides/res']
             java.srcDirs = ['quickstep/src', 'quickstep/dagger', 'quickstep/recents_ui_overrides/src', 'quickstep/src_protolog']
@@ -348,8 +359,19 @@ android {
 androidComponents {
     onVariants(selector().all()) { variant ->
         def channel = variant.productFlavors.last().second
+        def productName = channel == "expressive" ? "ExpressiveLauncherL3" : "Lawnchair"
+        def launcherComponentKey = variant.makeResValueKey("string", "launcher_component")
+        variant.resValues.put(
+            launcherComponentKey,
+            variant.applicationId.map { applicationId ->
+                new com.android.build.api.variant.ResValue(
+                    "${applicationId}/app.lawnchair.LawnchairLauncher".toString(),
+                    "The resolved launcher component is filtered from All Apps.",
+                )
+            },
+        )
         variant.outputs.forEach { output ->
-            output.outputFileName.set("Lawnchair.${output.versionName.get()}.$channel.${variant.buildType}.apk")
+            output.outputFileName.set("${productName}.${output.versionName.get()}.$channel.${variant.buildType}.apk")
         }
 
         // Lawnchair-TODO: A better way to sync proto file to the IDE preventing missing or outdated result. Please remove if this is the best solution we have right now
