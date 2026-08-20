@@ -1,121 +1,82 @@
-# Lawnchair 16
+# Expressive Launcher L3
 
-[![Build debug APK](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/ci.yml/badge.svg)](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/ci.yml)
-[![Build release APK](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/release_update.yml/badge.svg)](https://github.com/LawnchairLauncher/lawnchair/actions/workflows/release_update.yml)
-[![Crowdin](https://badges.crowdin.net/e/188ba69d884418987f0b7f1dd55e3a4e/localized.svg)](https://lawnchair.crowdin.com/lawnchair)
-[![OpenCollective](https://img.shields.io/opencollective/all/lawnchair?label=financial%20contributors&logo=open-collective)](https://opencollective.com/lawnchair)
-[![Telegram](https://img.shields.io/endpoint?url=https%3A%2F%2Ftg.sumanjay.workers.dev%2Flccommunity)](https://t.me/lccommunity)
-[![Discord](https://img.shields.io/discord/803299970169700402?label=server&logo=discord)](https://discord.gg/3x8qNWxgGZ)
-[![GitHub Downloads](https://img.shields.io/github/downloads/LawnchairLauncher/lawnchair/total.svg?label=GitHub%20Downloads&logo=github)](https://github.com/LawnchairLauncher/lawnchair/releases)
-[![Play Store Installs](https://img.shields.io/endpoint?color=green&logo=googleplay&logoColor=green&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Dapp.lawnchair.play%26l%3DPlay%2520Store%2520Installs%26m%3D%24shortinstalls)](https://play.google.com/store/apps/details?id=app.lawnchair.play)
+Expressive Launcher L3 is an ordinary Android Home application built on the real
+Launcher3 architecture through [Lawnchair 16](https://github.com/LawnchairLauncher/lawnchair).
+It keeps Launcher3 authoritative for the workspace, favorites database, All Apps,
+folders, widgets, drag and drop, restore, profiles, and launcher state.
 
-> [!WARNING]
-> This branch contains major changes from the rebase of Launcher3, including changes that can cause
-> Lawnchair to crash or break.
->
-> For regular users, we recommend staying on *Lawnchair 15 Beta 3*.
+The product package is `dev.launcher.expressive.l3`. Debug builds add the normal
+`.debug` suffix and can coexist with both the archived prototype and upstream
+Lawnchair.
 
-<picture>
-    <!-- Avoid image being clickable with slight workaround -->
-    <!-- ❤️ Credit to simonppt for the current mockup on Unsplash 
-            https://unsplash.com/photos/a-white-flower-with-green-leaves-on-a-white-background-ojBNiaeykwc
-    -->
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/device-frame.webp" width="250px">
-    <img alt="A device running Lawnchair Launcher with green flower wallpaper" src="docs/assets/device-frame.webp" width="250px">
-</picture>
+## Foundation
 
-Lawnchair is a free, open-source home app for Android. Taking Launcher3—Android’s default home app—as a starting point, it ports Pixel Launcher features and introduces rich customization options.
+- Lawnchair baseline: `eed2baf4efe4cf49540cf4ec474942dc743b83cc`
+- AOSP Launcher3 Android 17 r1 source: `android-17.0.0_r1`
+- Shipping model: standard Home-role APK; SystemUI remains responsible for Recents
+  and system gesture navigation
+- UI architecture: Launcher3 Views for launcher-critical surfaces and Lawnchair
+  Compose for settings and auxiliary customization surfaces
 
-This branch houses the codebase of Lawnchair 16, which is currently in development and is based on Launcher3 from Android 16. For Lawnchair 9 to 15, see the branches with the `9-` to `15-` prefixes, respectively.
+The green product branch is `codex/launcher3-rebase`. The original bespoke launcher is
+preserved on `codex/archive-bespoke-2026-08-20` and is not copied into the shipping
+Launcher3 module.
 
-## Features
+The Android 17 core integration is staged separately on `codex/android17-port` so the
+working product baseline remains buildable throughout the upstream port. See
+[docs/ANDROID17_PORT.md](docs/ANDROID17_PORT.md) for exact provenance, the verified
+vendor bridge, conflict inventory, subsystem gates, and completion criteria. The
+presence of that bridge does not mean the Android 17 core merge is complete.
 
-- Material 3 Expressive theming that follows your wallpaper and system colors.
-- At a Glance widget support, with integration for [Smartspacer](https://github.com/KieronQuinn/Smartspacer).
-- QuickSwitch support for Android Recents integration on Android 10-15 (root required).
-- Global search for apps, contacts, and web results from the home screen.
-- Customization options for icon packs, fonts, and color settings.
+## Product customizations
 
-## Download
+- Lawnchair icon-pack infrastructure, custom masks, calendar icons, and Minimal icons
+- Lawnicons as the first-run default when installed, with System icons as fallback
+- Wallpaper-derived Material 3 Expressive colors and Lawnchair's live preview pipeline
+- Pixel-first Home settings with customization grouped under Advanced
+- Animated settings category glyphs that honor the system animation setting
+- Wallpaper & style handoff to the resolvable OEM/AOSP picker with system fallback
+- Lawnchair Smartspacer, QSB/search, profile, and Private Space extension points
+- A minimal transient All Apps scrollbar that overlays rather than resizing the grid
 
-<p align="left">
-  <a href="https://play.google.com/store/apps/details?id=app.lawnchair.play">
-    <picture>
-      <!-- Avoid image being clickable with slight workaround -->
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/badge-google-play.webp" height="60">
-      <img alt="Get it on Google Play" src="docs/assets/badge-google-play.webp" height="60">
-    </picture>
-  </a>
-  <a href="https://apt.izzysoft.de/fdroid/index/apk/app.lawnchair">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/badge-izzyondroid.webp" height="60">
-      <img alt="Get it on IzzyOnDroid" src="docs/assets/badge-izzyondroid.webp" height="60">
-    </picture>
-  </a>
-  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/LawnchairLauncher/lawnchair/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/badge-obtainium.webp" height="60">
-      <img alt="Get it on Obtainium" src="docs/assets/badge-obtainium.webp" height="60">
-    </picture>
-  </a>
-    <a href="https://github.com/LawnchairLauncher/lawnchair/releases">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/badge-github.webp" height="60">
-      <img alt="Get it on GitHub" src="docs/assets/badge-github.webp" height="60">
-    </picture>
-  </a>
-</p>
+## Build
 
-Lawnchair on Play Store will install as a different app compared to other sources. Features may be restricted to comply with Google Play’s publishing rules.
+The current development artifact is:
 
-You can also [verify your installation](https://docs.lawnchair.app/getting-started/install-and-setup/verify) to check if you have installed an official build.
+```sh
+./gradlew assembleLawnWithQuickstepExpressiveDebug
+```
 
-### Development builds
+Output:
 
-Interested in keeping yourself up-to-date with every Lawnchair development? Try our development builds!
+```text
+build/outputs/apk/lawnWithQuickstepExpressive/debug/
+  ExpressiveLauncherL3.16.Dev.(eed2baf).expressive.debug.apk
+```
 
-These builds offer the latest features and bug fixes at a cost of performance and additional issues. Make backups before installing.
+This source snapshot requires Android SDK 37.1 and Java 21-compatible compilation.
+The local verification environment builds with JDK 26 while targeting Java 21.
 
-Download: [Obtainium][Obtainium link] • [GitHub][GitHub link] • [nightly.link][Nightly link]
+## Verification policy
 
-## Sponsors
+Every Launcher3 port checkpoint must keep the branded baseline buildable and must not
+replace Launcher3 workspace/model behavior with a second implementation. Acceptance
+includes Home, All Apps, folders, drag/drop, widgets, restore, rotation, process death,
+profiles, icon packs, wallpaper color response, accessibility, and performance on an
+Android 17 Pixel 8 Pro or an equivalent disposable test target.
 
-<p align="left">
-  <a href="https://coderabbit.link/lawnchair">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/sponsor-coderabbit-dark.svg" width="300">
-      <img alt="CodeRabbit" src="docs/assets/sponsor-coderabbit-light.svg" width="300">
-    </picture>
-  </a>
-</p>
+AOSP Tradefed launcher tests can change global device state and must only run on a
+disposable AOSP test image, never on a personal device.
 
-[CodeRabbit](https://coderabbit.link/lawnchair) is an AI-powered code review platform that integrates directly into pull-request workflows and IDEs, examining code changes in context and suggesting improvements.
+## Upstream and licensing
 
-## Support Lawnchair
+Expressive Launcher L3 derives from:
 
-If you love what we do, consider [supporting us on Open Collective](https://opencollective.com/lawnchair)! Your contributions help keep Lawnchair independent and enable us to develop faster.
+- [Lawnchair](https://github.com/LawnchairLauncher/lawnchair), a Launcher3-based open
+  source launcher with extensive customization infrastructure
+- [AOSP Launcher3](https://android.googlesource.com/platform/packages/apps/Launcher3),
+  Android's reference Home implementation
 
-A huge thank you to our Core Backers ($5+):
-*(These backers directly fund our Project Velocity Fund)*
-
-[![Core Backers](https://opencollective.com/lawnchair/tiers/backer.svg?avatarHeight=64&width=890&button=false)](https://opencollective.com/lawnchair)
-
-[Become a supporter](https://opencollective.com/lawnchair) to help us cover our operational costs, or become a Core Backer to be featured here!
-
-## Contribute
-
-Visit the [Lawnchair contributing guidelines](CONTRIBUTING.md) for information and tips on contributing to Lawnchair.
-
-## Quick links
-
-- [Website](https://lawnchair.app)
-- [Documentation](https://docs.lawnchair.app/)
-- [News on Telegram](https://t.me/lawnchairci)
-- [Discord](https://discord.com/invite/3x8qNWxgGZ)
-- [X (formerly Twitter)](https://x.com/lawnchairapp)
-- [_XDA_ thread](https://xdaforums.com/t/lawnchair-customizable-pixel-launcher.3627137/)
-
-<!-- Download links -->
-[Nightly link]: https://nightly.link/LawnchairLauncher/lawnchair/workflows/ci/15-dev
-[Obtainium link]: https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22app.lawnchair.nightly%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Flawnchairlauncher%2Flawnchair%22%2C%22author%22%3A%22Lawnchair%20Launcher%22%2C%22name%22%3A%22Lawnchair%20(Debug)%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22fallbackToOlderReleases%5C%22%3Afalse%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22Lawnchair%20Nightly%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Afalse%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22Lawnchair%20is%20a%20free%2C%20open-source%20home%20app%20for%20Android.%20(NOTE%3A%20This%20is%20the%20debug%20version%20of%20Lawnchair%2C%20for%20the%20beta%2Fstable%20versions%20see%20%5C%5C%5C%22Lawnchair%5C%5C%5C%22)%5C%22%7D%22%7D
-[GitHub link]: https://github.com/LawnchairLauncher/lawnchair/releases/tag/nightly
+Upstream commit history and source notices are retained. Source files remain under
+their existing Apache License 2.0 headers, and the repository-level [LICENSE](LICENSE)
+continues to apply.
