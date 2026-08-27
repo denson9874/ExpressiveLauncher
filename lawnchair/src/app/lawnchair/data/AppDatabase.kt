@@ -15,7 +15,6 @@ import app.lawnchair.data.iconoverride.IconOverrideDao
 import app.lawnchair.data.wallpaper.Wallpaper
 import app.lawnchair.data.wallpaper.service.WallpaperDao
 import app.lawnchair.util.MainThreadInitializedObject
-import kotlinx.coroutines.runBlocking
 
 @Database(entities = [IconOverride::class, Wallpaper::class, FolderInfoEntity::class, FolderItemEntity::class], version = 3)
 @TypeConverters(Converters::class)
@@ -29,12 +28,6 @@ abstract class AppDatabase : RoomDatabase() {
         iconOverrideDao().checkpoint(SimpleSQLiteQuery("pragma wal_checkpoint(full)"))
         wallpaperDao().checkpoint(SimpleSQLiteQuery("pragma wal_checkpoint(full)"))
         folderDao().checkpoint(SimpleSQLiteQuery("pragma wal_checkpoint(full)"))
-    }
-
-    fun checkpointSync() {
-        runBlocking {
-            checkpoint()
-        }
     }
 
     companion object {

@@ -129,13 +129,14 @@ class LawnchairApp : LauncherApplication() {
         }
     }
 
-    fun cleanUpDatabases() {
-        val idp = InvariantDeviceProfile.INSTANCE.get(this)
-        val dbName = idp.dbFile
-        val dbFile = getDatabasePath(dbName)
+    fun cleanUpDatabases(activeDbName: String) {
+        val dbFile = getDatabasePath(activeDbName)
         dbFile?.parentFile?.listFiles()?.forEach { file ->
             val name = file.name
-            if (name.startsWith("launcher") && !name.startsWith(dbName)) {
+            // Use the open helper's database name, not a freshly recalculated grid name. During
+            // first launch those can briefly differ; deleting the helper's open file makes SQLite
+            // reject its next write with SQLITE_READONLY_DBMOVED.
+            if (shouldDeleteLauncherDatabaseFile(name, activeDbName)) {
                 file.delete()
             }
         }
@@ -282,5 +283,9 @@ class LawnchairApp : LauncherApplication() {
         }
     }
 }
+
+internal fun shouldDeleteLauncherDatabaseFile(fileName: String, activeDbName: String): Boolean = fileName.startsWith("launcher") &&
+    fileName != activeDbName &&
+    !fileName.startsWith("$activeDbName-")
 
 val Context.lawnchairApp get() = applicationContext as LawnchairApp

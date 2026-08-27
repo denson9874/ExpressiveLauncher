@@ -16,10 +16,13 @@
 
 package com.android.quickstep.util
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.contextualsearch.ContextualSearchManager
 import android.app.contextualsearch.ContextualSearchManager.ENTRYPOINT_LONG_PRESS_HOME
 import android.app.contextualsearch.ContextualSearchManager.FEATURE_CONTEXTUAL_SEARCH
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
 import android.view.Display.DEFAULT_DISPLAY
 import androidx.annotation.VisibleForTesting
@@ -86,7 +89,10 @@ internal constructor(
     /** @return Array of AssistUtils.INVOCATION_TYPE_* that we want to handle instead of SysUI. */
     fun getSysUiAssistOverrideInvocationTypes(): IntArray {
         val overrideInvocationTypes = com.android.launcher3.util.IntArray()
-        if (context.packageManager.hasSystemFeature(FEATURE_CONTEXTUAL_SEARCH)) {
+        if (
+            context.packageManager.hasSystemFeature(FEATURE_CONTEXTUAL_SEARCH) &&
+                hasContextualSearchPermission()
+        ) {
             overrideInvocationTypes.add(AssistUtils.INVOCATION_TYPE_HOME_BUTTON_LONG_PRESS)
         }
         return overrideInvocationTypes.toArray()
@@ -98,8 +104,12 @@ internal constructor(
      */
     fun tryStartAssistOverride(invocationType: Int): Boolean {
         if (invocationType == AssistUtils.INVOCATION_TYPE_HOME_BUTTON_LONG_PRESS) {
-            if (!context.packageManager.hasSystemFeature(FEATURE_CONTEXTUAL_SEARCH)) {
-                // When Contextual Search is disabled, fall back to Assistant.
+            if (
+                !context.packageManager.hasSystemFeature(FEATURE_CONTEXTUAL_SEARCH) ||
+                    !hasContextualSearchPermission()
+            ) {
+                // When Contextual Search is disabled or unavailable to this package, fall back to
+                // Assistant instead of swallowing the long-press action.
                 return false
             }
 
@@ -146,6 +156,14 @@ internal constructor(
                 !context.packageManager.hasSystemFeature(FEATURE_CONTEXTUAL_SEARCH)
         ) {
             Log.i(TAG, "Contextual Search invocation failed: no ContextualSearchManager")
+            statsLogManager.logger().log(LAUNCHER_LAUNCH_ASSISTANT_FAILED_SERVICE_ERROR)
+            return false
+        }
+        // Contextual Search is a System API protected by a signature permission. Expressive is a
+        // normal Home-role app, so it must fail closed instead of invoking the service and relying
+        // on a SecurityException. Platform-signed launcher builds continue to work when granted.
+        if (!hasContextualSearchPermission()) {
+            Log.i(TAG, "Contextual Search invocation failed: permission unavailable")
             statsLogManager.logger().log(LAUNCHER_LAUNCH_ASSISTANT_FAILED_SERVICE_ERROR)
             return false
         }
@@ -201,6 +219,7 @@ internal constructor(
         entryPoint: Int,
         withHaptic: Boolean = false,
     ): Boolean {
+        if (!hasContextualSearchPermission()) return false
         if (withHaptic && DeviceConfigWrapper.get().enableSearchHapticCommit) {
             contextualSearchHapticManager.vibrateForSearch()
         }
@@ -211,12 +230,32 @@ internal constructor(
         if (recentsContainerInterface?.isInLiveTileMode() == true) {
             Log.i(TAG, "Contextual Search invocation attempted: live tile")
             endLiveTileMode(recentsContainerInterface) {
-                contextualSearchManager.startContextualSearch(entryPoint)
+                startContextualSearchSafely(contextualSearchManager, entryPoint)
             }
         } else {
-            contextualSearchManager.startContextualSearch(entryPoint)
+            return startContextualSearchSafely(contextualSearchManager, entryPoint)
         }
         return true
+    }
+
+    private fun hasContextualSearchPermission(): Boolean =
+        context.checkSelfPermission(Manifest.permission.ACCESS_CONTEXTUAL_SEARCH) ==
+            PackageManager.PERMISSION_GRANTED
+
+    @SuppressLint("MissingPermission")
+    private fun startContextualSearchSafely(
+        manager: ContextualSearchManager,
+        entryPoint: Int,
+    ): Boolean {
+        // The only caller is dominated by hasContextualSearchPermission(). Keep a defensive catch
+        // because package privileges can change when a system package is replaced.
+        return try {
+            manager.startContextualSearch(entryPoint)
+            true
+        } catch (exception: SecurityException) {
+            Log.w(TAG, "Contextual Search permission was revoked before invocation", exception)
+            false
+        }
     }
 
     private fun isInSplitscreen(): Boolean {

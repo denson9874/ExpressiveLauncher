@@ -34,7 +34,6 @@ import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairApp.Companion.showQuickstepWarningIfNecessary
 import app.lawnchair.compat.LawnchairQuickstepCompat
 import app.lawnchair.data.AppDatabase
-import app.lawnchair.data.wallpaper.service.WallpaperService
 import app.lawnchair.gestures.GestureController
 import app.lawnchair.gestures.VerticalSwipeTouchController
 import app.lawnchair.gestures.config.GestureHandlerConfig
@@ -86,10 +85,10 @@ import com.android.launcher3.widget.LauncherWidgetHolder
 import com.android.launcher3.widget.RoundedCornerEnforcement
 import com.android.systemui.plugins.shared.LauncherOverlayManager
 import com.android.systemui.shared.system.QuickStepContract
-import com.kieronquinn.app.smartspacer.sdk.client.SmartspacerClient
 import com.patrykmichalik.opto.core.onEach
 import dev.kdrag0n.monet.theme.ColorScheme
 import java.util.stream.Stream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -194,7 +193,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             }
         }.launchIn(scope = lifecycleScope)
 
-        preferenceManager2.statusBarClock.get().onEach {
+        preferenceManager2.statusBarClock.get().distinctUntilChanged().onEach {
             with(launcher.stateManager) {
                 if (it) {
                     addStateListener(statusBarClockListener)
@@ -204,7 +203,7 @@ class LawnchairLauncher : QuickstepLauncher() {
                     LawnchairApp.instance.restoreClockInStatusBar()
                 }
             }
-        }
+        }.launchIn(scope = lifecycleScope)
         preferenceManager2.rememberPosition.get().onEach {
             with(launcher.stateManager) {
                 if (it) {
@@ -249,7 +248,10 @@ class LawnchairLauncher : QuickstepLauncher() {
 
         reloadIconsIfNeeded()
 
-        AppDatabase.INSTANCE.get(this).checkpointSync()
+        // WAL checkpointing can wait on disk I/O and must never block Launcher.onCreate().
+        lifecycleScope.launch(Dispatchers.IO) {
+            AppDatabase.INSTANCE.get(this@LawnchairLauncher).checkpoint()
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -372,17 +374,22 @@ class LawnchairLauncher : QuickstepLauncher() {
     ): OptionsPopupView<T>? where T : Context?, T : ActivityContext? {
         if (activityContext == null) return null
 
-        val isEmpty = WallpaperService.INSTANCE.get(this).getTopWallpapers().isEmpty()
-        val layout = if (isEmpty) R.layout.longpress_options_menu else R.layout.wallpaper_options_popup
-
-        val popup = activityContext.layoutInflater.inflate(layout, activityContext.dragLayer, false) as OptionsPopupView<T>
+        // The preview itself is always useful, even before the wallpaper-history database has
+        // populated. Tying the layout to an initially-empty async Room cache made the entire
+        // carousel disappear on clean installs and during cold startup.
+        val popup = activityContext.layoutInflater.inflate(
+            R.layout.wallpaper_options_popup,
+            activityContext.dragLayer,
+            false,
+        ) as OptionsPopupView<T>
         popup.setTargetRect(targetRect)
         popup.setShouldAddArrow(shouldAddArrow)
 
         for (item in items) {
-            val deepLayout = if (isEmpty) R.layout.system_shortcut else R.layout.wallpaper_options_popup_item
-
-            val view = popup.inflateAndAdd<DeepShortcutView>(deepLayout, popup)
+            val view = popup.inflateAndAdd<DeepShortcutView>(
+                R.layout.wallpaper_options_popup_item,
+                popup,
+            )
             if (width > 0) view.layoutParams.width = width
             view.iconView.setBackgroundDrawable(item.icon)
             view.bubbleText.text = item.label
@@ -495,12 +502,6 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onStateSetEnd(state: LauncherState) {
         super.onStateSetEnd(state)
         refreshPredictionContainersFromModel()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        // Only actually closes if required, safe to call if not enabled
-        SmartspacerClient.close()
     }
 
     override fun getDefaultOverlay(): LauncherOverlayManager = defaultOverlay

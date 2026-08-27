@@ -59,8 +59,6 @@ import java.util.stream.Stream;
 
 import javax.inject.Inject;
 
-import app.lawnchair.preferences2.PreferenceManager2;
-
 /**
  * Widgets data model that is used by the adapters of the widget views and controllers.
  *
@@ -75,7 +73,10 @@ public class WidgetsModel {
     private final Map<PackageItemInfo, List<WidgetItem>> mWidgetsByPackageItem = new HashMap<>();
     @Nullable private WidgetValidityCheckForPicker mWidgetValidityCheckForPicker = null;
 
-    private static Context mContext = null;
+    // Each model must retain the application context it was built with. This was accidentally
+    // static after the Lawnchair/AOSP merge, so constructing a preview or secondary picker model
+    // could replace the live launcher's context and corrupt later provider/catalog refreshes.
+    private final Context mContext;
     private final InvariantDeviceProfile mIdp;
     private final IconCache mIconCache;
     private final AppFilter mAppFilter;
@@ -300,12 +301,10 @@ public class WidgetsModel {
 
         private final InvariantDeviceProfile mIdp;
         private final AppFilter mAppFilter;
-        private PreferenceManager2 prefs;
 
         WidgetValidityCheckForPicker(InvariantDeviceProfile idp, AppFilter appFilter) {
             mIdp = idp;
             mAppFilter = appFilter;
-            prefs = PreferenceManager2.getInstance(mContext);
         }
 
         @Override

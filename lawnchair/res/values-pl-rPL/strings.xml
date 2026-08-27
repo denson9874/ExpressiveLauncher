@@ -808,7 +808,7 @@
     <string name="permissions_external_storage_description">To search your files, <xliff:g id="name" example="My App">%1$s</xliff:g> needs permission to access your device\'s external storage</string>
     <string name="permissions_manage_storage">Wymagany dostęp do pamięci zewnętrznej</string>
     <string name="permissions_manage_storage_description">Aby wyświetlać Twoje pliki w wynikach wyszukiwania, <xliff:g id="name" example="My App">%1$s</xliff:g> wymaga uprawnienia do zarządzania wszystkimi plikami na Twoim urządzeniu. To uprawnienie służy wyłącznie do wyświetlania listy plików i nie będzie używane do odczytywania ani zmieniania zawartości Twoich plików osobistych.</string>
-    <string name="permission_desc_wallpaper_base">Aby wyświetlać podglądy tapet oraz uwzględniać je w kopiach zapasowych, &lt;xliff:g id="name" example="My App"&gt;%1s\&lt;/xliff:g\&gt; wymaga uprawnienia %2s. Wynika to z ograniczeń systemowych dotyczących dostępu do danych tapety.</string>
+    <string name="permission_desc_wallpaper_base">Aby wyświetlać podglądy tapet oraz uwzględniać je w kopiach zapasowych, <xliff:g id="name" example="My App">%1$s</xliff:g> wymaga uprawnienia %2$s. Wynika to z ograniczeń systemowych dotyczących dostępu do danych tapety.</string>
     <string name="permission_desc_ending_read_all_files">aby odczytać wszystkie pliki na Twoim urządzeniu</string>
     <string name="permission_desc_ending_manage_all_files">aby zarządzać wszystkimi plikami na twoim urządzeniu</string>
     <string name="permission_desc_wallpaper_multiple">Wymagane jest wiele uprawnień</string>

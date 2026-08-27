@@ -41,6 +41,6 @@ class LawnchairLayoutFactory(context: Context) :
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        // No listeners are registered; views own their lifecycle-bound font jobs.
     }
 }

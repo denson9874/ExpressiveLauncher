@@ -117,3 +117,7 @@ include ':dagger'
 include ':concurrent'
 //include ':compose'
 include ':modules:widgetpicker'
+
+// Google Discover only accepts a privileged/system launcher or a debuggable bridge process.
+// Keep that narrowly scoped bridge in its own APK so the launcher itself remains non-debuggable.
+include ':expressiveFeed'

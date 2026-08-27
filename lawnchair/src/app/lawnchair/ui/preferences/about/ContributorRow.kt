@@ -51,20 +51,20 @@ fun ContributorRow(
     member: TeamMember,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val statusText = when (member.status) {
         ContributorStatus.Active -> stringResource(R.string.contributor_status_active)
         ContributorStatus.Idle -> ""
     }
-
-    val context = LocalContext.current
-    val description = "${
-        stringResource(member.role.descriptionResId)
-    } ${if (member.status == ContributorStatus.Active && statusText.isNotBlank()) "• $statusText" else ""}"
+    val roleText = stringResource(member.role.descriptionResId)
+    val description = if (statusText.isBlank()) roleText else "$roleText • $statusText"
+    val photoModel: Any = member.photoResId
+        ?: requireNotNull(member.photoUrl) { "A contributor must provide a photo resource or URL" }
 
     ContributorRow(
         name = member.name,
         description = description,
-        photoUrl = member.photoUrl,
+        photoModel = photoModel,
         onClick = {
             val webpage = member.socialUrl.toUri()
             val intent = Intent(Intent.ACTION_VIEW, webpage)
@@ -80,8 +80,8 @@ fun ContributorRow(
  * Displays a row with contributor information.
  *
  * @param name The name of the contributor.
- * @param description The role and status of the contributor.
- * @param photoUrl The URL of the contributor's photo.
+ * @param description The contributor's role and optional activity status.
+ * @param photoModel A Coil-supported bundled resource or remote photo URL.
  * @param onClick The action to perform when the row is clicked.
  * @param modifier Optional [Modifier] for customization.
  */
@@ -90,7 +90,7 @@ fun ContributorRow(
 fun ContributorRow(
     name: String,
     description: String,
-    photoUrl: String,
+    photoModel: Any,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -104,24 +104,28 @@ fun ContributorRow(
             )
         },
         startWidget = {
-            SubcomposeAsyncImage(
-                model = photoUrl,
-                contentDescription = null,
+            Box(
                 modifier = Modifier
-                    .clip(CircleShape)
                     .size(32.dp)
+                    .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceContainer),
-                loading = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .placeholder(
-                                visible = true,
-                                highlight = PlaceholderHighlight.fade(),
-                            ),
-                    )
-                },
-            )
+            ) {
+                SubcomposeAsyncImage(
+                    model = photoModel,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .placeholder(
+                                    visible = true,
+                                    highlight = PlaceholderHighlight.fade(),
+                                ),
+                        )
+                    },
+                )
+            }
         },
     )
 }

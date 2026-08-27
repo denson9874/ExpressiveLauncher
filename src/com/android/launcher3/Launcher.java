@@ -850,8 +850,10 @@ public class Launcher extends StatefulActivity<LauncherState>
 
         if (requestCode == REQUEST_BIND_APPWIDGET) {
             // This is called only if the user did not previously have permissions to bind widgets
-            final int appWidgetId = data != null ?
-                    data.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1) : -1;
+            // The platform's cancellation result commonly has a null Intent. The old code then
+            // passed -1 to completeTwoStageWidgetDrop, leaking the real ID allocated before the
+            // consent screen was launched. Always fall back to the pending request's widget ID.
+            final int appWidgetId = getAppWidgetIdFromResult(data, pendingAddWidgetId);
             if (resultCode == RESULT_CANCELED) {
                 completeTwoStageWidgetDrop(RESULT_CANCELED, appWidgetId, requestArgs);
                 mWorkspace.removeExtraEmptyScreenDelayed(
@@ -870,14 +872,7 @@ public class Launcher extends StatefulActivity<LauncherState>
 
         // We have special handling for widgets
         if (isWidgetDrop) {
-            final int appWidgetId;
-            int widgetId = data != null ? data.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-                    : -1;
-            if (widgetId < 0) {
-                appWidgetId = pendingAddWidgetId;
-            } else {
-                appWidgetId = widgetId;
-            }
+            final int appWidgetId = getAppWidgetIdFromResult(data, pendingAddWidgetId);
 
             final int result;
             if (appWidgetId < 0 || resultCode == RESULT_CANCELED) {
@@ -939,6 +934,20 @@ public class Launcher extends StatefulActivity<LauncherState>
         }
 
         mDragLayer.clearAnimatedView();
+    }
+
+    /** Returns the platform result ID, or the ID allocated before launching the external flow. */
+    @VisibleForTesting
+    static int getAppWidgetIdFromResult(@Nullable Intent data, int pendingAppWidgetId) {
+        if (data == null) {
+            return pendingAppWidgetId;
+        }
+        int resultAppWidgetId = data.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID);
+        return resultAppWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID
+                ? pendingAppWidgetId
+                : resultAppWidgetId;
     }
 
     @Override

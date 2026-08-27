@@ -39,9 +39,11 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.annotation.WorkerThread;
 
 import com.android.launcher3.AutoInstallsLayout;
+import com.android.launcher3.BuildConfig;
 import com.android.launcher3.ConstantItem;
 import com.android.launcher3.DefaultLayoutParser;
 import com.android.launcher3.EncryptionType;
@@ -622,7 +624,8 @@ public class ModelDbController {
         createDbIfNotExists();
 
         if (!(mContext instanceof PreviewContext)) {
-            LawnchairAppKt.getLawnchairApp(mContext).cleanUpDatabases();
+            LawnchairAppKt.getLawnchairApp(mContext).cleanUpDatabases(
+                    mOpenHelper.getDatabaseName());
         }
 
         if (mPrefs.get(getEmptyDbCreatedKey())) {
@@ -630,8 +633,14 @@ public class ModelDbController {
 
             LauncherWidgetHolder widgetHolder = mOpenHelper.newLauncherWidgetHolder();
             try {
-                AutoInstallsLayout loader =
-                        mLayoutParserFactory.createExternalLayoutParser(widgetHolder, mOpenHelper);
+                // Expressive promises Pixel-style first-run defaults. System-image partner and
+                // auto-install providers are device/vendor policy, and can otherwise replace the
+                // bundled layout (the Play Store AVD supplied a carrier dock during QA).
+                AutoInstallsLayout loader = shouldUseExternalDefaultLayout(
+                        BuildConfig.IS_EXPRESSIVE_PRODUCT)
+                                ? mLayoutParserFactory.createExternalLayoutParser(
+                                        widgetHolder, mOpenHelper)
+                                : null;
 
                 final boolean usingExternallyProvidedLayout = loader != null;
                 if (loader == null) {
@@ -669,6 +678,11 @@ public class ModelDbController {
     private DefaultLayoutParser getDefaultLayoutParser(LauncherWidgetHolder widgetHolder) {
         return new DefaultLayoutParser(mContext, widgetHolder,
                 mOpenHelper, mContext.getResources(), mIdp.defaultLayoutId);
+    }
+
+    @VisibleForTesting
+    static boolean shouldUseExternalDefaultLayout(boolean isExpressiveProduct) {
+        return !isExpressiveProduct;
     }
 
     private ConstantItem<Boolean> getEmptyDbCreatedKey() {

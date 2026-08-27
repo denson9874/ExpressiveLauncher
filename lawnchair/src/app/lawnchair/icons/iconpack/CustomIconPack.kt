@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.content.res.XmlResourceParser
 import android.graphics.drawable.Drawable
+import android.util.Log
 import android.util.Xml
 import app.lawnchair.icons.ClockMetadata
 import app.lawnchair.icons.ExtendedBitmapDrawable
@@ -17,6 +18,7 @@ import app.lawnchair.icons.picker.IconPickerItem
 import app.lawnchair.icons.picker.IconType
 import com.android.launcher3.R
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -33,7 +35,7 @@ class CustomIconPack(context: Context, packPackageName: String) : IconPack(conte
     private val clockMap = mutableMapOf<ComponentName, IconEntry>()
     private val clockMetas = mutableMapOf<IconEntry, ClockMetadata>()
 
-    private val idCache = mutableMapOf<String, Int>()
+    private val idCache = ConcurrentHashMap<String, Int>()
 
     override val label = context.packageManager.let { pm ->
         pm.getApplicationInfo(packPackageName, 0).loadLabel(pm).toString()
@@ -73,11 +75,8 @@ class CustomIconPack(context: Context, packPackageName: String) : IconPack(conte
     }
 
     override fun loadInternal() {
-        val parseXml = getXml("appfilter") ?: return
-        val compStart = "ComponentInfo{"
-        val compStartLength = compStart.length
-        val compEnd = "}"
-        val compEndLength = compEnd.length
+        val source = getXml("appfilter") ?: return
+        val parseXml = source.parser
         try {
             while (parseXml.next() != XmlPullParser.END_DOCUMENT) {
                 if (parseXml.eventType != XmlPullParser.START_TAG) continue
@@ -88,10 +87,8 @@ class CustomIconPack(context: Context, packPackageName: String) : IconPack(conte
                         var componentName: String? = parseXml["component"]
                         val drawableName = parseXml[if (isCalendar) "prefix" else "drawable"]
                         if (componentName != null && drawableName != null) {
-                            if (componentName.startsWith(compStart) && componentName.endsWith(compEnd)) {
-                                componentName = componentName.substring(compStartLength, componentName.length - compEndLength)
-                            }
-                            val parsed = ComponentName.unflattenFromString(componentName)
+                            componentName = normalizeIconPackComponentName(componentName)
+                            val parsed = componentName?.let(ComponentName::unflattenFromString)
                             if (parsed != null) {
                                 if (isCalendar) {
                                     calendarMap[parsed] = IconEntry(packPackageName, drawableName, IconType.Calendar)
@@ -125,13 +122,15 @@ class CustomIconPack(context: Context, packPackageName: String) : IconPack(conte
                 }
             }
         } catch (e: PackageManager.NameNotFoundException) {
-            e.printStackTrace()
+            Log.w(TAG, "Icon pack was removed while parsing: $packPackageName", e)
         } catch (e: XmlPullParserException) {
-            e.printStackTrace()
+            Log.w(TAG, "Malformed appfilter in icon pack: $packPackageName", e)
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w(TAG, "Unable to read appfilter in icon pack: $packPackageName", e)
         } catch (e: IllegalStateException) {
-            e.printStackTrace()
+            Log.w(TAG, "Invalid appfilter state in icon pack: $packPackageName", e)
+        } finally {
+            source.close()
         }
     }
 
@@ -152,47 +151,64 @@ class CustomIconPack(context: Context, packPackageName: String) : IconPack(conte
             emit(ArrayList(result))
         }
 
-        val parser = getXml("drawable")
-        while (parser != null && parser.next() != XmlPullParser.END_DOCUMENT) {
-            if (parser.eventType != XmlPullParser.START_TAG) continue
-            when (parser.name) {
-                "category" -> {
-                    val title = parser["title"] ?: continue
-                    endCategory()
-                    currentTitle = title
-                }
+        val source = getXml("drawable")
+        val parser = source?.parser
+        try {
+            while (parser != null && parser.next() != XmlPullParser.END_DOCUMENT) {
+                if (parser.eventType != XmlPullParser.START_TAG) continue
+                when (parser.name) {
+                    "category" -> {
+                        val title = parser["title"] ?: continue
+                        endCategory()
+                        currentTitle = title
+                    }
 
-                "item" -> {
-                    val drawableName = parser["drawable"] ?: continue
-                    val resId = getDrawableId(drawableName)
-                    if (resId != 0) {
-                        val item = IconPickerItem(packPackageName, drawableName, drawableName, IconType.Normal)
-                        currentItems.add(item)
+                    "item" -> {
+                        val drawableName = parser["drawable"] ?: continue
+                        val resId = getDrawableId(drawableName)
+                        if (resId != 0) {
+                            val item = IconPickerItem(packPackageName, drawableName, drawableName, IconType.Normal)
+                            currentItems.add(item)
+                        }
                     }
                 }
             }
+        } catch (e: XmlPullParserException) {
+            Log.w(TAG, "Malformed drawable list in icon pack: $packPackageName", e)
+        } catch (e: IOException) {
+            Log.w(TAG, "Unable to read drawable list in icon pack: $packPackageName", e)
+        } finally {
+            source?.close()
         }
         endCategory()
     }.flowOn(Dispatchers.IO)
 
     @SuppressLint("DiscouragedApi")
-    private fun getDrawableId(name: String) = idCache.getOrPut(name) {
+    private fun getDrawableId(name: String) = idCache.computeIfAbsent(name) {
         packResources.getIdentifier(name, "drawable", packPackageName)
     }
 
-    private fun getXml(name: String): XmlPullParser? {
+    private fun getXml(name: String): XmlSource? {
         val res: Resources
         try {
             res = context.packageManager.getResourcesForApplication(packPackageName)
             @SuppressLint("DiscouragedApi")
             val resourceId = res.getIdentifier(name, "xml", packPackageName)
             return if (0 != resourceId) {
-                context.packageManager.getXml(packPackageName, resourceId, null)
+                val parser = context.packageManager.getXml(packPackageName, resourceId, null)
+                    ?: return null
+                XmlSource(parser, parser::close)
             } else {
                 val factory = XmlPullParserFactory.newInstance()
                 val parser = factory.newPullParser()
-                parser.setInput(res.assets.open("$name.xml"), Xml.Encoding.UTF_8.toString())
-                parser
+                val input = res.assets.open("$name.xml")
+                try {
+                    parser.setInput(input, Xml.Encoding.UTF_8.toString())
+                    XmlSource(parser, input::close)
+                } catch (throwable: Throwable) {
+                    input.close()
+                    throw throwable
+                }
             }
         } catch (_: PackageManager.NameNotFoundException) {
         } catch (_: IOException) {
@@ -200,6 +216,29 @@ class CustomIconPack(context: Context, packPackageName: String) : IconPack(conte
         }
         return null
     }
+
+    private companion object {
+        const val TAG = "CustomIconPack"
+    }
+
+    private class XmlSource(
+        val parser: XmlPullParser,
+        val close: () -> Unit,
+    )
 }
 
 private operator fun XmlPullParser.get(key: String): String? = this.getAttributeValue(null, key)
+
+internal fun normalizeIconPackComponentName(rawValue: String): String? {
+    val value = rawValue.trim()
+    if (value.isEmpty()) return null
+    val prefix = "ComponentInfo{"
+    val suffix = "}"
+    return if (value.startsWith(prefix) && value.endsWith(suffix)) {
+        // Some icon packs contain an empty ComponentInfo wrapper. Returning it as a
+        // flattened component lets malformed metadata leak into the lookup table.
+        value.substring(prefix.length, value.length - suffix.length).trim().ifEmpty { null }
+    } else {
+        value
+    }
+}

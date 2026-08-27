@@ -8,13 +8,11 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Point;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Handler.Callback;
 import android.os.Looper;
 import android.os.Message;
-import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.Window;
@@ -24,7 +22,6 @@ import android.view.WindowManager.LayoutParams;
 import androidx.annotation.NonNull;
 
 import app.lawnchair.FeedBridge;
-import app.lawnchair.FeedBridge.BridgeInfo;
 import java.lang.ref.WeakReference;
 
 public class LauncherClient {
@@ -36,10 +33,16 @@ public class LauncherClient {
     public final BaseClientService mBaseService;
     public final LauncherClientService mLauncherService;
 
-    public final BroadcastReceiver googleInstallListener = new BroadcastReceiver() {
+    public final BroadcastReceiver feedPackageListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            reconnect();
+            String changedPackage = intent.getData() != null
+                    ? intent.getData().getSchemeSpecificPart()
+                    : null;
+            if (FeedBridge.Companion.getInstance(context)
+                    .shouldReconnectForPackage(changedPackage)) {
+                reconnect();
+            }
         }
     };
 
@@ -129,10 +132,15 @@ public class LauncherClient {
         mLauncherService.mClient = new WeakReference<>(this);
         mOverlay = mLauncherService.mOverlay;
 
-        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
         intentFilter.addDataScheme("package");
-        intentFilter.addDataSchemeSpecificPart("com.google.android.googlequicksearchbox", 0);
-        mActivity.registerReceiver(googleInstallListener, intentFilter);
+        // A feed companion can be installed, upgraded, or removed while Launcher remains alive.
+        // Listen for each transition and let FeedBridge filter to relevant provider packages.
+        mActivity.registerReceiver(feedPackageListener, intentFilter, Context.RECEIVER_EXPORTED);
 
         if (apiVersion <= 0) {
             loadApiVersion(activity);
@@ -231,7 +239,7 @@ public class LauncherClient {
     public void onDestroy() {
         mDestroyed = true;
         try {
-            mActivity.unregisterReceiver(googleInstallListener);
+            mActivity.unregisterReceiver(feedPackageListener);
         } catch (Exception ignored) {
             // LC-Ignored
         }
@@ -254,6 +262,7 @@ public class LauncherClient {
     public void reconnect() {
         mBaseService.disconnect();
         mLauncherService.disconnect();
+        mLauncherService.clearOverlay();
         LauncherClient.loadApiVersion(mActivity);
         if ((mActivityState & 2) != 0) {
             connect();
@@ -418,23 +427,10 @@ public class LauncherClient {
         }
     }
 
-    static Intent getIntent(Context context, boolean proxy) {
-        BridgeInfo bridgeInfo = proxy ? FeedBridge.Companion.getInstance(context).resolveBridge() : null;
-        String pkg = context.getPackageName();
-        return new Intent("com.android.launcher3.WINDOW_OVERLAY")
-                .setPackage(bridgeInfo != null ? bridgeInfo.getPackageName() : "com.google.android.googlequicksearchbox")
-                .setData(Uri.parse("app://" +
-                                pkg +
-                                ":" +
-                                Process.myUid())
-                        .buildUpon()
-                        .appendQueryParameter("v", Integer.toString(7))
-                        .appendQueryParameter("cv", Integer.toString(9))
-                        .build());
-    }
-
     private static void loadApiVersion(Context context) {
-        ResolveInfo resolveService = context.getPackageManager().resolveService(getIntent(context, false), PackageManager.GET_META_DATA);
+        ResolveInfo resolveService = context.getPackageManager().resolveService(
+                FeedBridge.createOverlayIntent(context, FeedBridge.GOOGLE_APP_PACKAGE),
+                PackageManager.GET_META_DATA);
         apiVersion = resolveService == null || resolveService.serviceInfo.metaData == null ?
                 1 :
                 resolveService.serviceInfo.metaData.getInt("service.api.version", 1);

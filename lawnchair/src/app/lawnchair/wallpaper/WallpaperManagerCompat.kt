@@ -18,7 +18,10 @@ sealed class WallpaperManagerCompat(val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val colorHints: Int get() = wallpaperColors?.colorHints ?: 0
     val wallpaperManager: WallpaperManager = context.requireSystemService()
-    val service = WallpaperService(context)
+
+    // Reuse the application-scoped service so its Room observer has one lifecycle and can be
+    // closed by the Launcher component instead of leaking a second unmanaged instance.
+    val service = WallpaperService.INSTANCE.get(context)
 
     abstract val wallpaperColors: WallpaperColorsCompat?
 
@@ -36,7 +39,7 @@ sealed class WallpaperManagerCompat(val context: Context) {
         // Querying/saving wallpapers touches Room, so keep it off the main thread
         // (notifyChange is invoked from the WallpaperManager color callback on the main looper).
         scope.launch {
-            if (service.getTopWallpapers().isEmpty()) {
+            if (service.canCaptureCurrentWallpaper()) {
                 service.saveWallpaper(wallpaperManager)
             }
         }

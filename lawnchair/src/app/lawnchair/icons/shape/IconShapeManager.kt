@@ -46,7 +46,7 @@ class IconShapeManager @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        // The system mask is immutable and this singleton owns no registrations.
     }
 
     companion object {

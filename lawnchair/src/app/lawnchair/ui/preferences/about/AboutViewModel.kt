@@ -16,6 +16,77 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.create
 
+/** Product-owned destinations shown by the About screen. */
+internal object AboutDestinations {
+    const val GITHUB_PROFILE_URL = "https://github.com/denson9874"
+    const val PAYPAL_PAYMENT_URL = "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2"
+
+    /**
+     * Debug builds append `.debug` to the production package ID. Removing only that known suffix
+     * keeps the News tile aimed at the production Play listing during device QA.
+     */
+    fun playStoreListingUrl(applicationId: String): String = "https://play.google.com/store/apps/details?id=${applicationId.removeSuffix(".debug")}"
+}
+
+internal fun expressiveProductOwners(): List<TeamMember> = listOf(
+    TeamMember(
+        name = "Daryl Denson",
+        role = Role.DesignAndDevelopment,
+        photoResId = R.drawable.about_daryl_denson,
+        socialUrl = AboutDestinations.GITHUB_PROFILE_URL,
+    ),
+)
+
+internal fun expressiveProductLinks(applicationId: String): List<Link> = listOf(
+    Link(
+        iconResId = R.drawable.ic_new_releases,
+        labelResId = R.string.news,
+        url = AboutDestinations.playStoreListingUrl(applicationId),
+    ),
+    Link(
+        iconResId = R.drawable.ic_help,
+        labelResId = R.string.support,
+        url = AboutDestinations.GITHUB_PROFILE_URL,
+    ),
+    Link(
+        iconResId = R.drawable.ic_github,
+        labelResId = R.string.github,
+        url = AboutDestinations.GITHUB_PROFILE_URL,
+    ),
+    Link(
+        iconResId = R.drawable.ic_donate,
+        labelResId = R.string.donate,
+        url = AboutDestinations.PAYPAL_PAYMENT_URL,
+    ),
+)
+
+internal data class AboutBranding(
+    val coreTeam: List<TeamMember>,
+    val supportAndPr: List<TeamMember>,
+    val topLinks: List<Link>,
+    val bottomLinks: List<Link>,
+)
+
+/** Keeps Expressive ownership isolated without changing attribution in sibling Lawnchair builds. */
+internal fun aboutBranding(
+    isExpressiveProduct: Boolean,
+    applicationId: String,
+): AboutBranding = if (isExpressiveProduct) {
+    AboutBranding(
+        coreTeam = expressiveProductOwners(),
+        supportAndPr = emptyList(),
+        topLinks = expressiveProductLinks(applicationId),
+        bottomLinks = emptyList(),
+    )
+} else {
+    AboutBranding(
+        coreTeam = lawnchairTeam,
+        supportAndPr = lawnchairSupportAndPr,
+        topLinks = lawnchairTopLinks,
+        bottomLinks = lawnchairBottomLinks,
+    )
+}
+
 class AboutViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
@@ -35,6 +106,10 @@ class AboutViewModel(
     val updateState = nightlyBuildsRepository.updateState
 
     init {
+        val branding = aboutBranding(
+            isExpressiveProduct = BuildConfig.IS_EXPRESSIVE_PRODUCT,
+            applicationId = BuildConfig.APPLICATION_ID,
+        )
         uiState.update {
             it.copy(
                 versionName = if (prefs.hideVersionInfo.get()) {
@@ -43,25 +118,33 @@ class AboutViewModel(
                     BuildConfig.VERSION_NAME
                 },
                 commitHash = BuildConfig.COMMIT_HASH,
-                coreTeam = team,
-                supportAndPr = supportAndPr,
-                topLinks = topLinks,
-                bottomLinks = bottomLinks,
+                coreTeam = branding.coreTeam,
+                supportAndPr = branding.supportAndPr,
+                topLinks = branding.topLinks,
+                bottomLinks = branding.bottomLinks,
             )
         }
 
-        viewModelScope.launch(Dispatchers.Default) {
-            val activeContributors = fetchActiveContributors()
-            val updatedCoreTeam = uiState.value.coreTeam.map { member ->
-                val status = if (member.githubUsername != null && activeContributors.contains(member.githubUsername.lowercase())) ContributorStatus.Active else ContributorStatus.Idle
-                member.copy(status = status)
+        // Expressive has its own single-owner card and must never query Lawnchair's activity feed.
+        // Other flavors retain their existing attribution and active-contributor behavior.
+        if (!BuildConfig.IS_EXPRESSIVE_PRODUCT) {
+            viewModelScope.launch(Dispatchers.Default) {
+                val activeContributors = fetchActiveContributors()
+                val updatedCoreTeam = uiState.value.coreTeam.map { member ->
+                    val status = if (
+                        member.githubUsername != null &&
+                        activeContributors.contains(member.githubUsername.lowercase())
+                    ) {
+                        ContributorStatus.Active
+                    } else {
+                        ContributorStatus.Idle
+                    }
+                    member.copy(status = status)
+                }
+                uiState.update { it.copy(coreTeam = updatedCoreTeam) }
             }
-            uiState.update { it.copy(coreTeam = updatedCoreTeam) }
         }
 
-        // Check if the build variant is Nightly
-        // AND check if user has enabled auto updater (available to Nightly variant)
-        // OR check if user has overridden it in debug flags (available to All variant)
         if (BuildConfig.APPLICATION_ID.contains("nightly") && prefs2.autoUpdaterNightly.firstCached()) {
             nightlyBuildsRepository.checkForUpdate()
             viewModelScope.launch {
@@ -90,165 +173,5 @@ class AboutViewModel(
                 .map { it.actor.login.lowercase() }
                 .toSet()
         }.getOrDefault(emptySet())
-    }
-
-    companion object {
-        private val team = listOf(
-            TeamMember(
-                name = "Amogh Lele",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/31761843",
-                socialUrl = "https://github.com/sphericalkat",
-            ),
-            TeamMember(
-                name = "Antonio J. Roa Valverde",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/914983",
-                socialUrl = "https://x.com/6020peaks",
-            ),
-            TeamMember(
-                name = "David Sn",
-                role = Role.DevOps,
-                photoUrl = "https://i.imgur.com/b65akTl.png",
-                socialUrl = "https://codebucket.de",
-            ),
-            TeamMember(
-                name = "Zongle Wang",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/10363352",
-                socialUrl = "https://github.com/Goooler",
-                githubUsername = "Goooler",
-            ),
-            TeamMember(
-                name = "Harsh Shandilya",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/13348378",
-                socialUrl = "https://github.com/msfjarvis",
-            ),
-            TeamMember(
-                name = "John Andrew Camu (MrSluffy)",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/36076410",
-                socialUrl = "https://github.com/MrSluffy",
-                githubUsername = "MrSluffy",
-            ),
-            TeamMember(
-                name = "Kshitij Gupta",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/18647641",
-                socialUrl = "https://x.com/Agent_Fabulous",
-            ),
-            TeamMember(
-                name = "Manuel Lorenzo",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/183264",
-                socialUrl = "https://x.com/noloman",
-            ),
-            TeamMember(
-                name = "paphonb",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/8080853",
-                socialUrl = "https://x.com/paphonb",
-            ),
-            TeamMember(
-                name = "raphtlw",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/47694127",
-                socialUrl = "https://x.com/raphtlw",
-            ),
-            TeamMember(
-                name = "Rhyse Simpson",
-                role = Role.QuickSwitchMaintenance,
-                photoUrl = "https://avatars.githubusercontent.com/u/7065700",
-                socialUrl = "https://x.com/skittles9823",
-            ),
-            TeamMember(
-                name = "Pun Butrach",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/93124920",
-                socialUrl = "https://github.com/validcube",
-            ),
-            TeamMember(
-                name = "SuperDragonXD",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/70206496",
-                socialUrl = "https://github.com/SuperDragonXD",
-                githubUsername = "SuperDragonXD",
-            ),
-            TeamMember(
-                name = "Yasan Glass",
-                role = Role.Development,
-                photoUrl = "https://avatars.githubusercontent.com/u/41836211",
-                socialUrl = "https://yasan.glass",
-                githubUsername = "yasanglass",
-            ),
-        )
-
-        private val topLinks = listOf(
-            Link(
-                iconResId = R.drawable.ic_new_releases,
-                labelResId = R.string.news,
-                url = "https://t.me/lawnchairci",
-            ),
-            Link(
-                iconResId = R.drawable.ic_help,
-                labelResId = R.string.support,
-                url = "https://lawnchair.app/support",
-            ),
-            Link(
-                iconResId = R.drawable.ic_github,
-                labelResId = R.string.github,
-                url = "https://github.com/LawnchairLauncher/lawnchair",
-            ),
-            Link(
-                iconResId = R.drawable.ic_translate,
-                labelResId = R.string.translate,
-                url = "https://lawnchair.crowdin.com/lawnchair",
-            ),
-            Link(
-                iconResId = R.drawable.ic_open_collective,
-                labelResId = R.string.donate,
-                url = "https://opencollective.com/lawnchair",
-            ),
-        )
-
-        private val bottomLinks = listOf(
-            Link(
-                iconResId = R.drawable.ic_telegram,
-                labelResId = R.string.telegram,
-                url = "https://t.me/lccommunity",
-            ),
-            Link(
-                iconResId = R.drawable.ic_discord,
-                labelResId = R.string.discord,
-                url = "https://discord.com/invite/3x8qNWxgGZ",
-            ),
-            Link(
-                iconResId = R.drawable.ic_x_twitter,
-                labelResId = R.string.x_twitter,
-                url = "https://x.com/lawnchairapp",
-            ),
-        )
-
-        private val supportAndPr = listOf(
-            TeamMember(
-                name = "Daniel Souza",
-                role = Role.Support,
-                photoUrl = "https://avatars.githubusercontent.com/u/32078304",
-                socialUrl = "https://github.com/DanGLVK",
-            ),
-            TeamMember(
-                name = "Giuseppe Longobardo",
-                role = Role.Support,
-                photoUrl = "https://avatars.githubusercontent.com/u/49398464",
-                socialUrl = "https://github.com/joseph-20",
-            ),
-            TeamMember(
-                name = "Rik Koedoot",
-                role = Role.SupportAndPr,
-                photoUrl = "https://avatars.githubusercontent.com/u/29402532",
-                socialUrl = "https://github.com/RikKoedoot",
-            ),
-        )
     }
 }

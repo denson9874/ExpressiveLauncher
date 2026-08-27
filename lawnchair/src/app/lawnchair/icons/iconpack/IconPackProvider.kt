@@ -78,7 +78,8 @@ class IconPackProvider @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        iconPacks.values.filterNotNull().forEach(IconPack::close)
+        iconPacks.clear()
     }
 
     companion object {

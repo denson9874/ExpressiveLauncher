@@ -9,6 +9,7 @@ import android.content.pm.LauncherApps
 import android.os.Build
 import android.os.Process
 import android.os.UserHandle
+import android.os.UserManager
 import android.util.Log
 import androidx.annotation.RequiresApi
 import app.lawnchair.preferences2.PreferenceManager2
@@ -19,6 +20,15 @@ import com.android.launcher3.Utilities
 import com.android.launcher3.model.BgDataModel
 import com.android.launcher3.model.WidgetItem
 import com.android.launcher3.pm.UserCache
+import com.android.launcher3.util.ApiWrapper
+import java.util.concurrent.ConcurrentHashMap
+
+/** Private targets must never remain in prediction surfaces after the profile is locked/hidden. */
+internal fun shouldIncludePredictionUser(
+    isPrivateProfile: Boolean,
+    isQuietModeEnabled: Boolean,
+    isPrivateSpaceHidden: Boolean,
+): Boolean = !isPrivateProfile || (!isQuietModeEnabled && !isPrivateSpaceHidden)
 
 /**
  * Compiles ranked store keys into [AppTarget] lists for all-apps and widget predictions. Holds
@@ -30,6 +40,7 @@ class LawnchairPredictionEngine(
 ) {
     private val userCache = UserCache.INSTANCE.get(context)
     private val prefs2: PreferenceManager2 by lazy { PreferenceManager2.getInstance(context) }
+    private val inaccessibleProfilesLogged = ConcurrentHashMap.newKeySet<UserHandle>()
 
     /**
      * Compiles a ranked list of store keys into resolved [AppTarget] entries, filtering out
@@ -51,6 +62,7 @@ class LawnchairPredictionEngine(
                 if (size == count) return@buildList
 
                 val parsedKey = parseStoreKey(key) ?: return@forEach
+                if (!isPredictionUserVisible(parsedKey.user)) return@forEach
                 val componentName = ComponentName(parsedKey.packageName, parsedKey.className)
                 val storeKey = toStoreKey(componentName, parsedKey.user)
                 if (storeKey in excludedKeys) return@forEach
@@ -96,6 +108,7 @@ class LawnchairPredictionEngine(
         val addedComponents = HashSet<String>()
         for (rankedKey in ranked) {
             val parsedKey = parseStoreKey(rankedKey) ?: continue
+            if (!isPredictionUserVisible(parsedKey.user)) continue
             val packageName = parsedKey.packageName
             val userToken = userToken(parsedKey.user)
             val widget =
@@ -187,15 +200,9 @@ class LawnchairPredictionEngine(
         val appFilter = AppFilter(context)
         return userProfilesInPredictionOrder()
             .asSequence()
+            .filter(::isPredictionUserVisible)
             .flatMap { user ->
-                try {
-                    launcherApps.getActivityList(null, user)
-                } catch (e: SecurityException) {
-                    // Lawnchair-Note: Android 17 QPR2 Beta 3 crash when accessing activity list with null pkgName for non-Main user
-                    // Ref: https://issuetracker.google.com/issues/547643926
-                    Log.e("LawnchairPredictionEngine", "Failed to get activity list for user $user", e)
-                    emptyList()
-                }.asSequence()
+                getActivityListSafely(launcherApps, null, user).asSequence()
             }
             .filter { activityInfo -> appFilter.shouldShowApp(activityInfo.componentName) }
             .map { activityInfo -> toStoreKey(activityInfo.componentName, activityInfo.user) }
@@ -210,12 +217,47 @@ class LawnchairPredictionEngine(
         appFilter: AppFilter,
     ): String? {
         userProfilesInPredictionOrder().forEach { user ->
-            val activityInfo = launcherApps.getActivityList(packageName, user)
+            if (!isPredictionUserVisible(user)) return@forEach
+            val activityInfo = getActivityListSafely(launcherApps, packageName, user)
                 .firstOrNull { info -> appFilter.shouldShowApp(info.componentName) }
                 ?: return@forEach
             return toStoreKey(activityInfo.componentName, activityInfo.user)
         }
         return null
+    }
+
+    private fun isPredictionUserVisible(user: UserHandle): Boolean {
+        val isPrivateProfile = userCache.getUserInfo(user).isPrivate
+        if (!isPrivateProfile) return true
+
+        // Quiet mode is authoritative for lock state. The public LauncherUserInfo configuration
+        // is additionally required because a hidden profile handle deliberately remains cached so
+        // users can recover it; retaining the handle must not retain its apps in prediction rows.
+        val isQuietModeEnabled = runCatching {
+            context.getSystemService(UserManager::class.java)?.isQuietModeEnabled(user) ?: true
+        }.getOrDefault(true)
+        val isPrivateSpaceHidden = ApiWrapper.INSTANCE.get(context).isPrivateSpaceHidden(user)
+        return shouldIncludePredictionUser(
+            isPrivateProfile,
+            isQuietModeEnabled,
+            isPrivateSpaceHidden,
+        )
+    }
+
+    private fun getActivityListSafely(
+        launcherApps: LauncherApps,
+        packageName: String?,
+        user: UserHandle,
+    ) = try {
+        launcherApps.getActivityList(packageName, user)
+    } catch (_: SecurityException) {
+        // Android 17 can expose a locked private profile through UserCache before third-party
+        // launchers are allowed to query its packages. Treat it as temporarily unavailable; a
+        // later model refresh will include it after the profile becomes accessible.
+        if (inaccessibleProfilesLogged.add(user)) {
+            Log.i(TAG, "Skipping inaccessible launcher profile $user")
+        }
+        emptyList()
     }
 
     private fun userProfilesInPredictionOrder(): List<UserHandle> {
@@ -271,6 +313,7 @@ class LawnchairPredictionEngine(
     )
 
     companion object {
+        private const val TAG = "LawnchairPredictionEngine"
         private const val NUM_WIDGET_SUGGESTIONS = 20
     }
 }

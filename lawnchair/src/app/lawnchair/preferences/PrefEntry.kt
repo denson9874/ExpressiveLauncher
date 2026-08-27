@@ -1,6 +1,7 @@
 package app.lawnchair.preferences
 
 import android.view.View
+import androidx.compose.runtime.Stable
 import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
 import com.android.launcher3.util.SafeCloseable
@@ -8,6 +9,7 @@ import kotlin.reflect.KProperty
 
 typealias ChangeListener = () -> Unit
 
+@Stable
 sealed interface PrefEntry<T> {
     val key: String
     val defaultValue: T

@@ -3,6 +3,7 @@ package app.lawnchair.search.algorithms
 import android.content.Context
 import android.os.Handler
 import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.preferences2.firstCached
 import app.lawnchair.search.adapter.SPACE
 import app.lawnchair.search.adapter.SearchTargetCompat
 import app.lawnchair.search.adapter.SearchTargetFactory
@@ -16,10 +17,7 @@ import com.android.launcher3.model.ModelTaskController
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.search.SearchCallback
 import com.android.launcher3.util.Executors
-import com.patrykmichalik.opto.core.onEach
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 class LawnchairAppSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm(context) {
 
@@ -29,43 +27,31 @@ class LawnchairAppSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm(c
     // todo maybe use D.I.?
     private val searchTargetFactory = SearchTargetFactory(context)
 
-    private var hiddenApps: Set<String> = setOf()
-
-    private var hiddenAppsInSearch = ""
-    private var enableFuzzySearch = false
-    private var maxResultsCount = 5
-
     private val prefs2 = PreferenceManager2.getInstance(context)
-
-    val coroutineScope = CoroutineScope(context = Dispatchers.IO)
-
-    init {
-        prefs2.enableFuzzySearch.onEach(launchIn = coroutineScope) {
-            enableFuzzySearch = it
-        }
-        prefs2.hiddenApps.onEach(launchIn = coroutineScope) {
-            hiddenApps = it
-        }
-        prefs2.hiddenAppsInSearch.onEach(launchIn = coroutineScope) {
-            hiddenAppsInSearch = it
-        }
-        prefs2.maxAppSearchResultCount.onEach(launchIn = coroutineScope) {
-            maxResultsCount = it
-        }
-    }
+    private val requestGeneration = AtomicInteger()
 
     override fun doSearch(query: String, callback: SearchCallback<BaseAllAppsAdapter.AdapterItem>) {
+        val generation = requestGeneration.incrementAndGet()
         appState.model.enqueueModelUpdateTask(object : LauncherModel.ModelUpdateTask {
             override fun execute(app: ModelTaskController, dataModel: BgDataModel, apps: AllAppsList) {
-                coroutineScope.launch(Dispatchers.Main) {
-                    val results = getResult(apps.data, query)
-                    callback.onSearchResult(query, results)
+                // Snapshot on the model thread, then perform fuzzy matching and shortcut lookup on
+                // the shared worker pool. The old code did this work on Main and could deliver an
+                // obsolete result after a newer query, causing UI jumps and stale adapter binds.
+                val appSnapshot = ArrayList(apps.data)
+                Executors.THREAD_POOL_EXECUTOR.execute {
+                    val results = getResult(appSnapshot, query)
+                    resultHandler.post {
+                        if (requestGeneration.get() == generation) {
+                            callback.onSearchResult(query, results)
+                        }
+                    }
                 }
             }
         })
     }
 
     override fun cancel(interruptActiveRequests: Boolean) {
+        requestGeneration.incrementAndGet()
         if (interruptActiveRequests) {
             resultHandler.removeCallbacksAndMessages(null)
         }
@@ -75,6 +61,10 @@ class LawnchairAppSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm(c
         apps: MutableList<AppInfo>,
         query: String,
     ): ArrayList<BaseAllAppsAdapter.AdapterItem> {
+        val enableFuzzySearch = prefs2.enableFuzzySearch.firstCached(prefs2)
+        val hiddenApps = prefs2.hiddenApps.firstCached(prefs2)
+        val hiddenAppsInSearch = prefs2.hiddenAppsInSearch.firstCached(prefs2)
+        val maxResultsCount = prefs2.maxAppSearchResultCount.firstCached(prefs2)
         val appResults = if (enableFuzzySearch) {
             SearchUtils.fuzzySearch(apps, query, maxResultsCount, hiddenApps, hiddenAppsInSearch)
         } else {
@@ -82,6 +72,13 @@ class LawnchairAppSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm(c
         }
 
         val searchTargets = mutableListOf<SearchTargetCompat>()
+
+        // A hidden Private Space has no drawer entry to navigate back to. Offer Android's
+        // non-disclosing setup/auth/settings destination only for the complete label.
+        searchTargetFactory.createPrivateSpaceRecoveryTarget(query)?.let {
+            searchTargets.add(it)
+            searchTargets.add(searchTargetFactory.createHeaderTarget(SPACE))
+        }
 
         if (appResults.isNotEmpty()) {
             if (appResults.size == 1 && context.isDefaultLauncher()) {

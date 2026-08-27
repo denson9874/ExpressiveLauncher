@@ -76,6 +76,10 @@ import java.util.function.Supplier;
  * Layout parsing code for auto installs layout
  */
 public class AutoInstallsLayout {
+    private static final String RES_AUTO_NAMESPACE =
+            "http://schemas.android.com/apk/res-auto";
+    private static final String LEGACY_LAUNCHER_NAMESPACE =
+            "http://schemas.android.com/apk/res-auto/com.android.launcher3";
     private static final String TAG = "AutoInstalls";
     private static final boolean LOGD = false;
 
@@ -719,8 +723,13 @@ public class AutoInstallsLayout {
      * before falling back to anonymous attribute.
      */
     protected static String getAttributeValue(XmlPullParser parser, String attribute) {
-        String value = parser.getAttributeValue(
-                "http://schemas.android.com/apk/res-auto/com.android.launcher3", attribute);
+        // Current Android resources use res-auto so the same XML works after applicationId
+        // changes. Keep the old Launcher3 namespace as a compatibility fallback for partner
+        // layouts and backups created by older builds.
+        String value = parser.getAttributeValue(RES_AUTO_NAMESPACE, attribute);
+        if (value == null) {
+            value = parser.getAttributeValue(LEGACY_LAUNCHER_NAMESPACE, attribute);
+        }
         if (value == null) {
             value = parser.getAttributeValue(null, attribute);
         }
@@ -735,8 +744,11 @@ public class AutoInstallsLayout {
             int defaultValue) {
         AttributeSet attrs = Xml.asAttributeSet(parser);
         int value = attrs.getAttributeResourceValue(
-                "http://schemas.android.com/apk/res-auto/com.android.launcher3", attribute,
-                defaultValue);
+                RES_AUTO_NAMESPACE, attribute, defaultValue);
+        if (value == defaultValue) {
+            value = attrs.getAttributeResourceValue(
+                    LEGACY_LAUNCHER_NAMESPACE, attribute, defaultValue);
+        }
         if (value == defaultValue) {
             value = attrs.getAttributeResourceValue(null, attribute, defaultValue);
         }

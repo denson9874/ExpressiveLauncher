@@ -31,6 +31,17 @@ SystemUI remains responsible for Overview and gesture navigation.
     <uses-sdk
         tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk.client" />
 
+    <queries>
+        <package android:name="dev.launcher.expressive.feed" />
+    </queries>
+
+    <!-- Both independently installed APKs declare this permission so either one can be installed
+         first. Matching signatures are required before the launcher can bind the feed service. -->
+    <permission
+        android:name="dev.launcher.expressive.feed.permission.CONNECT"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="dev.launcher.expressive.feed.permission.CONNECT" />
+
     <!-- LauncherProvider remains externally addressable, but only to same-signature clients. -->
     <permission
         android:name="${applicationId}.permission.READ_SETTINGS"
@@ -134,6 +145,11 @@ SystemUI remains responsible for Overview and gesture navigation.
     <uses-permission
         android:name="android.permission.CAPTURE_BLACKOUT_CONTENT"
         tools:node="remove" />
+    <!-- AppWidgetHost binding is authorized by the system confirmation flow. BIND_APPWIDGET is a
+         signature-only permission that a Play-distributed Home app cannot receive. -->
+    <uses-permission
+        android:name="android.permission.BIND_APPWIDGET"
+        tools:node="remove" />
 
     <!-- Removed browser-history permissions no longer back any Launcher3 product behavior. -->
     <uses-permission
@@ -145,10 +161,26 @@ SystemUI remains responsible for Overview and gesture navigation.
 
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32"
-        tools:replace="android:maxSdkVersion" />
+        tools:node="remove" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <!--
+         Expressive is a Google Play channel. File search uses a user-selected Storage Access
+         Framework tree, so prevent dependencies from merging restricted broad-storage or
+         visual-media permissions into the release manifest.
+    -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
         tools:node="remove" />
 
     <application
@@ -210,9 +242,19 @@ SystemUI remains responsible for Overview and gesture navigation.
         <activity
             android:name="com.android.quickstep.interaction.AllSetActivity"
             tools:node="remove" />
+        <!--
+             Keep the result proxy even though this flavor is not a privileged Quickstep
+             implementation. QuickstepLauncher routes AppWidget bind/configuration activities
+             through this internal activity so results survive Launcher task recreation. Removing
+             it made every first-time widget bind crash with ActivityNotFoundException.
+        -->
         <activity
             android:name="com.android.launcher3.proxy.ProxyActivityStarter"
-            tools:node="remove" />
+            android:clearTaskOnLaunch="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@style/ProxyActivityStarterTheme"
+            tools:node="merge" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

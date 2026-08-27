@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Expressive currently ships this product-owned copy in English only. Marking it explicitly
+         avoids pretending the inherited Lawnchair locale set contains reviewed translations. -->
+    <string name="wallpaper_carousel_home" translatable="false">Home wallpaper preview</string>
+    <string name="wallpaper_carousel_lock" translatable="false">Lock screen wallpaper preview</string>
+    <string name="wallpaper_carousel_recent" translatable="false">Recent wallpaper %1$d</string>
+    <string name="wallpaper_carousel_apply_failed" translatable="false">Couldn’t apply that wallpaper. The original is still active.</string>
+    <string name="wallpaper_carousel_state_collapsed" translatable="false">Not selected. Activate once to select this preview.</string>
+    <string name="wallpaper_carousel_state_selected_open" translatable="false">Selected. Activate to open Wallpaper &amp; style.</string>
+    <string name="wallpaper_carousel_state_selected_apply" translatable="false">Selected. Activate to apply this wallpaper.</string>
+</resources>

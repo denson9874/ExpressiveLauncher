@@ -100,6 +100,7 @@ public class UserCache {
         mUserChangeReceiver = new SimpleBroadcastReceiver(context,
                 MODEL_EXECUTOR, this::onUsersChanged);
         mUserToSerialMap = Collections.emptyMap();
+        mUserToPreInstallAppMap = Collections.emptyMap();
         MODEL_EXECUTOR.execute(this::initAsync);
         tracker.addCloseable(() -> mUserChangeReceiver.unregisterReceiverSafely());
     }
@@ -116,30 +117,46 @@ public class UserCache {
                 ACTION_PROFILE_LOCKED,
                 ACTION_PROFILE_AVAILABLE,
                 ACTION_PROFILE_UNAVAILABLE);
-        updateCache();
+        updateCache(null, null);
     }
 
     @AnyThread
     private void onUsersChanged(Intent intent) {
-        MODEL_EXECUTOR.execute(this::updateCache);
         UserHandle user = intent.getParcelableExtra(Intent.EXTRA_USER);
-        if (user == null) {
+        String action = intent.getAction();
+
+        // This receiver already runs on MODEL_EXECUTOR. Refresh before dispatching the event so
+        // model tasks never observe the previous profile snapshot. Locking a hidden profile can
+        // make platform metadata briefly unavailable while the profile process is being stopped.
+        updateCache(user, action);
+        if (user == null || action == null) {
             return;
         }
-        String action = intent.getAction();
         mUserEventListeners.forEach(l -> l.accept(user, action));
     }
 
     @WorkerThread
-    private void updateCache() {
-        mUserToSerialMap = mApiWrapper.queryAllUsers();
-        mUserToPreInstallAppMap = fetchPreInstallApps();
+    private void updateCache(@Nullable UserHandle changedUser, @Nullable String action) {
+        Map<UserHandle, UserIconInfo> queriedUsers;
+        try {
+            queriedUsers = mApiWrapper.queryAllUsers();
+        } catch (RuntimeException e) {
+            // A profile can become inaccessible between getUserProfiles() and the per-user binder
+            // calls. Keep the last valid snapshot and let the next profile broadcast retry.
+            return;
+        }
+
+        Map<UserHandle, UserIconInfo> updatedUsers = mergeUserProfilesForLifecycle(
+                mUserToSerialMap, queriedUsers, changedUser, action);
+        mUserToSerialMap = updatedUsers;
+        mUserToPreInstallAppMap = fetchPreInstallApps(updatedUsers);
     }
 
     @WorkerThread
-    private Map<UserHandle, List<String>> fetchPreInstallApps() {
+    private Map<UserHandle, List<String>> fetchPreInstallApps(
+            Map<UserHandle, UserIconInfo> users) {
         Map<UserHandle, List<String>> userToPreInstallApp = new ArrayMap<>();
-        mUserToSerialMap.forEach((userHandle, userIconInfo) -> {
+        users.forEach((userHandle, userIconInfo) -> {
             // Fetch only for private profile, as other profiles have no usages yet.
             List<String> preInstallApp = userIconInfo.isPrivate()
                     ? mApiWrapper.getPreInstalledSystemPackages(userHandle)
@@ -147,6 +164,50 @@ public class UserCache {
             userToPreInstallApp.put(userHandle, preInstallApp);
         });
         return userToPreInstallApp;
+    }
+
+    /**
+     * Keeps a private profile addressable while Android transitions it to an inaccessible state.
+     *
+     * <p>Some platform builds temporarily omit the profile, or return incomplete metadata, while
+     * handling {@link Intent#ACTION_PROFILE_INACCESSIBLE} and {@link #ACTION_PROFILE_UNAVAILABLE}.
+     * Losing its last known type here also loses the handle used to request quiet mode off, which
+     * leaves a hidden Private Space with no recovery path in the launcher. An explicit removal is
+     * the only event that is allowed to evict the cached private profile.
+     */
+    @VisibleForTesting
+    static Map<UserHandle, UserIconInfo> mergeUserProfilesForLifecycle(
+            Map<UserHandle, UserIconInfo> previousUsers,
+            Map<UserHandle, UserIconInfo> queriedUsers,
+            @Nullable UserHandle changedUser,
+            @Nullable String action) {
+        Map<UserHandle, UserIconInfo> mergedUsers = new ArrayMap<>();
+        if (queriedUsers != null) {
+            mergedUsers.putAll(queriedUsers);
+        }
+        if (changedUser != null && isExplicitProfileRemoval(changedUser, changedUser, action)) {
+            mergedUsers.remove(changedUser);
+        }
+
+        previousUsers.forEach((user, previousInfo) -> {
+            if (!previousInfo.isPrivate() || isExplicitProfileRemoval(user, changedUser, action)) {
+                return;
+            }
+            UserIconInfo queriedInfo = mergedUsers.get(user);
+            if (queriedInfo == null || !queriedInfo.isPrivate()) {
+                mergedUsers.put(user, previousInfo);
+            }
+        });
+        return mergedUsers;
+    }
+
+    private static boolean isExplicitProfileRemoval(UserHandle cachedUser,
+            @Nullable UserHandle changedUser, @Nullable String action) {
+        if (!cachedUser.equals(changedUser)) {
+            return false;
+        }
+        return ACTION_PROFILE_REMOVED.equals(action)
+                || Intent.ACTION_MANAGED_PROFILE_REMOVED.equals(action);
     }
 
     /**

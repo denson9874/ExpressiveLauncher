@@ -14,6 +14,7 @@ sealed interface IFileInfo {
     val name: String
     val size: Long
     val dateModified: Long
+    val contentUri: String?
 }
 
 data class FolderInfo(
@@ -21,6 +22,7 @@ data class FolderInfo(
     override val name: String,
     override val size: Long,
     override val dateModified: Long,
+    override val contentUri: String? = null,
 ) : IFileInfo
 
 data class FileInfo(
@@ -30,6 +32,7 @@ data class FileInfo(
     override val size: Long,
     override val dateModified: Long,
     val mimeType: String?,
+    override val contentUri: String? = null,
 ) : IFileInfo {
     @get:DrawableRes
     val iconRes = when (val mime = mimeType.orEmpty()) {

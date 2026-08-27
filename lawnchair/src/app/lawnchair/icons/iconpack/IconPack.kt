@@ -9,18 +9,23 @@ import app.lawnchair.icons.picker.IconPickerCategory
 import app.lawnchair.icons.picker.IconPickerItem
 import com.android.launcher3.compat.AlphabeticIndexCompat
 import java.util.concurrent.Semaphore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.plus
 
 sealed class IconPack(
     protected val context: Context,
     val packPackageName: String,
 ) {
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineName("IconPack:$packPackageName"),
+    )
     private var waiter: Semaphore? = Semaphore(0)
     private lateinit var deferredLoad: Deferred<Unit>
 
@@ -29,10 +34,15 @@ sealed class IconPack(
     private val alphabeticIndexCompat by lazy { AlphabeticIndexCompat(context) }
 
     protected fun startLoad() {
-        deferredLoad = scope.async(Dispatchers.IO) {
-            loadInternal()
-            waiter?.release()
-            waiter = null
+        deferredLoad = scope.async {
+            try {
+                loadInternal()
+            } finally {
+                // A malformed third-party pack must never leave synchronous icon-cache callers
+                // blocked forever. Always release the waiter, even when parsing throws.
+                waiter?.release()
+                waiter = null
+            }
         }
     }
 
@@ -45,6 +55,12 @@ sealed class IconPack(
             acquireUninterruptibly()
             release()
         }
+    }
+
+    fun close() {
+        scope.cancel(CancellationException("Icon pack provider closed"))
+        waiter?.release()
+        waiter = null
     }
 
     abstract fun getIcon(componentName: ComponentName): IconEntry?
@@ -82,9 +98,5 @@ sealed class IconPack(
                 )
             }
             .sortedBy { it.title }
-    }
-
-    companion object {
-        private val scope = CoroutineScope(Dispatchers.IO) + CoroutineName("IconPack")
     }
 }

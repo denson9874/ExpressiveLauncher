@@ -25,7 +25,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Process;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -37,7 +39,6 @@ import androidx.annotation.VisibleForTesting;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
-import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.PackageUserKey;
 import com.android.launcher3.widget.custom.CustomWidgetManager;
 import com.android.systemui.Flags;
@@ -182,10 +183,22 @@ public class WidgetManagerHelper {
 
     private static Stream<AppWidgetProviderInfo> allWidgetsSteam(Context context) {
         AppWidgetManager awm = context.getSystemService(AppWidgetManager.class);
+        UserManager userManager = context.getSystemService(UserManager.class);
+
+        // UserCache warms asynchronously. On a true cold start the launcher model can reach this
+        // query before that cache contains even the current profile, which made the widget picker
+        // permanently bind an empty catalog for the process. Query UserManager here because this
+        // method already runs on the model worker while loading remote widget-provider metadata.
+        // Keep the current user as a defensive fallback for incomplete device/profile services.
+        List<UserHandle> profiles = userManager == null
+                ? Collections.singletonList(Process.myUserHandle())
+                : userManager.getUserProfiles();
+        if (profiles.isEmpty()) {
+            profiles = Collections.singletonList(Process.myUserHandle());
+        }
+
         return Stream.concat(
-                UserCache.INSTANCE.get(context)
-                        .getUserProfiles()
-                        .stream()
+                profiles.stream()
                         .flatMap(u -> awm.getInstalledProvidersForProfile(u).stream()),
                 CustomWidgetManager.INSTANCE.get(context).stream());
     }

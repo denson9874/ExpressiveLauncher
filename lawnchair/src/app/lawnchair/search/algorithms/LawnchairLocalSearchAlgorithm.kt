@@ -4,6 +4,7 @@ import android.content.Context
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
+import app.lawnchair.search.adapter.SPACE
 import app.lawnchair.search.adapter.SearchLinksTarget
 import app.lawnchair.search.adapter.SearchTargetCompat
 import app.lawnchair.search.adapter.SearchTargetFactory
@@ -79,7 +80,7 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
 
                     val allResults = appResults + shortcutResults + (calcResult ?: emptyList()) + nonAppResults + generateActionResults(query)
 
-                    val searchTargets = translateToSearchTargets(allResults)
+                    val searchTargets = translateToSearchTargets(query, allResults)
                     setFirstItemQuickLaunch(searchTargets)
                     val adapterItems = transformSearchResults(searchTargets)
                     withContext(Dispatchers.Main) {
@@ -117,7 +118,7 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
                     )
                 }
 
-                val searchTargets = translateToSearchTargets(resultsToTranslate)
+                val searchTargets = translateToSearchTargets("", resultsToTranslate)
                 val adapterItems = transformSearchResults(searchTargets)
                 withContext(Dispatchers.Main) {
                     callback.onSearchResult("", ArrayList(adapterItems))
@@ -179,13 +180,22 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
     )
 
     private fun translateToSearchTargets(
+        query: String,
         results: List<SearchResult>,
     ): List<SearchTargetCompat> {
         val factory = SearchTargetFactory(context)
 
-        // The new function is just a flatMap. It's declarative and beautiful.
-        return sectionBuilders.flatMap { builder ->
-            builder.build(context, factory, results)
+        return buildList {
+            // Keep the recovery tile independent from providers: Settings search may be disabled,
+            // delayed, or unable to see a hidden profile, but Android can still expose its secure
+            // Private Space setup/auth/settings entry point.
+            factory.createPrivateSpaceRecoveryTarget(query)?.let {
+                add(it)
+                add(factory.createHeaderTarget(SPACE))
+            }
+            sectionBuilders.flatMapTo(this) { builder ->
+                builder.build(context, factory, results)
+            }
         }
     }
 }

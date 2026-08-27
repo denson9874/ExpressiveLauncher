@@ -2,7 +2,11 @@ package app.lawnchair.ui.preferences.components.search
 
 import android.Manifest
 import android.app.Application
+import android.net.Uri
 import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,7 +14,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -18,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,7 +43,8 @@ import app.lawnchair.ui.preferences.components.controls.TwoTargetSwitchPreferenc
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.theme.LawnchairTheme
-import app.lawnchair.ui.util.isPlayStoreFlavor
+import app.lawnchair.ui.util.canRequestBroadVisualMediaAccess
+import app.lawnchair.ui.util.canRequestManageAllFilesAccess
 import app.lawnchair.util.FileAccessManager
 import app.lawnchair.util.FileAccessState
 import app.lawnchair.util.openAppPermissionSettings
@@ -47,6 +52,7 @@ import app.lawnchair.util.requestManageAllFilesAccessPermission
 import com.android.launcher3.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
@@ -60,8 +66,23 @@ class FileSearchProviderViewModel(
     val visualMediaAccessState = fileAccessManager.visualMediaAccessState
     val audioAccessState = fileAccessManager.audioAccessState
     val allFilesAccessState = fileAccessManager.allFilesAccessState
+    val selectedTreeUri = fileAccessManager.selectedTreeUri
+    val selectedTreeLabel = fileAccessManager.selectedTreeLabel
 
     fun refreshAccessStates() = fileAccessManager.refresh()
+
+    fun grantSelectedTreeAccess(uri: Uri) = fileAccessManager.grantSelectedTreeAccess(uri)
+}
+
+internal fun applyFolderGrantToSearchPreferences(
+    grantPersisted: Boolean,
+    enableSelectedFolderSearch: () -> Unit,
+    enableMainFilesSearch: () -> Unit,
+): Boolean {
+    if (!grantPersisted) return false
+    enableSelectedFolderSearch()
+    enableMainFilesSearch()
+    return true
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -100,11 +121,25 @@ fun FileSearchProvider(
         val allFilesAccessAdapter = prefs.searchResultAllFiles.getAdapter()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            ManageExternalStorageSetting(
-                accessState = allFilesAccessState,
-                adapter = allFilesAccessAdapter,
-                onPermissionRequest = viewModel::refreshAccessStates,
-            )
+            if (canRequestManageAllFilesAccess()) {
+                ManageExternalStorageSetting(
+                    accessState = allFilesAccessState,
+                    adapter = allFilesAccessAdapter,
+                    onPermissionRequest = viewModel::refreshAccessStates,
+                )
+            } else {
+                val selectedTreeUri by viewModel.selectedTreeUri.collectAsStateWithLifecycle()
+                val selectedTreeLabel by viewModel.selectedTreeLabel.collectAsStateWithLifecycle()
+                SelectedFolderAccessSetting(
+                    accessState = allFilesAccessState,
+                    adapter = allFilesAccessAdapter,
+                    mainFilesAdapter = mainAdapter,
+                    selectedTreeUri = selectedTreeUri,
+                    selectedTreeLabel = selectedTreeLabel,
+                    onFolderSelect = viewModel::grantSelectedTreeAccess,
+                    onPermissionRequest = viewModel::refreshAccessStates,
+                )
+            }
         } else {
             GenericAccessSetting(
                 adapter = allFilesAccessAdapter,
@@ -118,15 +153,17 @@ fun FileSearchProvider(
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val visualMediaAccessState by viewModel.visualMediaAccessState.collectAsStateWithLifecycle()
             val audioAccessState by viewModel.audioAccessState.collectAsStateWithLifecycle()
 
-            VisualMediaSetting(
-                accessState = visualMediaAccessState,
-                adapter = prefs.searchResultVisualMedia.getAdapter(),
-                onPermissionRequest = viewModel::refreshAccessStates,
-                alwaysEnabled = allFilesAccessAdapter.state.value && allFilesAccessState == FileAccessState.Full,
-            )
+            if (canRequestBroadVisualMediaAccess()) {
+                val visualMediaAccessState by viewModel.visualMediaAccessState.collectAsStateWithLifecycle()
+                VisualMediaSetting(
+                    accessState = visualMediaAccessState,
+                    adapter = prefs.searchResultVisualMedia.getAdapter(),
+                    onPermissionRequest = viewModel::refreshAccessStates,
+                    alwaysEnabled = allFilesAccessAdapter.state.value && allFilesAccessState == FileAccessState.Full,
+                )
+            }
             GenericAccessSetting(
                 adapter = prefs.searchResultAudio.getAdapter(),
                 requiredPermission = android.Manifest.permission.READ_MEDIA_AUDIO,
@@ -185,7 +222,7 @@ private fun ManageExternalStorageSetting(
                     showPermissionDialog = true
                 }
             },
-            switchEnabled = !isPlayStoreFlavor() && (accessState != FileAccessState.Denied),
+            switchEnabled = accessState != FileAccessState.Denied,
             modifier = modifier,
         )
     }
@@ -196,6 +233,64 @@ private fun ManageExternalStorageSetting(
             onPermissionRequest = onPermissionRequest,
         )
     }
+}
+
+/**
+ * Play-safe general file access. Android grants only the directory the user explicitly chooses,
+ * and [FileAccessManager] keeps that grant across process restarts.
+ */
+@Composable
+private fun SelectedFolderAccessSetting(
+    accessState: FileAccessState,
+    adapter: PreferenceAdapter<Boolean>,
+    mainFilesAdapter: PreferenceAdapter<Boolean>,
+    selectedTreeUri: Uri?,
+    selectedTreeLabel: String?,
+    onFolderSelect: (Uri) -> Boolean,
+    onPermissionRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val hasFolderAccess = accessState == FileAccessState.Partial && selectedTreeUri != null
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            if (
+                applyFolderGrantToSearchPreferences(
+                    grantPersisted = onFolderSelect(uri),
+                    enableSelectedFolderSearch = { adapter.onChange(true) },
+                    enableMainFilesSearch = { mainFilesAdapter.onChange(true) },
+                )
+            ) {
+                onPermissionRequest()
+            } else {
+                Toast.makeText(
+                    context,
+                    R.string.search_pref_result_selected_folder_failed,
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+    val openFolderPicker = { folderPicker.launch(selectedTreeUri) }
+
+    TwoTargetSwitchPreference(
+        label = stringResource(R.string.search_pref_result_selected_folder_title),
+        description = if (hasFolderAccess) {
+            stringResource(
+                R.string.search_pref_result_selected_folder_active,
+                selectedTreeLabel ?: stringResource(R.string.search_pref_result_selected_folder_title),
+            )
+        } else {
+            stringResource(R.string.search_pref_result_selected_folder_description)
+        },
+        checked = hasFolderAccess && adapter.state.value,
+        onCheckedChange = { checked ->
+            if (hasFolderAccess) adapter.onChange(checked) else openFolderPicker()
+        },
+        onClick = openFolderPicker,
+        switchEnabled = hasFolderAccess,
+        modifier = modifier,
+    )
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -212,6 +307,7 @@ private fun VisualMediaSetting(
         listOf(
             Manifest.permission.READ_MEDIA_IMAGES,
             Manifest.permission.READ_MEDIA_VIDEO,
+            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
         ),
     ) {
         onPermissionRequest()
@@ -219,6 +315,7 @@ private fun VisualMediaSetting(
 
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showPartialAccessDialog by remember { mutableStateOf(false) }
+    var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
 
     if (alwaysEnabled || accessState == FileAccessState.Full) {
         SwitchPreference(
@@ -254,8 +351,13 @@ private fun VisualMediaSetting(
         PermissionDialog(
             title = stringResource(R.string.permissions_photos_videos),
             text = stringResource(R.string.permissions_photos_videos_description, stringResource(id = R.string.derived_app_name)),
-            isPermanentlyDenied = permissionState.allPermissionsGranted,
-            onConfirm = { permissionState.launchMultiplePermissionRequest() },
+            isPermanentlyDenied = hasRequestedPermission &&
+                !permissionState.allPermissionsGranted &&
+                !permissionState.shouldShowRationale,
+            onConfirm = {
+                hasRequestedPermission = true
+                permissionState.launchMultiplePermissionRequest()
+            },
             onDismiss = { showPermissionDialog = false },
             onGoToSettings = { context.openAppPermissionSettings() },
         )
@@ -310,6 +412,7 @@ private fun GenericAccessSetting(
     alwaysEnabled: Boolean = false,
 ) {
     var showPermissionDialog by remember { mutableStateOf(false) }
+    var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
     val permission = rememberPermissionState(requiredPermission) {
         onPermissionResult()
     }
@@ -340,8 +443,13 @@ private fun GenericAccessSetting(
         PermissionDialog(
             title = permissionTitle,
             text = permissionDescription,
-            isPermanentlyDenied = permission.status.shouldShowRationale,
-            onConfirm = { permission.launchPermissionRequest() },
+            isPermanentlyDenied = hasRequestedPermission &&
+                !permission.status.isGranted &&
+                !permission.status.shouldShowRationale,
+            onConfirm = {
+                hasRequestedPermission = true
+                permission.launchPermissionRequest()
+            },
             onDismiss = { showPermissionDialog = false },
             onGoToSettings = { context.openAppPermissionSettings() },
         )
@@ -351,9 +459,8 @@ private fun GenericAccessSetting(
 /**
  * A dialog that requests file access permission.
  *
- * On Android R and above, this requests manage all files access. Otherwise, it requests read
- * external storage permission. For Play Store builds on Android R and above, it shows a dialog
- * explaining that the permission is not available.
+ * On Android R and above, this requests manage all files access for channels whose manifest
+ * declares it. Play-distributed channels use [SelectedFolderAccessSetting] instead.
  *
  * @param onDismiss Called when the dialog is dismissed.
  * @param modifier The modifier to be applied to the dialog.
@@ -371,37 +478,18 @@ private fun FileAccessPermissionDialog(
     val context = LocalContext.current
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        if (!isPlayStoreFlavor()) {
-            PermissionDialog(
-                title = stringResource(R.string.permissions_manage_storage),
-                modifier = modifier,
-                text = rationale,
-                isPermanentlyDenied = true,
-                onConfirm = { },
-                onDismiss = onDismiss,
-                onGoToSettings = {
-                    onPermissionRequest()
-                    context.requestManageAllFilesAccessPermission()
-                },
-            )
-        } else {
-            AlertDialog(
-                onDismissRequest = onDismiss,
-                modifier = modifier,
-                title = {
-                    Text(stringResource(R.string.manage_storage_access_denied_title))
-                },
-                text = {
-                    Text(stringResource(R.string.manage_storage_access_denied_description, stringResource(id = R.string.derived_app_name)))
-                },
-                confirmButton = {
-                    FilledTonalButton(
-                        onClick = onDismiss,
-                        shapes = ButtonDefaults.shapes(),
-                    ) { Text(stringResource(R.string.dismiss)) }
-                },
-            )
-        }
+        PermissionDialog(
+            title = stringResource(R.string.permissions_manage_storage),
+            modifier = modifier,
+            text = rationale,
+            isPermanentlyDenied = true,
+            onConfirm = { },
+            onDismiss = onDismiss,
+            onGoToSettings = {
+                onPermissionRequest()
+                context.requestManageAllFilesAccessPermission()
+            },
+        )
     } else {
         val permission = rememberPermissionState(Manifest.permission.READ_EXTERNAL_STORAGE)
 

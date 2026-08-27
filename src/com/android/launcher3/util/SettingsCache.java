@@ -30,6 +30,7 @@ import android.provider.Settings;
 
 import android.util.Log;
 import androidx.annotation.UiThread;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.launcher3.dagger.ApplicationContext;
 import com.android.launcher3.dagger.LauncherAppSingleton;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 import javax.inject.Inject;
@@ -111,7 +113,9 @@ public class SettingsCache extends ContentObserver {
     public void onChange(boolean selfChange, Uri uri) {
         // We use default of 1, but if we're getting an onChange call, can assume a non-default
         // value will exist
-        boolean newVal = updateValue(uri, 1 /* Effectively Unused */);
+        boolean newVal = readValueSafely(
+                () -> updateValue(uri, 1 /* Effectively Unused */),
+                mKeyCache.getOrDefault(uri, false));
         List<OnChangeListener> listeners = mListenerMap.get(uri);
         if (listeners == null) {
             return;
@@ -138,12 +142,24 @@ public class SettingsCache extends ContentObserver {
         if (mKeyCache.containsKey(keySetting)) {
             return mKeyCache.get(keySetting);
         } else {
-            try {
-                return updateValue(keySetting, defaultValue);
-            } catch (SecurityException e) {
-                Log.d("LC_SettingsCache", "Key not readable, assume false for " + keySetting.toString());
-                return false;
-            }
+            return readValueSafely(() -> updateValue(keySetting, defaultValue), false);
+        }
+    }
+
+    /**
+     * Reads a setting without allowing a protected key to crash its content-observer callback.
+     *
+     * <p>A Play-distributed Home app cannot read every hidden secure setting that Launcher3's
+     * system build can. Content notifications are still delivered for those keys, so both direct
+     * reads and observer reads must use the same guarded path.
+     */
+    @VisibleForTesting
+    static boolean readValueSafely(BooleanSupplier reader, boolean fallbackValue) {
+        try {
+            return reader.getAsBoolean();
+        } catch (SecurityException e) {
+            Log.d("LC_SettingsCache", "Setting is not readable; keeping safe fallback", e);
+            return fallbackValue;
         }
     }
 

@@ -38,6 +38,7 @@ import android.content.Intent;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageInstaller.SessionInfo;
 import android.os.Process;
+import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -80,6 +81,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Class for handling clicks on workspace and all-apps items
@@ -379,6 +381,18 @@ public class ItemClickHandler {
         startAppShortcutOrInfoActivity(v, shortcut, launcher);
     }
 
+    /**
+     * Avoids passing a transiently missing profile handle through Kotlin's non-null boundary.
+     * The Install tile can remain on screen for one adapter frame after profile removal/hiding.
+     */
+    @androidx.annotation.VisibleForTesting
+    @androidx.annotation.Nullable
+    static Intent resolvePrivateProfileMarketIntent(
+            @androidx.annotation.Nullable UserHandle user,
+            Function<UserHandle, Intent> intentProvider) {
+        return user == null ? null : intentProvider.apply(user);
+    }
+
     private static void startAppShortcutOrInfoActivity(View v, ItemInfo item, Launcher launcher) {
         TestLogging.recordEvent(
                 TestProtocol.SEQUENCE_MAIN, "start: startAppShortcutOrInfoActivity");
@@ -391,11 +405,18 @@ public class ItemClickHandler {
                         Process.myUserHandle());
             } else if (itemInfoWithIcon.itemType
                     == LauncherSettings.Favorites.ITEM_TYPE_PRIVATE_SPACE_INSTALL_APP_BUTTON) {
-                intent = ApiWrapper.INSTANCE.get(launcher).getAppMarketActivityIntent(
-                        BuildConfig.APPLICATION_ID,
-                        launcher.getAppsView().getPrivateProfileManager().getProfileUser());
                 launcher.getStatsLogManager().logger().log(
                         LAUNCHER_PRIVATE_SPACE_INSTALL_APP_BUTTON_TAP);
+                intent = resolvePrivateProfileMarketIntent(
+                        launcher.getAppsView().getPrivateProfileManager().getProfileUser(),
+                        user -> ApiWrapper.INSTANCE.get(launcher)
+                                .getPrivateProfileAppMarketActivityIntent(
+                                        BuildConfig.APPLICATION_ID, user));
+                if (intent == null) {
+                    Toast.makeText(launcher, R.string.private_space_app_store_unavailable,
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
             }
         }
 

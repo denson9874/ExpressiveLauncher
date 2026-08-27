@@ -69,7 +69,7 @@ class DeviceProfileOverrides @Inject constructor(
 
     fun getTextFactors() = TextFactors(preferenceManager2)
     override fun close() {
-        TODO("Not yet implemented")
+        // Parsed grid definitions are immutable and require no explicit release.
     }
 
     data class DBGridInfo(

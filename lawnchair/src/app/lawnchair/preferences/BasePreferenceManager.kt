@@ -18,6 +18,7 @@ package app.lawnchair.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.runtime.Stable
 import androidx.core.content.edit
 import app.lawnchair.font.FontCache
 import com.android.launcher3.InvariantDeviceProfile
@@ -152,6 +153,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         protected abstract fun stringify(value: T): String
     }
 
+    @Stable
     inner class StringPref(
         key: String,
         defaultValue: String,
@@ -161,6 +163,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         override fun stringify(value: String) = value
     }
 
+    @Stable
     inner class BoolPref(
         key: String,
         override val defaultValue: Boolean,
@@ -186,6 +189,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         }
     }
 
+    @Stable
     open inner class IntPref(
         key: String,
         private val defaultValueInternal: Int,
@@ -217,6 +221,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         }
     }
 
+    @Stable
     inner class IdpIntPref(
         key: String,
         private val selectDefaultValue: InvariantDeviceProfile.GridOption.() -> Int,
@@ -255,6 +260,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         }
     }
 
+    @Stable
     inner class FloatPref(
         key: String,
         override val defaultValue: Float,
@@ -280,6 +286,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         }
     }
 
+    @Stable
     inner class StringSetPref(
         key: String,
         override val defaultValue: Set<String>,
@@ -305,6 +312,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         }
     }
 
+    @Stable
     inner class FontPref(
         key: String,
         defaultValue: FontCache.Font,
@@ -318,6 +326,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         override fun stringify(value: FontCache.Font) = value.toJsonString()
     }
 
+    @Stable
     inner class ObjectPref<T>(
         key: String,
         defaultValue: T,

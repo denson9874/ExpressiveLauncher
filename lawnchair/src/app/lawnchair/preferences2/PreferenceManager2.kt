@@ -85,6 +85,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 @LauncherAppSingleton
@@ -95,6 +96,9 @@ class PreferenceManager2 @Inject constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val resourceProvider = DynamicResource.provider(context)
+    private val legacyHiddenAppsKey = stringSetPreferencesKey(name = "hidden_apps")
+    private val encryptedHiddenAppsKey = stringPreferencesKey(name = "hidden_apps_encrypted")
+    private val hiddenAppsCodec = HiddenAppsCodec(context)
     private var liveInformationManager: LiveInformationManager =
         LiveInformationManager.getInstance(context)
 
@@ -317,8 +321,10 @@ class PreferenceManager2 @Inject constructor(
     )
 
     val hiddenApps = preference(
-        key = stringSetPreferencesKey(name = "hidden_apps"),
-        defaultValue = setOf(),
+        key = encryptedHiddenAppsKey,
+        defaultValue = cachedPreferences[legacyHiddenAppsKey].orEmpty(),
+        parse = hiddenAppsCodec::decrypt,
+        save = hiddenAppsCodec::encrypt,
     )
 
     val roundedWidgets = preference(
@@ -877,6 +883,25 @@ class PreferenceManager2 @Inject constructor(
         preferencesDataStore.data
             .onEach { cachedPreferences = it }
             .launchIn(scope)
+
+        // Migrate the old plain string set once. The DataStore file is app-private and excluded
+        // from cloud backup, while the new value additionally uses an Android Keystore AES key.
+        scope.launch(Dispatchers.IO) {
+            preferencesDataStore.edit { preferences ->
+                if (preferences[encryptedHiddenAppsKey] == null) {
+                    val legacyValues = preferences[legacyHiddenAppsKey].orEmpty()
+                    if (legacyValues.isNotEmpty()) {
+                        runCatching { hiddenAppsCodec.encrypt(legacyValues) }
+                            .onSuccess { encrypted ->
+                                preferences[encryptedHiddenAppsKey] = encrypted
+                                preferences.remove(legacyHiddenAppsKey)
+                            }
+                    }
+                } else {
+                    preferences.remove(legacyHiddenAppsKey)
+                }
+            }
+        }
 
         initializeIconShape(iconShape.firstCached(this))
         iconShape.get()

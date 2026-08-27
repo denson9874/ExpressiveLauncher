@@ -100,46 +100,98 @@ public class ApiWrapper {
      */
     public Map<UserHandle, UserIconInfo> queryAllUsers() {
         UserManager um = mContext.getSystemService(UserManager.class);
+        LauncherApps launcherApps = mContext.getSystemService(LauncherApps.class);
         Map<UserHandle, UserIconInfo> users = new ArrayMap<>();
-        List<UserHandle> usersActual = um.getUserProfiles();
+        List<UserHandle> userManagerProfiles;
+        try {
+            userManagerProfiles = um == null ? Collections.emptyList() : um.getUserProfiles();
+        } catch (RuntimeException e) {
+            userManagerProfiles = Collections.singletonList(Process.myUserHandle());
+        }
+        if (userManagerProfiles == null || userManagerProfiles.isEmpty()) {
+            userManagerProfiles = Collections.singletonList(Process.myUserHandle());
+        }
+
+        List<UserHandle> usersActual = userManagerProfiles;
+        if (Utilities.ATLEAST_V && launcherApps != null) {
+            try {
+                // UserManager intentionally omits hidden profiles for ordinary apps. ROLE_HOME
+                // plus ACCESS_HIDDEN_PROFILES grants access through this public launcher API.
+                // Keep the valid UserManager snapshot if this independent Binder call is briefly
+                // unavailable during cold start.
+                List<UserHandle> launcherProfiles = launcherApps.getProfiles();
+                if (launcherProfiles != null && !launcherProfiles.isEmpty()) {
+                    usersActual = launcherProfiles;
+                }
+            } catch (RuntimeException e) {
+                // Retain owner/work profiles from UserManager; a later profile broadcast retries.
+            }
+        }
         if (usersActual != null) {
             for (UserHandle user : usersActual) {
-                long serial = um.getSerialNumberForUser(user);
-
-                // Simple check to check if the provided user is work profile
-                // TODO: Migrate to a better platform API
-                NoopDrawable d = new NoopDrawable();
-                boolean isWork = (d != mContext.getPackageManager().getUserBadgedIcon(d, user));
-
-                var launcherApps = mContext.getSystemService(LauncherApps.class);
-                UserIconInfo info = new UserIconInfo(
-                        user,
-                        isWork ? UserIconInfo.TYPE_WORK : UserIconInfo.TYPE_MAIN,
-                        serial);
-
                 try {
                     if (Utilities.ATLEAST_V && launcherApps != null) {
                         LauncherUserInfo userInfo = launcherApps.getLauncherUserInfo(user);
                         if (userInfo != null) {
-                            var userType = userInfo.getUserType();
-                            info = new UserIconInfo(
+                            users.put(user, new UserIconInfo(
                                     user,
-                                    userType.equals (UserManager.USER_TYPE_PROFILE_MANAGED) ? UserIconInfo.TYPE_WORK :
-                                            userType.equals (UserManager.USER_TYPE_PROFILE_CLONE) ? UserIconInfo.TYPE_CLONED :
-                                                    userType.equals (UserManager.USER_TYPE_PROFILE_PRIVATE) ? UserIconInfo.TYPE_PRIVATE :
-                                                            UserIconInfo.TYPE_MAIN,
-                                    serial
-                            );
+                                    getUserIconType(userInfo.getUserType()),
+                                    userInfo.getUserSerialNumber()));
+                            continue;
                         }
                     }
                 } catch (Throwable t) {
-                    // Ignore
+                    // Fall through to the conservative recovery classification below.
                 }
 
-                users.put(user, info);
+                long serial = user.hashCode();
+                boolean isWork = false;
+                try {
+                    serial = um == null ? serial : um.getSerialNumberForUser(user);
+                    NoopDrawable d = new NoopDrawable();
+                    isWork = d != mContext.getPackageManager().getUserBadgedIcon(d, user);
+                } catch (RuntimeException e) {
+                    // The stable user handle still lets Launcher recover the profile on a later
+                    // broadcast; use conservative rendering metadata during this transition.
+                }
+                boolean isHiddenProfile = Utilities.ATLEAST_V
+                        && !Process.myUserHandle().equals(user)
+                        && (userManagerProfiles == null || !userManagerProfiles.contains(user));
+                users.put(user, new UserIconInfo(user,
+                        isHiddenProfile ? UserIconInfo.TYPE_PRIVATE
+                                : isWork ? UserIconInfo.TYPE_WORK : UserIconInfo.TYPE_MAIN,
+                        serial));
             }
         }
         return users;
+    }
+
+    private static int getUserIconType(@Nullable String userType) {
+        if (UserManager.USER_TYPE_PROFILE_MANAGED.equals(userType)) {
+            return UserIconInfo.TYPE_WORK;
+        } else if (UserManager.USER_TYPE_PROFILE_CLONE.equals(userType)) {
+            return UserIconInfo.TYPE_CLONED;
+        } else if (UserManager.USER_TYPE_PROFILE_PRIVATE.equals(userType)) {
+            return UserIconInfo.TYPE_PRIVATE;
+        }
+        return UserIconInfo.TYPE_MAIN;
+    }
+
+    /** Returns whether Android's public launcher metadata says this entrypoint should be hidden. */
+    public boolean isPrivateSpaceHidden(UserHandle user) {
+        if (!Utilities.ATLEAST_V || user == null) {
+            return false;
+        }
+        try {
+            LauncherApps launcherApps = mContext.getSystemService(LauncherApps.class);
+            LauncherUserInfo userInfo = launcherApps == null
+                    ? null : launcherApps.getLauncherUserInfo(user);
+            return userInfo != null && userInfo.getUserConfig() != null
+                    && userInfo.getUserConfig().getBoolean(
+                    LauncherUserInfo.PRIVATE_SPACE_ENTRYPOINT_HIDDEN, false);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     /**
@@ -156,6 +208,19 @@ public class ApiWrapper {
      */
     public Intent getAppMarketActivityIntent(String packageName, UserHandle user) {
         return createMarketIntent(packageName);
+    }
+
+    /**
+     * Returns an intent that opens an app market inside a non-owner profile.
+     *
+     * <p>The base launcher cannot safely emulate this with a normal {@code market://} intent:
+     * {@link Context#startActivity(Intent)} would resolve that URI in the owner profile. Quickstep
+     * overrides this method with LauncherApps' profile-scoped IntentSender bridge.
+     */
+    @Nullable
+    public Intent getPrivateProfileAppMarketActivityIntent(
+            String packageName, UserHandle user) {
+        return null;
     }
 
     /**

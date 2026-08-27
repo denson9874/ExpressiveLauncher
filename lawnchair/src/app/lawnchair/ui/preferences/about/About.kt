@@ -17,11 +17,15 @@
 package app.lawnchair.ui.preferences.about
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,14 +38,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +69,7 @@ import app.lawnchair.ui.preferences.components.layout.preferenceGroupItems
 import app.lawnchair.ui.preferences.navigation.AboutLicenses
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,6 +80,45 @@ fun About(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val applicationIcon = remember(context) {
+        context.packageManager.getApplicationIcon(context.applicationInfo)
+    }
+    val applicationIconPainter = rememberDrawablePainter(applicationIcon)
+    val dailyContent = rememberDailyAboutContent()
+
+    // Keying this short interaction to the local day prevents a tap sequence from mixing two
+    // different daily snark packs when the screen remains open across midnight.
+    val easterEggTapCountSaver = remember(dailyContent.dayKey) {
+        dailyScopedIntSaver(dailyContent.dayKey) {
+            it in 0 until ABOUT_EASTER_EGG_TAP_COUNT
+        }
+    }
+    val celebrationVisibilitySaver = remember(dailyContent.dayKey) {
+        dailyScopedBooleanSaver(dailyContent.dayKey)
+    }
+    var easterEggTapCount by rememberSaveable(
+        dailyContent.dayKey,
+        stateSaver = easterEggTapCountSaver,
+    ) { mutableIntStateOf(0) }
+    var showThankYouCelebration by rememberSaveable(
+        dailyContent.dayKey,
+        stateSaver = celebrationVisibilitySaver,
+    ) {
+        mutableStateOf(false)
+    }
+    val onAboutHeroTap = {
+        val tapResult = nextAboutEasterEggTap(
+            currentTapCount = easterEggTapCount,
+            dailyMessageResIds = dailyContent.snarkPack.messageResIds,
+        )
+        easterEggTapCount = tapResult.nextTapCount
+        Toast.makeText(context, tapResult.messageResId, Toast.LENGTH_SHORT).show()
+        if (tapResult.showCelebration) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            showThankYouCelebration = true
+        }
+    }
 
     val sheetState = rememberModalBottomSheetState(true)
     var openBottomSheet by remember { mutableStateOf(false) }
@@ -97,178 +146,195 @@ fun About(
         }
     }
 
-    PreferenceLayoutLazyColumn(
-        label = stringResource(id = R.string.about_label),
-        modifier = modifier,
-        backArrowVisible = !LocalIsExpandedScreen.current,
-    ) {
-        item {
-            Spacer(Modifier.padding(top = 8.dp))
-        }
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_home_comp),
-                    contentDescription = null,
+    Box(modifier = modifier.fillMaxSize()) {
+        PreferenceLayoutLazyColumn(
+            label = stringResource(id = R.string.about_label),
+            modifier = Modifier.fillMaxSize(),
+            backArrowVisible = !LocalIsExpandedScreen.current,
+        ) {
+            item {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape),
-                )
-            }
-        }
-        item {
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-        item {
-            Text(
-                text = stringResource(id = R.string.derived_app_name),
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = if (prefs.hideVersionInfo.get()) {
-                        prefs.pseudonymVersion.get() + " (pseudonym)"
-                    } else {
-                        BuildConfig.VERSION_DISPLAY_NAME
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .combinedClickable(
-                            onClick = {},
+                        .fillMaxWidth()
+                        .clickable(
+                            onClickLabel = stringResource(R.string.about_easter_egg_tap_label),
+                            onClick = onAboutHeroTap,
+                        )
+                        .testTag(ABOUT_EASTER_EGG_TARGET_TAG)
+                        .padding(top = 8.dp, bottom = 8.dp),
+                ) {
+                    Image(
+                        // The Expressive flavor supplies a layer-list app icon. painterResource
+                        // crashes on that XML type, while DrawablePainter correctly supports it.
+                        painter = applicationIconPainter,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(id = R.string.derived_app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = if (prefs.hideVersionInfo.get()) {
+                            prefs.pseudonymVersion.get() + " (pseudonym)"
+                        } else {
+                            BuildConfig.VERSION_DISPLAY_NAME
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.combinedClickable(
+                            onClick = onAboutHeroTap,
                             onLongClick = {
-                                val commitUrl =
+                                val destination = if (BuildConfig.IS_EXPRESSIVE_PRODUCT) {
+                                    AboutDestinations.GITHUB_PROFILE_URL
+                                } else {
                                     "https://github.com/LawnchairLauncher/lawnchair/commit/${BuildConfig.COMMIT_HASH}"
-                                context.startActivity(Intent(Intent.ACTION_VIEW, commitUrl.toUri()))
+                                }
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        destination.toUri(),
+                                    ),
+                                )
                             },
                         ),
-                )
-            }
-        }
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-        item {
-            UpdateSection(
-                updateState = uiState.updateState,
-                onInstall = {
-                    viewModel.installUpdate(it)
-                },
-                onForceInstall = {
-                    viewModel.installUpdate(it, forceInstall = true)
-                },
-                onViewChanges = {
-                    openBottomSheet = true
-                    scope.launch {
-                        sheetState.show()
-                    }
-                },
-                onDismissMajorUpdate = {
-                    viewModel.resetToDownloaded(it)
-                },
-            )
-        }
-        item {
-            Spacer(modifier = Modifier.requiredHeight(16.dp))
-        }
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                uiState.topLinks.forEach { link ->
-                    LawnchairLink(
-                        iconResId = link.iconResId,
-                        label = stringResource(id = link.labelResId),
-                        modifier = Modifier.weight(weight = 1f),
-                        url = link.url,
                     )
                 }
             }
-        }
-        preferenceGroupItems(
-            items = uiState.coreTeam,
-            isFirstChild = false,
-            heading = { stringResource(id = R.string.product) },
-            key = { _, it -> it.name },
-        ) { _, it ->
-            ContributorRow(
-                member = it,
-            )
-        }
-        preferenceGroupItems(
-            items = uiState.supportAndPr,
-            isFirstChild = false,
-            heading = { stringResource(id = R.string.support_and_pr) },
-            key = { _, it -> it.name },
-        ) { _, it ->
-            ContributorRow(
-                member = it,
-            )
-        }
-        preferenceGroupItems(
-            items = uiState.bottomLinks,
-            isFirstChild = false,
-            heading = { stringResource(id = R.string.community) },
-            key = { _, it -> it.labelResId },
-        ) { _, it ->
-            HorizontalLawnchairLink(
-                iconResId = it.iconResId,
-                label = stringResource(id = it.labelResId),
-                url = it.url,
-            )
-        }
-        item {
-            PreferenceGroupHeading(
-                stringResource(R.string.legal),
-            )
-        }
-        item {
-            PreferenceGroupItem(
-                cutTop = false,
-                cutBottom = true,
-            ) {
-                NavigationActionPreference(
-                    label = stringResource(id = R.string.acknowledgements),
-                    destination = AboutLicenses,
+            item {
+                DailySparkCard(
+                    content = dailyContent,
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
-        }
-        item {
-            Spacer(Modifier.height(3.dp))
-        }
-        item {
-            PreferenceGroupItem(
-                cutTop = true,
-                cutBottom = false,
-            ) {
-                ClickablePreference(
-                    label = stringResource(id = R.string.privacy_policy),
-                    onClick = {
-                        val webpage = PRIVACY_POLICY.toUri()
-                        val intent = Intent(Intent.ACTION_VIEW, webpage)
-                        if (intent.resolveActivity(context.packageManager) != null) {
-                            context.startActivity(intent)
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            item {
+                UpdateSection(
+                    updateState = uiState.updateState,
+                    onInstall = {
+                        viewModel.installUpdate(it)
+                    },
+                    onForceInstall = {
+                        viewModel.installUpdate(it, forceInstall = true)
+                    },
+                    onViewChanges = {
+                        openBottomSheet = true
+                        scope.launch {
+                            sheetState.show()
                         }
+                    },
+                    onDismissMajorUpdate = {
+                        viewModel.resetToDownloaded(it)
                     },
                 )
             }
+            item {
+                Spacer(modifier = Modifier.requiredHeight(16.dp))
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                ) {
+                    uiState.topLinks.forEach { link ->
+                        LawnchairLink(
+                            iconResId = link.iconResId,
+                            label = stringResource(id = link.labelResId),
+                            modifier = Modifier.weight(weight = 1f),
+                            url = link.url,
+                        )
+                    }
+                }
+            }
+            preferenceGroupItems(
+                items = uiState.coreTeam,
+                isFirstChild = false,
+                heading = { stringResource(id = R.string.product) },
+                key = { _, it -> it.name },
+            ) { _, it ->
+                ContributorRow(
+                    member = it,
+                )
+            }
+            if (uiState.supportAndPr.isNotEmpty()) {
+                preferenceGroupItems(
+                    items = uiState.supportAndPr,
+                    isFirstChild = false,
+                    heading = { stringResource(id = R.string.support_and_pr) },
+                    key = { _, it -> it.name },
+                ) { _, it ->
+                    ContributorRow(
+                        member = it,
+                    )
+                }
+            }
+            if (uiState.bottomLinks.isNotEmpty()) {
+                preferenceGroupItems(
+                    items = uiState.bottomLinks,
+                    isFirstChild = false,
+                    heading = { stringResource(id = R.string.community) },
+                    key = { _, it -> it.labelResId },
+                ) { _, it ->
+                    HorizontalLawnchairLink(
+                        iconResId = it.iconResId,
+                        label = stringResource(id = it.labelResId),
+                        url = it.url,
+                    )
+                }
+            }
+            item {
+                PreferenceGroupHeading(
+                    stringResource(R.string.legal),
+                )
+            }
+            item {
+                PreferenceGroupItem(
+                    cutTop = false,
+                    cutBottom = true,
+                ) {
+                    NavigationActionPreference(
+                        label = stringResource(id = R.string.acknowledgements),
+                        destination = AboutLicenses,
+                    )
+                }
+            }
+            item {
+                Spacer(Modifier.height(3.dp))
+            }
+            if (BuildConfig.PRIVACY_POLICY_URL.isNotBlank()) {
+                item {
+                    PreferenceGroupItem(
+                        cutTop = true,
+                        cutBottom = false,
+                    ) {
+                        ClickablePreference(
+                            label = stringResource(id = R.string.privacy_policy),
+                            onClick = {
+                                val webpage = BuildConfig.PRIVACY_POLICY_URL.toUri()
+                                val intent = Intent(Intent.ACTION_VIEW, webpage)
+                                if (intent.resolveActivity(context.packageManager) != null) {
+                                    context.startActivity(intent)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
         }
+
+        AboutThankYouCelebration(
+            visible = showThankYouCelebration,
+            onDismiss = { showThankYouCelebration = false },
+        )
     }
 }
-
-private const val PRIVACY_POLICY = "https://lawnchair.app/privacy_policy"

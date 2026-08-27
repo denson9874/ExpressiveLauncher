@@ -31,6 +31,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 
@@ -75,7 +76,7 @@ class GoogleFontsListing @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        scope.cancel()
     }
 
     sealed interface DataProvider {

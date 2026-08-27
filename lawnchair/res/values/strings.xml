@@ -204,6 +204,77 @@
     <string name="backup_and_restore_description">Save current setup, restore backups</string>
 
     <string name="about_label">About</string>
+    <string name="about_easter_egg_tap_label" translatable="false">Tap the Expressive Launcher logo</string>
+    <string name="about_easter_egg_hint_1" translatable="false">Oh, hello. Maybe don’t tap that again.</string>
+    <string name="about_easter_egg_hint_2" translatable="false">You tapped it again. Bold choice. Three left.</string>
+    <string name="about_easter_egg_hint_3" translatable="false">Persistent, aren’t we? Two more.</string>
+    <string name="about_easter_egg_hint_4" translatable="false">Last warning. Seriously. Do not tap again.</string>
+    <string name="about_easter_egg_hint_5" translatable="false">Okay, you win. You delightful troublemaker. 💜</string>
+    <string name="about_easter_egg_title" translatable="false">You found the secret!</string>
+    <string name="about_easter_egg_thank_you" translatable="false">Thank you for making Expressive Launcher part of your home.</string>
+    <string name="about_easter_egg_dismiss" translatable="false">Dismiss celebration</string>
+    <string name="about_daily_spark_title" translatable="false">Daily spark</string>
+    <string name="about_daily_spark_subtitle" translatable="false">Fresh mischief and inspiration every day</string>
+    <string name="about_daily_riddle_title" translatable="false">Today’s riddle</string>
+    <string name="about_daily_riddle_reveal_answer" translatable="false">Reveal answer</string>
+    <string name="about_daily_riddle_hide_answer" translatable="false">Hide answer</string>
+    <string name="about_daily_riddle_answer_format" translatable="false">Answer: %1$s</string>
+    <string name="about_daily_quote_attribution" translatable="false">Expressive Launcher</string>
+    <string name="about_daily_quote_attribution_format" translatable="false">— %1$s</string>
+
+    <string name="about_daily_snark_2_1" translatable="false">A tap. Harmless. Probably.</string>
+    <string name="about_daily_snark_2_2" translatable="false">Twice? The logo has begun taking notes. Three left.</string>
+    <string name="about_daily_snark_2_3" translatable="false">You’re halfway to a very questionable achievement. Two left.</string>
+    <string name="about_daily_snark_2_4" translatable="false">One tap remains between you and consequences.</string>
+    <string name="about_daily_snark_2_5" translatable="false">Consequences activated. Honestly, worth it. ✨</string>
+    <string name="about_daily_snark_3_1" translatable="false">Please refrain from poking the launcher. It is ticklish.</string>
+    <string name="about_daily_snark_3_2" translatable="false">Again? Fine. Three pokes remain.</string>
+    <string name="about_daily_snark_3_3" translatable="false">The launcher would like to speak with your supervisor. Two left.</string>
+    <string name="about_daily_snark_3_4" translatable="false">This is your final, extremely official warning.</string>
+    <string name="about_daily_snark_3_5" translatable="false">Complaint withdrawn. You’re clearly management. 🫡</string>
+    <string name="about_daily_snark_4_1" translatable="false">That button was decorative. Allegedly.</string>
+    <string name="about_daily_snark_4_2" translatable="false">You tested the allegation. Three taps remain.</string>
+    <string name="about_daily_snark_4_3" translatable="false">Peer review continues. Two more.</string>
+    <string name="about_daily_snark_4_4" translatable="false">The science is settled. Don’t tap again.</string>
+    <string name="about_daily_snark_4_5" translatable="false">New discovery: you don’t take notes. Excellent. 🔬</string>
+    <string name="about_daily_snark_5_1" translatable="false">Nothing secret here. Move along.</string>
+    <string name="about_daily_snark_5_2" translatable="false">You came back. Suspicious. Three left.</string>
+    <string name="about_daily_snark_5_3" translatable="false">The secret department has been notified. Two left.</string>
+    <string name="about_daily_snark_5_4" translatable="false">Last chance to maintain plausible deniability.</string>
+    <string name="about_daily_snark_5_5" translatable="false">Plausible deniability denied. Welcome in. 🕵️</string>
+    <string name="about_daily_snark_6_1" translatable="false">Tiny tap detected. Ego unaffected.</string>
+    <string name="about_daily_snark_6_2" translatable="false">Second tap detected. Ego slightly affected. Three left.</string>
+    <string name="about_daily_snark_6_3" translatable="false">Okay, now you’re making this personal. Two left.</string>
+    <string name="about_daily_snark_6_4" translatable="false">Final warning from our entirely real legal team.</string>
+    <string name="about_daily_snark_6_5" translatable="false">Legal says you’re delightful. Case dismissed. ⚖️</string>
+    <string name="about_daily_snark_7_1" translatable="false">The logo felt that.</string>
+    <string name="about_daily_snark_7_2" translatable="false">It felt that one too. Three left.</string>
+    <string name="about_daily_snark_7_3" translatable="false">At this point, you’re basically percussion. Two left.</string>
+    <string name="about_daily_snark_7_4" translatable="false">One more and the encore begins.</string>
+    <string name="about_daily_snark_7_5" translatable="false">Encore unlocked. The crowd is one person, but they’re thrilled. 🎉</string>
+
+    <string name="about_daily_riddle_1" translatable="false">I have cities but no houses, forests but no trees, and water but no fish. What am I?</string>
+    <string name="about_daily_riddle_answer_1" translatable="false">A map</string>
+    <string name="about_daily_riddle_2" translatable="false">What gets wetter the more it dries?</string>
+    <string name="about_daily_riddle_answer_2" translatable="false">A towel</string>
+    <string name="about_daily_riddle_3" translatable="false">I have keys but no locks, space but no room, and you can enter but never go outside. What am I?</string>
+    <string name="about_daily_riddle_answer_3" translatable="false">A keyboard</string>
+    <string name="about_daily_riddle_4" translatable="false">What can travel around the world while staying in one corner?</string>
+    <string name="about_daily_riddle_answer_4" translatable="false">A stamp</string>
+    <string name="about_daily_riddle_5" translatable="false">What has hands and a face but no arms or legs?</string>
+    <string name="about_daily_riddle_answer_5" translatable="false">A clock</string>
+    <string name="about_daily_riddle_6" translatable="false">The more you take, the more you leave behind. What are they?</string>
+    <string name="about_daily_riddle_answer_6" translatable="false">Footsteps</string>
+    <string name="about_daily_riddle_7" translatable="false">I speak without a mouth and answer without ears. I have no body, but come alive when called. What am I?</string>
+    <string name="about_daily_riddle_answer_7" translatable="false">An echo</string>
+
+    <string name="about_daily_quote_1" translatable="false">“A good home screen doesn’t ask for attention; it gives attention back.”</string>
+    <string name="about_daily_quote_2" translatable="false">“Small details are where software learns to smile.”</string>
+    <string name="about_daily_quote_3" translatable="false">“Clarity is kindness, especially on a busy screen.”</string>
+    <string name="about_daily_quote_4" translatable="false">“Make room for what matters, then make it delightful.”</string>
+    <string name="about_daily_quote_5" translatable="false">“The best shortcut is the one that feels obvious.”</string>
+    <string name="about_daily_quote_6" translatable="false">“A little playfulness makes useful things memorable.”</string>
+    <string name="about_daily_quote_7" translatable="false">“Your home screen should feel like yours before it feels like software.”</string>
 
     <string name="app_info_drop_target_label">App info</string>
     <string name="debug_restart_launcher">Restart Lawnchair</string>
@@ -997,6 +1068,10 @@
     <string name="search_pref_result_visual_media_title">Photos and videos</string>
     <string name="search_pref_result_audio_media_title">Audio files</string>
     <string name="search_pref_result_all_files_title">All files</string>
+    <string name="search_pref_result_selected_folder_title">Selected folder</string>
+    <string name="search_pref_result_selected_folder_description">Choose a folder to include documents and other files in launcher search</string>
+    <string name="search_pref_result_selected_folder_active">Searching files in %1$s</string>
+    <string name="search_pref_result_selected_folder_failed">That folder could not be opened. Please choose another folder.</string>
     <string name="search_pref_result_web_title">Web suggestions</string>
     <string name="search_pref_result_history_title">Search history</string>
     <string name="all_apps_search_result_calculator">Calculator</string>

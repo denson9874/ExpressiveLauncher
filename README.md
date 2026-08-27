@@ -54,8 +54,14 @@ build/outputs/apk/lawnWithQuickstepExpressive/debug/
   ExpressiveLauncherL3.16.Dev.(eed2baf).expressive.debug.apk
 ```
 
-This source snapshot requires Android SDK 37.1 and Java 21-compatible compilation.
-The local verification environment builds with JDK 26 while targeting Java 21.
+This source snapshot requires Android SDK 37.1 and JDK 21.
+
+For a Google Play release, including protected upload signing, permanent package/version inputs,
+listing assets, and Play Console policy steps, follow
+[docs/PLAY_RELEASE.md](docs/PLAY_RELEASE.md). The release bundle task intentionally fails instead
+of falling back to the Android debug certificate when production credentials are absent.
+Current test evidence and unresolved production gates are tracked in
+[docs/PLAY_RELEASE_READINESS.md](docs/PLAY_RELEASE_READINESS.md).
 
 ## Verification policy
 

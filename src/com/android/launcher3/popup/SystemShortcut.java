@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -349,8 +350,15 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
         @Override
         public void onClick(View view) {
             Intent intent =
-                    ApiWrapper.INSTANCE.get(view.getContext()).getAppMarketActivityIntent(
-                            mItemInfo.getTargetComponent().getPackageName(), mSpaceUser);
+                    ApiWrapper.INSTANCE.get(view.getContext())
+                            .getPrivateProfileAppMarketActivityIntent(
+                                    mItemInfo.getTargetComponent().getPackageName(), mSpaceUser);
+            if (intent == null) {
+                Toast.makeText(view.getContext(), R.string.private_space_app_store_unavailable,
+                        Toast.LENGTH_SHORT).show();
+                AbstractFloatingView.closeAllOpenViews(mTarget);
+                return;
+            }
             mTarget.startActivitySafely(view, intent, mItemInfo);
             AbstractFloatingView.closeAllOpenViews(mTarget);
             mTarget.getStatsLogManager()

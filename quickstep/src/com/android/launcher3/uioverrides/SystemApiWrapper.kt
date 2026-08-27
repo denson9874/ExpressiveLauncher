@@ -22,6 +22,7 @@ import android.content.Context
 import android.content.IIntentReceiver
 import android.content.IIntentSender
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.ActivityInfo
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
@@ -30,17 +31,16 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
-import android.os.Flags.allowPrivateProfile
 import android.os.IBinder
+import android.os.Process
 import android.os.UserHandle
-import android.os.UserManager
-import android.util.ArrayMap
 import android.view.SurfaceControlViewHost
 import android.widget.Toast
 import android.window.RemoteTransition
 import android.window.ScreenCapture
-import com.android.launcher3.BaseActivity
 import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
+import com.android.launcher3.BaseActivity
 import com.android.launcher3.Flags.enablePrivateSpace
 import com.android.launcher3.Flags.privateSpaceSysAppsSeparation
 import com.android.launcher3.R
@@ -57,7 +57,21 @@ import com.android.quickstep.util.FadeOutRemoteTransition
 import java.util.function.Supplier
 import javax.inject.Inject
 
-import app.lawnchair.LawnchairApp
+/**
+ * Resolves the installer owned by [user] through LauncherApps' cross-profile contract.
+ *
+ * Passing the launcher's package first preserves Android's preferred-store behavior. Some vendor
+ * implementations return null instead of applying the documented default-store fallback, so make
+ * that fallback explicit without ever degrading to an owner-profile `market://details` URI.
+ */
+@VisibleForTesting
+internal fun resolvePrivateProfileMarketIntentSender(
+    packageName: String,
+    user: UserHandle,
+    provider: (String?, UserHandle) -> IntentSender?,
+): IntentSender? =
+    runCatching { provider(packageName, user) }.getOrNull()
+        ?: runCatching { provider(null, user) }.getOrNull()
 
 /** A wrapper for the hidden API calls */
 @LauncherAppSingleton
@@ -86,30 +100,9 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     override fun queryAllUsers(): Map<UserHandle, UserIconInfo> {
-        if (!enablePrivateSpace() || !LawnchairApp.isRecentsEnabled) {
-            return super.queryAllUsers()
-        }
-        return try {
-            val users = ArrayMap<UserHandle, UserIconInfo>()
-            mContext.getSystemService(UserManager::class.java)!!.userProfiles?.forEach { user ->
-                mContext.getSystemService(LauncherApps::class.java)!!.getLauncherUserInfo(user)?.apply {
-                    users[user] =
-                        UserIconInfo(
-                            user,
-                            when (userType) {
-                                UserManager.USER_TYPE_PROFILE_MANAGED -> UserIconInfo.TYPE_WORK
-                                UserManager.USER_TYPE_PROFILE_CLONE -> UserIconInfo.TYPE_CLONED
-                                UserManager.USER_TYPE_PROFILE_PRIVATE -> UserIconInfo.TYPE_PRIVATE
-                                else -> UserIconInfo.TYPE_MAIN
-                            },
-                            userSerialNumber.toLong()
-                        )
-                }
-            }
-            return users
-        } catch (t : Throwable) {
-            return super.queryAllUsers()
-        }
+        // Hidden profiles are available to every ROLE_HOME holder declaring
+        // ACCESS_HIDDEN_PROFILES; they are not conditional on privileged Recents integration.
+        return super.queryAllUsers()
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -126,51 +119,86 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
     }
 
     override fun getAppMarketActivityIntent(packageName: String, user: UserHandle): Intent {
-        return try {
-            if (allowPrivateProfile() && enablePrivateSpace())
-                ProxyActivityStarter.getLaunchIntent(
-                    mContext,
-                    StartActivityParams(null as PendingIntent?, 0).apply {
-                        intentSender =
-                            mContext
-                                .getSystemService(LauncherApps::class.java)!!
-                                .getAppMarketActivityIntent(packageName, user)
-                        options =
-                            ActivityOptions.makeBasic()
-                                .setPendingIntentBackgroundActivityStartMode(
-                                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                                )
-                                .toBundle()
-                        requireActivityResult = false
-                    },
-                )
-            else super.getAppMarketActivityIntent(packageName, user)
-        } catch (t: Throwable) {
-            super.getAppMarketActivityIntent(packageName, user)
+        if (Process.myUserHandle() == user) {
+            return super.getAppMarketActivityIntent(packageName, user)
         }
+        return getPrivateProfileAppMarketActivityIntent(packageName, user)
+            ?: privateProfileMarketUnavailableIntent()
+    }
+
+    override fun getPrivateProfileAppMarketActivityIntent(
+        packageName: String,
+        user: UserHandle,
+    ): Intent? {
+        // LauncherApps.getAppMarketActivityIntent is Android's public API 35+ contract for
+        // opening an installer in another profile. Hidden rollout flags are not authorization
+        // checks and can be false for an ordinary Play-distributed launcher. Never fall back to
+        // ApiWrapper's owner-profile market://details URI; that caused "Item not found".
+        val launcherApps = mContext.getSystemService(LauncherApps::class.java) ?: return null
+        val appMarketIntentSender =
+            resolvePrivateProfileMarketIntentSender(
+                packageName,
+                user,
+            ) { requestedPackage, requestedUser ->
+                launcherApps.getAppMarketActivityIntent(requestedPackage, requestedUser)
+            } ?: return null
+
+        return runCatching {
+            ProxyActivityStarter.getLaunchIntent(
+                mContext,
+                StartActivityParams(null as PendingIntent?, 0).apply {
+                    intentSender = appMarketIntentSender
+                    options =
+                        ActivityOptions.makeBasic()
+                            .setPendingIntentBackgroundActivityStartMode(
+                                ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                            )
+                            .toBundle()
+                    requireActivityResult = false
+                },
+            )
+        }.getOrNull()
+    }
+
+    private fun privateProfileMarketUnavailableIntent(): Intent {
+        Executors.MAIN_EXECUTOR.execute {
+            Toast.makeText(
+                    mContext,
+                    R.string.private_space_app_store_unavailable,
+                    Toast.LENGTH_SHORT,
+                )
+                .show()
+        }
+        return Intent(Intent.ACTION_MAIN)
+            .addCategory(Intent.CATEGORY_HOME)
+            .setPackage(mContext.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     /** Returns an intent which can be used to open Private Space Settings. */
     override fun getPrivateSpaceSettingsIntent(): Intent? {
         return try {
-            if (allowPrivateProfile() && enablePrivateSpace())
-                ProxyActivityStarter.getLaunchIntent(
-                    mContext,
-                    StartActivityParams(null as PendingIntent?, 0).apply {
-                        intentSender =
-                            mContext
-                                .getSystemService(LauncherApps::class.java)
-                                ?.privateSpaceSettingsIntent ?: return null
-                        options =
-                            ActivityOptions.makeBasic()
-                                .setPendingIntentBackgroundActivityStartMode(
-                                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                                )
-                                .toBundle()
-                        requireActivityResult = false
-                    }
-                )
-            else null
+            // LauncherApps is the public ROLE_HOME contract for this destination. Do not gate the
+            // recovery route on the framework's hidden rollout flag: a device can expose a real
+            // Private Space profile while that flag reports false to an ordinary Play app, which
+            // previously made a hidden space impossible to reopen from launcher search.
+            val settingsIntentSender =
+                mContext
+                    .getSystemService(LauncherApps::class.java)
+                    ?.privateSpaceSettingsIntent ?: return null
+            ProxyActivityStarter.getLaunchIntent(
+                mContext,
+                StartActivityParams(null as PendingIntent?, 0).apply {
+                    intentSender = settingsIntentSender
+                    options =
+                        ActivityOptions.makeBasic()
+                            .setPendingIntentBackgroundActivityStartMode(
+                                ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                            )
+                            .toBundle()
+                    requireActivityResult = false
+                }
+            )
         } catch (t: Throwable) {
             super.privateSpaceSettingsIntent
         }

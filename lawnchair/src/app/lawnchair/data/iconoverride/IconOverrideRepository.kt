@@ -16,6 +16,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
@@ -37,7 +38,9 @@ class IconOverrideRepository @Inject constructor(
     init {
         scope.launch {
             dao.observeAll()
-                .flowOn(Dispatchers.Main)
+                // Room queries must stay off the main thread; collection and icon-cache updates
+                // remain on MainScope so Launcher model callbacks are serialized.
+                .flowOn(Dispatchers.IO)
                 .collect { overrides ->
                     _overridesMap = overrides.associateBy(
                         keySelector = { it.target },
@@ -97,7 +100,9 @@ class IconOverrideRepository @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        scope.cancel()
+        updatePackageQueue.clear()
+        _overridesMap = emptyMap()
     }
 
     companion object {

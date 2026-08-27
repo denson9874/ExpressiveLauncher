@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-sdk
+        android:minSdkVersion="37"
+        android:targetSdkVersion="37"
+        tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk.client" />
+
+    <!-- Google Play builds use a user-selected SAF folder for file search. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+        tools:node="remove" />
+
+    <!--
+         This is the highest-priority combined Play manifest. Keep the normal launcher entry here
+         alongside the permission removals so the Play build remains a selectable Home app.
+    -->
+    <application
+        android:name="app.lawnchair.LawnchairApp"
+        android:backupAgent="com.android.launcher3.LauncherBackupAgent"
+        android:fullBackupContent="@xml/backupscheme"
+        android:fullBackupOnly="true"
+        android:hardwareAccelerated="true"
+        android:icon="@drawable/ic_launcher_home"
+        android:label="@string/derived_app_name"
+        android:largeHeap="@bool/config_largeHeap"
+        android:restoreAnyVersion="true"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name="app.lawnchair.LawnchairLauncher"
+            android:clearTaskOnLaunch="true"
+            android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:enabled="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:resumeWhilePausing="true"
+            android:screenOrientation="unspecified"
+            android:stateNotNeeded="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustPan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.SHOW_WORK_APPS" />
+                <action android:name="android.intent.action.ALL_APPS" />
+
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.MONKEY" />
+                <category android:name="android.intent.category.LAUNCHER_APP" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="com.android.launcher3.grid.control"
+                android:value="${applicationId}.grid_control" />
+        </activity>
+
+    </application>
+</manifest>

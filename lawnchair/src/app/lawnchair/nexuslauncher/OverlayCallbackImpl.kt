@@ -2,7 +2,6 @@ package app.lawnchair.nexuslauncher
 
 import android.app.Activity
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.os.Bundle
 import app.lawnchair.FeedBridge
 import app.lawnchair.LawnchairLauncher
@@ -147,9 +146,9 @@ class OverlayCallbackImpl(private val mLauncher: LawnchairLauncher) :
         private const val PREF_PERSIST_FLAGS = "pref_persistent_flags"
 
         fun minusOneAvailable(context: Context): Boolean {
-            return FeedBridge.useBridge(context) ||
-                context.applicationInfo.flags and
-                (ApplicationInfo.FLAG_DEBUGGABLE or ApplicationInfo.FLAG_SYSTEM) != 0
+            // Build type alone does not make a feed usable. Report availability only when a
+            // compatible bridge or an allowed direct overlay service can actually be resolved.
+            return FeedBridge.getInstance(context).isInstalled()
         }
     }
 }

@@ -37,7 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import app.lawnchair.ui.util.isPlayStoreFlavor
+import app.lawnchair.ui.util.canRequestManageAllFilesAccess
 import app.lawnchair.util.openAppPermissionSettings
 import app.lawnchair.util.requestManageAllFilesAccessPermission
 import com.android.launcher3.R
@@ -115,7 +115,7 @@ fun WallpaperAccessPermissionDialog(
     val context = LocalContext.current
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        if (isPlayStoreFlavor()) {
+        if (!canRequestManageAllFilesAccess()) {
             AlertDialog(
                 onDismissRequest = onDismiss,
                 modifier = modifier,
@@ -137,7 +137,11 @@ fun WallpaperAccessPermissionDialog(
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val mediaPermission = rememberMultiplePermissionsState(
-                    listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO),
+                    listOf(
+                        Manifest.permission.READ_MEDIA_IMAGES,
+                        Manifest.permission.READ_MEDIA_VIDEO,
+                        Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
+                    ),
                 )
 
                 AlertDialog(

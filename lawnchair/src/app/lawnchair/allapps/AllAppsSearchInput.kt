@@ -34,7 +34,10 @@ import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.savedstate.findViewTreeSavedStateRegistryOwner
 import app.lawnchair.launcher
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
@@ -47,6 +50,8 @@ import app.lawnchair.qsb.LawnQsbUi
 import app.lawnchair.qsb.QsbActions
 import app.lawnchair.qsb.QsbIconId
 import app.lawnchair.qsb.buildQsbStyle
+import app.lawnchair.qsb.canCreateAttachedQsbComposition
+import app.lawnchair.qsb.prepareQsbWindowOwners
 import app.lawnchair.qsb.providers.Google
 import app.lawnchair.qsb.providers.PixelSearch
 import app.lawnchair.qsb.rememberAllAppsQsbState
@@ -71,6 +76,16 @@ import com.android.systemui.shared.system.BlurUtils
 import java.util.Locale
 import kotlin.math.max
 import kotlinx.coroutines.launch
+
+internal fun canRecreateAllAppsQsbComposition(
+    searchBarHidden: Boolean,
+    isAttached: Boolean,
+    lifecycleState: Lifecycle.State?,
+    hasSavedStateOwner: Boolean,
+): Boolean =
+    !searchBarHidden &&
+        hasSavedStateOwner &&
+        canCreateAttachedQsbComposition(isAttached, lifecycleState)
 
 class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     FrameLayout(context, attrs),
@@ -118,6 +133,59 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     private var initialPaddingLeft: Int = 0
     private var initialPaddingRight: Int = 0
     private var hideSearchBar = false
+
+    /**
+     * Recreates the Compose search surface after All Apps reaches its final attached view tree.
+     *
+     * Launcher retains and reattaches All Apps while settings, profile, and model updates are in
+     * flight. The provisional composition can be disposed against the old tree while the outer
+     * search container keeps valid bounds, leaving a transparent bar until the process restarts.
+     * Recreating it from the pre-draw retry binds it to the live LifecycleOwner and
+     * WindowRecomposer. The explicit hide-search-bar preference remains authoritative.
+     */
+    private val recreateQsbCompositionOnPreDraw = ViewTreeObserver.OnPreDrawListener {
+        if (!::qsbShell.isInitialized) return@OnPreDrawListener true
+
+        val lifecycleState = qsbShell.findViewTreeLifecycleOwner()?.lifecycle?.currentState
+        val canRecreate =
+            canRecreateAllAppsQsbComposition(
+                searchBarHidden = hideSearchBar,
+                isAttached = qsbShell.isAttachedToWindow,
+                lifecycleState = lifecycleState,
+                hasSavedStateOwner = qsbShell.findViewTreeSavedStateRegistryOwner() != null,
+            ) && prepareQsbWindowOwners(qsbShell)
+        if (!canRecreate) {
+            // Keep listening while Launcher replaces its provisional retained view tree. A
+            // one-shot post can run before the final owners exist and reproduce the blank QSB.
+            if (hideSearchBar || !qsbShell.isAttachedToWindow) {
+                removeQsbCompositionPreDrawListener()
+            }
+            return@OnPreDrawListener true
+        }
+
+        removeQsbCompositionPreDrawListener()
+        qsbShell.disposeComposition()
+        qsbShell.createComposition()
+        qsbShell.requestLayout()
+        requestLayout()
+        invalidate()
+        true
+    }
+
+    private fun scheduleQsbCompositionRecreation() {
+        if (!::qsbShell.isInitialized || hideSearchBar) return
+        removeQsbCompositionPreDrawListener()
+        qsbShell.viewTreeObserver.addOnPreDrawListener(recreateQsbCompositionOnPreDraw)
+        qsbShell.postInvalidateOnAnimation()
+    }
+
+    private fun removeQsbCompositionPreDrawListener() {
+        if (!::qsbShell.isInitialized) return
+        val observer = qsbShell.viewTreeObserver
+        if (observer.isAlive) {
+            observer.removeOnPreDrawListener(recreateQsbCompositionOnPreDraw)
+        }
+    }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -412,9 +480,13 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             appsView.appsStore?.addUpdateListener(this)
         }
         input.viewTreeObserver.addOnGlobalLayoutListener(this)
+
+        // Pre-draw retries until both Compose-required owners belong to the final attached tree.
+        scheduleQsbCompositionRecreation()
     }
 
     override fun onDetachedFromWindow() {
+        removeQsbCompositionPreDrawListener()
         super.onDetachedFromWindow()
         launcher.deviceProfile.inv.removeOnChangeListener(this)
         if (::appsView.isInitialized) {

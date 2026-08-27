@@ -36,27 +36,38 @@ import com.kieronquinn.app.smartspacer.sdk.SmartspacerConstants
 
 class FeedBridge(private val context: Context) {
 
-    private val shouldUseFeed = context.applicationInfo.flags and (FLAG_DEBUGGABLE or FLAG_SYSTEM) == 0
+    private val requiresBridge = context.applicationInfo.flags and (FLAG_DEBUGGABLE or FLAG_SYSTEM) == 0
     private val prefs by lazy { PreferenceManager.getInstance(context) }
-    private val bridgePackages by lazy {
-        listOf(
-            PixelBridgeInfo("com.google.android.apps.nexuslauncher", R.integer.bridge_signature_hash),
-            BridgeInfo("app.lawnchair.lawnfeed", R.integer.lawnfeed_signature_hash),
-        )
+    private val bridgePackages: List<BridgeInfo> by lazy {
+        if (BuildConfig.IS_EXPRESSIVE_PRODUCT) {
+            // Lawnfeed's bridge rejects application IDs outside its built-in Lawnchair allowlist.
+            // Expressive therefore uses its own same-signed companion instead of advertising an
+            // installed-but-unusable third-party bridge as a working feed.
+            listOf(SameSignatureBridgeInfo(FIRST_PARTY_FEED_PACKAGE))
+        } else {
+            listOf(
+                PixelBridgeInfo("com.google.android.apps.nexuslauncher", R.integer.bridge_signature_hash),
+                BridgeInfo("app.lawnchair.lawnfeed", R.integer.lawnfeed_signature_hash),
+            )
+        }
     }
 
     @JvmOverloads
     fun resolveBridge(customPackage: String = prefs.feedProvider.get()): BridgeInfo? {
         val customBridge = customBridgeOrNull(customPackage)
-        val feedProvider = customPackage.toBoolean()
         return when {
             customBridge != null -> customBridge
-            !shouldUseFeed && !feedProvider -> null
+            !requiresBridge && !BuildConfig.IS_EXPRESSIVE_PRODUCT -> null
             else -> bridgePackages.firstOrNull { it.isAvailable() }
         }
     }
 
     private fun customBridgeOrNull(customPackage: String = prefs.feedProvider.get()): CustomBridgeInfo? {
+        if (BuildConfig.IS_EXPRESSIVE_PRODUCT && customPackage in expressiveIncompatibleProviders) {
+            // These providers are valid for their own launcher identities but reject Expressive.
+            // Ignore a stale selection so upgrading users can move to the same-signed companion.
+            return null
+        }
         return if (customPackage.isNotBlank()) {
             val bridge = CustomBridgeInfo(customPackage)
             if (bridge.isAvailable()) bridge else null
@@ -65,15 +76,41 @@ class FeedBridge(private val context: Context) {
         }
     }
 
-    private fun customBridgeAvailable() = customBridgeOrNull()?.isAvailable() == true
-
     fun isInstalled(): Boolean {
-        return customBridgeAvailable() || !shouldUseFeed || bridgePackages.any { it.isAvailable() }
+        return resolveConnection() != null
+    }
+
+    /**
+     * Resolves the complete bind decision in one pass so the service connection cannot choose a
+     * bridge and then accidentally fall back to Google when that bridge disappears mid-reconnect.
+     */
+    fun resolveConnection(): ConnectionInfo? {
+        val bridge = resolveBridge()
+        val directOverlayAvailable = bridge == null && directOverlayAvailable()
+        return when (
+            resolveFeedConnectionKind(
+                requiresBridge = requiresBridge,
+                bridgeAvailable = bridge != null,
+                directOverlayAvailable = directOverlayAvailable,
+            )
+        ) {
+            FeedConnectionKind.BRIDGE -> ConnectionInfo(bridge!!.packageName, true)
+            FeedConnectionKind.DIRECT -> ConnectionInfo(GOOGLE_APP_PACKAGE, false)
+            FeedConnectionKind.UNAVAILABLE -> null
+        }
+    }
+
+    /** Packages whose install state can change the active feed connection. */
+    fun shouldReconnectForPackage(packageName: String?): Boolean {
+        if (packageName.isNullOrBlank()) return false
+        return packageName == GOOGLE_APP_PACKAGE ||
+            bridgePackages.any { it.packageName == packageName } ||
+            prefs.feedProvider.get() == packageName
     }
 
     fun resolveSmartspace(): String {
         return bridgePackages.firstOrNull { it.supportsSmartspace }?.packageName
-            ?: "com.google.android.googlequicksearchbox"
+            ?: GOOGLE_APP_PACKAGE
     }
 
     open inner class BridgeInfo(val packageName: String, signatureHashRes: Int) {
@@ -83,26 +120,17 @@ class FeedBridge(private val context: Context) {
         open val supportsSmartspace = false
 
         fun isAvailable(): Boolean {
-            val info = context.packageManager.resolveService(
-                Intent(OVERLAY_ACTION)
-                    .setPackage(packageName)
-                    .setData(
-                        Uri.parse(
-                            StringBuilder(packageName.length + 18)
-                                .append("app://")
-                                .append(packageName)
-                                .append(":")
-                                .append(Process.myUid())
-                                .toString(),
-                        )
-                            .buildUpon()
-                            .appendQueryParameter("v", 7.toString())
-                            .appendQueryParameter("cv", 9.toString())
-                            .build(),
-                    ),
-                0,
-            )
-            return info != null && isSigned()
+            return runCatching {
+                // Probe with the same launcher-authority URI used for the real bind. The previous
+                // provider-authority probe could report a service that the launcher could not bind.
+                context.packageManager.resolveService(
+                    createOverlayIntent(context, packageName),
+                    PackageManager.GET_META_DATA,
+                ) != null && isSigned()
+            }.onFailure {
+                // Package replacement can race a preference refresh or lifecycle reconnect.
+                Log.w(TAG, "Feed provider $packageName disappeared while being validated", it)
+            }.getOrDefault(false)
         }
 
         open fun isSigned(): Boolean {
@@ -122,6 +150,15 @@ class FeedBridge(private val context: Context) {
                     return if (info.signatures!!.any { it.hashCode() != signatureHash }) false else info.signatures!!.isNotEmpty()
                 }
             }
+        }
+    }
+
+    private inner class SameSignatureBridgeInfo(packageName: String) : BridgeInfo(packageName, 0) {
+        override fun isSigned(): Boolean {
+            // The first-party bridge is privileged by a signature permission. Enforce the same
+            // trust boundary before binding so a package-name squatter cannot impersonate it.
+            return context.packageManager.checkSignatures(context.packageName, packageName) ==
+                PackageManager.SIGNATURE_MATCH
         }
     }
 
@@ -147,13 +184,48 @@ class FeedBridge(private val context: Context) {
         override val supportsSmartspace get() = isAvailable()
     }
 
+    private fun directOverlayAvailable(): Boolean {
+        if (requiresBridge) return false
+        return runCatching {
+            context.packageManager.resolveService(
+                createOverlayIntent(context, GOOGLE_APP_PACKAGE),
+                PackageManager.GET_META_DATA,
+            ) != null
+        }.getOrDefault(false)
+    }
+
+    private fun isProviderSignatureAccepted(packageName: String): Boolean {
+        return runCatching {
+            if (BuildConfig.IS_EXPRESSIVE_PRODUCT && packageName == FIRST_PARTY_FEED_PACKAGE) {
+                SameSignatureBridgeInfo(packageName).isSigned()
+            } else {
+                CustomBridgeInfo(packageName).isSigned()
+            }
+        }.getOrDefault(false)
+    }
+
+    data class ConnectionInfo(
+        val packageName: String,
+        val useBridge: Boolean,
+    )
+
     companion object : SingletonHolder<FeedBridge, Context>(
         ensureOnMainThread(
             useApplicationContext(::FeedBridge),
         ),
     ) {
         private const val TAG = "FeedBridge"
-        private const val OVERLAY_ACTION = "com.android.launcher3.WINDOW_OVERLAY"
+        const val OVERLAY_ACTION = "com.android.launcher3.WINDOW_OVERLAY"
+        const val GOOGLE_APP_PACKAGE = "com.google.android.googlequicksearchbox"
+        const val FIRST_PARTY_FEED_PACKAGE = "dev.launcher.expressive.feed"
+        const val FIRST_PARTY_CONNECT_PERMISSION =
+            "dev.launcher.expressive.feed.permission.CONNECT"
+
+        private val expressiveIncompatibleProviders = setOf(
+            "app.lawnchair.lawnfeed",
+            "com.google.android.apps.nexuslauncher",
+            GOOGLE_APP_PACKAGE,
+        )
 
         private val whitelist = mutableMapOf<String, Long?>()
 
@@ -175,13 +247,43 @@ class FeedBridge(private val context: Context) {
             .asSequence()
             .map { it.serviceInfo.applicationInfo }
             .distinct()
-            .filter { getInstance(context).CustomBridgeInfo(it.packageName).isSigned() }
+            .filter { getInstance(context).isProviderSignatureAccepted(it.packageName) }
 
         @JvmStatic
-        fun useBridge(context: Context) = getInstance(context).let { it.shouldUseFeed || it.customBridgeAvailable() }
+        fun createOverlayIntent(context: Context, targetPackage: String): Intent {
+            return Intent(OVERLAY_ACTION)
+                .setPackage(targetPackage)
+                .setData(
+                    Uri.parse("app://${context.packageName}:${Process.myUid()}")
+                        .buildUpon()
+                        .appendQueryParameter("v", 7.toString())
+                        .appendQueryParameter("cv", 9.toString())
+                        .build(),
+                )
+        }
+
+        @JvmStatic
+        fun useBridge(context: Context) = getInstance(context).resolveConnection()?.useBridge == true
     }
 
     init {
         initializeWhitelist(context)
     }
+}
+
+internal enum class FeedConnectionKind {
+    BRIDGE,
+    DIRECT,
+    UNAVAILABLE,
+}
+
+/** Pure policy kept separate from PackageManager so release-vs-debug fallback is regression tested. */
+internal fun resolveFeedConnectionKind(
+    requiresBridge: Boolean,
+    bridgeAvailable: Boolean,
+    directOverlayAvailable: Boolean,
+): FeedConnectionKind = when {
+    bridgeAvailable -> FeedConnectionKind.BRIDGE
+    !requiresBridge && directOverlayAvailable -> FeedConnectionKind.DIRECT
+    else -> FeedConnectionKind.UNAVAILABLE
 }

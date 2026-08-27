@@ -14,8 +14,13 @@ bin
 local.properties
 build
 .DS_Store
+artifacts/
 keystore.properties
 *.jks
+*.keystore
+*.p12
+upload_certificate.pem
+play-service-account.json
 __pycache__
 .vscode
 .fleet

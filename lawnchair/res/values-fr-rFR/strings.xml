@@ -388,7 +388,7 @@
     <string name="smartspace_battery_charging">Recharge en cours</string>
     <string name="smartspace_battery_full">Chargé</string>
     <string name="smartspace_battery_low">Batterie faible</string>
-    <string name="battery_charging_percentage_charging_time">"%1$d% % — Chargé dans %2$s"</string>
+    <string name="battery_charging_percentage_charging_time">"%1$d%% — Chargé dans %2$s"</string>
     <string name="smartspace_widget">Aperçu</string>
     <string name="smartspace_widget_description">Informations à afficher</string>
     <!-- Data and time format settings -->

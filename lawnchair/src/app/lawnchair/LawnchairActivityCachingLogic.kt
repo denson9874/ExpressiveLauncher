@@ -92,7 +92,7 @@ class LawnchairActivityCachingLogic @Inject constructor(
     ): String? = provider.getStateForApp(getApplicationInfo(item))
 
     override fun close() {
-        TODO("Not yet implemented")
+        // The cache logic owns no callbacks or threads.
     }
 
     companion object {

@@ -52,7 +52,15 @@ class LawnchairSearchAdapterProvider(
     override fun isViewSupported(viewType: Int): Boolean = layoutIdMap.contains(viewType)
 
     override fun onBindView(holder: BaseAllAppsAdapter.ViewHolder, position: Int) {
-        val adapterItem = appsView.mSearchRecyclerView.mApps.adapterItems[position] as SearchAdapterItem
+        val adapterItem = appsView.mSearchRecyclerView.mApps.adapterItems
+            .getOrNull(position) as? SearchAdapterItem
+        if (adapterItem == null) {
+            // Search results are replaced asynchronously. RecyclerView can request one final bind
+            // for the old list during a rapid filter/scroll transition; do not index stale data.
+            holder.itemView.visibility = View.INVISIBLE
+            return
+        }
+        holder.itemView.visibility = View.VISIBLE
         adapterItem.setRippleEffect(holder.itemView)
         val itemView = holder.itemView as SearchResultView
         itemView.bind(
@@ -61,6 +69,8 @@ class LawnchairSearchAdapterProvider(
         )
         if (itemView.isQuickLaunch) {
             quickLaunchItem = itemView
+        } else if (quickLaunchItem === itemView) {
+            quickLaunchItem = null
         }
     }
 

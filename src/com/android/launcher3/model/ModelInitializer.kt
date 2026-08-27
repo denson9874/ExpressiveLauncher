@@ -41,7 +41,6 @@ import com.android.launcher3.util.Executors.MODEL_EXECUTOR
 import com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR
 import com.android.launcher3.util.SettingsCache
 import com.android.launcher3.util.SettingsCache.NOTIFICATION_BADGING_URI
-import com.android.launcher3.util.SettingsCache.PRIVATE_SPACE_HIDE_WHEN_LOCKED_URI
 import com.android.launcher3.util.SimpleBroadcastReceiver
 import com.android.launcher3.widget.custom.CustomWidgetManager
 import javax.inject.Inject
@@ -99,13 +98,6 @@ constructor(
 
         // User changes
         lifeCycle.addCloseable(userCache.addUserEventListener(model::onUserEvent))
-
-        // Private space settings changes
-        val psSettingsListener = SettingsCache.OnChangeListener { model.forceReload() }
-        settingsCache.register(PRIVATE_SPACE_HIDE_WHEN_LOCKED_URI, psSettingsListener)
-        lifeCycle.addCloseable {
-            settingsCache.unregister(PRIVATE_SPACE_HIDE_WHEN_LOCKED_URI, psSettingsListener)
-        }
 
         // Notification dots changes
         val notificationChanges =

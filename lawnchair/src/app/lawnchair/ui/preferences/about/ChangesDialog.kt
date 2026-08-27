@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroupItem
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -172,8 +173,13 @@ private fun CommitItem(
 }
 
 private fun openCommitInBrowser(context: Context, commitSha: String) {
-    val commitUrl = "https://github.com/LawnchairLauncher/lawnchair/commit/$commitSha"
-    val intent = Intent(Intent.ACTION_VIEW, commitUrl.toUri())
+    val destination = if (BuildConfig.IS_EXPRESSIVE_PRODUCT) {
+        // Expressive is independently owned, so its changelog never routes to Lawnchair support.
+        AboutDestinations.GITHUB_PROFILE_URL
+    } else {
+        "https://github.com/LawnchairLauncher/lawnchair/commit/$commitSha"
+    }
+    val intent = Intent(Intent.ACTION_VIEW, destination.toUri())
     context.startActivity(intent)
 }
 

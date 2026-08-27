@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
 import android.os.PatternMatcher
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
@@ -32,6 +33,8 @@ import dev.kdrag0n.monet.theme.ColorScheme
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 @LauncherAppSingleton
 class ThemeProvider @Inject constructor(
@@ -39,26 +42,39 @@ class ThemeProvider @Inject constructor(
 ) : SafeCloseable {
     private val preferenceManager2 = PreferenceManager2.getInstance(context)
     private val wallpaperManager = WallpaperManagerCompat.INSTANCE.get(context)
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+
+    // Theme listeners mutate UI-facing state. Keep them serialized on main and retain a Job so
+    // the application singleton can release all collectors during component shutdown.
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private var accentColor: ColorOption = preferenceManager2.accentColor.firstCached()
     private var colorStyle: ColorStyle = preferenceManager2.colorStyle.firstCached()
 
     private val colorSchemeMap = HashMap<Pair<Int, Style>, ColorScheme>()
     private val listeners = mutableListOf<ColorSchemeChangeListener>()
+    private val wallpaperColorsListener = object : WallpaperManagerCompat.OnColorsChangedListener {
+        override fun onColorsChanged() {
+            if (accentColor is ColorOption.WallpaperPrimary) {
+                notifyColorSchemeChanged()
+            }
+        }
+    }
+    private val overlayChangedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            colorSchemeMap[Pair(0, Style.TONAL_SPOT)] = SystemColorScheme(context)
+            if (accentColor is ColorOption.SystemAccent) {
+                notifyColorSchemeChanged()
+            }
+        }
+    }
+    private var overlayReceiverRegistered = false
 
     init {
         if (Utilities.ATLEAST_S) {
             colorSchemeMap[Pair(0, Style.TONAL_SPOT)] = SystemColorScheme(context)
             registerOverlayChangedListener()
         }
-        wallpaperManager.addOnChangeListener(object : WallpaperManagerCompat.OnColorsChangedListener {
-            override fun onColorsChanged() {
-                if (accentColor is ColorOption.WallpaperPrimary) {
-                    notifyColorSchemeChanged()
-                }
-            }
-        })
+        wallpaperManager.addOnChangeListener(wallpaperColorsListener)
         preferenceManager2.accentColor.onEach(launchIn = coroutineScope) {
             accentColor = it
             notifyColorSchemeChanged()
@@ -73,19 +89,15 @@ class ThemeProvider @Inject constructor(
         val packageFilter = IntentFilter("android.intent.action.OVERLAY_CHANGED")
         packageFilter.addDataScheme("package")
         packageFilter.addDataSchemeSpecificPart("android", PatternMatcher.PATTERN_LITERAL)
-        context.registerReceiver(
-            object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) {
-                    colorSchemeMap[Pair(0, Style.TONAL_SPOT)] = SystemColorScheme(context)
-                    if (accentColor is ColorOption.SystemAccent) {
-                        notifyColorSchemeChanged()
-                    }
-                }
-            },
+        ContextCompat.registerReceiver(
+            context,
+            overlayChangedReceiver,
             packageFilter,
             null,
             Handler(Looper.getMainLooper()),
+            ContextCompat.RECEIVER_EXPORTED,
         )
+        overlayReceiverRegistered = true
     }
 
     val colorScheme get() = when (val accentColor = this.accentColor) {
@@ -133,7 +145,14 @@ class ThemeProvider @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        coroutineScope.cancel()
+        wallpaperManager.removeOnChangeListener(wallpaperColorsListener)
+        if (overlayReceiverRegistered) {
+            context.unregisterReceiver(overlayChangedReceiver)
+            overlayReceiverRegistered = false
+        }
+        listeners.clear()
+        colorSchemeMap.clear()
     }
 
     companion object {

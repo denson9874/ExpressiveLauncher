@@ -91,31 +91,7 @@ class PreferenceManager @Inject constructor(
         ""
     }
 
-    private val isPhone: Boolean get() = deviceType == InvariantDeviceProfile.TYPE_PHONE
-    private val isTablet: Boolean get() = deviceType == InvariantDeviceProfile.TYPE_TABLET
-    private val isFoldable: Boolean get() = deviceType == InvariantDeviceProfile.TYPE_MULTI_DISPLAY
-    private val isDesktop: Boolean get() = deviceType == InvariantDeviceProfile.TYPE_DESKTOP
-
-    val calculatedGridSpec = when {
-        // This grid configuration is perfect for Phone, tested against Pixel 7,
-        // alternative dense configuration can be 5x5x7
-        isPhone -> LayoutConfig(4, 4, 6)
-
-        // This grid configuration is perfect for Tablet, tested against Pixel Tablet
-        isTablet -> LayoutConfig(6, 6, 5)
-
-        // This grid configuration is perfect for Foldable, tested against Pixel 10 Pro Fold
-        // Note: Hotseat column is 4 when folded, unfolded uses hotseatColumns + 2 or higher number
-        // defined in numExtendedHotseatIcons from device profile
-        isFoldable -> LayoutConfig(4, 4, 6, 6)
-
-        // This grid configuration is not tested against actual desktop devices,
-        // but tablet configuration works perfectly when displayed via emulator
-        isDesktop -> LayoutConfig(6, 6, 5)
-
-        // This grid configuration is the fallback for all devices type, this shouldn't be possible
-        else -> LayoutConfig(4, 4, 7)
-    }
+    val calculatedGridSpec = defaultLayoutConfig(deviceType)
 
     val hotseatColumns = IntPref("pref_hotseatColumns", calculatedGridSpec.hotseatColumns, reloadGrid)
     val hotseatColumnsUnfolded = IntPref("pref_hotseatColumnsUnfolded", calculatedGridSpec.hotseatColumnsUnfolded, reloadGrid)
@@ -219,7 +195,7 @@ class PreferenceManager @Inject constructor(
     val forceIconMonochrome = BoolPref("pref_forceIconMonochrome", false)
 
     override fun close() {
-        TODO("Not yet implemented")
+        sp.unregisterOnSharedPreferenceChangeListener(this)
     }
 
     private fun normalizeVibrationFeedbackLevel() {
@@ -262,6 +238,21 @@ private fun Int.toFeedbackLevel() = FeedbackLevel.entries.getOrNull(this) ?: Fee
 
 @Composable
 fun preferenceManager() = PreferenceManager.getInstance(LocalContext.current)
+
+/**
+ * Returns the database grid used before the user has saved any launcher preferences.
+ *
+ * The Pixel first-run layout contains five dock targets. Keeping the database hotseat width in
+ * sync with that XML is essential: the loader rejects rank 4 before the visual device profile can
+ * expand the dock, which previously made Camera disappear on every clean phone installation.
+ */
+internal fun defaultLayoutConfig(deviceType: Int): LayoutConfig = when (deviceType) {
+    InvariantDeviceProfile.TYPE_PHONE -> LayoutConfig(5, 4, 6)
+    InvariantDeviceProfile.TYPE_TABLET -> LayoutConfig(6, 6, 5)
+    InvariantDeviceProfile.TYPE_MULTI_DISPLAY -> LayoutConfig(5, 4, 6, 6)
+    InvariantDeviceProfile.TYPE_DESKTOP -> LayoutConfig(6, 6, 5)
+    else -> LayoutConfig(5, 4, 7)
+}
 
 /**
  * Grid layout configuration for a device's workspace.

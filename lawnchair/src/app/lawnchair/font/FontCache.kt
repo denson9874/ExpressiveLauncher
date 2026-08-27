@@ -50,6 +50,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.plus
 import org.json.JSONArray
@@ -182,7 +183,8 @@ class FontCache @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        scope.cancel()
+        deferredFonts.clear()
     }
 
     class Family(val displayName: String, val variants: Map<String, Font>) {

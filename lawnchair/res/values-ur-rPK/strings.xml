@@ -388,7 +388,7 @@
     <string name="smartspace_battery_charging">چارج ہو رہا ہے۔</string>
     <string name="smartspace_battery_full">چارج کیا گیا۔</string>
     <string name="smartspace_battery_low">بیٹری کم ہے۔</string>
-    <string name="battery_charging_percentage_charging_time">"1$d%% — %2$s میں مکمل"</string>
+    <string name="battery_charging_percentage_charging_time">"%1$d%% — %2$s میں مکمل"</string>
     <string name="smartspace_widget">ایک نظر میں</string>
     <string name="smartspace_widget_description">کیا دکھانا ہے۔</string>
     <!-- Data and time format settings -->

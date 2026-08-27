@@ -2,8 +2,10 @@ package com.android.launcher3;
 
 import static com.android.launcher3.config.FeatureFlags.SEPARATE_RECENTS_ACTIVITY;
 
+import android.annotation.SuppressLint;
 import android.app.WallpaperManager;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -11,7 +13,9 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Environment;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.ViewDebug;
 import android.view.WindowInsets;
@@ -29,10 +33,12 @@ import com.hoko.blur.HokoBlur;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
-import app.lawnchair.util.FileAccessManager;
-import app.lawnchair.util.FileAccessState;
 
 public class LauncherRootView extends InsettableFrameLayout {
+
+    private static final String TAG = "LauncherRootView";
+    private static final String READ_WALLPAPER_INTERNAL_PERMISSION =
+            "android.permission.READ_WALLPAPER_INTERNAL";
 
     private final Rect mTempRect = new Rect();
 
@@ -63,9 +69,7 @@ public class LauncherRootView extends InsettableFrameLayout {
         
         mEnableTaskbarOnPhone = PreferenceCacheExtensionsKt.firstCached(prefs2.getEnableTaskbarOnPhone());
 
-        FileAccessManager fileAccessManager = FileAccessManager.getInstance(context);
-        FileAccessState wallpaperAccessState = fileAccessManager.getWallpaperAccessState().getValue();
-        if (pref.getEnableWallpaperBlur().get() && wallpaperAccessState != FileAccessState.Denied.INSTANCE) {
+        if (pref.getEnableWallpaperBlur().get()) {
             setUpBlur(context);
         }
     }
@@ -101,9 +105,22 @@ public class LauncherRootView extends InsettableFrameLayout {
         setBackground(new BitmapDrawable(getContext().getResources(), blurredBitmap));
     }
 
+    @SuppressLint("MissingPermission")
     private Drawable getScaledWallpaperDrawable(int width, int height) {
+        // Android 14+ protects static wallpaper pixels. Play builds do not request all-files
+        // access, so this normally returns null there and leaves the regular launcher background
+        // intact. The lint suppression is scoped to the call guarded by the exact platform grants.
+        if (!canReadStaticWallpaper()) {
+            return null;
+        }
         WallpaperManager wallpaperManager = WallpaperManager.getInstance(getContext());
-        Drawable wallpaperDrawable = wallpaperManager.getDrawable();
+        final Drawable wallpaperDrawable;
+        try {
+            wallpaperDrawable = wallpaperManager.getDrawable();
+        } catch (SecurityException exception) {
+            Log.w(TAG, "Wallpaper access changed while preparing blur", exception);
+            return null;
+        }
 
         if (wallpaperDrawable != null) {
             Bitmap originalBitmap = Bitmap.createBitmap(
@@ -117,6 +134,12 @@ public class LauncherRootView extends InsettableFrameLayout {
             return new BitmapDrawable(getContext().getResources(), originalBitmap);
         }
         return null;
+    }
+
+    private boolean canReadStaticWallpaper() {
+        return getContext().checkSelfPermission(READ_WALLPAPER_INTERNAL_PERMISSION)
+                == PackageManager.PERMISSION_GRANTED
+                || Environment.isExternalStorageManager();
     }
 
     private void handleSystemWindowInsets(Rect insets) {

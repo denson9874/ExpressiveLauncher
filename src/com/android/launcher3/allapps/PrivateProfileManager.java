@@ -36,7 +36,6 @@ import static com.android.launcher3.model.data.AppsListData.FLAG_PRIVATE_PROFILE
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_NOT_PINNABLE;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
-import static com.android.launcher3.util.SettingsCache.PRIVATE_SPACE_HIDE_WHEN_LOCKED_URI;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -78,12 +77,14 @@ import com.android.launcher3.model.data.PrivateSpaceInstallAppButtonInfo;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.Preconditions;
-import com.android.launcher3.util.SettingsCache;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.RecyclerViewFastScroller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -218,10 +219,14 @@ public class PrivateProfileManager extends UserProfileManager {
 
     public boolean isPrivateSpaceHiddenWhenLocked() {
         try {
-            return SettingsCache.INSTANCE
-                    .get(mAllApps.getContext()).getValue(PRIVATE_SPACE_HIDE_WHEN_LOCKED_URI, 0);
+            // This is public launcher metadata exposed to ROLE_HOME holders. Do not observe or
+            // read the protected hide_privatespace_entry_point secure setting: Play-distributed
+            // launchers do not hold the privileged permission and that observer crashes when the
+            // system publishes a Private Space transition.
+            return ApiWrapper.INSTANCE.get(mAllApps.getContext())
+                    .isPrivateSpaceHidden(getProfileUser());
         } catch (Throwable t) {
-            Log.e("PrivateSpaceManager", "Cannot access setting: hide_privatespace_entry_point", t);
+            Log.e(TAG, "Cannot resolve whether Private Space should be hidden", t);
             return false;
         }
     }
@@ -285,7 +290,8 @@ public class PrivateProfileManager extends UserProfileManager {
         UserHandle profileUser = getProfileUser();
         if (profileUser != null) {
             mAppInstallerIntent = apiWrapper
-                    .getAppMarketActivityIntent(BuildConfig.APPLICATION_ID, profileUser);
+                    .getPrivateProfileAppMarketActivityIntent(
+                            BuildConfig.APPLICATION_ID, profileUser);
         }
         setPrivateSpaceSettingsAvailable(apiWrapper.getPrivateSpaceSettingsIntent() != null);
     }
@@ -355,11 +361,33 @@ public class PrivateProfileManager extends UserProfileManager {
      * When the list of system apps is empty, all apps are treated as system.
      */
     public Predicate<AppInfo> splitIntoUserInstalledAndSystemApps(Context context) {
-        List<String> preInstallApps = UserCache.getInstance(context)
-                .getPreInstallApps(getProfileUser());
-        return appInfo -> !preInstallApps.isEmpty()
-                && (appInfo.componentName == null
-                || !(preInstallApps.contains(appInfo.componentName.getPackageName())));
+        return createPrivateAppInstallTypeMatcher(mUserCache::getPreInstallApps);
+    }
+
+    /**
+     * Builds the user-installed/system-app matcher without re-resolving the profile from a mutable
+     * cache snapshot.
+     *
+     * <p>During Private Space lock/hide, Android can temporarily make profile metadata
+     * inaccessible. The previous implementation called {@link #getProfileUser()} here and passed
+     * its nullable result into a Kotlin non-null API, crashing the launcher. Every {@link AppInfo}
+     * already owns the authoritative user handle, so use that handle directly and cache the lookup
+     * once per user for this adapter rebuild.
+     */
+    @VisibleForTesting
+    static Predicate<AppInfo> createPrivateAppInstallTypeMatcher(
+            Function<UserHandle, List<String>> preInstallAppsProvider) {
+        Map<UserHandle, List<String>> preInstallAppsByUser = new HashMap<>();
+        return appInfo -> {
+            if (appInfo == null || appInfo.user == null) {
+                return false;
+            }
+            List<String> preInstallApps = preInstallAppsByUser.computeIfAbsent(
+                    appInfo.user, preInstallAppsProvider);
+            return preInstallApps != null && !preInstallApps.isEmpty()
+                    && (appInfo.componentName == null
+                    || !preInstallApps.contains(appInfo.componentName.getPackageName()));
+        };
     }
 
     /** Add Private Space Header view elements based upon {@link UserProfileState} */

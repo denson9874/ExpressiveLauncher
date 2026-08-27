@@ -12,8 +12,10 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Process
 import android.provider.ContactsContract
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
+import android.util.Size
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.net.toUri
@@ -39,6 +41,7 @@ import app.lawnchair.util.mimeCompat
 import com.android.app.search.LayoutType
 import com.android.launcher3.R
 import com.android.launcher3.model.data.AppInfo
+import com.android.launcher3.util.ApiWrapper
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.PackageManagerHelper
 import java.io.File
@@ -48,6 +51,31 @@ import java.security.MessageDigest
 import java.util.Locale
 import java.util.UUID
 import okio.ByteString
+
+internal fun createFileViewIntent(info: IFileInfo): Intent {
+    val fileUri = info.contentUri?.toUri() ?: when (info) {
+        is FileInfo -> Uri.withAppendedPath(
+            MediaStore.Files.getContentUri("external"),
+            info.fileId,
+        )
+
+        is FolderInfo -> File(info.path).file2Uri()
+    }
+
+    val mimeType = when (info) {
+        is FileInfo -> info.mimeType.mimeCompat
+
+        is FolderInfo -> if (info.contentUri != null) {
+            DocumentsContract.Document.MIME_TYPE_DIR
+        } else {
+            "resource/folder"
+        }
+    }
+
+    return Intent(Intent.ACTION_VIEW)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        .setDataAndType(fileUri, mimeType)
+}
 
 class SearchTargetFactory(
     private val context: Context,
@@ -194,6 +222,47 @@ class SearchTargetFactory(
         )
     }
 
+    /**
+     * Returns Android's state-blind Private Space recovery entry point for an exact search.
+     *
+     * Deliberately do not inspect users, profile state, or installed private apps here. Showing
+     * different results for configured and unconfigured devices would disclose that a hidden
+     * Private Space exists. Android owns the returned destination and decides whether to show
+     * setup, authentication, or settings after the user explicitly opens it.
+     */
+    fun createPrivateSpaceRecoveryTarget(query: String): SearchTargetCompat? {
+        if (!isExactPrivateSpaceQuery(query, context.getString(R.string.private_space_label))) {
+            return null
+        }
+
+        val settingsIntent = runCatching {
+            ApiWrapper.INSTANCE.get(context).getPrivateSpaceSettingsIntent()
+        }.getOrNull() ?: return null
+
+        return createPrivateSpaceRecoveryTarget(settingsIntent)
+    }
+
+    internal fun createPrivateSpaceRecoveryTarget(settingsIntent: Intent): SearchTargetCompat {
+        val id = "private_space_recovery"
+        val title = context.getString(R.string.private_space_label)
+        val subtitle = context.getString(R.string.private_space_secondary_label)
+        val action = SearchActionCompat.Builder(id, title)
+            .setIcon(Icon.createWithResource(context, R.drawable.ic_private_space_with_background))
+            .setSubtitle(subtitle)
+            .setContentDescription("$title. $subtitle")
+            .setIntent(settingsIntent)
+            .build()
+
+        // Reuse the settings-row renderer: it is a single neutral tile with no profile/app data.
+        return createSearchTarget(
+            id,
+            action,
+            LayoutType.ICON_SLICE,
+            SearchTargetCompat.RESULT_TYPE_SETTING_TILE,
+            SETTINGS,
+        )
+    }
+
     private fun createSearchLinksTarget(
         id: String,
         action: SearchActionCompat,
@@ -287,23 +356,7 @@ class SearchTargetFactory(
     }
 
     fun createFilesTarget(info: IFileInfo): SearchTargetCompat {
-        val fileUri = when (info) {
-            is FileInfo -> Uri.withAppendedPath(
-                MediaStore.Files.getContentUri("external"),
-                info.fileId,
-            )
-
-            is FolderInfo -> File(info.path).file2Uri()
-        }
-
-        val mimeType = when (info) {
-            is FileInfo -> info.mimeType.mimeCompat
-            is FolderInfo -> "resource/folder"
-        }
-
-        val fileIntent = Intent(Intent.ACTION_VIEW)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            .setDataAndType(fileUri, mimeType)
+        val fileIntent = createFileViewIntent(info)
 
         val action = SearchActionCompat.Builder(info.path, info.name)
             .setIcon(FilesTarget.getPreviewIcon(context, info))
@@ -396,6 +449,10 @@ class SearchTargetFactory(
     }
 }
 
+/** Exact means the complete localized label, with only search-friendly case/edge normalization. */
+internal fun isExactPrivateSpaceQuery(query: String, privateSpaceLabel: String): Boolean =
+    query.trim().equals(privateSpaceLabel.trim(), ignoreCase = true)
+
 object FilesTarget {
     private const val MAX_PREVIEW_SIZE_PX = 256
     private const val MAX_RAW_DIMENSION_PX = 16_384
@@ -414,7 +471,11 @@ object FilesTarget {
     ): Icon {
         val fileInfo = info as? FileInfo
         return if (fileInfo?.isImageType == true) {
-            decodeThumbnailIcon(fileInfo.path)
+            if (fileInfo.contentUri != null) {
+                decodeContentThumbnailIcon(context, fileInfo.contentUri)
+            } else {
+                decodeThumbnailIcon(fileInfo.path)
+            }
                 ?: Icon.createWithBitmap(createFilePreviewFallbackBitmap(context, fileInfo.iconRes))
         } else {
             val bitmap = createFilePreviewFallbackBitmap(
@@ -422,6 +483,20 @@ object FilesTarget {
                 fileInfo?.iconRes ?: R.drawable.ic_folder,
             )
             Icon.createWithBitmap(bitmap)
+        }
+    }
+
+    private fun decodeContentThumbnailIcon(context: Context, uriString: String): Icon? {
+        return try {
+            val bitmap = context.contentResolver.loadThumbnail(
+                uriString.toUri(),
+                Size(MAX_PREVIEW_SIZE_PX, MAX_PREVIEW_SIZE_PX),
+                null,
+            )
+            Icon.createWithBitmap(bitmap)
+        } catch (exception: Exception) {
+            Log.w("FilesTarget", "Failed to decode content thumbnail", exception)
+            null
         }
     }
 

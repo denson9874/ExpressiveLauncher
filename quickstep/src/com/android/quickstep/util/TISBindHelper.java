@@ -26,6 +26,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.android.launcher3.BuildConfig;
 import com.android.launcher3.taskbar.TaskbarManager;
 import com.android.quickstep.OverviewCommandHelper;
 import com.android.quickstep.TouchInteractionService;
@@ -50,6 +51,7 @@ public class TISBindHelper implements ServiceConnection {
     private final Runnable mConnectionRunnable = this::internalBindToTIS;
     private final Context mContext;
     private final Consumer<TISBinder> mConnectionCallback;
+    private final boolean mBindingSupported;
     private final ArrayList<Runnable> mPendingConnectedCallbacks = new ArrayList<>();
 
     private short mConnectionAttempts;
@@ -60,7 +62,13 @@ public class TISBindHelper implements ServiceConnection {
     public TISBindHelper(Context context, Consumer<TISBinder> connectionCallback) {
         mContext = context;
         mConnectionCallback = connectionCallback;
-        internalBindToTIS();
+        // The standard-home flavor deliberately omits TouchInteractionService because Android only
+        // permits the privileged recents component to own it. Retrying a missing service forever
+        // produced log spam and periodic main-thread work in every Expressive Launcher session.
+        mBindingSupported = !BuildConfig.STANDARD_HOME_ONLY;
+        if (mBindingSupported) {
+            internalBindToTIS();
+        }
     }
 
     @Override
@@ -127,6 +135,9 @@ public class TISBindHelper implements ServiceConnection {
      * Runs the given {@param r} runnable when the service is connected.
      */
     public void runOnBindToTouchInteractionService(Runnable r) {
+        if (!mBindingSupported) {
+            return;
+        }
         if (mIsConnected) {
             r.run();
         } else {
@@ -139,6 +150,9 @@ public class TISBindHelper implements ServiceConnection {
      * {@link #mConnectionRunnable}. Unbind via {@link #internalUnbindToTIS()}
      */
     private void internalBindToTIS() {
+        if (!mBindingSupported) {
+            return;
+        }
         mTisServiceBound = mContext.bindService(new Intent(mContext, TouchInteractionService.class),
                 this, 0);
         if (mTisServiceBound) {

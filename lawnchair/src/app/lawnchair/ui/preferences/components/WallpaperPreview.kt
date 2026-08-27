@@ -34,7 +34,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.lawnchair.ui.util.isPlayStoreFlavor
+import app.lawnchair.ui.util.canRequestManageAllFilesAccess
 import app.lawnchair.util.FileAccessManager
 import app.lawnchair.util.FileAccessState
 import app.lawnchair.util.scaleDownToDisplaySize
@@ -61,7 +61,7 @@ fun ColumnScope.WithWallpaper(
 
     content(wallpaperDrawable)
 
-    if (displayWallpaperButton && !hasPermission && !isPlayStoreFlavor()) {
+    if (displayWallpaperButton && !hasPermission && canRequestManageAllFilesAccess()) {
         Row(
             horizontalArrangement = Arrangement.Center,
             modifier = modifier

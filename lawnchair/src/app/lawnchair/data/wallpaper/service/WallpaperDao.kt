@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.sqlite.db.SupportSQLiteQuery
 import app.lawnchair.data.wallpaper.Wallpaper
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WallpaperDao {
@@ -15,8 +16,11 @@ interface WallpaperDao {
     @Query("SELECT * FROM wallpapers ORDER BY timestamp DESC LIMIT 4")
     suspend fun getTopWallpapers(): List<Wallpaper>
 
-    @Query("UPDATE wallpapers SET rank = rank + 1 WHERE rank >= :rank")
-    suspend fun updateRank(rank: Int)
+    @Query("SELECT * FROM wallpapers ORDER BY timestamp DESC LIMIT 4")
+    fun observeTopWallpapers(): Flow<List<Wallpaper>>
+
+    @Query("UPDATE wallpapers SET rank = :rank WHERE id = :id")
+    suspend fun updateRank(id: Long, rank: Int)
 
     @Query("UPDATE wallpapers SET rank = :rank, timestamp = :timestamp WHERE id = :id")
     suspend fun updateWallpaper(id: Long, rank: Int, timestamp: Long)

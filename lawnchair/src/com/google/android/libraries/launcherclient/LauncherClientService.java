@@ -47,6 +47,11 @@ public class LauncherClientService extends BaseClientService {
         }
     }
 
+    /** Clears a binder from the previous provider before a package-triggered reconnect. */
+    final void clearOverlay() {
+        setClient(null);
+    }
+
     private void setClient(ILauncherOverlay overlay) {
         mOverlay = overlay;
         LauncherClient client = getClient();
