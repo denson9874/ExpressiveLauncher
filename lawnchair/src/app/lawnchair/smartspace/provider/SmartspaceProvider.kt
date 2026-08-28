@@ -3,10 +3,12 @@ package app.lawnchair.smartspace.provider
 import android.app.Activity
 import android.content.Context
 import app.lawnchair.smartspace.model.SmartspaceAction
+import app.lawnchair.smartspace.model.SmartspaceScores
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import app.lawnchair.ui.preferences.PreferenceActivity
 import app.lawnchair.ui.preferences.navigation.Smartspace
 import app.lawnchair.util.dropWhileBusy
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppComponent
@@ -48,14 +50,20 @@ class SmartspaceProvider @Inject constructor(
         )
     val targets = state
         .map {
-            if (it.requiresSetup.isNotEmpty()) {
+            val targets = if (it.requiresSetup.isNotEmpty()) {
                 listOf(setupTarget) + it.targets
             } else {
                 it.targets
             }
+            applyExpressiveSmartspaceTargetPolicy(targets, BuildConfig.IS_EXPRESSIVE_PRODUCT)
         }
     val previewTargets = state
-        .map { it.targets }
+        .map {
+            applyExpressiveSmartspaceTargetPolicy(
+                it.targets,
+                BuildConfig.IS_EXPRESSIVE_PRODUCT,
+            )
+        }
 
     private val setupTarget = SmartspaceTarget(
         id = "smartspaceSetup",
@@ -90,3 +98,30 @@ class SmartspaceProvider @Inject constructor(
         @JvmField val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getSmartspaceProvider)
     }
 }
+
+/**
+ * Keeps Expressive's local Smartspace fallback useful from the first frame. Pixel Launcher leads
+ * with the date; onboarding and setup prompts must not displace that glanceable content. Weather
+ * targets use the date card layout, so promoting them preserves live weather when it is available
+ * and naturally falls back to the date-only target when it is not.
+ */
+internal fun applyExpressiveSmartspaceTargetPolicy(
+    targets: List<SmartspaceTarget>,
+    isExpressiveProduct: Boolean,
+): List<SmartspaceTarget> {
+    if (!isExpressiveProduct) return targets
+
+    return targets
+        .asSequence()
+        .filterNot { it.featureType == SmartspaceTarget.FeatureType.FEATURE_ONBOARDING }
+        .map {
+            if (it.featureType == SmartspaceTarget.FeatureType.FEATURE_WEATHER) {
+                it.copy(score = EXPRESSIVE_DATE_SCORE)
+            } else {
+                it
+            }
+        }
+        .toList()
+}
+
+private const val EXPRESSIVE_DATE_SCORE = SmartspaceScores.SCORE_ONBOARDING + 1f

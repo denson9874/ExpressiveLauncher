@@ -32,7 +32,7 @@ class SmartspacerBindingTest {
     }
 
     @Test
-    fun missingSmartspacerService_showsBuiltInFallback() {
+    fun missingSmartspacerService_showsDateFirstFallback() {
         val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
         val smartspacerInstalled = runCatching {
             targetContext.packageManager.getPackageInfo("com.kieronquinn.app.smartspacer", 0)
@@ -48,11 +48,18 @@ class SmartspacerBindingTest {
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             scenario.onActivity { activity ->
                 val view = activity.findViewById<SmartspacerView>(R.id.bc_smartspace_view)
+                val fallback = (0 until view.childCount)
+                    .map(view::getChildAt)
+                    .filterIsInstance<BcSmartspaceView>()
+                    .singleOrNull()
                 assertThat(
-                    (0 until view.childCount)
-                        .map(view::getChildAt)
-                        .any { it is BcSmartspaceView },
-                ).isTrue()
+                    fallback,
+                ).isNotNull()
+                val date = fallback!!.findViewById<IcuDateTextView>(R.id.date)
+                assertThat(date).isNotNull()
+                assertThat(date.text.toString()).isNotEmpty()
+                assertThat(fallback.findViewById<android.widget.TextView>(R.id.title_text)?.text)
+                    .isNotEqualTo(activity.getString(R.string.onboarding_welcome))
             }
         }
     }
