@@ -34,6 +34,12 @@ import com.google.accompanist.adaptive.calculateDisplayFeatures
 import kotlinx.serialization.json.Json
 
 class PreferenceActivity : ComponentActivity() {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recreate()
+    }
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

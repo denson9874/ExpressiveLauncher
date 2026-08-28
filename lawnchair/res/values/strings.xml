@@ -775,6 +775,22 @@
     <string name="auto_updater_label">Automatically check for updates</string>
     <string name="auto_updater_description">Checks for Nightly updates when opening the About screen</string>
 
+    <string name="expressive_update_channel_qa">QA</string>
+    <string name="expressive_update_channel_release">Release</string>
+    <string name="expressive_update_notification_channel">Launcher updates</string>
+    <string name="expressive_update_notification_channel_description">New Expressive Launcher builds for this installation channel</string>
+    <string name="expressive_update_notification_title">Expressive Launcher %1$s is available</string>
+    <string name="expressive_update_notification_text">A new %1$s build is ready to download and install</string>
+    <string name="expressive_update_notifications_enable">Enable %1$s build notifications</string>
+    <string name="expressive_update_notifications_enabled">%1$s build notifications are enabled</string>
+    <string name="expressive_update_notifications_description">Checks periodically and notifies once for each new build.</string>
+    <string name="expressive_update_download_and_install">Download &amp; install</string>
+    <string name="expressive_update_remind_later">Remind me later</string>
+    <string name="expressive_update_snooze_one_hour">In 1 hour</string>
+    <string name="expressive_update_snooze_one_day">Tomorrow</string>
+    <string name="expressive_update_snooze_three_days">In 3 days</string>
+    <string name="expressive_update_snooze_one_week">In 1 week</string>
+
     <string name="live_information_label">Live information</string>
     <string name="live_information_description">Displays announcement, and set the default feature flags</string>
 

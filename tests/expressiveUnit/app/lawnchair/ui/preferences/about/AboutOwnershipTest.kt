@@ -23,7 +23,7 @@ class AboutOwnershipTest {
 
     @Test
     fun productLinks_useOwnedDestinations() {
-        val links = expressiveProductLinks("dev.launcher.expressive.l3.debug")
+        val links = expressiveProductLinks()
 
         assertThat(links.map { it.labelResId }).containsExactly(
             R.string.news,
@@ -32,7 +32,7 @@ class AboutOwnershipTest {
             R.string.donate,
         ).inOrder()
         assertThat(links.map { it.url }).containsExactly(
-            "https://play.google.com/store/apps/details?id=dev.launcher.expressive.l3",
+            "https://drive.google.com/drive/folders/1zvASK5iOOx3ckQCT22xeHAE75dfqP53i",
             "https://github.com/denson9874",
             "https://github.com/denson9874",
             "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2",
@@ -40,20 +40,18 @@ class AboutOwnershipTest {
     }
 
     @Test
-    fun playListing_preservesCustomReleaseApplicationId() {
-        assertThat(AboutDestinations.playStoreListingUrl("com.example.expressive"))
-            .isEqualTo("https://play.google.com/store/apps/details?id=com.example.expressive")
+    fun newsDestination_usesReleaseBuildsFolder() {
+        assertThat(AboutDestinations.RELEASE_BUILDS_URL)
+            .isEqualTo("https://drive.google.com/drive/folders/1zvASK5iOOx3ckQCT22xeHAE75dfqP53i")
     }
 
     @Test
     fun brandingSelection_scopesDarylOwnershipToExpressiveBuilds() {
         val expressive = aboutBranding(
             isExpressiveProduct = true,
-            applicationId = "dev.launcher.expressive.l3.debug",
         )
         val lawnchair = aboutBranding(
             isExpressiveProduct = false,
-            applicationId = "app.lawnchair.play.debug",
         )
 
         assertThat(expressive.coreTeam.map { it.name }).containsExactly("Daryl Denson")

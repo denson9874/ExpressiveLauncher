@@ -148,19 +148,25 @@ final def releaseName = "Development 5.1"
 final def versionDisplayName = "${version}.${isReleaseBuild ? releaseName : devReleaseName}"
 final def majorVersion = versionDisplayName.split("\\.")[0]
 
-// Google Play identity is intentionally explicit. Once the first bundle is uploaded, the
-// application ID and every consumed versionCode are permanent Play Console history.
+// The direct-distribution identity is intentionally explicit. Android accepts an in-place update
+// only when the application ID and signing lineage match the installed build.
 final def expressiveApplicationId = providers.gradleProperty("expressiveApplicationId")
         .orElse("dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("6")
+        .orElse("8")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("1.0.5")
+        .orElse("1.0.7")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("")
+        .get()
+final def expressiveQaUpdateManifestUrl = providers.gradleProperty("expressiveQaUpdateManifestUrl")
+        .orElse("https://drive.usercontent.google.com/download?id=1_A529DlPEMzwizq-6j3fpMBElGugY-_J&export=download")
+        .get()
+final def expressiveReleaseUpdateManifestUrl = providers.gradleProperty("expressiveReleaseUpdateManifestUrl")
+        .orElse("https://drive.usercontent.google.com/download?id=1pGozSvoE6_d4eNc8nG1TgZCnNFjgeWI3&export=download")
         .get()
 final def expressiveVersionCode = expressiveVersionCodeText.isInteger()
         ? expressiveVersionCodeText.toInteger()
@@ -174,8 +180,7 @@ if (expressiveVersionCode < 1 || expressiveVersionCode > 2_100_000_000) {
 }
 
 // Release credentials may come from an ignored local file or CI environment variables. Never
-// fall back to the Android debug certificate: a debug-signed Play upload permanently contaminates
-// package ownership and makes production signing easy to misconfigure.
+// fall back to the Android debug certificate: every direct update must retain the same signer.
 final def expressiveKeystoreProperties = new Properties()
 final def expressiveKeystorePropertiesPath = System.getenv("EXPRESSIVE_KEYSTORE_PROPERTIES")
 final def expressiveKeystorePropertiesFile = expressiveKeystorePropertiesPath
@@ -184,13 +189,31 @@ final def expressiveKeystorePropertiesFile = expressiveKeystorePropertiesPath
 if (expressiveKeystorePropertiesFile.exists()) {
     expressiveKeystorePropertiesFile.withInputStream { expressiveKeystoreProperties.load(it) }
 }
-final def expressiveSigningValue = { String propertyName, String environmentName ->
-    System.getenv(environmentName) ?: expressiveKeystoreProperties[propertyName]
+final def expressiveSigningValue = { String propertyName, String environmentName, String legacyEnvironmentName ->
+    System.getenv(environmentName)
+            ?: System.getenv(legacyEnvironmentName)
+            ?: expressiveKeystoreProperties[propertyName]
 }
-final def expressiveStoreFile = expressiveSigningValue("storeFile", "EXPRESSIVE_UPLOAD_STORE_FILE")
-final def expressiveStorePassword = expressiveSigningValue("storePassword", "EXPRESSIVE_UPLOAD_STORE_PASSWORD")
-final def expressiveKeyAlias = expressiveSigningValue("keyAlias", "EXPRESSIVE_UPLOAD_KEY_ALIAS")
-final def expressiveKeyPassword = expressiveSigningValue("keyPassword", "EXPRESSIVE_UPLOAD_KEY_PASSWORD")
+final def expressiveStoreFile = expressiveSigningValue(
+        "storeFile",
+        "EXPRESSIVE_RELEASE_STORE_FILE",
+        "EXPRESSIVE_UPLOAD_STORE_FILE",
+)
+final def expressiveStorePassword = expressiveSigningValue(
+        "storePassword",
+        "EXPRESSIVE_RELEASE_STORE_PASSWORD",
+        "EXPRESSIVE_UPLOAD_STORE_PASSWORD",
+)
+final def expressiveKeyAlias = expressiveSigningValue(
+        "keyAlias",
+        "EXPRESSIVE_RELEASE_KEY_ALIAS",
+        "EXPRESSIVE_UPLOAD_KEY_ALIAS",
+)
+final def expressiveKeyPassword = expressiveSigningValue(
+        "keyPassword",
+        "EXPRESSIVE_RELEASE_KEY_PASSWORD",
+        "EXPRESSIVE_UPLOAD_KEY_PASSWORD",
+)
 final def expressiveSigningValues = [
         expressiveStoreFile,
         expressiveStorePassword,
@@ -223,6 +246,8 @@ android {
         buildConfigField "boolean", "ENABLE_AUTO_INSTALLS_LAYOUT", "false"
         buildConfigField "boolean", "STANDARD_HOME_ONLY", "false"
         buildConfigField "boolean", "IS_EXPRESSIVE_PRODUCT", "false"
+        buildConfigField "String", "EXPRESSIVE_QA_UPDATE_MANIFEST_URL", '""'
+        buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", '""'
         // This must match the channel manifest. Play-distributed variants use the Storage Access
         // Framework instead of requesting Android's policy-restricted all-files permission.
         buildConfigField "boolean", "CAN_REQUEST_MANAGE_ALL_FILES_ACCESS", "false"
@@ -280,7 +305,7 @@ android {
     if (expressiveSigningConfigured) {
         def resolvedStoreFile = rootProject.file(expressiveStoreFile)
         if (!resolvedStoreFile.isFile()) {
-            throw new GradleException("Expressive upload keystore does not exist: ${resolvedStoreFile}")
+            throw new GradleException("Expressive release keystore does not exist: ${resolvedStoreFile}")
         }
         releaseSigning = signingConfigs.create("release") {
             keyAlias expressiveKeyAlias
@@ -305,12 +330,22 @@ android {
         }
 
         release {
-            // An unsigned release can still be inspected locally, but the Play bundle task below
-            // refuses to run until a private upload key and public privacy policy are configured.
             minifyEnabled true
             shrinkResources true
             pseudoLocalesEnabled false
             proguardFiles proguardFilesFromAosp + "proguard.pro"
+        }
+
+        qa {
+            initWith release
+            applicationIdSuffix ".debug"
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            matchingFallbacks = ["release"]
+            if (releaseSigning != null) {
+                signingConfig releaseSigning
+            }
         }
     }
 
@@ -370,7 +405,7 @@ android {
             versionCode expressiveVersionCode
             versionName expressiveVersionName
             dimension "channel"
-            // Keep the Expressive upload credential scoped to this product flavor. It must never
+            // Keep the Expressive release credential scoped to this product flavor. It must never
             // silently sign an upstream Lawnchair release assembled from the same source tree.
             if (releaseSigning != null) {
                 signingConfig releaseSigning
@@ -381,6 +416,8 @@ android {
             buildConfigField "String", "MAJOR_VERSION", "\"${expressiveVersionName}\""
             buildConfigField "boolean", "STANDARD_HOME_ONLY", "true"
             buildConfigField "boolean", "IS_EXPRESSIVE_PRODUCT", "true"
+            buildConfigField "String", "EXPRESSIVE_QA_UPDATE_MANIFEST_URL", "\"${expressiveQaUpdateManifestUrl}\""
+            buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", "\"${expressiveReleaseUpdateManifestUrl}\""
             buildConfigField "String", "PRIVACY_POLICY_URL", "\"${expressivePrivacyPolicyUrl}\""
             resValue("string", "derived_app_name", "Expressive Launcher L3")
         }
@@ -498,6 +535,22 @@ def verifyExpressivePlayRelease = tasks.register("verifyExpressivePlayRelease") 
     }
 }
 
+def verifyExpressiveDirectSigning = tasks.register("verifyExpressiveDirectSigning") {
+    group = "verification"
+    description = "Fails unless Expressive QA and release APK signing is configured."
+
+    doLast {
+        if (!expressiveSigningConfigured) {
+            throw new GradleException(
+                    "Expressive direct-release signing is not configured. Run " +
+                            "scripts/configure-expressive-release-signing.sh, copy " +
+                            "keystore.properties.example to the ignored keystore.properties file, " +
+                            "or set the EXPRESSIVE_RELEASE_* environment variables.",
+            )
+        }
+    }
+}
+
 def expressiveReleaseManifest = layout.buildDirectory.file(
         "intermediates/merged_manifests/lawnWithQuickstepExpressiveRelease/" +
                 "processLawnWithQuickstepExpressiveReleaseManifest/AndroidManifest.xml",
@@ -556,6 +609,14 @@ verifyExpressivePlayRelease.configure {
 tasks.configureEach { task ->
     if (task.name == "bundleLawnWithQuickstepExpressiveRelease") {
         task.dependsOn verifyExpressivePlayRelease
+    }
+    if (task.name in [
+            "assembleLawnWithQuickstepExpressiveQa",
+            "assembleLawnWithQuickstepExpressiveRelease",
+            "packageLawnWithQuickstepExpressiveQa",
+            "packageLawnWithQuickstepExpressiveRelease",
+    ]) {
+        task.dependsOn verifyExpressiveDirectSigning
     }
 }
 

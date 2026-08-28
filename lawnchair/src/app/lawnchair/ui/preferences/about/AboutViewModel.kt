@@ -20,12 +20,7 @@ import retrofit2.create
 internal object AboutDestinations {
     const val GITHUB_PROFILE_URL = "https://github.com/denson9874"
     const val PAYPAL_PAYMENT_URL = "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2"
-
-    /**
-     * Debug builds append `.debug` to the production package ID. Removing only that known suffix
-     * keeps the News tile aimed at the production Play listing during device QA.
-     */
-    fun playStoreListingUrl(applicationId: String): String = "https://play.google.com/store/apps/details?id=${applicationId.removeSuffix(".debug")}"
+    const val RELEASE_BUILDS_URL = "https://drive.google.com/drive/folders/1zvASK5iOOx3ckQCT22xeHAE75dfqP53i"
 }
 
 internal fun expressiveProductOwners(): List<TeamMember> = listOf(
@@ -37,11 +32,11 @@ internal fun expressiveProductOwners(): List<TeamMember> = listOf(
     ),
 )
 
-internal fun expressiveProductLinks(applicationId: String): List<Link> = listOf(
+internal fun expressiveProductLinks(): List<Link> = listOf(
     Link(
         iconResId = R.drawable.ic_new_releases,
         labelResId = R.string.news,
-        url = AboutDestinations.playStoreListingUrl(applicationId),
+        url = AboutDestinations.RELEASE_BUILDS_URL,
     ),
     Link(
         iconResId = R.drawable.ic_help,
@@ -70,12 +65,11 @@ internal data class AboutBranding(
 /** Keeps Expressive ownership isolated without changing attribution in sibling Lawnchair builds. */
 internal fun aboutBranding(
     isExpressiveProduct: Boolean,
-    applicationId: String,
 ): AboutBranding = if (isExpressiveProduct) {
     AboutBranding(
         coreTeam = expressiveProductOwners(),
         supportAndPr = emptyList(),
-        topLinks = expressiveProductLinks(applicationId),
+        topLinks = expressiveProductLinks(),
         bottomLinks = emptyList(),
     )
 } else {
@@ -94,10 +88,12 @@ class AboutViewModel(
     private val api: GitHubService = gitHubApiRetrofit.create()
     private val prefs: PreferenceManager = PreferenceManager.getInstance(application)
     private val prefs2: PreferenceManager2 = PreferenceManager2.getInstance(application)
+    private val expressiveUpdateConfig = installedExpressiveUpdateConfig()
 
     private val nightlyBuildsRepository = NightlyBuildsRepository(
         applicationContext = application,
         api = api,
+        expressiveUpdateConfig = expressiveUpdateConfig,
     )
 
     val uiState: StateFlow<AboutUiState>
@@ -108,7 +104,6 @@ class AboutViewModel(
     init {
         val branding = aboutBranding(
             isExpressiveProduct = BuildConfig.IS_EXPRESSIVE_PRODUCT,
-            applicationId = BuildConfig.APPLICATION_ID,
         )
         uiState.update {
             it.copy(
@@ -145,7 +140,10 @@ class AboutViewModel(
             }
         }
 
-        if (BuildConfig.APPLICATION_ID.contains("nightly") && prefs2.autoUpdaterNightly.firstCached()) {
+        val shouldCheckForUpdates = expressiveUpdateConfig != null || (
+            BuildConfig.APPLICATION_ID.contains("nightly") && prefs2.autoUpdaterNightly.firstCached()
+            )
+        if (shouldCheckForUpdates) {
             nightlyBuildsRepository.checkForUpdate()
             viewModelScope.launch {
                 nightlyBuildsRepository.updateState.collect { state ->
@@ -157,6 +155,22 @@ class AboutViewModel(
 
     fun downloadUpdate() {
         nightlyBuildsRepository.downloadUpdate()
+    }
+
+    fun downloadAndInstallUpdate() {
+        nightlyBuildsRepository.downloadUpdate(installAfterDownload = true)
+    }
+
+    fun snoozeUpdate(update: UpdateState.Available, option: ExpressiveUpdateSnoozeOption) {
+        val config = expressiveUpdateConfig ?: return
+        val versionCode = update.expectedVersionCode ?: return
+        ExpressiveUpdateNotificationStore(getApplication()).snooze(
+            channel = config.channel,
+            versionCode = versionCode,
+            option = option,
+        )
+        ExpressiveUpdateNotifications.cancel(getApplication())
+        ExpressiveUpdateScheduler.scheduleAfterSnooze(getApplication(), option.durationMillis)
     }
 
     fun installUpdate(file: File, forceInstall: Boolean = false) {

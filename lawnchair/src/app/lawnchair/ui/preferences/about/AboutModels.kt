@@ -109,7 +109,16 @@ sealed interface UpdateState {
      * @param url The URL to download the update from (used in `Available` state).
      * @param expectedSha256 The expected SHA256 hash of the APK for verification (optional).
      */
-    data class Available(val name: String, val url: String, val changelogState: ChangelogState?, val expectedSha256: String? = null) : UpdateState
+    data class Available(
+        val name: String,
+        val url: String,
+        val changelogState: ChangelogState?,
+        val expectedSha256: String? = null,
+        val expectedSizeBytes: Long? = null,
+        val expectedVersionCode: Long? = null,
+        val expectedPackageName: String? = null,
+        val releaseNotes: String? = null,
+    ) : UpdateState
 
     /**
      * An update is currently being downloaded. Contains the download progress.

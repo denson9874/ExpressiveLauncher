@@ -16,6 +16,7 @@
 
 package app.lawnchair.ui.preferences.about
 
+import android.app.Activity
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -37,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -122,15 +124,36 @@ fun About(
 
     val sheetState = rememberModalBottomSheetState(true)
     var openBottomSheet by remember { mutableStateOf(false) }
+    var promptRequestedByNotification by remember {
+        mutableStateOf(
+            (context as? Activity)?.intent?.getBooleanExtra(
+                EXTRA_OPEN_EXPRESSIVE_UPDATE_PROMPT,
+                false,
+            ) == true,
+        )
+    }
     val scope = rememberCoroutineScope()
+    val expressiveUpdateConfig = remember { installedExpressiveUpdateConfig() }
 
     val prefs: PreferenceManager = PreferenceManager.getInstance(context)
+
+    LaunchedEffect(promptRequestedByNotification, uiState.updateState) {
+        if (promptRequestedByNotification && uiState.updateState is UpdateState.Available) {
+            ExpressiveUpdateNotifications.cancel(context)
+            (context as? Activity)?.intent?.removeExtra(EXTRA_OPEN_EXPRESSIVE_UPDATE_PROMPT)
+            promptRequestedByNotification = false
+            openBottomSheet = true
+            sheetState.show()
+        }
+    }
 
     if (openBottomSheet) {
         val updateState = uiState.updateState
         if (updateState is UpdateState.Available) {
             ChangesDialog(
                 changelogState = updateState.changelogState,
+                releaseNotes = updateState.releaseNotes,
+                updateName = updateState.name,
                 onDismiss = {
                     scope.launch {
                         sheetState.hide()
@@ -139,7 +162,19 @@ fun About(
                     }
                 },
                 onDownload = {
-                    viewModel.downloadUpdate()
+                    if (updateState.releaseNotes != null) {
+                        viewModel.downloadAndInstallUpdate()
+                    } else {
+                        viewModel.downloadUpdate()
+                    }
+                },
+                snoozeOptions = if (updateState.releaseNotes != null) {
+                    ExpressiveUpdateSnoozeOption.entries
+                } else {
+                    emptyList()
+                },
+                onSnooze = { option ->
+                    viewModel.snoozeUpdate(updateState, option)
                 },
                 sheetState = sheetState,
             )
@@ -218,6 +253,9 @@ fun About(
                 Spacer(modifier = Modifier.height(16.dp))
             }
             item {
+                if (expressiveUpdateConfig != null) {
+                    ExpressiveUpdateNotificationControl(config = expressiveUpdateConfig)
+                }
                 UpdateSection(
                     updateState = uiState.updateState,
                     onInstall = {

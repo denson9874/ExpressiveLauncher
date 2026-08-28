@@ -2,15 +2,19 @@ package app.lawnchair.ui.preferences.about
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import app.lawnchair.util.getApkVersionComparison
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.Utilities
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
@@ -22,9 +26,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class NightlyBuildsRepository(
+internal class NightlyBuildsRepository(
     val applicationContext: Context,
     val api: GitHubService,
+    private val expressiveUpdateConfig: ExpressiveUpdateConfig? = null,
 ) {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -39,51 +44,10 @@ class NightlyBuildsRepository(
         coroutineScope.launch(Dispatchers.Default) {
             updateState.update { UpdateState.Checking }
             try {
-                val releases = api.getReleases()
-                val nightly = releases.firstOrNull { it.tagName == "nightly" }
-                val asset = nightly?.assets?.firstOrNull()
-
-                val majorVersion = applicationContext.getApkVersionComparison().first[0]
-                val expectedBranch = "$majorVersion-dev"
-
-                if (nightly != null && nightly.targetCommitish != expectedBranch) {
-                    Log.d(TAG, "Skipping update from branch ${nightly.targetCommitish}, expected $expectedBranch")
-                    updateState.update { UpdateState.Disabled(UpdateDisabledReason.MAJOR_IS_NEWER) }
-                    return@launch
-                }
-
-                // As of now the version string looks like this (CI builds only):
-                // <major>.<branch>.(#<CI build number>)
-                // This is done inside build.gradle in the source root. Reflect
-                // changes from there if needed.
-                currentBuildNumber = BuildConfig.VERSION_DISPLAY_NAME
-                    .substringAfterLast("#")
-                    .removeSuffix(")")
-                    .toIntOrNull() ?: 0
-                latestBuildNumber =
-                    asset?.name?.substringAfter("_")?.substringBefore("-")?.toIntOrNull() ?: 0
-
-                if (asset != null && latestBuildNumber > currentBuildNumber) {
-                    val commitList = getCommitsSinceCurrentVersion()
-
-                    updateState.update {
-                        UpdateState.Available(
-                            asset.name,
-                            asset.browserDownloadUrl,
-                            changelogState = if (commitList != null) {
-                                ChangelogState(
-                                    commits = commitList,
-                                    currentBuildNumber = currentBuildNumber,
-                                    latestBuildNumber = latestBuildNumber,
-                                )
-                            } else {
-                                null
-                            },
-                            expectedSha256 = asset.sha256Hash,
-                        )
-                    }
+                if (expressiveUpdateConfig != null) {
+                    checkExpressiveUpdate(expressiveUpdateConfig)
                 } else {
-                    updateState.update { UpdateState.UpToDate }
+                    checkNightlyUpdate()
                 }
             } catch (e: Exception) {
                 when (e) {
@@ -100,18 +64,98 @@ class NightlyBuildsRepository(
         }
     }
 
-    fun downloadUpdate() {
+    private suspend fun checkExpressiveUpdate(config: ExpressiveUpdateConfig) {
+        when (
+            val decision = fetchExpressiveUpdateDecision(
+                api = api,
+                config = config,
+                currentVersionCode = BuildConfig.VERSION_CODE.toLong(),
+                currentPackageName = BuildConfig.APPLICATION_ID,
+            )
+        ) {
+            is ExpressiveUpdateDecision.Available -> {
+                val update = decision.manifest
+                updateState.update {
+                    UpdateState.Available(
+                        name = "Expressive Launcher ${update.versionName} (${config.channel.wireName.uppercase()})",
+                        url = update.apkUrl,
+                        changelogState = null,
+                        expectedSha256 = update.sha256,
+                        expectedSizeBytes = update.sizeBytes,
+                        expectedVersionCode = update.versionCode,
+                        expectedPackageName = update.packageName,
+                        releaseNotes = update.releaseNotes,
+                    )
+                }
+            }
+
+            ExpressiveUpdateDecision.UpToDate -> updateState.update { UpdateState.UpToDate }
+
+            is ExpressiveUpdateDecision.Rejected -> {
+                throw IOException("Rejected Expressive update manifest: ${decision.reason}")
+            }
+        }
+    }
+
+    private suspend fun checkNightlyUpdate() {
+        val releases = api.getReleases()
+        val nightly = releases.firstOrNull { it.tagName == "nightly" }
+        val asset = nightly?.assets?.firstOrNull()
+
+        val majorVersion = applicationContext.getApkVersionComparison().first[0]
+        val expectedBranch = "$majorVersion-dev"
+
+        if (nightly != null && nightly.targetCommitish != expectedBranch) {
+            Log.d(TAG, "Skipping update from branch ${nightly.targetCommitish}, expected $expectedBranch")
+            updateState.update { UpdateState.Disabled(UpdateDisabledReason.MAJOR_IS_NEWER) }
+            return
+        }
+
+        // As of now the version string looks like this (CI builds only):
+        // <major>.<branch>.(#<CI build number>)
+        currentBuildNumber = BuildConfig.VERSION_DISPLAY_NAME
+            .substringAfterLast("#")
+            .removeSuffix(")")
+            .toIntOrNull() ?: 0
+        latestBuildNumber =
+            asset?.name?.substringAfter("_")?.substringBefore("-")?.toIntOrNull() ?: 0
+
+        if (asset != null && latestBuildNumber > currentBuildNumber) {
+            val commitList = getCommitsSinceCurrentVersion()
+            updateState.update {
+                UpdateState.Available(
+                    asset.name,
+                    asset.browserDownloadUrl,
+                    changelogState = commitList?.let {
+                        ChangelogState(
+                            commits = it,
+                            currentBuildNumber = currentBuildNumber,
+                            latestBuildNumber = latestBuildNumber,
+                        )
+                    },
+                    expectedSha256 = asset.sha256Hash,
+                )
+            }
+        } else {
+            updateState.update { UpdateState.UpToDate }
+        }
+    }
+
+    fun downloadUpdate(installAfterDownload: Boolean = false) {
         val currentState = updateState.value
         if (currentState !is UpdateState.Available) return
 
         coroutineScope.launch(Dispatchers.IO) {
             updateState.update { UpdateState.Downloading(0f) }
             try {
-                val file = downloadApk(currentState.url, currentState.expectedSha256) { progress ->
+                val file = downloadApk(currentState) { progress ->
                     updateState.update { UpdateState.Downloading(progress) }
                 }
                 if (file != null) {
                     updateState.update { UpdateState.Downloaded(file) }
+                    if (installAfterDownload) {
+                        installUpdate(file)
+                    }
                 } else {
                     Log.e(TAG, "Downloaded file is null")
                     updateState.update { UpdateState.Failed }
@@ -173,16 +217,18 @@ class NightlyBuildsRepository(
         }
     }
 
-    private suspend fun downloadApk(url: String, expectedSha256: String?, onProgress: (Float) -> Unit): File? {
+    private suspend fun downloadApk(update: UpdateState.Available, onProgress: (Float) -> Unit): File? {
         return try {
             val cacheDir = applicationContext.cacheDir
             val apkDirPath = cacheDir.toPath().resolve("updates").createDirectories()
             val apkFilePath = apkDirPath.resolve("Lawnchair-update.apk").apply { deleteIfExists() }
 
-            val responseBody = api.downloadFile(url)
-            val totalBytes = responseBody.contentLength().toFloat()
-            if (totalBytes <= 0) {
-                Log.w(TAG, "Content length is invalid: $totalBytes")
+            val responseBody = api.downloadFile(update.url)
+            val totalBytes = responseBody.contentLength().takeIf { it > 0L }
+                ?: update.expectedSizeBytes
+                ?: -1L
+            if (totalBytes <= 0L) {
+                Log.w(TAG, "The update download did not report a usable size")
                 return null
             }
 
@@ -197,21 +243,32 @@ class NightlyBuildsRepository(
                         output.write(buffer, 0, bytesRead)
                         messageDigest.update(buffer, 0, bytesRead)
                         bytesDownloaded += bytesRead
-                        onProgress(bytesDownloaded / totalBytes)
+                        onProgress((bytesDownloaded.toFloat() / totalBytes).coerceIn(0f, 1f))
                     }
                 }
             }
-            if (expectedSha256 != null) {
+            if (update.expectedSha256 != null) {
                 val computedHash = messageDigest.digest().joinToString("") { "%02x".format(it) }
-                if (!computedHash.equals(expectedSha256, ignoreCase = true)) {
-                    Log.e(TAG, "SHA256 verification failed. Expected: $expectedSha256, Got: $computedHash")
+                if (!computedHash.equals(update.expectedSha256, ignoreCase = true)) {
+                    Log.e(TAG, "SHA256 verification failed")
                     apkFilePath.deleteIfExists()
                     return null
                 }
-                Log.d(TAG, "SHA256 verification passed: $computedHash")
+                Log.d(TAG, "SHA256 verification passed")
             }
 
-            apkFilePath.toFile()
+            val apkFile = apkFilePath.toFile()
+            if (update.expectedSizeBytes != null && apkFile.length() != update.expectedSizeBytes) {
+                Log.e(TAG, "APK size verification failed")
+                apkFilePath.deleteIfExists()
+                return null
+            }
+            if (!applicationContext.validateExpressiveUpdateApk(apkFile, update)) {
+                apkFilePath.deleteIfExists()
+                return null
+            }
+
+            apkFile
         } catch (e: Exception) {
             Log.e(TAG, "APK download failed", e)
             null
@@ -222,6 +279,55 @@ class NightlyBuildsRepository(
         private const val TAG = "NightlyBuildsRepository"
     }
 }
+
+private fun Context.validateExpressiveUpdateApk(
+    apkFile: File,
+    update: UpdateState.Available,
+): Boolean {
+    if (update.expectedPackageName == null && update.expectedVersionCode == null) return true
+
+    val candidate = packageManager.getPackageArchiveInfo(
+        apkFile.absolutePath,
+        PackageManager.GET_SIGNING_CERTIFICATES,
+    ) ?: return false.also { Log.e("UpdateCheck", "Unable to parse downloaded APK") }
+    if (candidate.packageName != update.expectedPackageName) {
+        Log.e("UpdateCheck", "Downloaded APK package does not match the update manifest")
+        return false
+    }
+    if (PackageInfoCompat.getLongVersionCode(candidate) != update.expectedVersionCode) {
+        Log.e("UpdateCheck", "Downloaded APK version does not match the update manifest")
+        return false
+    }
+
+    val installed = packageManager.getPackageInfo(
+        packageName,
+        PackageManager.GET_SIGNING_CERTIFICATES,
+    )
+    if (!signingLineageAccepts(installed.signingDigests(), candidate.signingDigests())) {
+        Log.e("UpdateCheck", "Downloaded APK signing certificate does not match the installed app")
+        return false
+    }
+    return true
+}
+
+private fun PackageInfo.signingDigests(): Set<String> {
+    val info = signingInfo ?: return emptySet()
+    val signatures = if (info.hasMultipleSigners()) {
+        info.apkContentsSigners
+    } else {
+        info.signingCertificateHistory
+    }
+    return signatures.mapTo(mutableSetOf()) { signature ->
+        MessageDigest.getInstance("SHA-256")
+            .digest(signature.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+    }
+}
+
+internal fun signingLineageAccepts(
+    installedDigests: Set<String>,
+    candidateLineageDigests: Set<String>,
+): Boolean = installedDigests.isNotEmpty() && candidateLineageDigests.containsAll(installedDigests)
 
 private fun Context.hasInstallPermission(): Boolean {
     return if (Utilities.ATLEAST_O) {

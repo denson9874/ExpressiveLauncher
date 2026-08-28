@@ -41,9 +41,13 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun ChangesDialog(
     changelogState: ChangelogState?,
+    releaseNotes: String?,
+    updateName: String,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     onDownload: () -> Unit,
+    snoozeOptions: List<ExpressiveUpdateSnoozeOption> = emptyList(),
+    onSnooze: (ExpressiveUpdateSnoozeOption) -> Unit = {},
 ) {
     val commits = changelogState?.commits
     val currentBuild = changelogState?.currentBuildNumber ?: 0
@@ -60,11 +64,15 @@ fun ChangesDialog(
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                text = stringResource(
-                    R.string.changes_dialog_build_format,
-                    currentBuild,
-                    latestBuild,
-                ),
+                text = if (releaseNotes != null) {
+                    updateName
+                } else {
+                    stringResource(
+                        R.string.changes_dialog_build_format,
+                        currentBuild,
+                        latestBuild,
+                    )
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
@@ -75,7 +83,40 @@ fun ChangesDialog(
                 .heightIn(max = 600.dp)
                 .fillMaxWidth(),
         ) {
-            if (commits != null) {
+            if (releaseNotes != null) {
+                item {
+                    Text(
+                        text = releaseNotes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+                if (snoozeOptions.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.expressive_update_remind_later),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            snoozeOptions.forEach { option ->
+                                OutlinedButton(
+                                    onClick = {
+                                        onSnooze(option)
+                                        onDismiss()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shapes = ButtonDefaults.shapes(),
+                                ) {
+                                    Text(text = stringResource(option.labelResId))
+                                }
+                                Spacer(Modifier.height(4.dp))
+                            }
+                        }
+                    }
+                }
+            } else if (commits != null) {
                 itemsIndexed(commits) { index, commit ->
                     PreferenceGroupItem(
                         cutTop = index != 0,
@@ -115,7 +156,15 @@ fun ChangesDialog(
                 },
                 shapes = ButtonDefaults.shapes(),
             ) {
-                Text(text = stringResource(R.string.download_update))
+                Text(
+                    text = stringResource(
+                        if (releaseNotes != null) {
+                            R.string.expressive_update_download_and_install
+                        } else {
+                            R.string.download_update
+                        },
+                    ),
+                )
             }
         }
     }
