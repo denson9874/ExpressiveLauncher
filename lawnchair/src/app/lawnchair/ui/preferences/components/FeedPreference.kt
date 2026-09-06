@@ -18,6 +18,7 @@ import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.ui.preferences.components.controls.ListPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
 import com.android.launcher3.R
+import com.android.launcher3.BuildConfig
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 
 data class ProviderInfo(
@@ -28,7 +29,11 @@ data class ProviderInfo(
 
 fun getProviders(context: Context) = FeedBridge.getAvailableProviders(context).map {
     ProviderInfo(
-        name = it.loadLabel(context.packageManager).toString(),
+        name = if (BuildConfig.IS_EXPRESSIVE_PRODUCT && it.packageName == FeedBridge.FIRST_PARTY_FEED_PACKAGE) {
+            context.getString(R.string.expressive_feed_title)
+        } else {
+            it.loadLabel(context.packageManager).toString()
+        },
         packageName = it.packageName,
         icon = CustomAdaptiveIconDrawable.wrapNonNull(it.loadIcon(context.packageManager)),
     )

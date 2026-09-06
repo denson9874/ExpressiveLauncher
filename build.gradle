@@ -154,10 +154,10 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse("dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("9")
+        .orElse("10")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("1.0.8")
+        .orElse("1.0.9")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("")
@@ -647,6 +647,10 @@ androidComponents {
         variant.sources.java.addStaticSourceDirectory(generatedProtoJavaDir.absolutePath)
     }
 }
+
+// Package the same-signed feed helper as generated assets for Expressive only.
+// The helper remains a separate Android identity; the launcher stays non-debuggable in Qa/Release.
+apply from: "gradle/expressive-feed-assets.gradle"
 
 baselineProfile {
     saveInSrc = true

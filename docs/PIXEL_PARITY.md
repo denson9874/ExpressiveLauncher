@@ -46,6 +46,19 @@ the AVD display name alone is not accepted as evidence.
 
 ## Implemented parity improvements
 
+### 2026-09-06 — Google Discover setup inside Expressive (candidate 1.0.9)
+
+The release launcher already contains the native left-page overlay, but users previously needed
+to acquire a separate feed-support APK and navigate a generic provider selector. Expressive now
+bundles its same-signed background support and exposes setup, updates and a single Google Discover
+switch in Home settings. The helper has no launcher icon or feed Activity; Google renders the panel
+inside Home. Android confirms the helper installation and the main launcher stays non-debuggable.
+
+The generated asset pipeline and runtime installer check version, bytes and signing identity.
+Jenkins additionally rejects missing, mismatched or UI-bearing helper bundles. See
+[Google Discover integration](GOOGLE_DISCOVER.md) for the platform constraint and setup flow.
+This is a candidate implementation; final launcher QA and delivery status are recorded separately.
+
 ### 2026-09-04 — Smartspace date opens the current day after rollover
 
 **Observed gap.** On the verified QPR2 Beta 4 guest, tapping Pixel Launcher's date after moving the

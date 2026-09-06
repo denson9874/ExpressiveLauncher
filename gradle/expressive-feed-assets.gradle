@@ -1,0 +1,115 @@
+import groovy.json.JsonOutput
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.security.MessageDigest
+
+/** No Project/model access during execution: inputs are variant-aware APK artifacts. */
+@CacheableTask
+abstract class GenerateExpressiveFeedAssets extends DefaultTask {
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getHelperApkArtifacts()
+
+    @Input
+    abstract Property<String> getExpectedHelperVariant()
+
+    @Input
+    abstract Property<Integer> getExpectedVersionCode()
+
+    @Input
+    abstract Property<String> getExpectedVersionName()
+
+    @Internal
+    abstract Property<Object> getBuiltArtifactsLoader()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDirectory()
+
+    @TaskAction
+    void generateAssets() {
+        if (helperApkArtifacts.files.size() != 1) {
+            throw new GradleException("Expected one Expressive Feed APK artifact directory")
+        }
+        def built = builtArtifactsLoader.get().load(helperApkArtifacts)
+        if (built == null || built.applicationId != "dev.launcher.expressive.feed"
+                || built.variantName != expectedHelperVariant.get() || built.elements.size() != 1) {
+            throw new GradleException("Expected exactly one APK from the selected Expressive Feed variant")
+        }
+        def element = built.elements.first()
+        if (!element.filters.isEmpty() || element.versionCode != expectedVersionCode.get()
+                || element.versionName != expectedVersionName.get()) {
+            throw new GradleException("Embedded Expressive Feed must be a complete APK with the launcher's version")
+        }
+        def apk = new File(element.outputFile)
+        def artifactRoot = helperApkArtifacts.singleFile.toPath().toRealPath()
+        if (!apk.isFile() || apk.length() == 0 || !apk.toPath().toRealPath().startsWith(artifactRoot)) {
+            throw new GradleException("Expressive Feed APK is missing, empty, or outside its declared artifact directory")
+        }
+        def destination = outputDirectory.get().asFile.toPath().resolve("expressive-feed")
+        Files.createDirectories(destination)
+        def embeddedApk = destination.resolve("ExpressiveFeed.apk")
+        Files.copy(apk.toPath(), embeddedApk, StandardCopyOption.REPLACE_EXISTING)
+        def digest = MessageDigest.getInstance("SHA-256")
+        Files.newInputStream(embeddedApk).withCloseable { stream ->
+            byte[] buffer = new byte[65536]
+            int count
+            while ((count = stream.read(buffer)) != -1) {
+                digest.update(buffer, 0, count)
+            }
+        }
+        def metadata = [
+                schemaVersion: 1,
+                packageName: built.applicationId,
+                versionCode: element.versionCode,
+                versionName: element.versionName,
+                sizeBytes: Files.size(embeddedApk),
+                sha256: digest.digest().encodeHex().toString(),
+                fileName: "ExpressiveFeed.apk",
+        ]
+        Files.writeString(destination.resolve("metadata.json"), JsonOutput.prettyPrint(JsonOutput.toJson(metadata)) + "\n")
+    }
+}
+
+def helperConfigurations = ["debug", "release"].collectEntries { helperVariant ->
+    def capitalizedVariant = helperVariant.capitalize()
+    def incoming = configurations.create("embeddedExpressiveFeed${capitalizedVariant}") {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    dependencies.add(incoming.name, dependencies.project(
+            path: ":expressiveFeed",
+            configuration: "expressiveFeed${capitalizedVariant}ApkElements",
+    ))
+    [(helperVariant): incoming]
+}
+
+androidComponents {
+    onVariants(selector().withFlavor("channel", "expressive")) { variant ->
+        def helperVariant = variant.buildType == "debug" ? "debug" : "release"
+        def generated = tasks.register("generate${variant.name.capitalize()}ExpressiveFeedAssets", GenerateExpressiveFeedAssets) {
+            group = "expressive"
+            description = "Embed the ${helperVariant} Expressive Feed helper and its verified build metadata."
+            helperApkArtifacts.from(helperConfigurations[helperVariant])
+            expectedHelperVariant.set(helperVariant)
+            expectedVersionCode.set(variant.outputs.first().versionCode)
+            expectedVersionName.set(variant.outputs.first().versionName)
+            builtArtifactsLoader.set(variant.artifacts.getBuiltArtifactsLoader())
+        }
+        variant.sources.assets.addGeneratedSourceDirectory(generated) { task -> task.outputDirectory }
+    }
+}

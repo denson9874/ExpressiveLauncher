@@ -1,12 +1,14 @@
+import com.android.build.api.artifact.SingleArtifact
+
 plugins {
     alias(libs.plugins.android.application)
 }
 
 final def feedVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("5")
+        .orElse("10")
         .get()
 final def feedVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("1.0.4")
+        .orElse("1.0.9")
         .get()
 final def feedVersionCode = feedVersionCodeText.isInteger()
         ? feedVersionCodeText.toInteger()
@@ -26,13 +28,13 @@ final def signingPropertiesFile = signingPropertiesPath
 if (signingPropertiesFile.exists()) {
     signingPropertiesFile.withInputStream { signingProperties.load(it) }
 }
-final def signingValue = { String propertyName, String environmentName ->
-    System.getenv(environmentName) ?: signingProperties[propertyName]
+final def signingValue = { String propertyName, String environmentName, String legacyEnvironmentName ->
+    System.getenv(environmentName) ?: System.getenv(legacyEnvironmentName) ?: signingProperties[propertyName]
 }
-final def signingStoreFile = signingValue("storeFile", "EXPRESSIVE_UPLOAD_STORE_FILE")
-final def signingStorePassword = signingValue("storePassword", "EXPRESSIVE_UPLOAD_STORE_PASSWORD")
-final def signingKeyAlias = signingValue("keyAlias", "EXPRESSIVE_UPLOAD_KEY_ALIAS")
-final def signingKeyPassword = signingValue("keyPassword", "EXPRESSIVE_UPLOAD_KEY_PASSWORD")
+final def signingStoreFile = signingValue("storeFile", "EXPRESSIVE_RELEASE_STORE_FILE", "EXPRESSIVE_UPLOAD_STORE_FILE")
+final def signingStorePassword = signingValue("storePassword", "EXPRESSIVE_RELEASE_STORE_PASSWORD", "EXPRESSIVE_UPLOAD_STORE_PASSWORD")
+final def signingKeyAlias = signingValue("keyAlias", "EXPRESSIVE_RELEASE_KEY_ALIAS", "EXPRESSIVE_UPLOAD_KEY_ALIAS")
+final def signingKeyPassword = signingValue("keyPassword", "EXPRESSIVE_RELEASE_KEY_PASSWORD", "EXPRESSIVE_UPLOAD_KEY_PASSWORD")
 final def signingValues = [
         signingStoreFile,
         signingStorePassword,
@@ -107,4 +109,36 @@ dependencies {
 // Java/platform-only, so exclude the unused runtime and keep the companion auditable and tiny.
 configurations.configureEach {
     exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib"
+}
+
+def verifyFeedReleaseSigning = tasks.register("verifyExpressiveFeedReleaseSigning") {
+    group = "verification"
+    description = "Rejects an unsigned helper before it can be embedded in a signed launcher."
+    inputs.property("signingConfigured", releaseSigningConfigured)
+    doLast { task ->
+        if (!task.inputs.properties.signingConfigured) {
+            throw new GradleException("Expressive Feed release signing must match the launcher's durable signing configuration")
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name in ["packageRelease", "assembleRelease", "bundleRelease"]) {
+        task.dependsOn verifyFeedReleaseSigning
+    }
+}
+
+// Export APK directories through Gradle's dependency graph. The root project consumes these
+// artifacts without evaluating this project's model or guessing AGP output/task paths.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def capitalizedVariant = variant.name.capitalize()
+        configurations.create("expressiveFeed${capitalizedVariant}ApkElements") {
+            canBeConsumed = true
+            canBeResolved = false
+            outgoing.artifact(variant.artifacts.get(SingleArtifact.APK.INSTANCE)) {
+                type = "directory"
+            }
+        }
+    }
 }

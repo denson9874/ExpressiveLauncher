@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import zipfile
 
 
 QA_PACKAGE = "dev.launcher.expressive.l3.debug"
@@ -129,6 +130,57 @@ def inspect_apk(apk, build_tools):
     }
 
 
+def verify_feed_bundle(apk, candidate, build_tools):
+    """Verify the installable helper retained inside launcher releases starting with code 10."""
+    names = ("assets/expressive-feed/metadata.json", "assets/expressive-feed/ExpressiveFeed.apk")
+    try:
+        with zipfile.ZipFile(apk) as archive:
+            for name, limit in zip(names, (16 * 1024, 64 * 1024 * 1024)):
+                entries = [entry for entry in archive.infolist() if entry.filename == name]
+                if len(entries) != 1 or not 0 < entries[0].file_size <= limit:
+                    raise VerificationError("Missing, duplicate or oversized bundled Discover asset: " + name)
+            metadata = json.loads(archive.read(names[0]), object_pairs_hook=unique_json_fields)
+            helper_bytes = archive.read(names[1])
+    except (OSError, zipfile.BadZipFile, ValueError, KeyError) as error:
+        raise VerificationError("Cannot read the bundled Discover support: " + str(error)) from error
+    required = {"schemaVersion", "packageName", "versionCode", "versionName", "sizeBytes", "sha256", "fileName"}
+    if not isinstance(metadata, dict) or set(metadata) != required:
+        raise VerificationError("Bundled Discover metadata has unexpected fields")
+    expected = {
+        "schemaVersion": 1, "packageName": "dev.launcher.expressive.feed",
+        "versionCode": candidate["versionCode"], "versionName": candidate["versionName"],
+        "sizeBytes": len(helper_bytes), "sha256": hashlib.sha256(helper_bytes).hexdigest(),
+        "fileName": "ExpressiveFeed.apk",
+    }
+    if metadata != expected or any(type(metadata[key]) is not int for key in ("schemaVersion", "versionCode", "sizeBytes")):
+        raise VerificationError("Bundled Discover metadata differs from its bytes or launcher version")
+    with tempfile.TemporaryDirectory(prefix="expressive-feed-verify-") as temporary:
+        helper = Path(temporary) / "ExpressiveFeed.apk"
+        helper.write_bytes(helper_bytes)
+        identity = inspect_apk(helper, build_tools)
+        if any(identity[key] != expected[key] for key in ("packageName", "versionCode", "versionName", "sizeBytes", "sha256")):
+            raise VerificationError("Bundled Discover APK identity differs from its metadata")
+        if identity["certificateSha256"] != candidate["certificateSha256"]:
+            raise VerificationError("Bundled Discover support is not signed by the launcher signer")
+        if not identity["debuggable"]:
+            raise VerificationError("Bundled Discover support cannot connect to Google's overlay")
+        manifest = run_tool(build_tools / "aapt2", "dump", "xmltree", helper, "--file", "AndroidManifest.xml")
+        if re.search(r"^\s*E: (?:activity|activity-alias|provider|receiver)(?:\s|$)", manifest, re.MULTILINE):
+            raise VerificationError("Bundled Discover support must remain a service-only package")
+        if len(re.findall(r"^\s*E: service(?:\s|$)", manifest, re.MULTILINE)) != 1:
+            raise VerificationError("Bundled Discover support must contain exactly one service")
+    return {**identity, "bundled": True, "signerMatches": True, "serviceOnly": True}
+
+
+def unique_json_fields(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise VerificationError("Duplicate Discover metadata field: " + key)
+        result[key] = value
+    return result
+
+
 def verify_qa(apk, baseline_apk, version_name, version_code, build_tools):
     if not version_name or not 1 <= version_code <= 2_100_000_000:
         raise VerificationError("Expected versionName must be nonempty and versionCode must be 1..2100000000")
@@ -156,6 +208,8 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools):
     if candidate["versionCode"] <= baseline["versionCode"]:
         raise VerificationError("Candidate versionCode must be strictly newer than the delivered baseline")
 
+    feed = verify_feed_bundle(apk, candidate, build_tools) if candidate["versionCode"] >= 10 else None
+
     # Recheck both files after all tool calls, including time spent inspecting the baseline.
     for path, artifact in ((apk, candidate), (baseline_apk, baseline)):
         if file_digest(path) != (artifact["sizeBytes"], artifact["sha256"]):
@@ -164,6 +218,7 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools):
         "schemaVersion": 1,
         "channel": "qa",
         **candidate,
+        **({"googleDiscoverSupport": feed} if feed is not None else {}),
         "baseline": {**baseline, "candidateIsNewer": True, "signerMatches": True},
     }
 

@@ -34,6 +34,7 @@ import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.theme.color.ColorMode
 import app.lawnchair.ui.preferences.LocalIsExpandedScreen
 import app.lawnchair.ui.preferences.components.FeedPreference
+import app.lawnchair.ui.preferences.components.ExpressiveFeedPreferences
 import app.lawnchair.ui.preferences.components.GestureHandlerPreference
 import app.lawnchair.ui.preferences.components.HomeLayoutSettings
 import app.lawnchair.ui.preferences.components.NavigationActionPreference
@@ -48,6 +49,7 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.navigation.HomeScreenGrid
 import app.lawnchair.util.collectAsStateBlocking
 import com.android.launcher3.LauncherAppState
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -112,17 +114,21 @@ fun HomeScreenPreferences(
                 },
             )
         }
-        val feedAvailable = OverlayCallbackImpl.minusOneAvailable(LocalContext.current)
-        val enableFeedAdapter = prefs2.enableFeed.getAdapter()
-        PreferenceGroup(heading = stringResource(id = R.string.minus_one)) {
-            SwitchPreference(
-                adapter = enableFeedAdapter,
-                label = stringResource(id = R.string.minus_one_enable),
-                description = if (feedAvailable) null else stringResource(id = R.string.minus_one_unavailable),
-                enabled = feedAvailable,
-            )
-            ExpandAndShrink(visible = feedAvailable && enableFeedAdapter.state.value) {
-                FeedPreference()
+        if (BuildConfig.IS_EXPRESSIVE_PRODUCT) {
+            ExpressiveFeedPreferences()
+        } else {
+            val feedAvailable = OverlayCallbackImpl.minusOneAvailable(LocalContext.current)
+            val enableFeedAdapter = prefs2.enableFeed.getAdapter()
+            PreferenceGroup(heading = stringResource(id = R.string.minus_one)) {
+                SwitchPreference(
+                    adapter = enableFeedAdapter,
+                    label = stringResource(id = R.string.minus_one_enable),
+                    description = if (feedAvailable) null else stringResource(id = R.string.minus_one_unavailable),
+                    enabled = feedAvailable,
+                )
+                ExpandAndShrink(visible = feedAvailable && enableFeedAdapter.state.value) {
+                    FeedPreference()
+                }
             }
         }
         PreferenceGroup(heading = stringResource(R.string.style)) {

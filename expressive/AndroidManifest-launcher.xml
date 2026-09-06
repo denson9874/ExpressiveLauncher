@@ -33,6 +33,11 @@ SystemUI remains responsible for Overview and gesture navigation.
 
     <queries>
         <package android:name="dev.launcher.expressive.feed" />
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.android.package-archive" />
+        </intent>
     </queries>
 
     <!-- Both independently installed APKs declare this permission so either one can be installed
