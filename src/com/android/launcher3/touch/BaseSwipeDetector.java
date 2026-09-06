@@ -194,7 +194,22 @@ public abstract class BaseSwipeDetector {
                 break;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
-                // These are synthetic events and there is no need to update internal values.
+                // UP can carry movement beyond the last MOVE. Account for that endpoint before
+                // settling an existing drag, but never start a drag on release or advance CANCEL.
+                if (actionMasked == MotionEvent.ACTION_UP && mState == ScrollState.DRAGGING) {
+                    int releasePointerIndex = ev.findPointerIndex(mActivePointerId);
+                    if (releasePointerIndex != INVALID_POINTER_ID
+                            && (ev.getX(releasePointerIndex) != mLastPos.x
+                            || ev.getY(releasePointerIndex) != mLastPos.y)) {
+                        mDisplacement.set(ev.getX(releasePointerIndex) - mDownPos.x,
+                                ev.getY(releasePointerIndex) - mDownPos.y);
+                        if (mIsRtl) {
+                            mDisplacement.x = -mDisplacement.x;
+                        }
+                        reportDragging(ev);
+                        mLastPos.set(ev.getX(releasePointerIndex), ev.getY(releasePointerIndex));
+                    }
+                }
                 if (mState == ScrollState.DRAGGING) {
                     setState(ScrollState.SETTLING);
                 }

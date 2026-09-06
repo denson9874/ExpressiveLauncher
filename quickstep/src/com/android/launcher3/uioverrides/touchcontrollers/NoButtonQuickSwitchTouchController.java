@@ -322,8 +322,11 @@ public class NoButtonQuickSwitchTouchController implements TouchController,
         mIsHomeScreenVisible = FADE_OUT_INTERPOLATOR.getInterpolation(xProgress)
                 <= 1 - ALPHA_CUTOFF_THRESHOLD;
 
-        mMotionPauseDetector.setDisallowPause(-displacement.y < mMotionPauseMinDisplacement);
-        mMotionPauseDetector.addPosition(ev);
+        // Preserve the pause decision from the held gesture when applying its final release position.
+        if (ev.getActionMasked() != MotionEvent.ACTION_UP) {
+            mMotionPauseDetector.setDisallowPause(-displacement.y < mMotionPauseMinDisplacement);
+            mMotionPauseDetector.addPosition(ev);
+        }
 
         if (mXOverviewAnim != null) {
             mXOverviewAnim.setPlayFraction(xProgress);

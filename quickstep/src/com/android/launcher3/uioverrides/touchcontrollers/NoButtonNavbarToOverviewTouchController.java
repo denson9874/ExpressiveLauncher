@@ -283,10 +283,13 @@ public class NoButtonNavbarToOverviewTouchController extends PortraitStatesTouch
             }
         }
 
-        float upDisplacement = -yDisplacement;
-        mMotionPauseDetector.setDisallowPause(!handlingOverviewAnim()
-                || upDisplacement < mMotionPauseMinDisplacement);
-        mMotionPauseDetector.addPosition(event);
+        // A release callback updates the final drag position, not an ongoing hold/velocity sample.
+        if (event.getActionMasked() != MotionEvent.ACTION_UP) {
+            float upDisplacement = -yDisplacement;
+            mMotionPauseDetector.setDisallowPause(!handlingOverviewAnim()
+                    || upDisplacement < mMotionPauseMinDisplacement);
+            mMotionPauseDetector.addPosition(event);
+        }
 
         // Stay in Overview.
         return mStartedOverview || super.onDrag(yDisplacement, xDisplacement, event);

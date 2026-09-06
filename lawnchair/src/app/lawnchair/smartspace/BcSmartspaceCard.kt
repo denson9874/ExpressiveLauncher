@@ -97,13 +97,16 @@ class BcSmartspaceCard @JvmOverloads constructor(
             }
         }
 
-        dateView?.let {
+        dateView?.let { date ->
             val calendarAction = SmartspaceAction(
                 id = headerAction?.id ?: baseAction?.id ?: UUID.randomUUID().toString(),
                 title = "unusedTitle",
-                intent = BcSmartSpaceUtil.getOpenCalendarIntent(),
+                // The visible date keeps ticking even when this target is not rebound.
+                onClick = Runnable {
+                    date.context.startActivity(BcSmartSpaceUtil.getOpenCalendarIntent())
+                },
             )
-            BcSmartSpaceUtil.setOnClickListener(it, calendarAction, null, "BcSmartspaceCard")
+            BcSmartSpaceUtil.setOnClickListener(date, calendarAction, null, "BcSmartspaceCard")
         }
 
         when {

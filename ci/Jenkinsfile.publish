@@ -1,0 +1,23 @@
+pipeline {
+    agent { label 'expressive-macos-android' }
+    options { disableConcurrentBuilds(); timeout(time: 30, unit: 'MINUTES'); skipDefaultCheckout() }
+    parameters {
+        string(name: 'RELEASE_ID', defaultValue: '', description: 'Sealed candidate ID from a successful QA build')
+        booleanParam(name: 'PROMOTE_QA_FEED', defaultValue: false, description: 'Publish verified APK and promote only the existing QA update feed')
+    }
+    environment {
+        SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
+        EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
+        PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+    }
+    stages {
+        stage('Publish retained candidate') {
+            steps {
+                script { if (!(params.RELEASE_ID ==~ /qa-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-build-[0-9]+/)) { error('Invalid release ID') } }
+                sh '''python3 "$SOURCE_REPOSITORY/ci/pipeline.py" publish --release-id "$RELEASE_ID" --output "$WORKSPACE/publication-$BUILD_NUMBER.json"
+                '''
+            }
+        }
+    }
+    post { always { archiveArtifacts artifacts: 'publication-*.json', allowEmptyArchive: true, fingerprint: true } }
+}

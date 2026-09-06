@@ -99,7 +99,8 @@ class VerticalSwipeTouchController(
     }
 
     override fun onDrag(displacement: PointF, motionEvent: MotionEvent): Boolean {
-        if (triggered) return true
+        // Final release positions complete drags, but must not trigger a new custom action.
+        if (triggered || motionEvent.actionMasked == MotionEvent.ACTION_UP) return true
         val velocity = computeVelocity(displacement.y - currentDisplacement, motionEvent.eventTime)
         if (velocity.absoluteValue > TRIGGER_VELOCITY) {
             triggered = true
