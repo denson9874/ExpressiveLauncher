@@ -4,6 +4,29 @@ Jenkins LTS runs the repeatable QA build and release process. Codex handles feat
 implementation, exploratory checks, and failure diagnosis. A failed upload preserves the tested
 candidate and its recorded source commit so publication can be retried independently.
 
+## Why Jenkins fits this checkout
+
+The source, Android SDK, durable signing configuration and verified emulator image are already on
+this Mac. The checkout has upstream remotes but no configured user-owned hosting repository or
+authenticated GitHub CLI. Jenkins can use these resources directly without first migrating source,
+signing material and emulator infrastructure to another service.
+
+| Option | Fit for the current setup | Main tradeoff |
+| --- | --- | --- |
+| Jenkins LTS with a local worker | Reuses the local toolchain and signing identity; provides queued jobs, logs, timeouts, test results and retained artifacts | We maintain the controller, plugins, worker, authentication and Mac availability |
+| GitHub Actions | Strong future option if development moves to an owned GitHub repository; a self-hosted runner could reuse this Mac | Requires repository/authentication setup first; a local runner still depends on this Mac |
+| Codex driving every build and upload | Useful for implementation, exploratory testing and diagnosis | Conversation execution and transfer-tool behavior are poor foundations for repeatable release orchestration |
+
+Jenkins owns job execution and release history; Gradle owns Android compilation/tests; rclone owns
+Drive transport and retries. Repository scripts still encode application-specific signing, channel,
+version and device-validation rules. Adopting a CI product does not remove maintenance of those rules.
+This choice is based on migration effort and existing resources, not a claim that Jenkins is always
+better than hosted CI. Reassess hosted CI when a supported source-hosting and runner arrangement exists.
+
+References: [Jenkins on macOS](https://www.jenkins.io/doc/book/installing/macos/),
+[controller isolation](https://www.jenkins.io/doc/book/security/controller-isolation/), and
+[rclone Google Drive backend](https://rclone.org/drive/).
+
 ## Platform and scope
 
 The current integration uses the existing Mac, Android SDK, verified Android 17 QPR2 Beta 4 image,
@@ -58,7 +81,7 @@ release history when moving old evidence to backed-up storage.
 ## Publish or retry publication
 
 ```sh
-# Retain versioned files privately without changing the feed or file sharing.
+# Upload versioned files without changing the feed or existing file sharing.
 python3 ci/jenkins/control.py run --job publish --release-id qa-1.0.8-9-build-1
 
 # Release the verified candidate on the existing QA update feed.
@@ -93,7 +116,9 @@ and retain the previous configuration before changing versions.
 private Jenkins state securely, including its secret-encryption material, alongside the existing
 offline signing-key backup. Never publish that backup as a build artifact.
 
-If authentication expires, publication stops without advancing the feed. Refresh the existing SDK
-login through Google's supported sign-in flow, then rerun the same publication job. If build or QA
+If authentication expires, publication stops. Inspect the receipt's last completed state: an error
+after promotion may leave the new feed in place even though final verification did not finish.
+Refresh the existing SDK login through Google's supported sign-in flow, then rerun the same
+publication job; it verifies existing files and accepts an identical feed on retry. If build or QA
 fails, retain its commit and evidence, fix the cause in another commit, and start a new build.
 Do not erase completed engineering work to compensate for a transport failure.

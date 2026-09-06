@@ -4,6 +4,15 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Current QA delivery — 2026-09-06
+
+Version **1.0.8 / code 9** was built and published through Jenkins from commit
+`92ea47b6e2d159d87fce1ec2bbbbad7d258ff4cb`. Build #1 passed 45 pipeline checks,
+132 app tests and 11 isolated Beta 4 device checks. Publish #1 verified the versioned uploads and
+public APK bytes before promoting the existing QA feed. This release supersedes the historical
+publication hold described below. See [the release record](JENKINS_ADOPTION_RELEASE.md) for its
+exact identity, delivery evidence and [pipeline operations](CI_PIPELINE.md).
+
 ## Reference environment
 
 - Reference date: 2026-09-04
@@ -71,8 +80,9 @@ was absent; the built-in fallback was tested.
 readiness. A September 5–6 recovery rebuilt the compact, durable-release-signed `Qa` variant matching
 the shipped 1.0.7 update identity. That upgrade check exposed an intermittent pre-Application Android
 replacement crash and a swipe-completion gap also present on 1.0.7. The user explicitly held the APK
-for further repair. Version `1.0.8` / versionCode `9` remains unpublished; no upload, feed change, or
-commit is claimed. See the repair entry below and the retained `qa-delivery-recovery` evidence.
+for further repair. At that stage, version `1.0.8` / versionCode `9` was unpublished. See the repair
+entry below and retained `qa-delivery-recovery` evidence. The later Jenkins release recorded above
+supersedes that historical hold.
 
 ### 2026-09-06 — Preserve the final position when releasing an active swipe
 
@@ -108,7 +118,8 @@ before Application initialization, including on an identical-APK reinstall. Back
 controls passed. The exact Android cache at fault is unproven; no app class-loader or resource hack
 was introduced. See `REPLACEMENT-CRASH-DIAGNOSIS.md` and the direct-distribution validation guidance.
 Privileged Quickstep recents integration remains source-reviewed, not end-to-end verified by a
-third-party HOME app. The user's publication hold remains in effect.
+third-party HOME app. The publication hold remained in effect during this repair; the later explicit
+release request and verified Jenkins release are recorded above.
 
 ### 2026-08-28 — Date-first Smartspace fallback
 
