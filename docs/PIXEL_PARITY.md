@@ -57,7 +57,12 @@ inside Home. Android confirms the helper installation and the main launcher stay
 The generated asset pipeline and runtime installer check version, bytes and signing identity.
 Jenkins additionally rejects missing, mismatched or UI-bearing helper bundles. See
 [Google Discover integration](GOOGLE_DISCOVER.md) for the platform constraint and setup flow.
-This is a candidate implementation; final launcher QA and delivery status are recorded separately.
+Jenkins build #2 passed 145 app tests, 51 pipeline checks and 11 standard device checks. Ten
+additional scoped integration flows passed against the exact signed candidate, including retained
+Home data, normal helper installation with cancellation/retry, Google-owned overlay attachment to
+Expressive, and persistent off/on behavior with Infinite scrolling enabled. Both the embedded
+panel and the standalone Google app showed the same Discover connection error on the signed-out
+guest; personalized stories remain unverified. See [the candidate delivery record](GOOGLE_DISCOVER_QA_1_0_9.md).
 
 ### 2026-09-04 — Smartspace date opens the current day after rollover
 
@@ -162,7 +167,8 @@ without a launcher crash, fatal exception, or ANR.
 - The earlier Beta 3 development image reported Pixel Launcher versionName `DEV`; the verified Beta 4
   image reports `17` with the same versionCode 907. These labels do not establish a production release;
   behavior, exact guest build, and package metadata are recorded together.
-- Calendar account setup/content and external Discover content were not validated in the Beta 4 run.
-  The checked flows establish Calendar intent handoff and Google-app launch only.
+- Calendar account setup/content and personalized Discover content remain unverified. The original
+  Beta 4 checks established Calendar intent handoff and Google-app launch; the separate 1.0.9
+  checks additionally establish Google's native overlay attached inside Expressive Home.
 - External Smartspacer was not installed in the Beta 4 QA environment; only the built-in fallback and
   its date/setup-card paging were exercised.

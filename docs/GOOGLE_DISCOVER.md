@@ -60,6 +60,27 @@ connection/rendering, not personalized content availability. Evidence is retaine
 `artifacts/embedded-feed-20260906/runtime/`.
 
 Google-app updates, account state and network availability can affect the panel. The local setup
-status confirms installation prerequisites; it does not claim live content has loaded. The exact
-launcher candidate still requires Jenkins build/upgrade checks and device validation of its
-setup, native overlay, cancellation and feature-toggle flows before a delivery claim.
+status confirms installation prerequisites; it does not claim live content has loaded.
+
+## Verified 1.0.9 QA candidate
+
+Jenkins build #2 produced version **1.0.9 / code 10** from
+`e0e8bb2ea30b29d8768bdac6e97e5869e938f9ae`. All 145 app tests, 51 pipeline checks and
+11 standard device checks passed. A separate check of the exact signed APK passed ten scoped
+Discover integration flows on the verified Beta 4 guest: upgrade retention, helper integrity,
+setup permission/cancel/retry, system installation, native Home attachment, return to Home,
+off/on persistence, cold reconnection and clean application logs.
+
+The Google-owned `GoogleDiscoverWindow` was attached to Expressive's `LawnchairLauncher` activity;
+Expressive remained the resumed Home activity. The renamed folder and its four apps, Home role,
+first installation time and enabled Infinite scrolling setting survived the upgrade. Support was
+installed only through Expressive's bundled asset and Android's installer.
+
+Both the embedded panel and the standalone Google app displayed **Couldn't connect to Discover**
+on the same signed-out guest. This supports a shared Google/guest content limitation; the precise
+cause is unproven. Personalized stories, other Google-app versions, physical devices, legacy
+provider migration and helper update/incompatible-signer recovery were not demonstrated by this
+device run. The latter state and integrity rules also have automated coverage.
+
+See [the candidate delivery record](GOOGLE_DISCOVER_QA_1_0_9.md) for exact artifact identity,
+publication status and retained evidence.
