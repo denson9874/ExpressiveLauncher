@@ -15,16 +15,16 @@ exact identity, delivery evidence and [pipeline operations](CI_PIPELINE.md).
 
 ## Reference environment
 
-- Reference date: 2026-09-04
+- Reference date: 2026-09-07
 - Latest public beta: Android 17 QPR2 Beta 4, released 2026-08-28; official release notes updated 2026-09-02
 - Guest build: `CP41.260814.003.B1` (`dev-keys`), Android SDK full version `37.2`, security patch `2026-08-05`
 - Guest fingerprint: `google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260814.003.B1/16166531:user/dev-keys`
 - System image: `system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a`, revision 4
-- AVD: `Pixel_8_Pro_Android_17_QPR2_Beta4`, Pixel 8 Pro, ARM64, 16 KB page size
+- AVD: `Expressive_Parity_Explore_20260907`, freshly created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size
 - Android Emulator: 37.2.5.0, build 16079175
 - Pixel Launcher: `com.google.android.apps.nexuslauncher`, versionCode 907, versionName `17`
 - Rollback retained: the prior `Pixel_8_Pro_Android_17_QPR2_Beta3` and `Pixel_8_Pro` Beta 2 AVDs and images were not removed
-- Local evidence directory: `artifacts/pixel-parity-2026-09-04-VaIqR4` (generated QA evidence, not committed)
+- Current evidence directory: `artifacts/pixel-parity-20260907`; September 4 evidence remains in `artifacts/pixel-parity-2026-09-04-VaIqR4` (generated QA evidence, not committed)
 
 Official reference: [Android 17 QPR2 release notes](https://developer.android.com/about/versions/17/qpr2/release-notes)
 and [Google Play system-image repository](https://dl.google.com/android/repository/sys-img/google_apis_playstore/sys-img2-3.xml).
@@ -45,6 +45,46 @@ The guest build, package metadata, UI hierarchy, and screenshots are captured fr
 the AVD display name alone is not accepted as evidence.
 
 ## Implemented parity improvements
+
+### 2026-09-07 — Identify contact search actions for accessibility (candidate 1.0.10)
+
+**Observed gap.** On the freshly booted and verified Beta 4 Pixel guest, a saved device-local
+contact exposed distinct accessible actions, `Messages Mobile` and `Phone Mobile`. The same
+contact in the retained, signed Expressive 1.0.9 Qa build exposed `Custom` for both clickable
+icons. Contacts were enabled through normal search settings; UI hierarchies and screenshots
+record both implementations.
+
+**Implementation.** Contact rows now assign `Message <contact name>` and `Call <contact name>`
+from translatable Android resources on every bind. Recycled rows receive the current person's
+name. The generic XML descriptions are removed. Existing message/dial intents, default-app
+resolution, permissions, visibility and layouts are unchanged.
+
+**Focused coverage.** Two Robolectric tests bind the real row in an attached window and inspect
+Android accessibility nodes. The contact test checks initial binding and rebinding to a second
+person; the file test keeps contact controls hidden and its preview visible. Before the change,
+the contact assertion failed with expected `Message Alex Parity`, actual `Custom`, while file
+preservation passed. After the change both tests passed without failures, errors or skips.
+Font, preference and theme setup are isolated within this test class; unrelated artwork loading
+is paused while the actual binding and accessibility behavior run.
+
+**Development device result.** A separate developer package on fresh Beta 4 guest
+`Expressive_Parity_Dev_20260907` passed Alex → Jordan → Alex accessible-label checks. The phone
+action opened the correct number in the dialer; the message action opened the correct SMS/MMS
+conversation with an empty message field. The crash buffer was empty, with no launcher crash or
+ANR events. These checks do not claim a completed call, sent message or spoken TalkBack session.
+
+**Build-state recovery.** Duplicated ignored Kotlin, Java, merged-resource and test-output files
+stalled local Gradle hashing. Only the affected generated task directories were preserved in
+run-specific quarantine directories with recovery records. The developer assembly used a temporary
+init script placing generated output under Library/Caches; no permanent build configuration changed.
+Android correctly prevented a differently signed developer package from sharing the existing QA
+feed permission, so a separate disposable development guest preserved the signed QA baseline.
+
+**Candidate boundary.** Version 1.0.10 / code 11 records this focused change. Jenkins owns the full
+suite, minified durable-signed Qa build, packaging, isolated upgrade checks and sealed candidate.
+Publication remains upload-only: no QA or production feed or file-sharing change is authorized by
+this recurring run. Final Jenkins results and publication receipts are recorded in the retained
+run report and versioned CI artifacts; this entry alone is not a release claim.
 
 ### 2026-09-06 — Google Discover setup inside Expressive (candidate 1.0.9)
 

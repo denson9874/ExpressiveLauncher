@@ -106,6 +106,8 @@ class SearchResultRightLeftIcon(context: Context, attrs: AttributeSet?) :
                 title.text = it.title
                 tag = it
             }
+            message.contentDescription = context.getString(R.string.search_contact_message, title.text)
+            call.contentDescription = context.getString(R.string.search_contact_call, title.text)
             val number = target.searchAction?.subtitle.toString()
             message.setOnClickListener {
                 defSmsAppInfo?.let { appInfo ->

@@ -101,8 +101,7 @@
             android:clickable="true"
             launcher:iconDisplay="search_result_small"
             launcher:layoutHorizontal="true"
-            launcher:matchTextInsetWithQuery="true"
-            android:contentDescription="@string/custom"/>
+            launcher:matchTextInsetWithQuery="true" />
 
         <ImageView
             android:id="@+id/icon2"
@@ -116,8 +115,7 @@
             android:clickable="true"
             launcher:iconDisplay="search_result_small"
             launcher:layoutHorizontal="true"
-            launcher:matchTextInsetWithQuery="true"
-            android:contentDescription="@string/custom" />
+            launcher:matchTextInsetWithQuery="true" />
 
     </LinearLayout>
 </app.lawnchair.allapps.views.SearchResultRightLeftIcon>

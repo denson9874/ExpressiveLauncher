@@ -1101,6 +1101,8 @@
 
     <string name="search_pref_result_files_description">Media, files, and more</string>
     <string name="search_pref_result_contacts_description">Contacts and more</string>
+    <string name="search_contact_message">Message <xliff:g id="contact_name" example="Alex">%1$s</xliff:g></string>
+    <string name="search_contact_call">Call <xliff:g id="contact_name" example="Alex">%1$s</xliff:g></string>
     <string name="search_pref_result_web_provider_description">Via <xliff:g id="web_search_provider">%1$s</xliff:g>
     </string>
 
