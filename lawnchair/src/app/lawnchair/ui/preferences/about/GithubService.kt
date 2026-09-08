@@ -4,6 +4,7 @@ import app.lawnchair.util.kotlinxJson
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -162,6 +163,9 @@ data class GitHubCompareResponse(
 internal val gitHubApiRetrofit: Retrofit by lazy {
     Retrofit.Builder()
         .baseUrl(BASE_URL)
+        // GitHub assets redirect to HTTPS CDNs. Keep those redirects without permitting a
+        // secure manifest or APK request to be downgraded to an unencrypted connection.
+        .client(OkHttpClient.Builder().followSslRedirects(false).build())
         .addConverterFactory(kotlinxJson.asConverterFactory("application/json".toMediaType()))
         .build()
 }

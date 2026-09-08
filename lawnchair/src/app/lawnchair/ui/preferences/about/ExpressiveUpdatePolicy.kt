@@ -4,6 +4,7 @@ import app.lawnchair.util.kotlinxJson
 import com.android.launcher3.BuildConfig
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 internal const val EXPRESSIVE_UPDATE_SCHEMA_VERSION = 1
 
@@ -113,4 +114,6 @@ internal fun evaluateExpressiveUpdate(
     }
 }
 
-private fun String.isSecureHttpsUrl(): Boolean = startsWith("https://") && length > "https://".length
+private fun String.isSecureHttpsUrl(): Boolean = toHttpUrlOrNull()?.let { url ->
+    url.isHttps && url.username.isEmpty() && url.password.isEmpty()
+} == true

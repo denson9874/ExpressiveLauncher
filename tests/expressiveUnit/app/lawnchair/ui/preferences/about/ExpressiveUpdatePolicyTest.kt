@@ -71,6 +71,16 @@ class ExpressiveUpdatePolicyTest {
     }
 
     @Test
+    fun malformedOrCredentialBearingUrls_areRejectedBeforeCheckingOrDownloading() {
+        val config = ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL)
+        listOf("https://", "https://[broken", "https://user:password@github.com/owner/repo").forEach { url ->
+            assertThat(expressiveUpdateConfig("qa", url, RELEASE_URL)).isNull()
+            assertThat(evaluateExpressiveUpdate(manifest(7).copy(apkUrl = url), config, 6, QA_PACKAGE))
+                .isEqualTo(ExpressiveUpdateDecision.Rejected(ExpressiveUpdateRejection.INVALID_APK_URL))
+        }
+    }
+
+    @Test
     fun certificateLineage_mustContainInstalledSigner() {
         assertThat(signingLineageAccepts(setOf("current"), setOf("current", "rotated"))).isTrue()
         assertThat(signingLineageAccepts(setOf("current"), setOf("other"))).isFalse()
@@ -83,15 +93,15 @@ class ExpressiveUpdatePolicyTest {
         versionCode = versionCode,
         versionName = "1.0.$versionCode",
         packageName = QA_PACKAGE,
-        apkUrl = "https://drive.usercontent.google.com/download?id=apk",
+        apkUrl = "https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-1.0.11-12/ExpressiveLauncher-qa.apk",
         sha256 = "a".repeat(64),
         sizeBytes = 1234,
         releaseNotes = "Updater improvements",
     )
 
     private companion object {
-        const val QA_URL = "https://drive.usercontent.google.com/download?id=qa-manifest"
-        const val RELEASE_URL = "https://drive.usercontent.google.com/download?id=release-manifest"
+        const val QA_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json"
+        const val RELEASE_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json"
         const val QA_PACKAGE = "dev.launcher.expressive.l3.debug"
         const val RELEASE_PACKAGE = "dev.launcher.expressive.l3"
     }

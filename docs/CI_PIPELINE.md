@@ -1,124 +1,143 @@
 # Expressive Launcher Jenkins pipeline
 
-Jenkins LTS runs the repeatable QA build and release process. Codex handles feature research,
-implementation, exploratory checks, and failure diagnosis. A failed upload preserves the tested
-candidate and its recorded source commit so publication can be retried independently.
+Jenkins runs full tests, signed/minified QA builds, isolated upgrade checks, sealing, retention,
+and GitHub publication. Codex handles research, implementation, focused development checks,
+exploratory device validation and diagnosis. Failed publication preserves the exact tested candidate.
 
-## Why Jenkins fits this checkout
+## Infrastructure
 
-The source, Android SDK, durable signing configuration and verified emulator image are already on
-this Mac. The checkout has upstream remotes but no configured user-owned hosting repository or
-authenticated GitHub CLI. Jenkins can use these resources directly without first migrating source,
-signing material and emulator infrastructure to another service.
-
-| Option | Fit for the current setup | Main tradeoff |
-| --- | --- | --- |
-| Jenkins LTS with a local worker | Reuses the local toolchain and signing identity; provides queued jobs, logs, timeouts, test results and retained artifacts | We maintain the controller, plugins, worker, authentication and Mac availability |
-| GitHub Actions | Strong future option if development moves to an owned GitHub repository; a self-hosted runner could reuse this Mac | Requires repository/authentication setup first; a local runner still depends on this Mac |
-| Codex driving every build and upload | Useful for implementation, exploratory testing and diagnosis | Conversation execution and transfer-tool behavior are poor foundations for repeatable release orchestration |
-
-Jenkins owns job execution and release history; Gradle owns Android compilation/tests; rclone owns
-Drive transport and retries. Repository scripts still encode application-specific signing, channel,
-version and device-validation rules. Adopting a CI product does not remove maintenance of those rules.
-This choice is based on migration effort and existing resources, not a claim that Jenkins is always
-better than hosted CI. Reassess hosted CI when a supported source-hosting and runner arrangement exists.
-
-References: [Jenkins on macOS](https://www.jenkins.io/doc/book/installing/macos/),
-[controller isolation](https://www.jenkins.io/doc/book/security/controller-isolation/), and
-[rclone Google Drive backend](https://rclone.org/drive/).
-
-## Platform and scope
-
-The current integration uses the existing Mac, Android SDK, verified Android 17 QPR2 Beta 4 image,
-and durable signing identity. Jenkins is bound to `127.0.0.1:8091`, requires authentication, and has
-zero controller executors. One dedicated local agent executes both serialized jobs. It is a local
-service: the Mac must be awake and logged in, but a Codex conversation need not be running.
-The controller and agent run as the current macOS user; they are separate processes and directories,
-not separate operating-system security identities. Only trusted local source is accepted.
-
-- Build job: `http://127.0.0.1:8091/job/expressive-qa-build/`
-- Publish job: `http://127.0.0.1:8091/job/expressive-qa-publish/`
-- State, private configuration, logs and retained releases:
-  `/Users/daryldenson/Library/Application Support/Expressive CI/`
+- Source checkout: `/Users/daryldenson/Documents/ChatGPT/New project`, `codex/pixel-parity`.
+- Export repository: https://github.com/denson9874/ExpressiveLauncher . This repository contains
+  build exports and manifests; the application source checkout and upstream remotes remain separate.
+- Build job: http://127.0.0.1:8091/job/expressive-qa-build/
+- Publish job: http://127.0.0.1:8091/job/expressive-qa-publish/
+- Jenkins state, private configuration, logs and retained releases:
+  `/Users/daryldenson/Library/Application Support/Expressive CI/`.
 - Services: `dev.expressive.jenkins` and `dev.expressive.jenkins-agent` in `~/Library/LaunchAgents`.
-- Jenkins UI credentials: the private `config/bootstrap.properties` file in that state directory.
-  The API credential is separately stored in `config/jenkins-api-auth`. Neither belongs in Git.
 
-The pipeline publishes only the QA application `dev.launcher.expressive.l3.debug` to the existing
-Drive Debug Builds folder. The production package, release folder and release feed are excluded.
-Google Cloud SDK provides the worker's authenticated Drive token; rclone handles transfers and
-retry. No connector staging service, agent conversation, or persistent rclone token configuration
-is involved in publication. The existing Google account must authorize the SDK's Drive access.
+Jenkins is bound to loopback, requires authentication, and has zero controller executors. Its one
+local worker uses the existing SDK, durable signing identity, JDK 21 and verified Android 17 QPR2
+Beta 4 image. The Mac must remain awake and logged in. The controller and worker use the same macOS
+user, but separate processes and directories; only trusted recorded source is accepted.
 
-## Run the next candidate
+The GitHub CLI is installed at `/opt/homebrew/bin/gh`. The worker uses the authenticated macOS user's
+GitHub CLI keyring login to publish to `denson9874/ExpressiveLauncher`. Tokens are never embedded in
+APKs, source, arguments or publication receipts. Public clients need no GitHub account or token.
+GitHub authentication is separate from the Codex GitHub connector. If it expires, complete
+`gh auth login --hostname github.com --git-protocol https --web --skip-ssh-key` and retry the same release.
 
-Finish a focused source change, update its version and parity ledger, run its development checks,
-and commit the candidate on `codex/pixel-parity`. A candidate commit records work; it does not
-mark the version released. Preserve unrelated work and never stage keys, SDK files or artifacts.
+Jenkins UI credentials remain in private `config/bootstrap.properties`; API credentials are in
+`config/jenkins-api-auth`. Preserve these and signing-key backups securely; never include them in exports.
+
+## Build a recorded candidate
+
+Finish the focused change and its local development checks, increment the patch version and version
+code once, update the parity ledger, and commit only source/tests/version/docs on `codex/pixel-parity`.
+A candidate commit is a source record, not a release claim. Do not commit APKs, logs, keys or AVDs.
 
 ```sh
 python3 ci/jenkins/control.py run --job build --revision FULL_COMMIT_SHA \
-  --version-name 1.0.8 --version-code 9
-python3 ci/jenkins/control.py status --job build
+  --version-name VERSION --version-code CODE
+python3 ci/jenkins/control.py status --job build --number BUILD_NUMBER
 ```
 
-The build checks that the revision belongs to `codex/pixel-parity`, creates detached worktrees for
-the exact main and submodule commits, and downloads the current QA baseline from its existing
-public feed. It runs pipeline contract tests, the full Expressive unit suite, and the minified
-durable-signed `Qa` build with JDK 21 and Build Tools 37. It explicitly disables build-scan uploads.
+Jenkins verifies that the revision belongs to the saved branch and prepares detached main/submodule
+worktrees at the exact recorded commits. Normal builds download the live GitHub QA manifest from
+`https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json` and its
+versioned GitHub APK. Other repositories, stable-channel assets, credential-bearing URLs and HTTP
+redirect downgrades are rejected. Bytes and SHA-256 must agree with the manifest.
 
-Packaging checks require the expected version, exact QA package, non-debuggable output, verified
-signature, and the pinned durable certificate matching the previous delivered APK. An isolated
-new `Expressive_CI_*` emulator then tests an in-place upgrade, retained settings and HOME, startup,
-drawer/search/date flows, and app crash/ANR logs. Existing AVDs remain untouched. Owned CI AVDs and
-evidence remain available; the emulator process stops after the checks.
-
-A successful build retains a candidate under `releases/qa-VERSION-CODE-build-NUMBER`, including
-the APK, metadata, report, unit results, mapping files and device evidence. Jenkins archives the
-results too. There is no automatic history deletion policy. Monitor disk usage and preserve
-release history when moving old evidence to backed-up storage.
-
-## Publish or retry publication
+For the initial GitHub channel bootstrap only, an operator can explicitly select a retained, sealed
+QA baseline. This does not silently fall back from a missing or broken feed:
 
 ```sh
-# Upload versioned files without changing the feed or existing file sharing.
-python3 ci/jenkins/control.py run --job publish --release-id qa-1.0.8-9-build-1
-
-# Release the verified candidate on the existing QA update feed.
-python3 ci/jenkins/control.py run --job publish --release-id qa-1.0.8-9-build-1 --promote
-python3 ci/jenkins/control.py status --job publish
+python3 ci/jenkins/control.py run --job build --revision FULL_COMMIT_SHA \
+  --version-name 1.0.11 --version-code 12 --baseline-release-id qa-1.0.10-11-build-3
 ```
 
-Use the actual successful build number. Publication reuses the publisher from that candidate's
-exact commit. It validates the retained QA result and bytes, uploads immutable versioned files,
-and downloads them back for digest verification. Promotion makes only the APK link-readable,
-verifies a full unauthenticated download, then updates the existing QA feed object in place and
-reads it back. Equal-version retries require identical payloads; older/conflicting versions fail.
-Prior artifacts and the private folder listing remain intact.
+The baseline's complete seal, source provenance, signed QA identity, metadata/report/device-result
+hashes and APK bytes must pass before copying it. The selected baseline is recorded in source.json.
+After GitHub has a published QA manifest, omit this bootstrap option.
 
-The publication receipt is the release status record. A build pass or an upload attempt alone
-does not establish release. Keep publication serialized and avoid editing the QA feed manually
-during a job. Drive/rclone does not provide a transactional compare-and-swap across external writers.
+The worker runs pipeline contract tests, the full Expressive unit suite and the durable-signed
+minified Qa assembly. Package validation requires the exact expected version, QA package,
+non-debuggable output, verified signature and continuity with the previous certificate.
+A new isolated `Expressive_CI_*` emulator validates same-signer upgrade, retained preferences/HOME,
+warm/cold launch, drawer/search/date flows and clean launcher crash/ANR logs. Existing AVDs remain intact.
+The source-controlled expected guest remains `CP41.260814.003.B1`; update it deliberately after verifying
+any newer public QPR reference.
 
-After publication, validate the prior installed build's actual About → download → system-installer
-upgrade. The automated quiesced ADB smoke is not a substitute for that delivery check. Preserve the
-existing Android foreground-replacement limitation described in DIRECT_DISTRIBUTION.md.
+A successful build seals `releases/qa-VERSION-CODE-build-NUMBER` with APK, metadata, report, unit
+results, mapping and device evidence. Jenkins also archives them. Prior releases are never overwritten.
 
-## Maintenance and recovery
+## GitHub staging and publication
 
-Homebrew installs Jenkins LTS and rclone from their established distributions. The official Jenkins
-plugin manager installs `ci/jenkins/plugins.lock.txt`; `plugins.txt` records the requested features.
-The initial installation used Jenkins 2.568.3 and rclone 1.75.1. Update deliberately, validate a build,
-and retain the previous configuration before changing versions.
+The recurring Pixel-parity automation is authorized to promote every successful, sealed QA build
+automatically. Stable releases remain separate. The CLI still supports draft-only staging for manual
+review when explicitly requested.
 
-`ci/jenkins/install_local.py controller` and `agent` provision the local launchd services idempotently.
-`ci/jenkins/control.py configure` loads the reviewed Jenkinsfiles into the two jobs. Back up the
-private Jenkins state securely, including its secret-encryption material, alongside the existing
-offline signing-key backup. Never publish that backup as a build artifact.
+```sh
+# Retain and verify a GitHub draft without changing the public update manifest.
+python3 ci/jenkins/control.py run --job publish --release-id qa-VERSION-CODE-build-NUMBER
 
-If authentication expires, publication stops. Inspect the receipt's last completed state: an error
-after promotion may leave the new feed in place even though final verification did not finish.
-Refresh the existing SDK login through Google's supported sign-in flow, then rerun the same
-publication job; it verifies existing files and accepts an identical feed on retry. If build or QA
-fails, retain its commit and evidence, fix the cause in another commit, and start a new build.
-Do not erase completed engineering work to compensate for a transport failure.
+# Publish the QA prerelease, verify its public download, then advance only the QA manifest.
+python3 ci/jenkins/control.py run --job publish --release-id qa-VERSION-CODE-build-NUMBER --promote
+python3 ci/jenkins/control.py status --job publish --number PUBLICATION_NUMBER
+```
+
+Use the actual sealed candidate ID from a successful build. The adapter extracts the publisher from
+that candidate's exact source commit and records its source revision/hash in the receipt. It requires
+the GitHub provider; pre-migration candidates containing the old Drive publisher fail before upload.
+Create a new tested migration candidate instead of silently changing the publisher for old bytes.
+
+The publisher uses versioned `qa-vVERSION-CODE` release tags and marks QA releases as prereleases.
+It stages the exact sealed APK/report/metadata/device result, downloads each asset with authentication,
+and verifies bytes. Existing completed assets are accepted only when byte-identical; conflicting tags/assets
+fail without replacement or deletion. An empty failed-upload starter placeholder can be removed only
+from the matching candidate draft after rechecking its exact asset ID, name, zero size and source identity. Draft staging does not make an update available to users.
+
+With promotion, Jenkins publishes the prerelease, verifies a complete anonymous APK download, and
+updates `updates:qa/latest.json` using the existing Contents API blob SHA. This protects against
+concurrent feed writes. The stable manifest `updates:release/latest.json` and stable package are excluded.
+A published release whose manifest update failed can be retried against the same sealed bytes.
+
+The receipt is the authoritative status record. A build pass, created draft or successful asset upload
+alone does not establish an available update. If a job fails after public release publication, preserve
+its receipt and retry; the release may be visible even though the channel manifest has not advanced.
+
+## Migration from Drive
+
+Future build exports use GitHub. Historical Drive files are retained. Version 1.0.10 and earlier have
+fixed Drive manifest URLs, so the first GitHub migration release also needs a one-time legacy QA
+manifest bridge: preserve the existing Drive manifest object's ID and update only its schema-v1
+metadata to the already verified GitHub APK. No APK or new report is uploaded to Drive.
+After users install the migration APK, its manual and scheduled checks use GitHub exclusively.
+The initial publication uses the explicit `--bridge-legacy-qa` option together with `--promote`.
+Jenkins runs the migration script from the same sealed candidate commit, backs up the prior manifest,
+and requires the verified GitHub receipt before changing that existing QA file. Future automated
+publications omit the bridge option. No legacy file permissions or stable-channel files are changed.
+
+```sh
+python3 ci/jenkins/control.py run --job publish --release-id qa-VERSION-CODE-build-NUMBER \
+  --promote --bridge-legacy-qa
+```
+
+Production migration is separate; never point the stable manifest at a QA package.
+
+Validate the older installed build's actual notification, snooze, download, integrity checks and Android
+installer handoff after publication. Also verify the installed migration build reads GitHub and reports
+up to date. Quiesced ADB smoke does not substitute for the live delivery flow; retain the Android
+foreground replacement limitation documented in DIRECT_DISTRIBUTION.md.
+
+## Maintenance
+
+`ci/jenkins/control.py configure` loads reviewed Jenkinsfiles into the existing jobs. Preserve fields and
+history when reconfiguring; do not create another scheduler or rotate the durable signer.
+Homebrew supplies Jenkins LTS and GitHub CLI. Keep controller/agent services and their secure backups;
+Drive/rclone authentication is no longer needed for normal build publication.
+
+References: [GitHub releases](https://docs.github.com/en/rest/releases/releases),
+[release assets](https://docs.github.com/en/rest/releases/assets),
+[Contents API](https://docs.github.com/en/rest/repos/contents),
+[GitHub CLI authentication](https://cli.github.com/manual/gh_auth_login),
+[Jenkins controller isolation](https://www.jenkins.io/doc/book/security/controller-isolation/).

@@ -44,6 +44,36 @@ The guest build and Pixel Launcher package version above were verified from the 
 The guest build, package metadata, UI hierarchy, and screenshots are captured from the running AVD;
 the AVD display name alone is not accepted as evidence.
 
+## GitHub distribution migration — 2026-09-07 (candidate 1.0.11)
+
+The user requested GitHub build exports and updater notifications, and explicitly selected automatic
+publication of future passing QA builds. The export repository is
+https://github.com/denson9874/ExpressiveLauncher . Stable release publication remains separate.
+
+The app keeps its existing manual and immediate/six-hour scheduled checks, notification deduplication,
+snooze and verified installer flow. QA and release defaults now point to separate public GitHub
+manifests on the updates branch, and About links point to the owned repository/releases/issues.
+Real HTTPS parsing rejects malformed/credential-bearing URLs; normal HTTPS CDN redirects remain
+supported while HTTP/HTTPS scheme-changing redirects are blocked. Six fetch/client regressions plus
+existing policy/notification/ownership coverage passed, 23 focused tests total.
+
+Jenkins now stages immutable versioned GitHub QA prereleases, verifies authenticated asset bytes,
+and on promotion verifies all public assets before advancing only qa/latest.json using Contents API
+blob-SHA conflict detection. The publisher preserves seal/signature/package/version checks, exact-asset
+retries and failure receipts; 51 focused tests passed, including recovery of an empty failed-upload placeholder in the matching draft. A pre-migration Drive publisher is rejected by
+the new provider contract before upload. Normal builds obtain their baseline from the GitHub QA feed.
+The initial migration build explicitly selects the retained sealed1.0.10 baseline; eight focused
+bootstrap/download tests passed, including a device-QA digest association added after independent review.
+
+Version 1.0.11 / code12 is the migration candidate. Jenkins still owns the full app suite, signed
+minified Qa assembly, isolated upgrade and final seal; final build/publication receipts and live
+notification/download/installer evidence belong in artifacts/github-exports-20260907. This entry
+records the implementation and focused checks, not an unverified release claim. Historical Drive
+artifacts remain retained; the existing legacy QA manifest needs a one-time pointer to the verified
+GitHub migration APK so installed1.0.10 and earlier builds can discover it. The one-time Jenkins
+bridge requires the successful GitHub receipt, backs up and updates only the fixed legacy QA JSON
+file, and verifies public readback; 14 focused migration tests passed.
+
 ## Implemented parity improvements
 
 ### 2026-09-07 — Identify contact search actions for accessibility (candidate 1.0.10)

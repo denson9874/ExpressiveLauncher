@@ -39,16 +39,17 @@ def configure(client, kind):
     props = ET.SubElement(job, 'properties')
     param_property = ET.SubElement(props, 'hudson.model.ParametersDefinitionProperty')
     definitions = ET.SubElement(param_property, 'parameterDefinitions')
-    parameters = [('SOURCE_REVISION', ''), ('VERSION_NAME', '1.0.8'), ('VERSION_CODE', '9')] if kind == 'build' else [('RELEASE_ID', '')]
+    parameters = [('SOURCE_REVISION', ''), ('VERSION_NAME', '1.0.8'), ('VERSION_CODE', '9'), ('BASELINE_RELEASE_ID', '')] if kind == 'build' else [('RELEASE_ID', '')]
     for name, default in parameters:
         parameter = ET.SubElement(definitions, 'hudson.model.StringParameterDefinition')
         ET.SubElement(parameter, 'name').text = name
         ET.SubElement(parameter, 'defaultValue').text = default
         ET.SubElement(parameter, 'trim').text = 'true'
     if kind == 'publish':
-        parameter = ET.SubElement(definitions, 'hudson.model.BooleanParameterDefinition')
-        ET.SubElement(parameter, 'name').text = 'PROMOTE_QA_FEED'
-        ET.SubElement(parameter, 'defaultValue').text = 'false'
+        for name in ('PROMOTE_QA_FEED', 'BRIDGE_LEGACY_QA_FEED'):
+            parameter = ET.SubElement(definitions, 'hudson.model.BooleanParameterDefinition')
+            ET.SubElement(parameter, 'name').text = name
+            ET.SubElement(parameter, 'defaultValue').text = 'false'
     definition = ET.SubElement(job, 'definition', {'class': 'org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition', 'plugin': 'workflow-cps'})
     ET.SubElement(definition, 'script').text = (ROOT / 'ci' / ('Jenkinsfile.' + kind)).read_text()
     ET.SubElement(definition, 'sandbox').text = 'true'
@@ -70,7 +71,9 @@ def main():
     parser.add_argument('--version-name', default='1.0.8')
     parser.add_argument('--version-code', default='9')
     parser.add_argument('--release-id')
+    parser.add_argument('--baseline-release-id', default='')
     parser.add_argument('--promote', action='store_true')
+    parser.add_argument('--bridge-legacy-qa', action='store_true')
     parser.add_argument('--number', default='lastBuild')
     args = parser.parse_args()
     client = Client()
@@ -80,10 +83,13 @@ def main():
         import re
         if args.job == 'build':
             if not re.fullmatch('[0-9a-f]{40}', args.revision or ''): parser.error('Full --revision is required')
-            data = {'SOURCE_REVISION': args.revision, 'VERSION_NAME': args.version_name, 'VERSION_CODE': args.version_code}
+            if args.baseline_release_id and not re.fullmatch(r'qa-\d+\.\d+\.\d+-\d+-build-\d+', args.baseline_release_id): parser.error('Invalid --baseline-release-id')
+            data = {'SOURCE_REVISION': args.revision, 'VERSION_NAME': args.version_name, 'VERSION_CODE': args.version_code, 'BASELINE_RELEASE_ID': args.baseline_release_id}
         else:
             if not re.fullmatch(r'qa-\d+\.\d+\.\d+-\d+-build-\d+', args.release_id or ''): parser.error('Valid --release-id is required')
-            data = {'RELEASE_ID': args.release_id, 'PROMOTE_QA_FEED': str(args.promote).lower()}
+            if args.bridge_legacy_qa and not args.promote: parser.error('--bridge-legacy-qa requires --promote')
+            data = {'RELEASE_ID': args.release_id, 'PROMOTE_QA_FEED': str(args.promote).lower(),
+                    'BRIDGE_LEGACY_QA_FEED': str(args.bridge_legacy_qa).lower()}
         # Initial parameter definitions are included explicitly by pipeline configure/start below.
         with client.request('job/' + JOBS[args.job] + '/buildWithParameters', urllib.parse.urlencode(data).encode()) as response:
             print(json.dumps({'status': response.status, 'queueUrl': response.headers.get('Location')}))

@@ -13,13 +13,14 @@ import tempfile
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=['stage', 'smoke', 'publish'])
+    parser.add_argument('operation', choices=['stage', 'smoke', 'publish', 'bridge-legacy-qa'])
     parser.add_argument('--workspace', type=Path)
     parser.add_argument('--version-name')
     parser.add_argument('--version-code')
     parser.add_argument('--source-revision')
     parser.add_argument('--release-id')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--publication-receipt', type=Path)
     args = parser.parse_args()
     here = Path(__file__).resolve().parent
     if args.operation == 'stage':
@@ -49,17 +50,38 @@ def main():
         metadata = json.loads((release / 'metadata.json').read_text())
         revision = metadata['sourceRevision']
         if not re.fullmatch('[0-9a-f]{40}', revision): raise SystemExit('Invalid recorded source revision')
-        # Reuse the publisher checked into the candidate's exact source commit.
+        # Reuse publication/migration code from the candidate's exact source commit.
         repository = Path(os.environ['SOURCE_REPOSITORY'])
-        script = subprocess.check_output(['git', '-C', str(repository), 'show', revision + ':ci/publish_qa.py'])
+        entry_name = 'publish_qa.py' if args.operation == 'publish' else 'migrate_legacy_qa_feed.py'
+        if args.operation == 'bridge-legacy-qa':
+            if args.publication_receipt is None:
+                raise SystemExit('Legacy migration requires the successful GitHub publication receipt')
+            published = json.loads(args.publication_receipt.read_text())
+            if (published.get('provider') != 'github' or published.get('status') != 'released' or
+                    published.get('sourceRevision') != revision or published.get('sha256') != metadata['sha256']):
+                raise SystemExit('Legacy migration requires this exact sealed candidate to be published on GitHub')
+        script = subprocess.check_output(['git', '-C', str(repository), 'show', revision + ':ci/' + entry_name])
         with tempfile.TemporaryDirectory(prefix='expressive-publish-') as temp:
-            entry = Path(temp) / 'publish_qa.py'; entry.write_bytes(script)
-            command = ['python3', str(entry), '--artifact-dir', str(release), '--output', str(args.output)]
-            if os.environ.get('PROMOTE_QA_FEED', '').lower() == 'true': command.append('--promote')
+            entry = Path(temp) / entry_name; entry.write_bytes(script)
+            command = ['python3', str(entry), '--output', str(args.output)]
+            if args.operation == 'publish':
+                # Old Drive publishers reject this flag before performing any upload.
+                command += ['--artifact-dir', str(release), '--expected-provider', 'github']
+                if os.environ.get('PROMOTE_QA_FEED', '').lower() == 'true': command.append('--promote')
+            else:
+                command += ['--publication-receipt', str(args.publication_receipt)]
             subprocess.run(command, check=True)
         receipt = json.loads(args.output.read_text())
-        receipt['publisherSourceRevision'] = revision
-        receipt['publisherSha256'] = hashlib.sha256(script).hexdigest()
+        if args.operation == 'publish':
+            if receipt.get('provider') != 'github':
+                raise SystemExit('Publication receipt is not from the required GitHub provider')
+            receipt['publisherSourceRevision'] = revision
+            receipt['publisherSha256'] = hashlib.sha256(script).hexdigest()
+        else:
+            if receipt.get('provider') != 'legacy-drive-qa-bridge' or receipt.get('status') not in ('migrated', 'unchanged'):
+                raise SystemExit('Legacy migration did not return a verified completion receipt')
+            receipt['migrationSourceRevision'] = revision
+            receipt['migrationSha256'] = hashlib.sha256(script).hexdigest()
         args.output.write_text(json.dumps(receipt, indent=2) + '\n')
 
 

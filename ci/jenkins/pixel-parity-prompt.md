@@ -18,7 +18,7 @@ make no change or version increment; report the evidence and deferral.
 
 Codex owns research, implementation, exploratory QA and diagnosis. Jenkins owns the full unit suite,
 release-signed minified Qa assembly, packaging/signature checks, isolated emulator smoke/upgrade,
-retained artifacts and Drive publication. Do not replace those Jenkins jobs with conversational
+retained artifacts and GitHub publication. Do not replace those Jenkins jobs with conversational
 build or upload steps. The source-controlled jobs are ci/Jenkinsfile.build and ci/Jenkinsfile.publish.
 Do not install a second scheduler, recreate signing keys, expose credentials, or bypass failing gates.
 
@@ -35,12 +35,17 @@ If the newest validated QPR changes, adapt the reviewed CI emulator configuratio
 before using a new expected build; do not silently let the pipeline test an older reference.
 
 Only after Jenkins reports SUCCESS and a sealed QA candidate exists, submit its actual release ID:
-`python3 ci/jenkins/control.py run --job publish --release-id qa-VERSION-CODE-build-NUMBER`.
-This recurring automation retains its upload-only scope: omit --promote. Do not change file sharing,
-the QA feed, the production feed or release channel without a specific release instruction.
-The next-build release instruction in the migration task is not blanket permission to promote
-every future candidate. Publication must complete in Jenkins with a verified receipt and retained
-versioned APK/report/metadata. Never replace old builds or publish a developer Debug APK.
+`python3 ci/jenkins/control.py run --job publish --release-id qa-VERSION-CODE-build-NUMBER --promote`.
+The user authorized automatic publication of future passing QA builds to
+https://github.com/denson9874/ExpressiveLauncher so the app can notify users of available updates.
+Publish only after all Jenkins build, signing, upgrade and seal gates pass. The versioned GitHub
+QA prerelease and its assets must pass authenticated and anonymous byte/hash verification before
+advancing updates:qa/latest.json. Keep stable releases, production manifests and the release package
+separate and unchanged. Never replace or delete old releases/assets, upload another APK to Drive,
+or publish a developer Debug APK. The GitHub CLI uses the worker's existing keyring login; do not
+embed credentials in source, APKs or receipts. Publication must reach terminal SUCCESS with a
+provider=github, status=released, feedVerified=true receipt for the exact source/version/bytes.
+A draft or uploaded asset is not an update available to users.
 
 If build, QA or publication fails, retain the candidate commit and all evidence. Diagnose the precise
 failed stage. Retry publication against the same sealed bytes; do not increment the version again
@@ -49,5 +54,5 @@ commit and rerun Jenkins. Report unresolved blockers plainly. Never claim that a
 published update or that quiesced ADB QA is a live updater/system-installer test.
 
 Return the feature, source commit, version, exact reference guest, Jenkins build/publication links,
-verification result and observed Drive links. Clearly distinguish a private staged QA artifact from
-a promoted update. For a no-op or failure, state what was completed and what remains unresolved.
+verification result and observed GitHub release/asset/manifest links. Clearly distinguish any
+unpublished draft or partial publication from an update available to users. For a no-op or failure, state what was completed and what remains unresolved.

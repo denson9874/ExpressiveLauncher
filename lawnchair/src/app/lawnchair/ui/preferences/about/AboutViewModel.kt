@@ -19,8 +19,9 @@ import retrofit2.create
 /** Product-owned destinations shown by the About screen. */
 internal object AboutDestinations {
     const val GITHUB_PROFILE_URL = "https://github.com/denson9874"
+    const val GITHUB_REPOSITORY_URL = "https://github.com/denson9874/ExpressiveLauncher"
     const val PAYPAL_PAYMENT_URL = "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2"
-    const val RELEASE_BUILDS_URL = "https://drive.google.com/drive/folders/1zvASK5iOOx3ckQCT22xeHAE75dfqP53i"
+    const val RELEASE_BUILDS_URL = "$GITHUB_REPOSITORY_URL/releases"
 }
 
 internal fun expressiveProductOwners(): List<TeamMember> = listOf(
@@ -41,12 +42,12 @@ internal fun expressiveProductLinks(): List<Link> = listOf(
     Link(
         iconResId = R.drawable.ic_help,
         labelResId = R.string.support,
-        url = AboutDestinations.GITHUB_PROFILE_URL,
+        url = "${AboutDestinations.GITHUB_REPOSITORY_URL}/issues",
     ),
     Link(
         iconResId = R.drawable.ic_github,
         labelResId = R.string.github,
-        url = AboutDestinations.GITHUB_PROFILE_URL,
+        url = AboutDestinations.GITHUB_REPOSITORY_URL,
     ),
     Link(
         iconResId = R.drawable.ic_donate,

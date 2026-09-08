@@ -2,15 +2,15 @@
 
 Expressive Launcher uses two independent update channels:
 
-- `qa`: `dev.launcher.expressive.l3.debug`, served from the Drive **Debug Builds** folder.
-- `release`: `dev.launcher.expressive.l3`, served from the Drive **Release Builds** folder.
+- `qa`: `dev.launcher.expressive.l3.debug`, served by GitHub QA prereleases and `updates:qa/latest.json`.
+- `release`: `dev.launcher.expressive.l3`, served by separate GitHub stable releases and `updates:release/latest.json`.
 
 Both APKs are signed by the same durable Expressive release key. The separate application IDs let
 QA and release coexist on one device, while Android's same-signer rule protects each channel from
 an untrusted replacement.
 
-The **Debug Builds** folder is the QA distribution channel, not a request to publish the Gradle
-`Debug` variant. Use `Qa`: it inherits release minification/resource shrinking and the durable signer.
+The QA distribution channel uses the Gradle `Qa` variant: it inherits release minification/resource
+shrinking and the durable signer.
 A developer `Debug` APK uses a different certificate and cannot update an installed release-signed
 QA build in place, even though its application ID is also suffixed `.debug`.
 
@@ -41,14 +41,12 @@ remains the distribution policy enforced by those jobs.
    `assembleLawnWithQuickstepExpressiveRelease`. These tasks fail when release signing is absent.
 3. Verify the APK signer, package name, version code, byte size, and SHA-256 digest.
    Compare the certificate against the prior delivered artifact, not just a successful signature check.
-   On 2026-09-05, the connected Drive action rejected file-reference ingestion above 104857600 bytes
-   (100 MiB) with HTTP 413. The 120439998-byte developer Debug candidate exceeded that limit; use the
-   supported compact Qa build rather than repeatedly retrying it. This is the observed connector
-   ingestion limit, not a Google Drive storage limit.
-4. Upload the APK as a new retained file to its channel folder and enable read-only link access on
-   that APK. Do not replace older APKs.
-5. Update the channel's retained `latest.json` file with the new APK URL and verified metadata. Make
-   the manifest readable by link, but leave folder listing private.
+4. Stage a new versioned GitHub release in https://github.com/denson9874/ExpressiveLauncher and retain
+   its APK, QA report, metadata and device results. QA uses prerelease tags `qa-vVERSION-CODE`.
+   Do not overwrite older releases or conflicting assets.
+5. After verification, publish the requested channel's release and validate a complete public APK
+   download. Advance only that channel's `latest.json` on the `updates` branch using blob-SHA conflict
+   detection. Drafts are not advertised to installed clients.
 6. Install the prior signed build, open About, download the offered update, and confirm Android
    accepts the in-place upgrade without data loss.
 
@@ -75,8 +73,8 @@ user delivery. Do not add app resource/class-loader workarounds for a pre-Applic
 
 The installed build selects its update source; users cannot accidentally cross channels:
 
-- QA builds check only the retained `latest.json` in **Debug Builds**.
-- Release builds check only the retained `latest.json` in **Release Builds**.
+- QA builds check only `https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json`.
+- Release builds check only `https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json`.
 - An alert is eligible only when the matching manifest's `versionCode` is greater than the
   installed build's `versionCode`.
 
@@ -89,3 +87,16 @@ newer version bypasses a reminder set for an older version.
 Android requires a one-time per-source approval before this app can launch the package installer.
 The APK is completely downloaded and validated first; the user still confirms installation in the
 system-owned installer UI.
+
+
+## GitHub migration and source selection
+
+Builds beginning with 1.0.11 read public GitHub channel manifests and versioned Release assets.
+No user or publisher credentials are stored in the app. Normal HTTPS CDN redirects are supported;
+HTTP/HTTPS scheme-changing redirects and malformed/credential-bearing manifest URLs are rejected.
+A channel manifest avoids GitHub's shared `latest` endpoint, which excludes QA prereleases.
+
+Already-installed 1.0.10 and earlier binaries still have their original Drive manifest URL. During the
+one-time QA migration, that existing manifest can point to the verified GitHub-hosted migration APK,
+without uploading another Drive APK. After upgrade, all checks use GitHub. Preserve historical Drive
+files. Stable publication/migration remains separate, with its own package and manifest.

@@ -32,17 +32,17 @@ class AboutOwnershipTest {
             R.string.donate,
         ).inOrder()
         assertThat(links.map { it.url }).containsExactly(
-            "https://drive.google.com/drive/folders/1zvASK5iOOx3ckQCT22xeHAE75dfqP53i",
-            "https://github.com/denson9874",
-            "https://github.com/denson9874",
+            "https://github.com/denson9874/ExpressiveLauncher/releases",
+            "https://github.com/denson9874/ExpressiveLauncher/issues",
+            "https://github.com/denson9874/ExpressiveLauncher",
             "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2",
         ).inOrder()
     }
 
     @Test
-    fun newsDestination_usesReleaseBuildsFolder() {
+    fun newsDestination_usesOwnedGitHubReleases() {
         assertThat(AboutDestinations.RELEASE_BUILDS_URL)
-            .isEqualTo("https://drive.google.com/drive/folders/1zvASK5iOOx3ckQCT22xeHAE75dfqP53i")
+            .isEqualTo("https://github.com/denson9874/ExpressiveLauncher/releases")
     }
 
     @Test

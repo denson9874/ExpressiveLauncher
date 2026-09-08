@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Publish an already-tested QA artifact with rclone; promote only with --promote.
+"""Stage sealed QA bytes in GitHub Releases; publish and advance QA only with --promote.
 
-Authentication uses the worker's existing gcloud login. Tokens live only in memory
-and the rclone child environment. This script never authenticates interactively,
-changes folder permissions, deletes history, or addresses the production feed.
-Jenkins must serialize publishers: Drive does not offer compare-and-swap via rclone.
+The worker's existing GitHub CLI authentication stays outside the application and
+receipts. No interactive login, completed asset replacement/deletion, repository
+visibility change, or production-channel write is performed. An empty upload
+placeholder from a failed transfer can be removed only from the matching draft.
+Jenkins serializes publishers;
+manifest updates also use the previous Git blob SHA to reject concurrent changes.
 """
 
 import argparse
+import base64
+import binascii
 import datetime as dt
 import hashlib
 import json
@@ -19,17 +23,19 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
-QA_FOLDER_ID = "1x9QK-ZRgIJUqXXekfxr_KEzGqN_A0TiZ"
-QA_FEED_ID = "1_A529DlPEMzwizq-6j3fpMBElGugY-_J"
-QA_FEED_NAME = "expressive-launcher-qa-latest.json"
+GITHUB_REPOSITORY = "denson9874/ExpressiveLauncher"
+UPDATES_BRANCH = "updates"
+QA_FEED_PATH = "qa/latest.json"
+QA_FEED_URL = f"https://raw.githubusercontent.com/{GITHUB_REPOSITORY}/{UPDATES_BRANCH}/{QA_FEED_PATH}"
+API_VERSION = "2026-03-10"
 QA_PACKAGE = "dev.launcher.expressive.l3.debug"
 QA_CERTIFICATE = "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2"
 FEED_FIELDS = ("schemaVersion", "channel", "packageName", "versionCode", "versionName",
                "apkUrl", "sha256", "sizeBytes", "releaseNotes")
-REMOTE = "QADRIVE:"
 MAX_JSON_BYTES = 1024 * 1024
 
 
@@ -62,6 +68,12 @@ def read_json_bytes(data, label):
 
 def positive_integer(value):
     return type(value) is int and value > 0
+
+
+def empty_upload_placeholder(asset, name):
+    return (isinstance(asset, dict) and positive_integer(asset.get("id"))
+            and asset.get("name") == name and asset.get("state") == "starter"
+            and type(asset.get("size")) is int and asset["size"] == 0)
 
 
 def validate_identity(value, label):
@@ -168,118 +180,253 @@ def candidate_feed(metadata, apk_url):
     return feed
 
 
-def download_url(file_id, apk=False):
-    require(isinstance(file_id, str) and re.fullmatch(r"[A-Za-z0-9_-]+", file_id),
-            "Drive returned an invalid file ID")
-    return (f"https://drive.usercontent.google.com/download?id={file_id}&export=download"
-            + ("&confirm=t" if apk else ""))
+def release_tag(metadata):
+    require(re.fullmatch(r"\d+\.\d+\.\d+", metadata["versionName"]),
+            "QA versionName must have three numeric components")
+    return f"qa-v{metadata['versionName']}-{metadata['versionCode']}"
 
 
-class RcloneDrive:
+def download_url(tag, filename):
+    require(isinstance(tag, str) and re.fullmatch(r"qa-v\d+\.\d+\.\d+-[1-9]\d*", tag),
+            "Invalid QA release tag")
+    require(isinstance(filename, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", filename),
+            "Unsafe GitHub asset filename")
+    return f"https://github.com/{GITHUB_REPOSITORY}/releases/download/{tag}/{filename}"
+
+
+def validate_github_feed(feed):
+    validate_feed(feed)
+    tag = release_tag(feed)
+    parsed = urllib.parse.urlsplit(feed["apkUrl"])
+    filename = parsed.path.rsplit("/", 1)[-1]
+    require(filename.endswith(".apk") and feed["apkUrl"] == download_url(tag, filename),
+            "QA feed APK must belong to the pinned GitHub repository and version tag")
+
+
+def release_identity(metadata):
+    return (f"<!-- expressive-qa source={metadata['sourceRevision']} "
+            f"sha256={metadata['sha256']} versionCode={metadata['versionCode']} -->")
+
+
+class GitHub:
     def __init__(self):
-        self._token = None
-        self._token_time = 0
+        self.root = f"repos/{GITHUB_REPOSITORY}"
 
     def environment(self):
-        # Strip inherited rclone options, including logging/dump settings. Never
-        # persist a config file or refresh token, and never put a token in argv.
-        if self._token is None or time.monotonic() - self._token_time > 1800:
-            try:
-                result = subprocess.run(["gcloud", "auth", "print-access-token", "--quiet"],
-                                        capture_output=True, text=True, timeout=60)
-            except (OSError, subprocess.TimeoutExpired):
-                raise PublishError("Cannot obtain an access token from the worker's gcloud login") from None
-            require(result.returncode == 0 and result.stdout.strip(),
-                    "gcloud access-token request failed; worker authentication requires attention")
-            self._token = result.stdout.strip()
-            require(not any(char.isspace() for char in self._token), "gcloud returned an invalid token")
-            self._token_time = time.monotonic()
-        env = {key: value for key, value in os.environ.items() if not key.startswith("RCLONE_")}
-        expiry = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=45)).isoformat()
-        env.update({"RCLONE_CONFIG_QADRIVE_TYPE": "drive",
-                    "RCLONE_CONFIG_QADRIVE_ROOT_FOLDER_ID": QA_FOLDER_ID,
-                    "RCLONE_CONFIG_QADRIVE_SCOPE": "drive",
-                    "RCLONE_CONFIG_QADRIVE_TOKEN": json.dumps({
-                        "access_token": self._token, "token_type": "Bearer", "expiry": expiry})})
+        # gh reads the existing worker login or a Jenkins-provided GH_TOKEN.
+        # Strip debug/trace controls so credentials cannot appear in subprocess logs.
+        env = {key: value for key, value in os.environ.items()
+               if not key.startswith(("GH_DEBUG", "GIT_TRACE", "GIT_CURL_VERBOSE"))}
+        env.update({"GH_HOST": "github.com", "GH_PROMPT_DISABLED": "1"})
         return env
 
-    def run(self, *args):
+    def command(self, endpoint):
+        require(endpoint.startswith(self.root + "/") or endpoint == self.root
+                or endpoint.startswith(f"https://uploads.github.com/{self.root}/releases/"),
+                "GitHub request is outside the pinned exports repository")
+        return ["gh", "api", "--hostname", "github.com", endpoint,
+                "--header", f"X-GitHub-Api-Version: {API_VERSION}"]
+
+    def api(self, endpoint, method="GET", body=None, missing_ok=False, file=None):
+        command = self.command(endpoint) + ["--method", method, "--include",
+                                            "--header", "Accept: application/vnd.github+json"]
+        data = None
+        if file is not None:
+            command += ["--input", str(file), "--header", "Content-Type: application/octet-stream"]
+        elif body is not None:
+            command += ["--input", "-", "--header", "Content-Type: application/json"]
+            data = json.dumps(body).encode("utf-8")
         try:
-            result = subprocess.run(
-                ["rclone", *args, "--config", os.devnull, "--log-level", "ERROR",
-                 "--retries", "4", "--low-level-retries", "8", "--retries-sleep", "3s"],
-                env=self.environment(), capture_output=True, timeout=900)
+            result = subprocess.run(command, input=data, capture_output=True,
+                                    env=self.environment(), timeout=900)
         except (OSError, subprocess.TimeoutExpired):
-            raise PublishError(f"rclone {args[0]} could not complete") from None
-        # Raw tool output is deliberately not logged: OAuth errors may include secrets.
-        require(result.returncode == 0, f"rclone {args[0]} failed (exit {result.returncode})")
-        return result.stdout
-
-    def listing(self):
-        try:
-            entries = json.loads(self.run("lsjson", REMOTE, "--hash", "--files-only"))
-        except ValueError:
-            raise PublishError("rclone returned invalid directory JSON") from None
-        require(isinstance(entries, list), "rclone did not return a directory listing")
-        return entries
-
-    def stat(self, name, optional=False):
-        # Drive permits duplicate names. Reject ambiguity instead of selecting one.
-        matches = [entry for entry in self.listing() if entry.get("Name") == name]
-        require(len(matches) <= 1, f"Duplicate remote names make {name} ambiguous")
-        if not matches:
-            require(optional, f"Required remote file is missing: {name}")
+            raise PublishError("GitHub CLI request could not complete") from None
+        # --include supplies an HTTP status even for API errors. Never log raw
+        # stderr/body: authentication errors can contain credentials or URL details.
+        parts = re.split(br"\r?\n\r?\n", result.stdout, maxsplit=1)
+        status = re.match(br"HTTP/\S+\s+(\d{3})", parts[0])
+        require(status is not None and len(parts) == 2,
+                "GitHub CLI returned no HTTP response; worker authentication requires attention")
+        code = int(status.group(1))
+        if code == 404 and missing_ok:
             return None
-        result = read_json_bytes(self.run("lsjson", REMOTE + name, "--stat", "--hash"),
-                                 "rclone stat")
-        require(result.get("ID") == matches[0].get("ID") and not result.get("IsDir"),
-                f"Remote identity changed while inspecting {name}")
-        return result
+        require(result.returncode == 0 and 200 <= code < 300,
+                f"GitHub {method} request failed (HTTP {code})")
+        if code == 204:
+            require(method == "DELETE" and not parts[1].strip(),
+                    "GitHub returned an unexpected empty response")
+            return None
+        require(len(parts[1]) <= MAX_JSON_BYTES, "GitHub API response exceeds JSON size limit")
+        try:
+            return json.loads(parts[1])
+        except (ValueError, UnicodeDecodeError):
+            raise PublishError("GitHub returned invalid JSON") from None
+
+    def preflight(self):
+        repository = self.api(self.root)
+        require(repository.get("full_name", "").lower() == GITHUB_REPOSITORY.lower()
+                and repository.get("private") is False and repository.get("archived") is False,
+                "Exports repository must be the pinned public, active GitHub repository")
+        require(repository.get("permissions", {}).get("push") is True,
+                "GitHub worker needs write access to the exports repository")
+        branch = self.api(f"{self.root}/git/ref/heads/{UPDATES_BRANCH}")
+        revision = branch.get("object", {}).get("sha")
+        require(isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40}", revision),
+                "The exports updates branch is missing or invalid")
+        return revision
 
     def feed(self):
-        stat = self.stat(QA_FEED_NAME)
-        require(stat.get("ID") == QA_FEED_ID, "QA feed ID differs from the pinned existing file")
-        feed = read_json_bytes(self.run("cat", REMOTE + QA_FEED_NAME), "remote QA feed")
-        validate_feed(feed)
-        return feed
+        # preflight separately verifies repo access and branch existence, so 404
+        # here means the manifest is absent (first GitHub publication).
+        result = self.api(f"{self.root}/contents/{QA_FEED_PATH}?ref={UPDATES_BRANCH}", missing_ok=True)
+        if result is None:
+            return None, None
+        require(result.get("type") == "file" and result.get("path") == QA_FEED_PATH
+                and result.get("encoding") == "base64", "GitHub QA manifest is not the expected file")
+        blob_sha = result.get("sha")
+        require(isinstance(blob_sha, str) and re.fullmatch(r"[0-9a-f]{40}", blob_sha),
+                "GitHub QA manifest has an invalid blob SHA")
+        try:
+            raw = base64.b64decode("".join(result["content"].split()), validate=True)
+        except (KeyError, TypeError, ValueError, binascii.Error):
+            raise PublishError("GitHub QA manifest has invalid base64 content") from None
+        feed = read_json_bytes(raw, "GitHub QA manifest")
+        validate_github_feed(feed)
+        return feed, blob_sha
 
-    def verify_file(self, name, path, stat):
-        require(stat.get("ID"), f"Remote file has no Drive ID: {name}")
-        require(stat.get("Size") == path.stat().st_size, f"Remote size conflict: {name}")
-        hashes = {key.lower(): value.lower() for key, value in stat.get("Hashes", {}).items()}
-        require(hashes.get("md5") == file_hash(path, "md5"), f"Remote checksum conflict: {name}")
-        # MD5 is Drive's transfer checksum. Download and compare SHA-256 as well.
-        with tempfile.TemporaryDirectory(prefix="qa-drive-verify-") as temporary:
+    def find_release(self, tag):
+        release = self.api(f"{self.root}/releases/tags/{tag}", missing_ok=True)
+        if release is not None:
+            return release
+        # Drafts can be absent from the tag endpoint. Authenticated listings
+        # include them, and allow retries after a response was interrupted.
+        for page in range(1, 101):
+            releases = self.api(f"{self.root}/releases?per_page=100&page={page}")
+            require(isinstance(releases, list), "GitHub did not return a release list")
+            matches = [item for item in releases if item.get("tag_name") == tag]
+            require(len(matches) <= 1, "Duplicate release tags are ambiguous")
+            if matches:
+                return matches[0]
+            if len(releases) < 100:
+                return None
+        raise PublishError("GitHub release lookup exceeded its pagination limit")
+
+    def validate_release(self, release, metadata):
+        tag = release_tag(metadata)
+        require(positive_integer(release.get("id")), "GitHub returned an invalid release ID")
+        require(release.get("tag_name") == tag and release.get("prerelease") is True
+                and type(release.get("draft")) is bool,
+                "Existing GitHub release has conflicting tag or QA state")
+        require(isinstance(release.get("body"), str)
+                and release_identity(metadata) in release["body"],
+                "Existing GitHub release conflicts with the sealed source or APK")
+
+    def ensure_release(self, metadata, target_revision):
+        tag = release_tag(metadata)
+        release = self.find_release(tag)
+        if release is None:
+            body = (f"Expressive Launcher {metadata['versionName']} QA\n\n"
+                    f"Source revision: `{metadata['sourceRevision']}`\n\n"
+                    f"APK SHA-256: `{metadata['sha256']}`\n\n"
+                    "Release-signed, minified QA package. Automated tests and isolated "
+                    "Android upgrade checks passed for the exact attached APK.\n\n"
+                    "Derived from Lawnchair and AOSP Launcher3; see the repository's "
+                    "license and upstream notices.\n\n" + release_identity(metadata))
+            release = self.api(f"{self.root}/releases", method="POST", body={
+                "tag_name": tag, "target_commitish": target_revision,
+                "name": f"Expressive Launcher {metadata['versionName']} QA ({metadata['versionCode']})",
+                "body": body, "draft": True, "prerelease": True, "make_latest": "false"})
+        self.validate_release(release, metadata)
+        return release
+
+    def assets(self, release_id):
+        result = []
+        for page in range(1, 12):
+            items = self.api(f"{self.root}/releases/{release_id}/assets?per_page=100&page={page}")
+            require(isinstance(items, list), "GitHub did not return an asset list")
+            result.extend(items)
+            if len(items) < 100:
+                return result
+        raise PublishError("GitHub asset lookup exceeded its pagination limit")
+
+    def asset(self, release_id, name):
+        matches = [item for item in self.assets(release_id) if item.get("name") == name]
+        require(len(matches) <= 1, "Duplicate GitHub asset names are ambiguous")
+        return matches[0] if matches else None
+
+    def verify_file(self, name, path, asset):
+        require(positive_integer(asset.get("id")) and asset.get("name") == name
+                and asset.get("state") == "uploaded", f"Incomplete or conflicting GitHub asset: {name}")
+        require(asset.get("size") == path.stat().st_size, f"Remote size conflict: {name}")
+        digest = file_hash(path)
+        if asset.get("digest") is not None:
+            require(asset["digest"] == "sha256:" + digest, f"Remote checksum conflict: {name}")
+        with tempfile.TemporaryDirectory(prefix="qa-github-verify-") as temporary:
             downloaded = Path(temporary) / "artifact"
-            self.run("copyto", REMOTE + name, str(downloaded), "--checksum")
-            require(file_hash(downloaded) == file_hash(path), f"Remote SHA-256 conflict: {name}")
+            command = self.command(f"{self.root}/releases/assets/{asset['id']}") + [
+                "--header", "Accept: application/octet-stream"]
+            try:
+                with downloaded.open("wb") as output:
+                    result = subprocess.run(command, stdout=output, stderr=subprocess.PIPE,
+                                            env=self.environment(), timeout=900)
+            except (OSError, subprocess.TimeoutExpired):
+                raise PublishError("GitHub verification download could not complete") from None
+            require(result.returncode == 0, f"GitHub verification download failed: {name}")
+            require(downloaded.stat().st_size == path.stat().st_size
+                    and file_hash(downloaded) == digest, f"Remote SHA-256 conflict: {name}")
 
-    def stage(self, name, path):
-        before = self.stat(name, optional=True)
-        if before:
-            self.verify_file(name, path, before)
-        self.run("copyto", str(path), REMOTE + name, "--immutable", "--checksum")
-        after = self.stat(name)
-        if before:
-            require(before["ID"] == after["ID"], f"Existing artifact identity changed: {name}")
-        self.verify_file(name, path, after)
-        return after
+    def remove_empty_upload_placeholder(self, release_id, metadata, name, asset_id):
+        # A documented 502 upload failure can leave a zero-byte `starter` asset.
+        # Recheck identity and membership immediately before removing that exact
+        # placeholder; completed bytes and published releases are never deleted.
+        require(positive_integer(release_id) and positive_integer(asset_id),
+                "Upload placeholder recovery requires positive release and asset IDs")
+        stem = Path(metadata["fileName"]).stem
+        require(name in (metadata["fileName"], f"{stem}-QA-report.md",
+                         f"{stem}-metadata.json", f"{stem}-qa-result.json"),
+                "Refusing to remove an unexpected GitHub artifact name")
+        release = self.api(f"{self.root}/releases/{release_id}")
+        self.validate_release(release, metadata)
+        require(release["id"] == release_id and release["draft"] is True,
+                "Upload placeholder recovery requires the matching draft release")
+        asset = self.asset(release_id, name)
+        require(empty_upload_placeholder(asset, name) and asset["id"] == asset_id,
+                f"Upload placeholder changed or is not safely recoverable: {name}")
+        self.api(f"{self.root}/releases/assets/{asset_id}", method="DELETE")
+        require(self.asset(release_id, name) is None,
+                f"Upload placeholder is still present after deletion: {name}")
 
-    def make_apk_public(self, name):
-        link = self.run("link", REMOTE + name).decode("utf-8").strip()
-        require(link.startswith("https://"), "rclone did not return an HTTPS APK link")
-        return link
+    def stage(self, release_id, name, path):
+        asset = self.asset(release_id, name)
+        if asset is None:
+            self.api(f"https://uploads.github.com/{self.root}/releases/{release_id}/assets?"
+                     + urllib.parse.urlencode({"name": name}), method="POST", file=path)
+            asset = self.asset(release_id, name)
+            require(asset is not None, f"Uploaded GitHub asset is missing: {name}")
+        self.verify_file(name, path, asset)
+        return asset
 
-    def update_feed(self, feed):
-        # copyto updates this existing Drive object's content; never move/delete it.
-        current = self.feed()  # Includes the pinned ID check immediately before the write.
-        if validate_transition(current, feed) == "unchanged":
-            return
-        with tempfile.TemporaryDirectory(prefix="qa-feed-") as temporary:
-            path = Path(temporary) / QA_FEED_NAME
-            path.write_text(json.dumps(feed, indent=2) + "\n", encoding="utf-8")
-            self.run("copyto", str(path), REMOTE + QA_FEED_NAME, "--checksum")
-        require(self.feed() == feed, "QA feed content readback differs after update")
+    def publish_release(self, release, metadata):
+        if release["draft"]:
+            self.api(f"{self.root}/releases/{release['id']}", method="PATCH",
+                     body={"draft": False, "prerelease": True, "make_latest": "false"})
+        result = self.api(f"{self.root}/releases/{release['id']}")
+        self.validate_release(result, metadata)
+        require(result["draft"] is False, "GitHub release is still a draft")
+        return result
+
+    def update_feed(self, proposed):
+        current, blob_sha = self.feed()
+        if current is not None and validate_transition(current, proposed) == "unchanged":
+            return False
+        raw = (json.dumps(proposed, indent=2) + "\n").encode("utf-8")
+        body = {"message": f"Publish QA {proposed['versionName']} ({proposed['versionCode']})",
+                "content": base64.b64encode(raw).decode("ascii"), "branch": UPDATES_BRANCH}
+        if blob_sha is not None:
+            body["sha"] = blob_sha
+        self.api(f"{self.root}/contents/{QA_FEED_PATH}", method="PUT", body=body)
+        require(self.feed()[0] == proposed, "GitHub QA feed readback differs after update")
+        return True
 
 
 def public_download_digest(url, expected_size):
@@ -289,72 +436,93 @@ def public_download_digest(url, expected_size):
         require(response.geturl().startswith("https://"), "Public download redirected to insecure HTTP")
         for block in iter(lambda: response.read(1024 * 1024), b""):
             size += len(block)
-            require(size <= expected_size, "Public APK download exceeds expected size")
+            require(size <= expected_size, "Public download exceeds expected size")
             digest.update(block)
     return size, digest.hexdigest()
 
 
-def public_feed():
-    request = urllib.request.Request(download_url(QA_FEED_ID), headers={"Cache-Control": "no-cache"})
-    with urllib.request.urlopen(request, timeout=60) as response:
-        require(response.geturl().startswith("https://"), "Public feed redirected to insecure HTTP")
-        feed = read_json_bytes(response.read(MAX_JSON_BYTES + 1), "public QA feed")
-    validate_feed(feed)
+def public_feed(optional=False):
+    # A cache-busting query prevents an earlier cached missing manifest from
+    # obscuring the first promotion. No credentials accompany anonymous checks.
+    url = QA_FEED_URL + "?verification=" + str(time.time_ns())
+    request = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            require(response.geturl().startswith("https://"), "Public feed redirected to insecure HTTP")
+            feed = read_json_bytes(response.read(MAX_JSON_BYTES + 1), "public QA feed")
+    except urllib.error.HTTPError as error:
+        if optional and error.code == 404:
+            return None
+        raise
+    validate_github_feed(feed)
     return feed
 
 
 def publish(artifact_dir, promote, receipt):
     metadata, files = load_artifacts(artifact_dir)
-    receipt.update({"status": "validated-local", "channel": "qa", "folderId": QA_FOLDER_ID,
-                    "feedId": QA_FEED_ID, "sourceRevision": metadata["sourceRevision"],
+    tag = release_tag(metadata)
+    proposed = candidate_feed(metadata, download_url(tag, metadata["fileName"]))
+    validate_github_feed(proposed)
+    receipt.update({"status": "validated-local", "provider": "github", "channel": "qa",
+                    "repository": GITHUB_REPOSITORY, "tag": tag, "feedUrl": QA_FEED_URL,
+                    "sourceRevision": metadata["sourceRevision"],
                     "versionCode": metadata["versionCode"], "versionName": metadata["versionName"],
                     "sha256": metadata["sha256"], "sizeBytes": metadata["sizeBytes"], "files": {}})
-    drive = RcloneDrive()
-    initial_feed = drive.feed()
-    # Reject rollback/conflicts before creating any remote files or permissions.
-    proposed = candidate_feed(metadata, initial_feed["apkUrl"])
-    validate_transition(initial_feed, proposed, compare_url=False)
-    require(public_feed() == initial_feed, "Authenticated and public QA feeds disagree")
+    github = GitHub()
+    target_revision = github.preflight()
+    current, _ = github.feed()
+    if current is not None:
+        validate_transition(current, proposed)
+    require(public_feed(optional=current is None) == current,
+            "Authenticated and public GitHub QA feeds disagree")
+    release = github.ensure_release(metadata, target_revision)
+    release_id = release["id"]
+    receipt.update({"status": "staging", "releaseId": release_id,
+                    "releaseUrl": f"https://github.com/{GITHUB_REPOSITORY}/releases/tag/{tag}",
+                    "draft": release["draft"]})
+    # Reject every existing conflict before any upload or placeholder cleanup.
+    incomplete_uploads = []
     for name, path in files.items():
-        existing = drive.stat(name, optional=True)
-        if existing:
-            drive.verify_file(name, path, existing)
-    receipt["status"] = "staging"
+        asset = github.asset(release_id, name)
+        if asset is not None:
+            if release["draft"] is True and empty_upload_placeholder(asset, name):
+                incomplete_uploads.append((name, asset["id"]))
+            else:
+                github.verify_file(name, path, asset)
+    for name, asset_id in incomplete_uploads:
+        github.remove_empty_upload_placeholder(release_id, metadata, name, asset_id)
     for name, path in files.items():
-        remote = drive.stage(name, path)
-        receipt["files"][name] = {"id": remote["ID"], "sizeBytes": remote["Size"],
-                                  "sha256": file_hash(path), "verified": True}
-    # Existing artifacts can already be public from an earlier successful run.
-    # Staging never changes their permissions or claims they became private.
-    receipt["status"] = "staged-verified"
-    apk_name = metadata["fileName"]
-    apk_id = receipt["files"][apk_name]["id"]
-    proposed = candidate_feed(metadata, download_url(apk_id, apk=True))
-    validate_transition(drive.feed(), proposed)
+        asset = github.stage(release_id, name, path)
+        receipt["files"][name] = {"id": asset["id"], "sizeBytes": path.stat().st_size,
+                                  "sha256": file_hash(path), "verified": True,
+                                  "downloadUrl": download_url(tag, name)}
+    receipt["status"] = "draft-staged-verified" if release["draft"] else "published-staged-verified"
+    current, _ = github.feed()
+    if current is not None:
+        validate_transition(current, proposed)
     if not promote:
         return
-    receipt["files"][apk_name]["shareUrl"] = drive.make_apk_public(apk_name)
-    receipt["status"] = "apk-shared-verifying"
-    apk_url = proposed["apkUrl"]
-    verified = False
-    for attempt in range(4):
-        try:
-            size, digest = public_download_digest(apk_url, metadata["sizeBytes"])
-            if size == metadata["sizeBytes"] and digest == metadata["sha256"]:
-                verified = True
-                break
-        except (OSError, ValueError, PublishError):
-            pass
-        if attempt < 3:
-            time.sleep(3 * (attempt + 1))
-    require(verified, "Anonymous APK download failed full size/SHA-256 verification; feed was not updated")
-    receipt["files"][apk_name].update({"downloadUrl": apk_url, "publicDownloadVerified": True})
-    receipt["status"] = "apk-public-verified"
-    current = drive.feed()
-    transition = validate_transition(current, proposed)
-    if transition == "advance":
-        receipt["status"] = "promoting-feed"
-        drive.update_feed(proposed)
+    release = github.publish_release(release, metadata)
+    receipt.update({"status": "release-published-verifying", "draft": False})
+    for name, path in files.items():
+        asset = github.asset(release_id, name)
+        require(asset is not None and asset.get("browser_download_url") == download_url(tag, name),
+                f"Published GitHub asset URL differs from the pinned release: {name}")
+        verified = False
+        for attempt in range(4):
+            try:
+                size, digest = public_download_digest(download_url(tag, name), path.stat().st_size)
+                if size == path.stat().st_size and digest == file_hash(path):
+                    verified = True
+                    break
+            except (OSError, ValueError, PublishError):
+                pass
+            if attempt < 3:
+                time.sleep(3 * (attempt + 1))
+        require(verified, f"Anonymous size/SHA-256 verification failed; feed was not updated: {name}")
+        receipt["files"][name]["publicDownloadVerified"] = True
+    receipt["status"] = "promoting-feed"
+    changed = github.update_feed(proposed)
     receipt["status"] = "feed-written-verifying"
     for attempt in range(4):
         try:
@@ -363,18 +531,19 @@ def publish(artifact_dir, promote, receipt):
         except (OSError, ValueError, PublishError):
             pass
         if attempt == 3:
-            raise PublishError("Feed may have advanced, but anonymous readback was not verified")
+            raise PublishError("GitHub feed may have advanced, but anonymous readback was not verified")
         time.sleep(3 * (attempt + 1))
-    require(drive.feed() == proposed, "Final authenticated feed or pinned ID verification failed")
-    receipt.update({"status": "released", "feedUrl": download_url(QA_FEED_ID),
-                    "feedVerified": True, "feedChanged": transition == "advance"})
+    require(github.feed()[0] == proposed, "Final authenticated GitHub QA feed verification failed")
+    receipt.update({"status": "released", "feedVerified": True, "feedChanged": changed})
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--expected-provider", choices=["github"], default="github",
+                        help="Reject candidates without the GitHub publication contract")
     parser.add_argument("--artifact-dir", required=True, type=Path)
     parser.add_argument("--promote", action="store_true",
-                        help="Share the verified APK and promote the existing QA feed")
+                        help="Publish the verified QA prerelease and advance its GitHub update manifest")
     parser.add_argument("--output", required=True, type=Path, help="Publication receipt JSON")
     args = parser.parse_args()
     receipt = {"status": "started", "promoteRequested": args.promote,
@@ -385,8 +554,6 @@ def main():
     except (PublishError, OSError, ValueError) as error:
         receipt["lastCompletedState"] = receipt["status"]
         receipt["status"] = "failed"
-        # PublishError messages are controlled; network/OS exception strings can
-        # contain response URLs or environment details and are intentionally omitted.
         receipt["error"] = str(error) if isinstance(error, PublishError) else type(error).__name__
         code = 1
     receipt["finishedAt"] = dt.datetime.now(dt.timezone.utc).isoformat()
