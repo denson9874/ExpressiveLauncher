@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences2.preferenceManager2
@@ -182,6 +183,7 @@ fun SmartspacePreview(
 ) {
     val themeRes = if (isSelectedThemeDark) R.style.AppTheme_Dark else R.style.AppTheme_DarkText
     val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val themedContext = remember(themeRes) { ContextThemeWrapper(context, themeRes) }
 
     PreferenceGroup(
@@ -210,8 +212,8 @@ fun SmartspacePreview(
                 )
             }
         }
-        LaunchedEffect(key1 = null) {
-            SmartspaceProvider.INSTANCE.get(context).startSetup(context as Activity)
+        LaunchedEffect(context, lifecycle) {
+            SmartspaceProvider.INSTANCE.get(context).startSetup(context as Activity, lifecycle)
         }
     }
 }

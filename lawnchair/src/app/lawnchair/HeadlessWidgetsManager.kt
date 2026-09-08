@@ -128,9 +128,17 @@ class HeadlessWidgetsManager @Inject constructor(
             prefs.edit { putInt(prefKey, widgetId) }
         }
 
-        fun getBindIntent() = Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
-            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider)
+        fun getBindIntent(): Intent? {
+            // A previously allocated ID can become invalid while this process remains alive.
+            // Refresh each unbound attempt instead of reusing that ID until the next restart.
+            // bind() preserves an existing binding and may now succeed without another dialog.
+            bind()
+            if (isBound) return null
+
+            return Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider)
+        }
     }
 
     private class WidgetNotBoundException : RuntimeException()

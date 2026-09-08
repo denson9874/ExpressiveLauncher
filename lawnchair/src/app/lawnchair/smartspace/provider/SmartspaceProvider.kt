@@ -2,12 +2,12 @@ package app.lawnchair.smartspace.provider
 
 import android.app.Activity
 import android.content.Context
+import androidx.lifecycle.Lifecycle
 import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceScores
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import app.lawnchair.ui.preferences.PreferenceActivity
 import app.lawnchair.ui.preferences.navigation.Smartspace
-import app.lawnchair.util.dropWhileBusy
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import com.android.launcher3.dagger.ApplicationContext
@@ -22,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 
@@ -65,6 +66,12 @@ class SmartspaceProvider @Inject constructor(
             )
         }
 
+    private val setupCoordinator = SmartspaceSetupCoordinator<SmartspaceDataSource>(
+        isEnabled = { it.enabledPref.get().first() },
+        requiresSetup = { it.requiresSetup() },
+        onSetupDone = { it.onSetupDone() },
+    )
+
     private val setupTarget = SmartspaceTarget(
         id = "smartspaceSetup",
         headerAction = SmartspaceAction(
@@ -76,16 +83,12 @@ class SmartspaceProvider @Inject constructor(
         featureType = SmartspaceTarget.FeatureType.FEATURE_TIPS,
     )
 
-    suspend fun startSetup(activity: Activity) {
-        state
-            .map { it.requiresSetup }
-            .dropWhileBusy()
-            .collect { sources ->
-                sources.forEach {
-                    it.startSetup(activity)
-                    it.onSetupDone()
-                }
-            }
+    suspend fun startSetup(activity: Activity, lifecycle: Lifecycle) {
+        setupCoordinator.collectRequests(
+            requests = state.map { it.requiresSetup },
+            lifecycle = lifecycle,
+            startSetup = { it.startSetup(activity) },
+        )
     }
 
     override fun close() {
