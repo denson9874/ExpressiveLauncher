@@ -112,6 +112,17 @@ class HeadlessWidgetsManager @Inject constructor(
 
         fun bind() {
             if (!isBound) {
+                // Another manager may already have replaced this instance's cached ID. Reuse
+                // its valid persisted binding before allocating an additional headless widget.
+                val persistedId = prefs.getInt(prefKey, -1)
+                if (
+                    persistedId > -1 && persistedId != widgetId &&
+                    widgetManager.getAppWidgetInfo(persistedId)?.provider == info.provider
+                ) {
+                    widgetId = persistedId
+                    return
+                }
+
                 if (widgetId > -1) {
                     host.deleteAppWidgetId(widgetId)
                 }

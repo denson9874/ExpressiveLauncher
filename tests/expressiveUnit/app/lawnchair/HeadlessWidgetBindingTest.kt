@@ -131,6 +131,55 @@ class HeadlessWidgetBindingTest {
         assertThat(deletedIds).contains(firstId)
     }
 
+    @Test
+    fun staleCachedId_adoptsTheValidPersistedBindingWithoutAllocatingOrDeleting() {
+        val widget = manager.getWidget(info, PREF_KEY)
+        val staleId = LauncherPrefs.getDevicePrefs(context).getInt(PREF_KEY, -1)
+        val existingId = 17
+        boundWidgets.remove(staleId)
+        boundWidgets[existingId] = info
+        LauncherPrefs.getDevicePrefs(context).edit().putInt(PREF_KEY, existingId).commit()
+        val allocationsBeforeRecovery = allocatedIds.toList()
+        val deletionsBeforeRecovery = deletedIds.toList()
+
+        assertThat(widget.isBound).isFalse()
+        assertThat(widget.getBindIntent()).isNull()
+
+        assertThat(widget.isBound).isTrue()
+        assertThat(LauncherPrefs.getDevicePrefs(context).getInt(PREF_KEY, -1)).isEqualTo(existingId)
+        assertThat(boundWidgets[existingId]?.provider).isEqualTo(info.provider)
+        assertThat(allocatedIds).containsExactlyElementsIn(allocationsBeforeRecovery).inOrder()
+        assertThat(deletedIds).containsExactlyElementsIn(deletionsBeforeRecovery).inOrder()
+    }
+
+    @Test
+    fun secondManagerBinding_isAdoptedByTheOlderWidgetInstance() {
+        val olderWidget = manager.getWidget(info, PREF_KEY)
+        val olderId = LauncherPrefs.getDevicePrefs(context).getInt(PREF_KEY, -1)
+        val secondManager = HeadlessWidgetsManager(context)
+        try {
+            val newerWidget = secondManager.getWidget(info, PREF_KEY)
+            allowBinding = true
+            assertThat(newerWidget.getBindIntent()).isNull()
+            val newerId = LauncherPrefs.getDevicePrefs(context).getInt(PREF_KEY, -1)
+            assertThat(newerId).isGreaterThan(olderId)
+            assertThat(olderWidget.isBound).isFalse()
+            val allocationsBeforeRecovery = allocatedIds.toList()
+            val deletionsBeforeRecovery = deletedIds.toList()
+
+            assertThat(olderWidget.getBindIntent()).isNull()
+
+            assertThat(olderWidget.isBound).isTrue()
+            assertThat(newerWidget.isBound).isTrue()
+            assertThat(LauncherPrefs.getDevicePrefs(context).getInt(PREF_KEY, -1)).isEqualTo(newerId)
+            assertThat(boundWidgets.keys).containsExactly(newerId)
+            assertThat(allocatedIds).containsExactlyElementsIn(allocationsBeforeRecovery).inOrder()
+            assertThat(deletedIds).containsExactlyElementsIn(deletionsBeforeRecovery).inOrder()
+        } finally {
+            secondManager.close()
+        }
+    }
+
     @Implements(AppWidgetHost::class)
     class RecordingWidgetHost : ShadowAppWidgetHost() {
         @Implementation

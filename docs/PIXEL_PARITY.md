@@ -82,20 +82,21 @@ file, and verifies public readback; 14 focused migration tests passed.
 `CP41.260814.003.C2`, the published signed 1.0.11 / code 12 build returned Weather to off
 after widget approval. Two surviving settings activities launched concurrent Google At a Glance
 widget-bind requests. Android reported `Bad widget id 9`; the reader continued reusing that
-invalid ID. Restarting the launcher allocated a fresh connection, and Weather enabled with
-89°F matching the Google At a Glance widget on the same home screen. No weather-parser
-exception was observed.
+invalid ID. Widget snapshots show a valid binding (ID 17) throughout the failure. Restarting
+the launcher restored use of that existing connection, and Weather enabled with 89°F matching
+the Google At a Glance widget on the same home screen. No weather-parser exception was observed.
 
 **Implementation.** Setup requests are accepted only from resumed screens and coordinated once
 across the application. Fresh enabled/binding/lifecycle checks reject stale requests. The upstream
 lifecycle gate leaves an already launched Android permission result alive while preferences
-are paused. Each new unbound-widget setup attempt allocates and persists a fresh ID, while
-an existing valid binding is retained. If automatic binding succeeds, no approval dialog opens.
+are paused. Each new unbound-widget setup attempt first adopts a valid saved binding if another
+manager has replaced the cached ID. Otherwise it allocates and persists a fresh ID. An existing
+valid binding is retained. If binding is already allowed, no approval dialog opens.
 
-**Focused validation.** All 11 new regressions passed (seven setup-coordinator and four widget-binding
+**Focused validation.** All 13 new regressions passed (seven setup-coordinator and six widget-binding
 checks; zero failures, errors or skips). They cover overlapping screens, background lifecycle
-transitions, permission completion and cancellation, invalid-ID retry, and preservation of a
-working widget. Jenkins remains responsible for the full suite, signed minified QA build,
+transitions, permission completion and cancellation, invalid-ID retry, adoption of a newer saved
+binding by a stale object and across two managers, and preservation of a working widget. Jenkins remains responsible for the full suite, signed minified QA build,
 upgrade smoke and seal. The exact sealed candidate is then validated on the connected Pixel
 for weather rendering and persistence before GitHub QA promotion. Physical-device evidence
 remains local under `artifacts/weather-pixel-20260908`; final results and release receipts belong
