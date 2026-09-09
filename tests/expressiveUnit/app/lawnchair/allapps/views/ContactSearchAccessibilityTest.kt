@@ -80,6 +80,33 @@ class ContactSearchAccessibilityTest {
         assertThat(row.findViewById<View>(R.id.files_preview).visibility).isEqualTo(View.VISIBLE)
     }
 
+    @Test
+    fun contactWithoutNumber_keepsDetailsAndClearsActionsUntilReboundToPhone() {
+        val row = inflateRow()
+        row.bind(contact("Alex Parity", "2025550123"), emptyList())
+
+        row.bind(contact("Email Parity", ""), emptyList())
+
+        assertThat(row.titleText.toString()).isEqualTo("Email Parity")
+        assertThat(row.hasOnClickListeners()).isTrue()
+        assertThat(row.findViewById<View>(R.id.avatar).visibility).isEqualTo(View.VISIBLE)
+        for (id in listOf(R.id.icon1, R.id.icon2)) {
+            val action = row.findViewById<View>(id)
+            assertThat(action.visibility).isEqualTo(View.GONE)
+            assertThat(action.hasOnClickListeners()).isFalse()
+            assertThat(action.contentDescription).isNull()
+        }
+
+        row.bind(contact("Jordan Example", "2025550124"), emptyList())
+
+        assertActionDescriptions(row, "Jordan Example")
+        for (id in listOf(R.id.icon1, R.id.icon2)) {
+            val action = row.findViewById<View>(id)
+            assertThat(action.visibility).isEqualTo(View.VISIBLE)
+            assertThat(action.hasOnClickListeners()).isTrue()
+        }
+    }
+
     private fun assertActionDescriptions(row: SearchResultRightLeftIcon, name: String) {
         assertThat(accessibleDescription(row.findViewById(R.id.icon1)))
             .isEqualTo("Message $name")

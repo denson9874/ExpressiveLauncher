@@ -102,28 +102,35 @@ class SearchResultRightLeftIcon(context: Context, attrs: AttributeSet?) :
         val isFile = !isSmall && isNewFile
 
         if (!isFile) {
+            val number = target.searchAction?.subtitle?.toString().orEmpty()
             avatar.bind(target) {
                 title.text = it.title
                 tag = it
             }
-            message.contentDescription = context.getString(R.string.search_contact_message, title.text)
-            call.contentDescription = context.getString(R.string.search_contact_call, title.text)
-            val number = target.searchAction?.subtitle.toString()
-            message.setOnClickListener {
-                defSmsAppInfo?.let { appInfo ->
-                    launchApp(appInfo.packageName, number)
-                }
-            }
-            call.setOnClickListener {
-                defPhoneAppInfo?.let { appInfo ->
-                    launchApp(appInfo.packageName, number)
-                }
-            }
-        }
-
-        if (!isFile) {
             isSmall = true
             setUpdateResources()
+            if (number.isNotBlank()) {
+                message.contentDescription = context.getString(R.string.search_contact_message, title.text)
+                call.contentDescription = context.getString(R.string.search_contact_call, title.text)
+                message.setOnClickListener {
+                    defSmsAppInfo?.let { appInfo ->
+                        launchApp(appInfo.packageName, number)
+                    }
+                }
+                call.setOnClickListener {
+                    defPhoneAppInfo?.let { appInfo ->
+                        launchApp(appInfo.packageName, number)
+                    }
+                }
+            } else {
+                // Keep the contact-details action, without a stale recycled phone destination.
+                message.visibility = GONE
+                call.visibility = GONE
+                message.setOnClickListener(null)
+                call.setOnClickListener(null)
+                message.contentDescription = null
+                call.contentDescription = null
+            }
         }
 
         if (isFile) {

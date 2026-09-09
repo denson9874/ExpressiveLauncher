@@ -15,16 +15,16 @@ exact identity, delivery evidence and [pipeline operations](CI_PIPELINE.md).
 
 ## Reference environment
 
-- Reference date: 2026-09-07
+- Reference date: 2026-09-09
 - Latest public beta: Android 17 QPR2 Beta 4, released 2026-08-28; official release notes updated 2026-09-02
 - Guest build: `CP41.260814.003.B1` (`dev-keys`), Android SDK full version `37.2`, security patch `2026-08-05`
 - Guest fingerprint: `google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260814.003.B1/16166531:user/dev-keys`
 - System image: `system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a`, revision 4
-- AVD: `Expressive_Parity_Explore_20260907`, freshly created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size
+- AVD: `Expressive_Parity_Explore_20260909`, freshly created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size
 - Android Emulator: 37.2.5.0, build 16079175
 - Pixel Launcher: `com.google.android.apps.nexuslauncher`, versionCode 907, versionName `17`
 - Rollback retained: the prior `Pixel_8_Pro_Android_17_QPR2_Beta3` and `Pixel_8_Pro` Beta 2 AVDs and images were not removed
-- Current evidence directory: `artifacts/pixel-parity-20260907`; September 4 evidence remains in `artifacts/pixel-parity-2026-09-04-VaIqR4` (generated QA evidence, not committed)
+- Current evidence directory: `artifacts/pixel-parity-20260909`; prior September 4 and September 7 evidence remains retained (generated QA evidence, not committed)
 
 Official reference: [Android 17 QPR2 release notes](https://developer.android.com/about/versions/17/qpr2/release-notes)
 and [Google Play system-image repository](https://dl.google.com/android/repository/sys-img/google_apis_playstore/sys-img2-3.xml).
@@ -75,6 +75,47 @@ bridge requires the successful GitHub receipt, backs up and updates only the fix
 file, and verifies public readback; 14 focused migration tests passed.
 
 ## Implemented parity improvements
+
+### 2026-09-09 — Use saved phone numbers in contact search (candidate 1.0.13)
+
+**Observed gap.** On the verified Beta 4 guest, a device-local contact named AlexParity has
+phone number `2025550123` with the custom label `Work`. Pixel Launcher's Phone action opens
+`(202) 555-0123`. The exact published, signed Expressive 1.0.12 / code 13 instead opens `967-5`,
+the dial-pad conversion of `Work`. The provider interpreted MIME-specific DATA3/DATA5 values
+as numbers; a later email row could also overwrite the destination. Email-only contacts had
+a working contact-details action, which must remain available.
+
+**Implementation.** Phone destinations now come only from the public `Phone.NUMBER` column
+on phone MIME rows. Contact metadata remains separate, so email and custom labels cannot
+replace the number. Selected contacts are fully read after the result limit is reached.
+Aggregate-default numbers take precedence over raw-contact defaults, with numeric data ID
+providing a stable tie-break. Existing name matching, permissions and accepted contact types
+remain intact. Contacts without numbers remain searchable and open their details; their Call
+and Message controls are hidden with listeners and accessibility descriptions cleared.
+Rebinding the row to a phone contact restores both actions and the current person's labels.
+
+**Focused validation.** Twelve provider regressions and three contact-row checks pass with
+zero failures, errors or skips. Nine assertions failed against the prior behavior before the fix.
+Coverage includes custom labels, email ordering, blank data, malformed IDs, result limits,
+preferred numbers, permission checks, email-only details and recycled action controls.
+The final fresh developer build passed the actual custom-label and later-email dialer flows,
+email-only detail navigation, phone-result rebinding, an empty AlexParity SMS/MMS composer,
+and three cold Home launches without a new launcher fatal exception or ANR. No call or message
+was sent; accessibility checks do not claim a spoken TalkBack session.
+
+**Development build recovery.** A reused local Kotlin cache paired an older Smartspace consumer
+with a widget class missing a compiler-generated stability field. Preserved class/dex evidence
+confirmed the mismatch. Fresh nonincremental compilation into a separate cache restored the
+field without changing widget/Smartspace source; the focused tests and runtime flows then passed.
+A final log-decoding error in the ignored QA helper was resolved by retaining the raw bytes and
+using replacement decoding. Prior caches, failed evidence, AVDs and images remain retained.
+
+**Candidate boundary.** Version 1.0.13 / code 14 was incremented once after local validation.
+Jenkins owns the full unit suite, signed minified QA assembly, isolated upgrade checks, seal
+and authorized GitHub QA publication. The expected CI guest stays `CP41.260814.003.B1`, matching
+the newest official QPR image verified today. Exact commit, terminal Jenkins results, seal,
+publication receipts and any live updater evidence belong in `artifacts/pixel-parity-20260909`;
+this ledger entry alone does not claim a published update.
 
 ### 2026-09-08 — Recover At a Glance weather setup (candidate 1.0.12)
 

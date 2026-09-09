@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.util.Log
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
@@ -39,7 +40,6 @@ object ContactsSearchProvider : SearchProvider, SearchPermission {
 
         val maxResults = prefs2.maxPeopleResultCount.firstCached()
 
-        // Call the newly encapsulated, private function.
         val contactInfoList = findContactsByName(context, query, maxResults)
 
         val searchResults = contactInfoList.map { contactInfo ->
@@ -52,24 +52,26 @@ object ContactsSearchProvider : SearchProvider, SearchPermission {
         return context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
     }
 
-    private suspend fun findContactsByName(context: Context, query: String, max: Int): List<ContactInfo> {
+    internal suspend fun findContactsByName(context: Context, query: String, max: Int): List<ContactInfo> {
         try {
             if (query.isEmpty() || query.isBlank() || max <= 0) return emptyList()
             val exceptionHandler = CoroutineExceptionHandler { _, e ->
                 Log.e("ContactSearch", "Something went wrong ", e)
             }
             return withContext(Dispatchers.IO + exceptionHandler) {
-                val contactMap = HashMap<String, ContactInfo>()
+                val contactMap = LinkedHashMap<String, ContactInfo>()
+                val phonePreferences = HashMap<String, Pair<Int, Long>>()
 
                 val projection = arrayOf(
                     ContactsContract.Data._ID,
                     ContactsContract.Data.CONTACT_ID,
                     ContactsContract.Data.DISPLAY_NAME,
-                    ContactsContract.Data.DATA1,
-                    ContactsContract.Data.DATA3,
+                    Phone.NUMBER,
                     ContactsContract.Data.DATA5,
                     ContactsContract.Data.MIMETYPE,
                     ContactsContract.Data.PHOTO_URI,
+                    ContactsContract.Data.IS_PRIMARY,
+                    ContactsContract.Data.IS_SUPER_PRIMARY,
                 )
 
                 val selection = ContactsContract.Data.DISPLAY_NAME + " LIKE ?"
@@ -82,40 +84,58 @@ object ContactsSearchProvider : SearchProvider, SearchPermission {
                     selectionArgs,
                     null,
                 )?.use {
-                    while (it.moveToNext() && contactMap.size < max) {
-                        val contactIdIndex = it.getColumnIndex(ContactsContract.Data.CONTACT_ID)
-                        val displayNameIndex = it.getColumnIndex(ContactsContract.Data.DISPLAY_NAME)
-                        val data1Index = it.getColumnIndex(ContactsContract.Data.DATA1)
-                        val data3Index = it.getColumnIndex(ContactsContract.Data.DATA3)
-                        val data5Index = it.getColumnIndex(ContactsContract.Data.DATA5)
-                        val mimeTypeIndex = it.getColumnIndex(ContactsContract.Data.MIMETYPE)
-                        val photoUriIndex = it.getColumnIndex(ContactsContract.Data.PHOTO_URI)
-                        val contactId = it.getString(contactIdIndex)
-                        val displayName = it.getString(displayNameIndex)
-                        val data1 = it.getString(data1Index)
-                        val data3 = it.getString(data3Index)
+                    val dataIdIndex = it.getColumnIndexOrThrow(ContactsContract.Data._ID)
+                    val contactIdIndex = it.getColumnIndexOrThrow(ContactsContract.Data.CONTACT_ID)
+                    val displayNameIndex = it.getColumnIndexOrThrow(ContactsContract.Data.DISPLAY_NAME)
+                    val numberIndex = it.getColumnIndexOrThrow(Phone.NUMBER)
+                    val data5Index = it.getColumnIndexOrThrow(ContactsContract.Data.DATA5)
+                    val mimeTypeIndex = it.getColumnIndexOrThrow(ContactsContract.Data.MIMETYPE)
+                    val photoUriIndex = it.getColumnIndexOrThrow(ContactsContract.Data.PHOTO_URI)
+                    val primaryIndex = it.getColumnIndexOrThrow(ContactsContract.Data.IS_PRIMARY)
+                    val superPrimaryIndex = it.getColumnIndexOrThrow(ContactsContract.Data.IS_SUPER_PRIMARY)
+                    // Rows for one contact may be interleaved. Reaching the result limit must
+                    // not prevent reading the selected contacts' later phone or default rows.
+                    while (it.moveToNext()) {
+                        val contactId = it.getString(contactIdIndex)?.takeIf { id -> id.isNotBlank() } ?: continue
+                        if (contactId !in contactMap && contactMap.size >= max) continue
+                        val displayName = it.getString(displayNameIndex).orEmpty()
                         val data5 = it.getString(data5Index)
-                        val mimeType = it.getString(mimeTypeIndex)
+                        val mimeType = it.getString(mimeTypeIndex) ?: continue
                         val photoUri = it.getString(photoUriIndex)
-                        val phoneNumber = data3 ?: data5 ?: data1
-                        val key = contactId ?: phoneNumber
                         val imageUri = photoUri ?: ""
-                        val pkg = contactId + displayName + phoneNumber
-                        if (key != null && !EXCLUDED_MIME_TYPES.contains(mimeType)) {
-                            contactMap[key] = ContactInfo(
-                                contactId,
-                                displayName,
-                                phoneNumber,
-                                imageUri,
-                                pkg,
-                            )
+                        if (!EXCLUDED_MIME_TYPES.contains(mimeType)) {
+                            // Non-phone data still makes a useful contact-detail result, but
+                            // DATA1/DATA3/DATA5 have MIME-specific meanings, not phone fallbacks.
+                            val contact = contactMap.getOrPut(contactId) {
+                                ContactInfo(contactId, displayName, "", imageUri, contactId + displayName)
+                            }
+                            val phoneNumber = if (mimeType == Phone.CONTENT_ITEM_TYPE) {
+                                it.getString(numberIndex)?.takeIf { number -> number.isNotBlank() }
+                            } else {
+                                null
+                            }
+                            if (phoneNumber != null) {
+                                val priority = when {
+                                    it.getInt(superPrimaryIndex) != 0 -> 2
+                                    it.getInt(primaryIndex) != 0 -> 1
+                                    else -> 0
+                                }
+                                val dataId = it.getLong(dataIdIndex)
+                                val previous = phonePreferences[contactId]
+                                if (previous == null || priority > previous.first ||
+                                    (priority == previous.first && dataId < previous.second)
+                                ) {
+                                    contact.number = phoneNumber
+                                    phonePreferences[contactId] = priority to dataId
+                                }
+                            }
                         } else {
                             if (contactMap.containsKey(contactId)) {
                                 val existingContact = contactMap[contactId]
                                 val jsonArray = buildJsonArray {
                                     add(
                                         buildJsonObject {
-                                            put(CONTACT_ACCOUNT_ID, key)
+                                            put(CONTACT_ACCOUNT_ID, contactId)
                                             put(CONTACT_ACCOUNT_TITLE, data5)
                                             put(CONTACT_ACCOUNT_MIME, mimeType)
                                         },
