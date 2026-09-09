@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Expressive mirrors Pixel Launcher's first-run behavior: Discover is available by default.
+         This flavor override leaves the upstream Lawnchair default and explicit user choices alone. -->
+    <bool name="config_default_enable_feed">true</bool>
+</resources>

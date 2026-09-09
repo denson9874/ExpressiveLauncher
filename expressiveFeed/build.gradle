@@ -1,0 +1,144 @@
+import com.android.build.api.artifact.SingleArtifact
+
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+final def feedVersionCodeText = providers.gradleProperty("expressiveVersionCode")
+        .orElse("13")
+        .get()
+final def feedVersionName = providers.gradleProperty("expressiveVersionName")
+        .orElse("1.0.12")
+        .get()
+final def feedVersionCode = feedVersionCodeText.isInteger()
+        ? feedVersionCodeText.toInteger()
+        : -1
+
+if (feedVersionCode < 1 || feedVersionCode > 2_100_000_000) {
+    throw new GradleException("expressiveVersionCode must be an integer from 1 through 2100000000")
+}
+
+// The launcher and bridge must always have the same signer. Signature permission enforcement is
+// what prevents unrelated applications from routing arbitrary Binder calls through this process.
+final def signingProperties = new Properties()
+final def signingPropertiesPath = System.getenv("EXPRESSIVE_KEYSTORE_PROPERTIES")
+final def signingPropertiesFile = signingPropertiesPath
+        ? rootProject.file(signingPropertiesPath)
+        : rootProject.file("keystore.properties")
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+final def signingValue = { String propertyName, String environmentName, String legacyEnvironmentName ->
+    System.getenv(environmentName) ?: System.getenv(legacyEnvironmentName) ?: signingProperties[propertyName]
+}
+final def signingStoreFile = signingValue("storeFile", "EXPRESSIVE_RELEASE_STORE_FILE", "EXPRESSIVE_UPLOAD_STORE_FILE")
+final def signingStorePassword = signingValue("storePassword", "EXPRESSIVE_RELEASE_STORE_PASSWORD", "EXPRESSIVE_UPLOAD_STORE_PASSWORD")
+final def signingKeyAlias = signingValue("keyAlias", "EXPRESSIVE_RELEASE_KEY_ALIAS", "EXPRESSIVE_UPLOAD_KEY_ALIAS")
+final def signingKeyPassword = signingValue("keyPassword", "EXPRESSIVE_RELEASE_KEY_PASSWORD", "EXPRESSIVE_UPLOAD_KEY_PASSWORD")
+final def signingValues = [
+        signingStoreFile,
+        signingStorePassword,
+        signingKeyAlias,
+        signingKeyPassword,
+]
+final def releaseSigningConfigured = signingValues.every {
+    it != null && !it.toString().isBlank()
+}
+if (signingValues.any { it != null && !it.toString().isBlank() } && !releaseSigningConfigured) {
+    throw new GradleException(
+            "Expressive release signing is only partially configured. Provide storeFile, " +
+                    "storePassword, keyAlias, and keyPassword together.",
+    )
+}
+
+android {
+    namespace "dev.launcher.expressive.feed"
+
+    defaultConfig {
+        applicationId "dev.launcher.expressive.feed"
+        versionCode feedVersionCode
+        versionName feedVersionName
+    }
+
+    buildFeatures {
+        aidl true
+        buildConfig false
+    }
+
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            release {
+                keyAlias signingKeyAlias
+                keyPassword signingKeyPassword
+                storeFile rootProject.file(signingStoreFile)
+                storePassword signingStorePassword
+                enableV1Signing false
+                enableV2Signing true
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Google permits legacy DrawerOverlayService access only to system/debuggable clients.
+            // This bridge has no UI or data permissions and accepts only same-signed launchers.
+            debuggable true
+            minifyEnabled false
+        }
+
+        release {
+            // Intentionally limited to this isolated companion; Expressive Launcher stays hardened.
+            debuggable true
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    testOptions {
+        unitTests.includeAndroidResources = false
+    }
+}
+
+dependencies {
+    testImplementation libs.junit
+    testImplementation libs.google.truth
+}
+
+// AGP 9 adds Kotlin stdlib to application modules by default. This bridge is deliberately
+// Java/platform-only, so exclude the unused runtime and keep the companion auditable and tiny.
+configurations.configureEach {
+    exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib"
+}
+
+def verifyFeedReleaseSigning = tasks.register("verifyExpressiveFeedReleaseSigning") {
+    group = "verification"
+    description = "Rejects an unsigned helper before it can be embedded in a signed launcher."
+    inputs.property("signingConfigured", releaseSigningConfigured)
+    doLast { task ->
+        if (!task.inputs.properties.signingConfigured) {
+            throw new GradleException("Expressive Feed release signing must match the launcher's durable signing configuration")
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name in ["packageRelease", "assembleRelease", "bundleRelease"]) {
+        task.dependsOn verifyFeedReleaseSigning
+    }
+}
+
+// Export APK directories through Gradle's dependency graph. The root project consumes these
+// artifacts without evaluating this project's model or guessing AGP output/task paths.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def capitalizedVariant = variant.name.capitalize()
+        configurations.create("expressiveFeed${capitalizedVariant}ApkElements") {
+            canBeConsumed = true
+            canBeResolved = false
+            outgoing.artifact(variant.artifacts.get(SingleArtifact.APK.INSTANCE)) {
+                type = "directory"
+            }
+        }
+    }
+}

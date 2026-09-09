@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+** Copyright 2019, The Android Open Source Project
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+** Modifications copyright 2021, Lawnchair
+*/
+
+Standard Home application policy for Expressive Launcher L3.
+
+The implementation continues to compile Lawnchair's Quickstep-derived launcher classes, but
+this installable flavor does not advertise itself as a privileged Recents implementation.
+SystemUI remains responsible for Overview and gesture navigation.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="ProtectedPermissions">
+
+    <uses-sdk
+        tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk.client" />
+
+    <queries>
+        <package android:name="dev.launcher.expressive.feed" />
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.android.package-archive" />
+        </intent>
+    </queries>
+
+    <!-- Both independently installed APKs declare this permission so either one can be installed
+         first. Matching signatures are required before the launcher can bind the feed service. -->
+    <permission
+        android:name="dev.launcher.expressive.feed.permission.CONNECT"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="dev.launcher.expressive.feed.permission.CONNECT" />
+    <!-- Direct distribution uses Android's per-source user approval for in-app APK updates. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- LauncherProvider remains externally addressable, but only to same-signature clients. -->
+    <permission
+        android:name="${applicationId}.permission.READ_SETTINGS"
+        android:description="@string/permdesc_read_settings"
+        android:label="@string/permlab_read_settings"
+        android:protectionLevel="signature"
+        tools:node="replace" />
+    <permission
+        android:name="${applicationId}.permission.WRITE_SETTINGS"
+        android:description="@string/permdesc_write_settings"
+        android:label="@string/permlab_write_settings"
+        android:protectionLevel="signature"
+        tools:node="replace" />
+
+    <uses-permission
+        android:name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.START_TASKS_FROM_RECENTS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.REMOVE_TASKS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.MANAGE_ACTIVITY_TASKS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.INTERNAL_SYSTEM_WINDOW"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.STATUS_BAR"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.STATUS_BAR_SERVICE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.STOP_APP_SWITCHES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.SET_ORIENTATION"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_FRAME_BUFFER"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.MANAGE_ACCESSIBILITY"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.MONITOR_INPUT"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ALLOW_SLIPPERY_TOUCHES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_SHORTCUTS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.SYSTEM_APPLICATION_OVERLAY"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_HIDDEN_PROFILES_FULL"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.MANAGE_KEY_GESTURES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.INTERACT_ACROSS_USERS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.INTERACT_ACROSS_USERS_FULL"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.SUSPEND_APPS"
+        tools:node="remove" />
+
+    <!-- Protected platform capabilities that are unavailable to an ordinary Home-role APK. -->
+    <uses-permission
+        android:name="android.permission.MANAGE_USERS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.FORCE_STOP_PACKAGES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_DEVICE_CONFIG"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_RESTRICTED_SETTINGS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ROTATE_SURFACE_FLINGER"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WAKEUP_SURFACE_FLINGER"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.CAPTURE_BLACKOUT_CONTENT"
+        tools:node="remove" />
+    <!-- AppWidgetHost binding is authorized by the system confirmation flow. BIND_APPWIDGET is a
+         signature-only permission that a Play-distributed Home app cannot receive. -->
+    <uses-permission
+        android:name="android.permission.BIND_APPWIDGET"
+        tools:node="remove" />
+
+    <!-- Direct-distribution builds check their fixed QA/release feed in the background. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Removed browser-history permissions no longer back any Launcher3 product behavior. -->
+    <uses-permission
+        android:name="android.permission.READ_HISTORY_BOOKMARKS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_HISTORY_BOOKMARKS"
+        tools:node="remove" />
+
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <!--
+         Expressive uses direct distribution. File search still uses a user-selected Storage Access
+         Framework tree, so prevent dependencies from merging restricted broad-storage or
+         visual-media permissions into the release manifest.
+    -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+        tools:node="remove" />
+
+    <application
+        android:name="app.lawnchair.LawnchairApp"
+        android:backupAgent="com.android.launcher3.LauncherBackupAgent"
+        android:fullBackupContent="@xml/backupscheme"
+        android:fullBackupOnly="true"
+        android:hardwareAccelerated="true"
+        android:icon="@drawable/ic_launcher_home"
+        android:label="@string/derived_app_name"
+        android:largeHeap="@bool/config_largeHeap"
+        android:restoreAnyVersion="true"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <service
+            android:name="app.lawnchair.ui.preferences.about.ExpressiveUpdateJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <receiver
+            android:name="app.lawnchair.gestures.handlers.SleepMethodDeviceAdmin$SleepDeviceAdmin"
+            android:description="@string/expressive_dt2s_admin_hint"
+            tools:replace="android:description" />
+
+        <activity
+            android:name="app.lawnchair.LawnchairLauncher"
+            android:clearTaskOnLaunch="true"
+            android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:enabled="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:resumeWhilePausing="true"
+            android:stateNotNeeded="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustPan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.SHOW_WORK_APPS" />
+                <action android:name="android.intent.action.ALL_APPS" />
+
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.MONKEY" />
+                <category android:name="android.intent.category.LAUNCHER_APP" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="com.android.launcher3.grid.control"
+                android:value="${applicationId}.grid_control" />
+        </activity>
+
+        <service
+            android:name="com.android.quickstep.TouchInteractionService"
+            tools:node="remove" />
+
+        <activity
+            android:name="com.android.quickstep.RecentsActivity"
+            tools:node="remove" />
+        <activity
+            android:name="com.android.quickstep.interaction.GestureSandboxActivity"
+            tools:node="remove" />
+        <activity
+            android:name="com.android.quickstep.interaction.AllSetActivity"
+            tools:node="remove" />
+        <!--
+             Keep the result proxy even though this flavor is not a privileged Quickstep
+             implementation. QuickstepLauncher routes AppWidget bind/configuration activities
+             through this internal activity so results survive Launcher task recreation. Removing
+             it made every first-time widget bind crash with ActivityNotFoundException.
+        -->
+        <activity
+            android:name="com.android.launcher3.proxy.ProxyActivityStarter"
+            android:clearTaskOnLaunch="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@style/ProxyActivityStarterTheme"
+            tools:node="merge" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.overview.fileprovider"
+            tools:node="remove" />
+
+        <meta-data
+            android:name="xyz.paphonb.quickstepswitcher.minSdk"
+            tools:node="remove" />
+        <meta-data
+            android:name="xyz.paphonb.quickstepswitcher.maxSdk"
+            tools:node="remove" />
+    </application>
+</manifest>

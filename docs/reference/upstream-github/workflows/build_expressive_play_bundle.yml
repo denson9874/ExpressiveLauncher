@@ -1,0 +1,99 @@
+name: Build Expressive Play bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: Monotonically increasing Google Play version code
+        required: true
+        type: number
+      version_name:
+        description: User-facing version, for example 1.0.0
+        required: true
+        type: string
+      application_id:
+        description: Permanent Play package ID
+        required: true
+        default: dev.launcher.expressive.l3
+        type: string
+      privacy_policy_url:
+        description: Public HTTPS privacy policy for Expressive Launcher L3
+        required: true
+        type: string
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      EXPRESSIVE_UPLOAD_STORE_FILE: ${{ runner.temp }}/expressive-upload.jks
+      EXPRESSIVE_UPLOAD_STORE_PASSWORD: ${{ secrets.EXPRESSIVE_UPLOAD_STORE_PASSWORD }}
+      EXPRESSIVE_UPLOAD_KEY_ALIAS: ${{ secrets.EXPRESSIVE_UPLOAD_KEY_ALIAS }}
+      EXPRESSIVE_UPLOAD_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_UPLOAD_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Run release quality gate
+        run: >-
+          ./gradlew
+          --no-parallel
+          testLawnWithQuickstepExpressiveDebugUnitTest
+          lintLawnWithQuickstepExpressiveRelease
+      - name: Restore upload keystore
+        env:
+          EXPRESSIVE_UPLOAD_KEYSTORE_BASE64: ${{ secrets.EXPRESSIVE_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$EXPRESSIVE_UPLOAD_KEYSTORE_BASE64"
+          printf '%s' "$EXPRESSIVE_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$EXPRESSIVE_UPLOAD_STORE_FILE"
+          chmod 600 "$EXPRESSIVE_UPLOAD_STORE_FILE"
+      - name: Build signed release bundle
+        run: >-
+          ./gradlew
+          --no-parallel
+          assembleLawnWithQuickstepExpressiveRelease
+          bundleLawnWithQuickstepExpressiveRelease
+          -PexpressiveApplicationId='${{ inputs.application_id }}'
+          -PexpressiveVersionCode='${{ inputs.version_code }}'
+          -PexpressiveVersionName='${{ inputs.version_name }}'
+          -PexpressivePrivacyPolicyUrl='${{ inputs.privacy_policy_url }}'
+      - name: Verify release-only feature packaging
+        shell: bash
+        run: |
+          apk_path="$(find build/outputs/apk/lawnWithQuickstepExpressive/release -type f -name '*.apk' -print -quit)"
+          aapt2_path="$(find "$ANDROID_HOME/build-tools" -type f -name aapt2 | sort -V | tail -n 1)"
+          test -n "$apk_path"
+          test -x "$aapt2_path"
+          resources_dump="${RUNNER_TEMP}/expressive-resources.txt"
+          "$aapt2_path" dump resources "$apk_path" > "$resources_dump"
+          for required_resource in \
+            about_easter_egg_title \
+            about_daily_spark_title \
+            about_daily_quote_1 \
+            wallpaper_carousel_home; do
+            if ! grep -q "$required_resource" "$resources_dump"; then
+              echo "Missing required release resource: $required_resource" >&2
+              exit 1
+            fi
+          done
+          if "$aapt2_path" dump badging "$apk_path" | grep -q 'application-debuggable'; then
+            echo "Release APK is unexpectedly debuggable" >&2
+            exit 1
+          fi
+      - name: Preserve Play artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: expressive-play-${{ inputs.version_name }}-${{ inputs.version_code }}
+          if-no-files-found: error
+          path: |
+            build/outputs/bundle/lawnWithQuickstepExpressiveRelease/*.aab
+            build/outputs/mapping/lawnWithQuickstepExpressiveRelease/mapping.txt
+            build/outputs/mapping/lawnWithQuickstepExpressiveRelease/resources.txt
+            build/outputs/mapping/lawnWithQuickstepExpressiveRelease/usage.txt
+          retention-days: 30

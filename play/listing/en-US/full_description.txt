@@ -1,0 +1,19 @@
+Expressive Launcher L3 is an independent, customizable Home app built for Android 17.
+
+It combines the familiar structure of Android's Launcher3 with an expressive Material design, flexible icon options, and a fast app list while remaining a standard Home app that works without root access.
+
+Highlights:
+
+- Pixel-inspired first-run Home layout
+- Material You colors and themed icons
+- Adaptive icons, monochrome icons, and third-party icon packs
+- Customizable grid, dock, labels, shapes, colors, and fonts
+- Widgets with normal Android bind and configuration flows
+- App search, optional contact and file search, and fast scrolling
+- Folders, work profile, Private Space, and hidden-app controls
+- Optional At a Glance integration with Smartspacer
+- Optional gesture actions with clear Android permission controls
+
+Expressive Launcher L3 is a standard Home application. Android System UI remains responsible for system gesture navigation and Recents. Some optional integrations require a compatible app or permission selected by the user.
+
+Expressive Launcher L3 is an independent project and is not affiliated with or endorsed by Google. Android, Pixel, and Material are trademarks of Google LLC.

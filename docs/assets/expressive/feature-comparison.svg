@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="870" viewBox="0 0 1240 870" role="img" aria-labelledby="title desc">
+<title id="title">Launcher3, Lawnchair, and Expressive Launcher feature comparison</title>
+<desc id="desc">Shared Launcher3 and Lawnchair strengths, with Expressive additions highlighted. Full accessible comparison and sources are linked below the image.</desc>
+<rect width="1240" height="870" rx="28" fill="#f8f6ef"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<text x="38" y="49" font-size="14" font-weight="700" letter-spacing="2" fill="#637165">THREE LAUNCHERS, ONE FAMILY</text>
+<text x="36" y="94" font-size="34" font-weight="700" fill="#173b34">Shared strengths. Expressive refinements.</text>
+<text x="38" y="128" font-size="16" fill="#5d685e">Compared with AOSP Launcher3 and the Lawnchair 16 baseline used by Expressive.</text>
+<rect x="292" y="160" width="282" height="634" rx="20" fill="#e8ede7"/>
+<text x="312" y="196" font-size="24" font-weight="700" fill="#173b34">AOSP Launcher3</text>
+<text x="312" y="223" font-size="15" fill="#435c4d">The Android foundation</text>
+<rect x="590" y="160" width="282" height="634" rx="20" fill="#eee7d9"/>
+<text x="610" y="196" font-size="24" font-weight="700" fill="#173b34">Lawnchair 16</text>
+<text x="610" y="223" font-size="15" fill="#435c4d">Customization toolkit</text>
+<rect x="888" y="160" width="282" height="634" rx="20" fill="#d9f591"/>
+<text x="908" y="196" font-size="24" font-weight="700" fill="#173b34">Expressive</text>
+<text x="908" y="223" font-size="15" fill="#435c4d">Our added focus</text>
+<text x="38" y="282" font-size="18" font-weight="700" fill="#173b34">Home foundation</text>
+<text x="312" y="270" font-size="18" font-weight="400" fill="#173b34">Native Launcher3 core</text>
+<text x="610" y="270" font-size="18" font-weight="400" fill="#173b34">Built on Launcher3</text>
+<text x="908" y="270" font-size="18" font-weight="700" fill="#173b34">Launcher3 + Lawnchair</text>
+<text x="38" y="358" font-size="18" font-weight="700" fill="#173b34">Personalization</text>
+<path d="M312 320h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="312" y="346" font-size="18" font-weight="400" fill="#173b34">Platform defaults</text>
+<path d="M610 320h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="610" y="346" font-size="18" font-weight="400" fill="#173b34">Icon packs, fonts, colors</text>
+<path d="M908 320h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="908" y="346" font-size="18" font-weight="700" fill="#173b34">Same toolkit + focused</text>
+<text x="908" y="370" font-size="18" font-weight="700" fill="#173b34">settings</text>
+<text x="38" y="434" font-size="18" font-weight="700" fill="#173b34">Search</text>
+<path d="M312 396h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="312" y="422" font-size="18" font-weight="400" fill="#173b34">App search foundation</text>
+<path d="M610 396h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="610" y="422" font-size="18" font-weight="400" fill="#173b34">Apps, contacts, web</text>
+<path d="M908 396h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="908" y="422" font-size="18" font-weight="700" fill="#173b34">Global search + clearer</text>
+<text x="908" y="446" font-size="18" font-weight="700" fill="#173b34">contact actions</text>
+<text x="38" y="510" font-size="18" font-weight="700" fill="#173b34">At a Glance</text>
+<path d="M312 472h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="312" y="498" font-size="18" font-weight="400" fill="#173b34">Integration dependent</text>
+<path d="M610 472h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="610" y="498" font-size="18" font-weight="400" fill="#173b34">Weather + Smartspacer</text>
+<path d="M908 472h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="908" y="498" font-size="18" font-weight="700" fill="#173b34">Date-first fallback +</text>
+<text x="908" y="522" font-size="18" font-weight="700" fill="#173b34">weather recovery</text>
+<text x="38" y="586" font-size="18" font-weight="700" fill="#173b34">Google Discover</text>
+<path d="M312 548h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="312" y="574" font-size="18" font-weight="400" fill="#173b34">Integration dependent</text>
+<path d="M610 548h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="610" y="574" font-size="18" font-weight="400" fill="#173b34">Provider / bridge setup</text>
+<path d="M908 548h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="908" y="574" font-size="18" font-weight="700" fill="#173b34">Bundled support + guided</text>
+<text x="908" y="598" font-size="18" font-weight="700" fill="#173b34">setup</text>
+<text x="38" y="662" font-size="18" font-weight="700" fill="#173b34">Everyday settings</text>
+<path d="M312 624h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="312" y="650" font-size="18" font-weight="400" fill="#173b34">Platform Home controls</text>
+<path d="M610 624h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="610" y="650" font-size="18" font-weight="400" fill="#173b34">Broad customization</text>
+<path d="M908 624h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="908" y="650" font-size="18" font-weight="700" fill="#173b34">Pixel-first layout +</text>
+<text x="908" y="674" font-size="18" font-weight="700" fill="#173b34">Advanced controls</text>
+<text x="38" y="738" font-size="18" font-weight="700" fill="#173b34">Update delivery</text>
+<path d="M312 700h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="312" y="726" font-size="18" font-weight="400" fill="#173b34">Device / distributor</text>
+<path d="M610 700h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="610" y="726" font-size="18" font-weight="400" fill="#173b34">Lawnchair release channels</text>
+<path d="M908 700h242" stroke="#173b34" stroke-opacity=".12"/>
+<text x="908" y="726" font-size="18" font-weight="700" fill="#173b34">GitHub alerts + verified</text>
+<text x="908" y="750" font-size="18" font-weight="700" fill="#173b34">APKs</text>
+<text x="38" y="831" font-size="15" fill="#5d685e">Shared features are credited to their upstream projects. Availability depends on build, device, and providers.</text>
+</g></svg>

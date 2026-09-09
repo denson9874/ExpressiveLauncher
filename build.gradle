@@ -1,0 +1,869 @@
+import app.cash.licensee.SpdxId
+import com.android.build.gradle.api.AndroidBasePlugin
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.bundling.Jar
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.android.test) apply false
+    alias(libs.plugins.androidx.baselineprofile)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.ksp)
+    alias(libs.plugins.google.protobuf)
+    alias(libs.plugins.cash.licensee)
+    alias(libs.plugins.rikka.refine)
+    alias(libs.plugins.diffplug.spotless)
+}
+
+allprojects {
+    plugins.withType(AndroidBasePlugin).configureEach {
+        android {
+            compileSdk {
+                version = release(37) {
+                    minorApiLevel = 1
+                }
+            }
+            defaultConfig {
+                minSdk = 37
+                targetSdk = 37
+                vectorDrawables.useSupportLibrary = true
+            }
+            lint {
+                abortOnError true
+                checkReleaseBuilds false
+            }
+            compileOptions {
+                sourceCompatibility = libs.versions.jdkRelease.get()
+                targetCompatibility = libs.versions.jdkRelease.get()
+            }
+        }
+        // The feed companion deliberately uses only platform APIs. Keeping AndroidX out of that
+        // isolated APK avoids unrelated initializers, receivers, and generated permissions.
+        if (project.path != ":expressiveFeed") {
+            dependencies {
+                implementation libs.androidx.core.ktx
+                implementation libs.androidx.core.animation
+            }
+        }
+    }
+
+    plugins.withId('com.google.protobuf') {
+        protobuf {
+            // Configure the protoc executable
+            protoc {
+                artifact = libs.protobuf.protoc.get().toString()
+            }
+            generateProtoTasks {
+                all().configureEach { task ->
+                    task.builtins {
+                        java {
+                            option "lite"
+                        }
+                    }
+                }
+            }
+        }
+        dependencies {
+            implementation libs.protobuf.javalite
+        }
+    }
+
+    plugins.withType(JavaBasePlugin).configureEach {
+        java {
+            sourceCompatibility = libs.versions.jdkRelease.get()
+            targetCompatibility = libs.versions.jdkRelease.get()
+        }
+    }
+
+    tasks.withType(KotlinCompile).configureEach {
+        compilerOptions {
+            jvmDefault = JvmDefaultMode.ENABLE
+            jvmTarget = JvmTarget.fromTarget(libs.versions.jdkRelease.get())
+        }
+    }
+
+    ext {
+        FRAMEWORK_PREBUILTS_DIR = "$rootDir/prebuilts/libs"
+
+        addFrameworkJar = { String name ->
+            def frameworkJar = new File(FRAMEWORK_PREBUILTS_DIR, name)
+            if (!frameworkJar.exists()) {
+                throw new IllegalArgumentException("Framework jar path ${frameworkJar.path} doesn't exist")
+            }
+            gradle.projectsEvaluated {
+                tasks.withType(JavaCompile).configureEach {
+                    // Make sure the frameworkJar is always first in the classpath.
+                    classpath = files(frameworkJar, classpath)
+                }
+                tasks.withType(KotlinCompile).configureEach {
+                    // Make sure the frameworkJar is always first in the classpath.
+                    libraries.setFrom files(frameworkJar, libraries)
+                }
+            }
+            dependencies {
+                compileOnly files(frameworkJar)
+            }
+        }
+
+        compileOnlyCommonJars = {
+            dependencies {
+                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-core-16.jar')
+                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-statsd-16.jar')
+                compileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'WindowManager-Shell-16.jar')
+
+                compileOnly projects.compatLib
+                compileOnly projects.compatLib.compatLibVQ
+                compileOnly projects.compatLib.compatLibVR
+                compileOnly projects.compatLib.compatLibVS
+                compileOnly projects.compatLib.compatLibVT
+                compileOnly projects.compatLib.compatLibVU
+                compileOnly projects.compatLib.compatLibVV
+                compileOnly projects.compatLib.compatLibVBaklava
+            }
+        }
+    }
+}
+
+final def buildCommit = providers.exec {
+    commandLine('git', 'rev-parse', '--short=7', 'HEAD')
+}.standardOutput.asText.get().trim()
+
+final def ciBuild = System.getenv("CI") == "true"
+final def ciRef = System.getenv("GITHUB_REF") ?: ""
+final def ciRunNumber = System.getenv("GITHUB_RUN_NUMBER") ?: ""
+final def isReleaseBuild = ciBuild
+        && (ciRef.endsWith("-alpha")
+        || ciRef.endsWith("-beta")
+        || ciRef.endsWith("-rc")
+        || ciRef.endsWith("-stable"))
+final def devReleaseName = ciBuild ? "Dev.(#${ciRunNumber})" : "Dev.(${buildCommit})"
+
+final def version = "16"
+final def releaseName = "Development 5.1"
+final def versionDisplayName = "${version}.${isReleaseBuild ? releaseName : devReleaseName}"
+final def majorVersion = versionDisplayName.split("\\.")[0]
+
+// The direct-distribution identity is intentionally explicit. Android accepts an in-place update
+// only when the application ID and signing lineage match the installed build.
+final def expressiveApplicationId = providers.gradleProperty("expressiveApplicationId")
+        .orElse("dev.launcher.expressive.l3")
+        .get()
+final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
+        .orElse("13")
+        .get()
+final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
+        .orElse("1.0.12")
+        .get()
+final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
+        .orElse("")
+        .get()
+final def expressiveQaUpdateManifestUrl = providers.gradleProperty("expressiveQaUpdateManifestUrl")
+        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json")
+        .get()
+final def expressiveReleaseUpdateManifestUrl = providers.gradleProperty("expressiveReleaseUpdateManifestUrl")
+        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json")
+        .get()
+final def expressiveVersionCode = expressiveVersionCodeText.isInteger()
+        ? expressiveVersionCodeText.toInteger()
+        : -1
+
+if (!(expressiveApplicationId ==~ /[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+/)) {
+    throw new GradleException("expressiveApplicationId must be a valid Android application ID")
+}
+if (expressiveVersionCode < 1 || expressiveVersionCode > 2_100_000_000) {
+    throw new GradleException("expressiveVersionCode must be an integer from 1 through 2100000000")
+}
+
+// Release credentials may come from an ignored local file or CI environment variables. Never
+// fall back to the Android debug certificate: every direct update must retain the same signer.
+final def expressiveKeystoreProperties = new Properties()
+final def expressiveKeystorePropertiesPath = System.getenv("EXPRESSIVE_KEYSTORE_PROPERTIES")
+final def expressiveKeystorePropertiesFile = expressiveKeystorePropertiesPath
+        ? rootProject.file(expressiveKeystorePropertiesPath)
+        : rootProject.file("keystore.properties")
+if (expressiveKeystorePropertiesFile.exists()) {
+    expressiveKeystorePropertiesFile.withInputStream { expressiveKeystoreProperties.load(it) }
+}
+final def expressiveSigningValue = { String propertyName, String environmentName, String legacyEnvironmentName ->
+    System.getenv(environmentName)
+            ?: System.getenv(legacyEnvironmentName)
+            ?: expressiveKeystoreProperties[propertyName]
+}
+final def expressiveStoreFile = expressiveSigningValue(
+        "storeFile",
+        "EXPRESSIVE_RELEASE_STORE_FILE",
+        "EXPRESSIVE_UPLOAD_STORE_FILE",
+)
+final def expressiveStorePassword = expressiveSigningValue(
+        "storePassword",
+        "EXPRESSIVE_RELEASE_STORE_PASSWORD",
+        "EXPRESSIVE_UPLOAD_STORE_PASSWORD",
+)
+final def expressiveKeyAlias = expressiveSigningValue(
+        "keyAlias",
+        "EXPRESSIVE_RELEASE_KEY_ALIAS",
+        "EXPRESSIVE_UPLOAD_KEY_ALIAS",
+)
+final def expressiveKeyPassword = expressiveSigningValue(
+        "keyPassword",
+        "EXPRESSIVE_RELEASE_KEY_PASSWORD",
+        "EXPRESSIVE_UPLOAD_KEY_PASSWORD",
+)
+final def expressiveSigningValues = [
+        expressiveStoreFile,
+        expressiveStorePassword,
+        expressiveKeyAlias,
+        expressiveKeyPassword,
+]
+final def expressiveSigningConfigured = expressiveSigningValues.every { it != null && !it.toString().isBlank() }
+if (expressiveSigningValues.any { it != null && !it.toString().isBlank() } && !expressiveSigningConfigured) {
+    throw new GradleException(
+            "Expressive release signing is only partially configured. Provide storeFile, " +
+                    "storePassword, keyAlias, and keyPassword together.",
+    )
+}
+
+final def quickstepMinSdk = "29"
+final def quickstepMaxSdk = "36"
+
+android {
+    namespace "com.android.launcher3"
+    defaultConfig {
+        /*
+         * Lawnchair Launcher 16.0 Development 5.1
+         * see CONTRIBUTING.md#versioning-scheme
+         */
+        versionCode 16_00_01_05_01
+        versionName "${versionDisplayName}"
+        buildConfigField "String", "VERSION_DISPLAY_NAME", "\"${versionDisplayName}\""
+        buildConfigField "String", "MAJOR_VERSION", "\"${majorVersion}\""
+        buildConfigField "String", "COMMIT_HASH", "\"${buildCommit}\""
+        buildConfigField "boolean", "ENABLE_AUTO_INSTALLS_LAYOUT", "false"
+        buildConfigField "boolean", "STANDARD_HOME_ONLY", "false"
+        buildConfigField "boolean", "IS_EXPRESSIVE_PRODUCT", "false"
+        buildConfigField "String", "EXPRESSIVE_QA_UPDATE_MANIFEST_URL", '""'
+        buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", '""'
+        // This must match the channel manifest. Play-distributed variants use the Storage Access
+        // Framework instead of requesting Android's policy-restricted all-files permission.
+        buildConfigField "boolean", "CAN_REQUEST_MANAGE_ALL_FILES_ACCESS", "false"
+        // Broad visual-media library access is also excluded from Play-distributed channels.
+        // Those builds use the user-selected SAF folder instead.
+        buildConfigField "boolean", "CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS", "false"
+        buildConfigField "String", "PRIVACY_POLICY_URL", '"https://lawnchair.app/privacy_policy"'
+        resValue("string", "derived_app_name", "Lawnchair")
+
+        manifestPlaceholders.quickstepMinSdk = quickstepMinSdk
+        manifestPlaceholders.quickstepMaxSdk = quickstepMaxSdk
+        buildConfigField "int", "QUICKSTEP_MIN_SDK", quickstepMinSdk
+        buildConfigField "int", "QUICKSTEP_MAX_SDK", quickstepMaxSdk
+    }
+
+    androidResources {
+        generateLocaleConfig true
+    }
+
+    buildFeatures {
+        aidl true
+        buildConfig true
+        resValues true
+    }
+
+    packagingOptions.resources.excludes += [
+        "**/*.proto",
+        "**/*.bin",
+        "**/*.java",
+        "**/*.properties",
+        "**/*.version",
+        "**/*.*_module",
+        "com/**",
+        "google/**",
+        "kotlin/**",
+        "kotlinx/**",
+        "okhttp3/**",
+        "META-INF/services/**",
+        "META-INF/com/**",
+        "META-INF/licenses/**",
+        "META-INF/AL2.0",
+        "META-INF/LGPL2.1",
+    ]
+
+    // Load all proguard configs from AOSP
+    def proguardFilesFromAosp = allprojects.collect { proj ->
+        [
+            'proguard.flags',
+            'proguard_flags.flags',
+            'proguard_plugins.flags'
+        ].collect { proj.file(it) }
+    }.flatten().findAll { it.exists() }.toArray()
+
+    def releaseSigning = null
+    if (expressiveSigningConfigured) {
+        def resolvedStoreFile = rootProject.file(expressiveStoreFile)
+        if (!resolvedStoreFile.isFile()) {
+            throw new GradleException("Expressive release keystore does not exist: ${resolvedStoreFile}")
+        }
+        releaseSigning = signingConfigs.create("release") {
+            keyAlias expressiveKeyAlias
+            keyPassword expressiveKeyPassword
+            storeFile resolvedStoreFile
+            storePassword expressiveStorePassword
+            enableV1Signing false
+            enableV2Signing true
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            pseudoLocalesEnabled true
+            applicationIdSuffix ".debug"
+
+            manifestPlaceholders.quickstepMinSdk = "0"
+            manifestPlaceholders.quickstepMaxSdk = "100000"
+            buildConfigField "int", "QUICKSTEP_MIN_SDK", "0"
+            buildConfigField "int", "QUICKSTEP_MAX_SDK", "100000"
+        }
+
+        release {
+            minifyEnabled true
+            shrinkResources true
+            pseudoLocalesEnabled false
+            proguardFiles proguardFilesFromAosp + "proguard.pro"
+        }
+
+        qa {
+            initWith release
+            applicationIdSuffix ".debug"
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            matchingFallbacks = ["release"]
+            if (releaseSigning != null) {
+                signingConfig releaseSigning
+            }
+        }
+    }
+
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Android 17's ApplicationSharedMemory shadow reaches the raw file
+            // descriptor bridge, which is encapsulated by JDK 21 modules.
+            jvmArgs "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED"
+        }
+    }
+
+    // See: https://developer.android.com/studio/build/build-variants#flavor-dimensions
+    flavorDimensions += ["app", "recents", "channel"]
+
+    productFlavors {
+        lawn {
+            dimension "app"
+        }
+
+        withQuickstep {
+            dimension "recents"
+            minSdk = 37
+        }
+
+        github {
+            applicationId 'app.lawnchair'
+            dimension "channel"
+            buildConfigField "boolean", "CAN_REQUEST_MANAGE_ALL_FILES_ACCESS", "true"
+            buildConfigField "boolean", "CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS", "true"
+        }
+
+        nightly {
+            applicationId 'app.lawnchair.nightly'
+            dimension "channel"
+            buildConfigField "boolean", "CAN_REQUEST_MANAGE_ALL_FILES_ACCESS", "true"
+            buildConfigField "boolean", "CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS", "true"
+        }
+
+        play {
+            applicationId "app.lawnchair.play"
+            dimension "channel"
+            isDefault true
+        }
+
+        expressive {
+            applicationId expressiveApplicationId
+            versionCode expressiveVersionCode
+            versionName expressiveVersionName
+            dimension "channel"
+            // Keep the Expressive release credential scoped to this product flavor. It must never
+            // silently sign an upstream Lawnchair release assembled from the same source tree.
+            if (releaseSigning != null) {
+                signingConfig releaseSigning
+            }
+            buildConfigField "String", "VERSION_DISPLAY_NAME", "\"${expressiveVersionName}\""
+            // The dashboard uses MAJOR_VERSION as its compact version label. For this product,
+            // show the complete Play version instead of Lawnchair's unrelated major version 16.
+            buildConfigField "String", "MAJOR_VERSION", "\"${expressiveVersionName}\""
+            buildConfigField "boolean", "STANDARD_HOME_ONLY", "true"
+            buildConfigField "boolean", "IS_EXPRESSIVE_PRODUCT", "true"
+            buildConfigField "String", "EXPRESSIVE_QA_UPDATE_MANIFEST_URL", "\"${expressiveQaUpdateManifestUrl}\""
+            buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", "\"${expressiveReleaseUpdateManifestUrl}\""
+            buildConfigField "String", "PRIVACY_POLICY_URL", "\"${expressivePrivacyPolicyUrl}\""
+            resValue("string", "derived_app_name", "Expressive Launcher L3")
+        }
+
+    }
+
+    sourceSets {
+        main {
+            res.srcDirs = ['res']
+
+            // Lawnchair-TODO: Don't include Compose Disabled, but there's has to be another way of making this NOT long
+            java.srcDirs = ['src', 'src_plugins', 'compose/facade/core', 'compose/facade/enabled', 'compose/features']
+            kotlin.directories.addAll('src', 'src_plugins', 'compose/facade/core', 'compose/facade/enabled', 'compose/features')
+
+            manifest.srcFile 'AndroidManifest-common.xml'
+            proto {
+                srcDirs = ['protos/', 'quickstep/protos_overrides/']
+            }
+        }
+
+        test {
+            java.srcDirs = ['tests/expressiveUnit']
+            kotlin.directories.addAll('tests/expressiveUnit')
+        }
+
+        androidTest {
+            java.srcDirs = ['tests/expressiveAndroidTest']
+            kotlin.directories.addAll('tests/expressiveAndroidTest')
+            manifest.srcFile 'tests/ExpressiveAndroidTestManifest.xml'
+        }
+
+        debug {
+            java.srcDirs += ['tests/expressiveDebug']
+            kotlin.directories.addAll('tests/expressiveDebug')
+            manifest.srcFile 'tests/ExpressiveDebugManifest.xml'
+        }
+
+        lawn {
+            java.srcDirs = ['src_flags', 'src_shortcuts_overrides', 'lawnchair/src', 'tests/shared']
+            kotlin.directories.addAll('src_flags', 'src_shortcuts_overrides', 'lawnchair/src', 'tests/shared')
+            aidl.srcDirs = ['lawnchair/aidl']
+            res.srcDirs = ['lawnchair/res', 'platform_frameworks_libs_systemui/animationlib/res']
+            manifest.srcFile "lawnchair/AndroidManifest.xml"
+            assets {
+                srcDirs 'lawnchair/assets'
+            }
+            proto {
+                srcDirs = ['lawnchair/protos/']
+            }
+        }
+
+        github {
+            manifest.srcFile "github/AndroidManifest.xml"
+        }
+
+        nightly {
+            manifest.srcFile "nightly/AndroidManifest.xml"
+            res.srcDirs = ["nightly/res"]
+        }
+
+        lawnWithQuickstepGithub {
+            manifest.srcFile "quickstep/AndroidManifest-launcher.xml"
+        }
+
+        lawnWithQuickstepNightly {
+            manifest.srcFile "quickstep/AndroidManifest-launcher.xml"
+        }
+
+        lawnWithQuickstepPlay {
+            // The combined source set outranks the Lawnchair flavor that contributes broad media
+            // permissions, allowing the Play manifest to remove them reliably.
+            manifest.srcFile "play/AndroidManifest.xml"
+        }
+
+        lawnWithQuickstepExpressive {
+            manifest.srcFile "expressive/AndroidManifest-launcher.xml"
+            // Combined source sets outrank the Lawnchair app flavor. Product branding and
+            // standard-Home dimensions therefore survive resource merging for this variant.
+            res.srcDirs = ["expressive/res"]
+        }
+
+        withQuickstep {
+            res.srcDirs = ['quickstep/res', 'quickstep/recents_ui_overrides/res']
+            java.srcDirs = ['quickstep/src', 'quickstep/dagger', 'quickstep/recents_ui_overrides/src', 'quickstep/src_protolog']
+            kotlin.directories.addAll('quickstep/src', 'quickstep/dagger', 'quickstep/recents_ui_overrides/src', 'quickstep/src_protolog')
+            manifest.srcFile "quickstep/AndroidManifest.xml"
+        }
+    }
+}
+
+def verifyExpressivePlayRelease = tasks.register("verifyExpressivePlayRelease") {
+    group = "verification"
+    description = "Fails unless the Expressive Google Play identity, privacy URL, and upload key are release-ready."
+
+    doLast {
+        if (!expressiveSigningConfigured) {
+            throw new GradleException(
+                    "Expressive Play release signing is not configured. Copy " +
+                            "keystore.properties.example to the ignored keystore.properties file " +
+                            "or set the EXPRESSIVE_UPLOAD_* environment variables.",
+            )
+        }
+        if (!(expressivePrivacyPolicyUrl ==~ /https:\/\/.+/)) {
+            throw new GradleException(
+                    "Set -PexpressivePrivacyPolicyUrl=https://... to the public, product-specific " +
+                            "privacy policy before creating a Play bundle.",
+            )
+        }
+        if (expressivePrivacyPolicyUrl.contains("lawnchair.app")) {
+            throw new GradleException("Expressive Launcher must not publish with Lawnchair's privacy policy URL")
+        }
+        if (expressiveVersionName.toLowerCase(java.util.Locale.ROOT).contains("dev")) {
+            throw new GradleException("expressiveVersionName must be a user-facing release version, not a development label")
+        }
+    }
+}
+
+def verifyExpressiveDirectSigning = tasks.register("verifyExpressiveDirectSigning") {
+    group = "verification"
+    description = "Fails unless Expressive QA and release APK signing is configured."
+
+    doLast {
+        if (!expressiveSigningConfigured) {
+            throw new GradleException(
+                    "Expressive direct-release signing is not configured. Run " +
+                            "scripts/configure-expressive-release-signing.sh, copy " +
+                            "keystore.properties.example to the ignored keystore.properties file, " +
+                            "or set the EXPRESSIVE_RELEASE_* environment variables.",
+            )
+        }
+    }
+}
+
+def expressiveReleaseManifest = layout.buildDirectory.file(
+        "intermediates/merged_manifests/lawnWithQuickstepExpressiveRelease/" +
+                "processLawnWithQuickstepExpressiveReleaseManifest/AndroidManifest.xml",
+)
+def playReleaseManifest = layout.buildDirectory.file(
+        "intermediates/merged_manifests/lawnWithQuickstepPlayRelease/" +
+                "processLawnWithQuickstepPlayReleaseManifest/AndroidManifest.xml",
+)
+
+def verifyPlaySafeStorageManifests = tasks.register("verifyPlaySafeStorageManifests") {
+    group = "verification"
+    description = "Verifies that Play release manifests expose Home without restricted storage permissions."
+    dependsOn(
+            "processLawnWithQuickstepExpressiveReleaseManifest",
+            "processLawnWithQuickstepPlayReleaseManifest",
+    )
+    inputs.files(expressiveReleaseManifest, playReleaseManifest)
+
+    doLast {
+        def manifests = [
+                expressive: expressiveReleaseManifest.get().asFile,
+                play: playReleaseManifest.get().asFile,
+        ]
+        def forbiddenPermissions = [
+                "android.permission.MANAGE_EXTERNAL_STORAGE",
+                "android.permission.READ_EXTERNAL_STORAGE",
+                "android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.READ_MEDIA_IMAGES",
+                "android.permission.READ_MEDIA_VIDEO",
+                "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        ]
+
+        manifests.each { channel, manifestFile ->
+            if (!manifestFile.isFile()) {
+                throw new GradleException("Missing merged ${channel} release manifest: ${manifestFile}")
+            }
+            def manifestText = manifestFile.getText("UTF-8")
+            forbiddenPermissions.each { permission ->
+                if (manifestText.contains("android:name=\"${permission}\"")) {
+                    throw new GradleException(
+                            "${channel} release manifest must not declare ${permission}",
+                    )
+                }
+            }
+            if (!manifestText.contains("android.intent.category.HOME")) {
+                throw new GradleException("${channel} release manifest no longer exposes a Home activity")
+            }
+        }
+    }
+}
+
+verifyExpressivePlayRelease.configure {
+    dependsOn verifyPlaySafeStorageManifests
+}
+
+tasks.configureEach { task ->
+    if (task.name == "bundleLawnWithQuickstepExpressiveRelease") {
+        task.dependsOn verifyExpressivePlayRelease
+    }
+    if (task.name in [
+            "assembleLawnWithQuickstepExpressiveQa",
+            "assembleLawnWithQuickstepExpressiveRelease",
+            "packageLawnWithQuickstepExpressiveQa",
+            "packageLawnWithQuickstepExpressiveRelease",
+    ]) {
+        task.dependsOn verifyExpressiveDirectSigning
+    }
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def channel = variant.productFlavors.last().second
+        def productName = channel == "expressive" ? "ExpressiveLauncherL3" : "Lawnchair"
+        def launcherComponentKey = variant.makeResValueKey("string", "launcher_component")
+        variant.resValues.put(
+            launcherComponentKey,
+            variant.applicationId.map { applicationId ->
+                new com.android.build.api.variant.ResValue(
+                    "${applicationId}/app.lawnchair.LawnchairLauncher".toString(),
+                    "The resolved launcher component is filtered from All Apps.",
+                )
+            },
+        )
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("${productName}.${output.versionName.get()}.$channel.${variant.buildType}.apk")
+        }
+
+        // Lawnchair-TODO: A better way to sync proto file to the IDE preventing missing or outdated result. Please remove if this is the best solution we have right now
+        def capitalizedVariantName = variant.name.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + variant.name.substring(1)
+        def generatedProtoJavaDir = layout.buildDirectory
+            .dir("generated/java/generate${capitalizedVariantName}Proto/java")
+            .get()
+            .asFile
+        variant.sources.java.addStaticSourceDirectory(generatedProtoJavaDir.absolutePath)
+    }
+}
+
+// Package the same-signed feed helper as generated assets for Expressive only.
+// The helper remains a separate Android identity; the launcher stays non-debuggable in Qa/Release.
+apply from: "gradle/expressive-feed-assets.gradle"
+
+baselineProfile {
+    saveInSrc = true
+    mergeIntoMain = true
+    automaticGenerationDuringBuild = false
+}
+
+composeCompiler {
+    stabilityConfigurationFiles.addAll(
+        layout.projectDirectory.file("compose_compiler_config.conf"),
+    )
+    reportsDestination = layout.buildDirectory.dir("compose_build_reports")
+}
+
+addFrameworkJar('framework-16.jar')
+
+def robolectricConscrypt = configurations.create("robolectricConscrypt") {
+    canBeConsumed = false
+    canBeResolved = true
+}
+def unsignedRobolectricConscrypt = tasks.register("unsignedRobolectricCryptoProviders", Jar) {
+    archiveFileName = "robolectric-crypto-providers-unsigned.jar"
+    destinationDirectory = layout.buildDirectory.dir("robolectric")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from({ robolectricConscrypt.collect { zipTree(it) } })
+    // Android's unit-test bytecode transform rewrites classes. Removing the
+    // upstream JAR signature first prevents those legitimate rewrites from
+    // being rejected by Java's signed-entry verifier at test startup.
+    exclude "META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA"
+}
+
+dependencies {
+    add("robolectricConscrypt", "org.conscrypt:conscrypt-openjdk-uber:2.6.2")
+    add("robolectricConscrypt", "org.bouncycastle:bcprov-jdk18on:1.85")
+    implementation projects.iconloaderlib
+    implementation projects.searchuilib
+    implementation projects.animationlib
+    implementation projects.msdllib
+    implementation projects.contextualeducationlib
+    implementation projects.viewcapturelib
+    implementation projects.displaylib
+    implementation projects.mechanics
+
+    // Recents lib dependency
+    withQuickstepCompileOnly projects.hiddenApi
+    withQuickstepImplementation projects.shared
+    withQuickstepImplementation projects.animation
+    withQuickstepImplementation projects.unfold
+    withQuickstepImplementation projects.log
+    withQuickstepCompileOnly projects.plugin
+    withQuickstepImplementation projects.plugincore
+    withQuickstepCompileOnly projects.common
+    withQuickstepCompileOnly projects.utils
+
+    // QuickSwitch Compat
+    withQuickstepImplementation projects.compatLib
+    withQuickstepImplementation projects.compatLib.compatLibVQ
+    withQuickstepImplementation projects.compatLib.compatLibVR
+    withQuickstepImplementation projects.compatLib.compatLibVS
+    withQuickstepImplementation projects.compatLib.compatLibVT
+    withQuickstepImplementation projects.compatLib.compatLibVU
+    withQuickstepImplementation projects.compatLib.compatLibVV
+    withQuickstepImplementation projects.compatLib.compatLibVBaklava
+    withQuickstepImplementation projects.wmshell
+    withQuickstepImplementation projects.flags
+    withQuickstepImplementation projects.dagger
+    withQuickstepImplementation projects.concurrent
+//    withQuickstepImplementation projects.compose
+    withQuickstepImplementation projects.modules.widgetpicker
+    implementation libs.androidx.dynamicanimation
+
+    implementation fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-statsd-16.jar')
+    implementation fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'WindowManager-Shell-16.jar')
+    withQuickstepCompileOnly fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'framework-16.jar')
+    baselineProfile projects.baselineProfile
+
+    coreLibraryDesugaring libs.android.desugarJdkLibs
+
+    implementation libs.androidx.profileinstaller
+    baselineProfile projects.baselineProfile
+
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.preference.ktx
+
+    implementation libs.javax.inject
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.kotlinx.serialization.json
+    implementation libs.chickenhook.restrictionbypass
+    implementation libs.rikka.refine.runtime
+
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.datastore.preferences
+
+    implementation platform(libs.compose.bom)
+    implementation libs.compose.ui
+    implementation libs.compose.ui.util
+    implementation libs.compose.ui.graphics
+    implementation libs.bundles.graphics
+    debugImplementation libs.compose.ui.tooling
+    implementation libs.compose.ui.tooling.preview
+    implementation libs.compose.ui.google.fonts
+    implementation libs.compose.foundation
+    implementation libs.compose.material.icons
+    implementation libs.compose.runtime.livedata
+    implementation libs.compose.material3
+    implementation libs.compose.material3.windowSizeClass
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.lifecycle.viewmodel.compose
+    implementation libs.androidx.navigation.compose
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.palette.ktx
+    implementation libs.androidx.slice.core
+    implementation libs.bundles.accompanist
+    implementation libs.google.material
+    implementation libs.material.motion.compose
+    implementation libs.kdrag0n.colorkt
+    implementation libs.coil.compose
+    implementation libs.xdrop.fuzzywuzzy
+
+    implementation libs.bundles.opto
+    implementation libs.androidx.datastore.preferences
+
+    implementation libs.bundles.retrofit
+
+    implementation libs.bundles.room
+    ksp libs.room.compiler
+
+    implementation libs.libsu.service
+
+    implementation libs.airbnb.lottie
+
+    // Compose drag and drop library
+    implementation libs.reorderable
+
+    // Smartspacer
+    implementation(libs.smartspacer.sdk) {
+        exclude group: "com.github.skydoves", module: "balloon"
+    }
+
+    implementation libs.hoko.blur
+
+    implementation libs.androidx.window
+
+    ksp libs.dagger.compiler
+    implementation libs.dagger.hilt.android
+    ksp libs.dagger.hilt.compiler
+
+    implementation libs.google.guava
+
+    implementation libs.androidx.exifinterface
+
+    debugImplementation libs.leakcanary.android
+    debugImplementation libs.leakcanary.androidstudio
+
+    testImplementation libs.junit
+    testImplementation libs.google.truth
+    testImplementation(libs.robolectric) {
+        // Robolectric only uses Conscrypt for TLS shadowing. AGP's unit-test
+        // instrumentation rewrites this signed JAR and invalidates its digest;
+        // layout tests explicitly select the platform security provider instead.
+        exclude group: "org.conscrypt", module: "conscrypt-openjdk-uber"
+        exclude group: "org.bouncycastle", module: "bcprov-jdk18on"
+    }
+    testImplementation files(unsignedRobolectricConscrypt.flatMap { it.archiveFile })
+    testImplementation libs.androidx.test.core
+
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation platform(libs.compose.bom)
+    androidTestImplementation libs.compose.ui.test.junit4
+    androidTestImplementation libs.google.truth
+    debugImplementation libs.compose.ui.test.manifest
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("dagger.hilt.disableModulesHaveInstallInCheck", "true")
+}
+
+
+spotless {
+    java {
+        // LC-Note: Don't spotless AOSP code in compatlib
+        // target("compatLib/**/src/**/*.java")
+        googleJavaFormat().aosp()
+        removeUnusedImports()
+    }
+    kotlin {
+        target("lawnchair/src/**/*.kt")
+        ktlint(libs.ktlint.get().version).customRuleSets([
+            libs.composeRules.get().toString()
+        ]).editorConfigOverride([
+            "ktlint_compose_compositionlocal-allowlist": "disabled",
+            "ktlint_compose_lambda-param-event-trailing": "disabled",
+            "ktlint_compose_content-slot-reused": "disabled",
+            "ktlint_compose_state-param-check": "disabled",
+        ])
+    }
+}
+
+licensee {
+    allow(SpdxId.Apache_20)
+    allow(SpdxId.BSD_3_Clause)
+    allow(SpdxId.GPL_20_or_later)
+    allowDependency(libs.libsu.core)
+    allowDependency(libs.libsu.service)
+    allowUrl("https://github.com/patrykmichalik/opto/blob/master/LICENSE")
+    allowUrl("https://github.com/RikkaApps/HiddenApiRefinePlugin/blob/main/LICENSE")
+    allowUrl("https://opensource.org/licenses/mit-license.php")
+
+    bundleAndroidAsset = true
+    androidAssetReportPath = 'licenses.json'
+}

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="settings">Home settings</string>
+    <string name="general_label">Icons &amp; appearance</string>
+    <string name="general_description">Icon packs, shapes, colors, and notification dots</string>
+    <string name="app_drawer_label">App list</string>
+    <string name="smartspace_widget">At a Glance</string>
+    <string name="search_bar_label">Search</string>
+    <string name="managed_by_lawnchair">Managed by Expressive Launcher L3</string>
+    <string name="accessibility_service_description">Expressive Launcher L3 uses accessibility access only for enabled gesture actions, such as locking the device or opening Overview. It does not request or process accessibility events from other apps.</string>
+    <string name="debug_restart_launcher">Restart Expressive Launcher L3</string>
+    <string name="prediction_mode_lawnchair" translatable="false">Expressive</string>
+    <string name="set_default_launcher_tip">Set Expressive Launcher L3 as your default Home app to enable shortcuts, widgets, and profile features</string>
+    <string name="onboarding_open_settings_title">Set up Expressive Launcher L3</string>
+    <string name="onboarding_major_upgrade_title">Meet Expressive Launcher L3</string>
+    <string name="onboarding_welcome">Welcome to Expressive Launcher L3</string>
+    <string name="smartspace_widget_toggle_description">At a Glance can be added to Home with the Expressive Launcher L3 widget</string>
+    <string name="smartspace_mode_lawnchair" translatable="false">Expressive</string>
+    <string name="dt2s_admin_hint">To put the device to sleep, enable Expressive Launcher L3 as a device admin app. Tap "Open settings", then "Activate this device admin app."</string>
+    <string name="generic_a11y_hint">To %1$s, enable the Expressive Launcher L3 accessibility service. Tap "Open settings", choose "Expressive Launcher L3", then enable the service.</string>
+    <string name="generic_a11y_disclaimer">Expressive Launcher L3 uses Accessibility\'s performGlobalAction method only for the selected gesture action. The service is not configured to receive or monitor events from other apps.</string>
+    <string name="lawnchair_bug_report">Expressive Launcher L3 bug report</string>
+    <string name="hotseat_mode_lawnchair" translatable="false">Expressive</string>
+    <string name="unfolded_grid_description">Expressive Launcher L3 pairs two pages to fill the larger display</string>
+    <string name="search_provider_sponsored_description">Search results are provided by %1$s.</string>
+    <string name="quickswitch_ignored_warning">These settings require a separate privileged Recents build and are unavailable in this standard Home app</string>
+
+    <!-- Product-only IDs intentionally have no locale-qualified Lawnchair counterpart. -->
+    <string name="expressive_managed_by_launcher" translatable="false">Managed by Expressive Launcher L3</string>
+    <string name="expressive_accessibility_service_description" translatable="false">Expressive Launcher L3 uses accessibility access only for enabled gesture actions, such as locking the device. It does not request or process accessibility events from other apps.</string>
+    <string name="expressive_debug_restart_launcher" translatable="false">Restart Expressive Launcher L3</string>
+    <string name="expressive_set_default_launcher_tip" translatable="false">Set Expressive Launcher L3 as your default Home app to enable shortcuts, widgets, and profile features</string>
+    <string name="expressive_onboarding_open_settings_title" translatable="false">Set up Expressive Launcher L3</string>
+    <string name="expressive_onboarding_major_upgrade_title" translatable="false">Meet Expressive Launcher L3</string>
+    <string name="expressive_onboarding_welcome" translatable="false">Welcome to Expressive Launcher L3</string>
+    <string name="expressive_smartspace_widget_toggle_description" translatable="false">At a Glance can be added to Home with the Expressive Launcher L3 widget</string>
+    <string name="expressive_dt2s_admin_hint" translatable="false">To put the device to sleep, enable Expressive Launcher L3 as a device admin app. Tap "Open settings", then "Activate this device admin app."</string>
+    <string name="expressive_generic_a11y_hint" translatable="false">To %1$s, enable the Expressive Launcher L3 accessibility service. Tap "Open settings", choose "Expressive Launcher L3", then enable the service.</string>
+    <string name="expressive_generic_a11y_disclaimer" translatable="false">Expressive Launcher L3 uses Accessibility\'s performGlobalAction method only for the selected gesture action. The service is not configured to receive or monitor events from other apps.</string>
+    <string name="expressive_bug_report" translatable="false">Expressive Launcher L3 bug report</string>
+    <string name="expressive_unfolded_grid_description" translatable="false">Expressive Launcher L3 pairs two pages to fill the larger display</string>
+    <string name="expressive_search_provider_description" translatable="false">Search results are provided by %1$s.</string>
+    <string name="expressive_quickswitch_warning" translatable="false">These settings require a separate privileged Recents build and are unavailable in this standard Home app</string>
+    <string name="expressive_prediction_mode" translatable="false">Expressive</string>
+    <string name="expressive_smartspace_mode" translatable="false">Expressive</string>
+    <string name="expressive_hotseat_mode" translatable="false">Expressive</string>
+</resources>
