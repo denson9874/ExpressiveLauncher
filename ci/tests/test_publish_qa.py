@@ -646,5 +646,219 @@ class PublishPolicyTest(unittest.TestCase):
         github.update_feed.assert_not_called()
 
 
+class StablePublishPolicyTest(unittest.TestCase):
+    write_artifacts = PublishPolicyTest.write_artifacts
+
+    def setUp(self):
+        PublishPolicyTest.setUp(self)
+        self.metadata.update({"channel": "release", "packageName": publisher.RELEASE_PACKAGE,
+                              "baseline": None, "baselineMode": "first-stable-install",
+                              "stableBootstrap": True,
+                              "weeklyReleaseGate": {"status": "eligible", "selected": {
+                                  "sourceRevision": self.metadata["sourceRevision"], "versionName": "1.0.8",
+                                  "versionCode": 9, "qaReleaseId": "qa-1.0.8-9-build-7", "buildNumber": 7,
+                                  "buildUrl": "http://127.0.0.1:8091/job/expressive-qa-build/7/"}}})
+        self.qa.update({"channel": "release", "packageName": publisher.RELEASE_PACKAGE,
+                        "baselineMode": "first-stable-install", "stableBootstrap": True})
+        self.write_artifacts()
+
+    def feed(self):
+        tag = publisher.release_tag(self.metadata, "release")
+        return publisher.candidate_feed(self.metadata, publisher.download_url(tag, self.apk.name, "release"),
+                                        "release")
+
+    def release(self, draft=True):
+        return {"id": 23, "tag_name": publisher.release_tag(self.metadata, "release"), "draft": draft,
+                "prerelease": False, "body": publisher.release_identity(self.metadata, "release")}
+
+    def asset(self, name, path):
+        return {"id": 17, "name": name, "size": path.stat().st_size, "state": "uploaded",
+                "digest": "sha256:" + publisher.file_hash(path),
+                "browser_download_url": publisher.download_url(self.release()["tag_name"], name, "release")}
+
+    def upgrade_candidate(self):
+        baseline = self.feed()
+        baseline.update({"versionCode": 8, "versionName": "1.0.7", "sha256": "b" * 64,
+                         "certificateSha256": publisher.QA_CERTIFICATE})
+        baseline["apkUrl"] = publisher.download_url("v1.0.7-8", self.apk.name, "release")
+        self.metadata.update({"baseline": baseline, "baselineMode": "stable-upgrade", "stableBootstrap": False})
+        self.qa.update({"baselineMode": "stable-upgrade", "stableBootstrap": False})
+        self.write_artifacts()
+        return baseline
+
+    def test_channel_is_explicit_and_cannot_relabel_a_qa_apk(self):
+        publisher.load_artifacts(self.directory, "release")
+        with self.assertRaisesRegex(publisher.PublishError, "wrong channel"):
+            publisher.load_artifacts(self.directory)
+        self.metadata["packageName"] = publisher.QA_PACKAGE
+        self.write_artifacts()
+        with mock.patch.object(publisher, "GitHub") as github:
+            with self.assertRaisesRegex(publisher.PublishError, "wrong package"):
+                publisher.publish(self.directory, True, {}, "release")
+            github.assert_not_called()
+
+    def test_validation_only_artifacts_never_stage_or_publish(self):
+        self.metadata["validationOnly"] = True
+        self.write_artifacts()
+        for promote in (False, True):
+            with self.subTest(promote=promote), mock.patch.object(publisher, "GitHub") as github:
+                with self.assertRaisesRegex(publisher.PublishError, "Validation-only"):
+                    publisher.publish(self.directory, promote, {}, "release")
+                github.assert_not_called()
+
+    def test_stable_requires_durable_signer_and_exact_stable_qa_evidence(self):
+        for target, field, value in ((self.metadata, "certificateSha256", "b" * 64),
+                                     (self.qa, "channel", "qa"), (self.qa, "packageName", publisher.QA_PACKAGE),
+                                     (self.qa, "baselineMode", "stable-upgrade"),
+                                     (self.qa, "stableBootstrap", False), (self.qa, "passed", False)):
+            with self.subTest(field=field):
+                original = target[field]
+                target[field] = value
+                self.write_artifacts()
+                with self.assertRaises(publisher.PublishError):
+                    publisher.load_artifacts(self.directory, "release")
+                target[field] = original
+
+    def test_weekly_gate_must_identify_eligible_exact_qa_source_version_and_build(self):
+        original = copy.deepcopy(self.metadata["weeklyReleaseGate"])
+        invalid = [None, {**original, "status": "blocked"}]
+        for field, value in (("sourceRevision", "b" * 40), ("versionName", "1.0.7"), ("versionCode", 8),
+                             ("qaReleaseId", "qa-1.0.8-9-build-8"), ("buildNumber", True)):
+            invalid.append({**original, "selected": {**original["selected"], field: value}})
+        for gate in invalid:
+            with self.subTest(gate=gate):
+                self.metadata["weeklyReleaseGate"] = gate
+                self.write_artifacts()
+                with mock.patch.object(publisher, "GitHub") as github:
+                    with self.assertRaises(publisher.PublishError):
+                        publisher.publish(self.directory, True, {}, "release")
+                    github.assert_not_called()
+
+    def test_first_stable_install_requires_explicit_consistent_bootstrap_contract(self):
+        for field, value in (("baseline", {"versionCode": 8}), ("stableBootstrap", False),
+                             ("stableBootstrap", 1), ("baselineMode", "upgrade")):
+            with self.subTest(field=field):
+                original = self.metadata[field]
+                self.metadata[field] = value
+                self.write_artifacts()
+                with self.assertRaises(publisher.PublishError):
+                    publisher.load_artifacts(self.directory, "release")
+                self.metadata[field] = original
+
+    def test_stable_tag_identity_and_feed_cannot_target_qa(self):
+        feed = self.feed()
+        self.assertIn("/v1.0.8-9/", feed["apkUrl"])
+        self.assertIn("expressive-release source=", publisher.release_identity(self.metadata, "release"))
+        publisher.validate_github_feed(feed, "release")
+        for changed in ({"channel": "qa"}, {"packageName": publisher.QA_PACKAGE},
+                        {"apkUrl": feed["apkUrl"].replace("/v1.0.8-9/", "/qa-v1.0.8-9/")}):
+            with self.subTest(changed=changed):
+                with self.assertRaises(publisher.PublishError):
+                    publisher.validate_github_feed({**feed, **changed}, "release")
+
+    def test_stable_feed_read_addresses_only_release_path(self):
+        github = publisher.GitHub("release")
+        result = {"type": "file", "path": "release/latest.json", "encoding": "base64", "sha": "c" * 40,
+                  "content": base64.b64encode(json.dumps(self.feed()).encode()).decode()}
+        with mock.patch.object(github, "api", return_value=result) as api:
+            self.assertEqual(github.feed()[0], self.feed())
+        api.assert_called_once_with(github.root + "/contents/release/latest.json?ref=updates", missing_ok=True)
+        result["path"] = "qa/latest.json"
+        with mock.patch.object(github, "api", return_value=result):
+            with self.assertRaisesRegex(publisher.PublishError, "expected file"):
+                github.feed()
+
+    def test_stable_create_and_promotion_use_non_prerelease_state(self):
+        github = publisher.GitHub("release")
+        with mock.patch.object(github, "find_release", return_value=None), \
+                mock.patch.object(github, "api", return_value=self.release()) as api:
+            github.ensure_release(self.metadata, "b" * 40)
+        payload = api.call_args.kwargs["body"]
+        self.assertEqual(payload["tag_name"], "v1.0.8-9")
+        self.assertTrue(payload["draft"])
+        self.assertFalse(payload["prerelease"])
+        self.assertIn("Release", payload["name"])
+        self.assertIn("fresh-install checks", payload["body"])
+        with mock.patch.object(github, "api", return_value=self.release(False)) as api:
+            github.publish_release(self.release(), self.metadata)
+        self.assertEqual(api.call_args_list[0].kwargs["body"],
+                         {"draft": False, "prerelease": False, "make_latest": "false"})
+        with self.assertRaisesRegex(publisher.PublishError, "conflicting tag or channel"):
+            github.validate_release({**self.release(), "prerelease": True}, self.metadata)
+
+    def test_bootstrap_refuses_existing_stable_before_release_or_asset_writes(self):
+        current = self.feed()
+        current["versionCode"] -= 1
+        github = mock.Mock(spec=publisher.GitHub)
+        github.feed.return_value = (current, "c" * 40)
+        with mock.patch.object(publisher, "GitHub", return_value=github):
+            with self.assertRaisesRegex(publisher.PublishError, "cannot replace an existing stable feed"):
+                publisher.publish(self.directory, True, {}, "release")
+        github.ensure_release.assert_not_called()
+        github.stage.assert_not_called()
+
+    def test_missing_feed_requires_bootstrap_and_upgrade_requires_exact_baseline(self):
+        baseline = self.upgrade_candidate()
+        publisher.load_artifacts(self.directory, "release")
+        publisher.validate_stable_baseline(baseline, self.feed(), self.metadata)
+        with self.assertRaisesRegex(publisher.PublishError, "Missing stable feed"):
+            publisher.validate_stable_baseline(None, self.feed(), self.metadata)
+        for field, value in (("versionCode", 7), ("sha256", "c" * 64), ("sizeBytes", 1)):
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(publisher.PublishError, "tested baseline"):
+                    publisher.validate_stable_baseline({**baseline, field: value}, self.feed(), self.metadata)
+
+    def test_stable_feed_write_rechecks_bootstrap_and_only_writes_release_path(self):
+        github = publisher.GitHub("release")
+        with mock.patch.object(github, "feed", side_effect=[(None, None), (self.feed(), "c" * 40)]), \
+                mock.patch.object(github, "api", return_value={}) as api:
+            self.assertTrue(github.update_feed(self.feed(), metadata=self.metadata))
+        self.assertEqual(api.call_args.args[0], github.root + "/contents/release/latest.json")
+        self.assertNotIn("sha", api.call_args.kwargs["body"])
+        earlier = {**self.feed(), "versionCode": 8}
+        with mock.patch.object(github, "feed", return_value=(earlier, "c" * 40)), \
+                mock.patch.object(github, "api") as api:
+            with self.assertRaisesRegex(publisher.PublishError, "existing stable feed"):
+                github.update_feed(self.feed(), metadata=self.metadata)
+            api.assert_not_called()
+
+    def test_stable_rollback_and_same_version_mutation_are_rejected(self):
+        current = self.feed()
+        with self.assertRaisesRegex(publisher.PublishError, "older version"):
+            publisher.validate_transition({**current, "versionCode": 10}, current, channel="release")
+        for changed in ({"sha256": "b" * 64}, {"releaseNotes": "Different payload"}, {"sizeBytes": 1}):
+            with self.subTest(changed=changed):
+                with self.assertRaisesRegex(publisher.PublishError, "conflicting payload"):
+                    publisher.validate_transition(current, {**current, **changed}, channel="release")
+
+    def test_stable_published_retry_preserves_all_assets_and_feed(self):
+        _, files = publisher.load_artifacts(self.directory, "release")
+        assets = {name: self.asset(name, path) for name, path in files.items()}
+        github = publisher.GitHub("release")
+        receipt = {}
+        with mock.patch.object(publisher, "GitHub", return_value=github) as constructor, \
+                mock.patch.object(github, "preflight", return_value="b" * 40), \
+                mock.patch.object(github, "feed", return_value=(self.feed(), "c" * 40)), \
+                mock.patch.object(github, "find_release", return_value=self.release(False)), \
+                mock.patch.object(github, "asset", side_effect=lambda _, name: assets[name]), \
+                mock.patch.object(github, "verify_file") as verify, \
+                mock.patch.object(github, "api", return_value=self.release(False)) as api, \
+                mock.patch.object(publisher, "public_feed", return_value=self.feed()) as public, \
+                mock.patch.object(publisher, "public_download_digest", side_effect=lambda url, size:
+                                  (size, publisher.file_hash(files[url.rsplit("/", 1)[-1]]))):
+            publisher.publish(self.directory, True, receipt, "release")
+        constructor.assert_called_once_with("release")
+        api.assert_called_once_with(github.root + "/releases/23")
+        self.assertEqual(verify.call_count, 8)
+        self.assertTrue(all(call.kwargs["channel"] == "release" for call in public.call_args_list))
+        self.assertEqual(receipt["status"], "released")
+        self.assertEqual(receipt["channel"], "release")
+        self.assertEqual(receipt["feedUrl"], publisher.feed_url("release"))
+        self.assertFalse(receipt["feedChanged"])
+        self.assertTrue(receipt["feedVerified"])
+        self.assertEqual(len(receipt["files"]), 4)
+        self.assertTrue(all(item["publicDownloadVerified"] for item in receipt["files"].values()))
+
+
 if __name__ == "__main__":
     unittest.main()

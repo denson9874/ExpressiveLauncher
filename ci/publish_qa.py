@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Stage sealed QA bytes in GitHub Releases; publish and advance QA only with --promote.
+"""Stage sealed bytes in GitHub Releases; publish the selected channel with --promote.
 
 The worker's existing GitHub CLI authentication stays outside the application and
 receipts. No interactive login, completed asset replacement/deletion, repository
-visibility change, or production-channel write is performed. An empty upload
+visibility change, or cross-channel write is performed. An empty upload
 placeholder from a failed transfer can be removed only from the matching draft.
 Jenkins serializes publishers;
 manifest updates also use the previous Git blob SHA to reject concurrent changes.
@@ -33,7 +33,12 @@ QA_FEED_PATH = "qa/latest.json"
 QA_FEED_URL = f"https://raw.githubusercontent.com/{GITHUB_REPOSITORY}/{UPDATES_BRANCH}/{QA_FEED_PATH}"
 API_VERSION = "2026-03-10"
 QA_PACKAGE = "dev.launcher.expressive.l3.debug"
+RELEASE_PACKAGE = "dev.launcher.expressive.l3"
 QA_CERTIFICATE = "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2"
+CHANNELS = {
+    "qa": {"package": QA_PACKAGE, "label": "QA", "tagPrefix": "qa-v", "prerelease": True},
+    "release": {"package": RELEASE_PACKAGE, "label": "Release", "tagPrefix": "v", "prerelease": False},
+}
 FEED_FIELDS = ("schemaVersion", "channel", "packageName", "versionCode", "versionName",
                "apkUrl", "sha256", "sizeBytes", "releaseNotes")
 MAX_JSON_BYTES = 1024 * 1024
@@ -76,11 +81,26 @@ def empty_upload_placeholder(asset, name):
             and type(asset.get("size")) is int and asset["size"] == 0)
 
 
-def validate_identity(value, label):
+def channel_settings(channel):
+    require(channel in CHANNELS, "Unsupported publication channel")
+    return CHANNELS[channel]
+
+
+def feed_path(channel):
+    channel_settings(channel)
+    return f"{channel}/latest.json"
+
+
+def feed_url(channel):
+    return f"https://raw.githubusercontent.com/{GITHUB_REPOSITORY}/{UPDATES_BRANCH}/{feed_path(channel)}"
+
+
+def validate_identity(value, label, channel="qa"):
+    settings = channel_settings(channel)
     require(type(value.get("schemaVersion")) is int and value["schemaVersion"] == 1,
             f"{label}: unsupported schema")
-    require(value.get("channel") == "qa", f"{label}: wrong channel")
-    require(value.get("packageName") == QA_PACKAGE, f"{label}: wrong package")
+    require(value.get("channel") == channel, f"{label}: wrong channel")
+    require(value.get("packageName") == settings["package"], f"{label}: wrong package")
     require(positive_integer(value.get("versionCode")), f"{label}: invalid versionCode")
     require(isinstance(value.get("versionName"), str) and value["versionName"].strip(),
             f"{label}: missing versionName")
@@ -89,29 +109,32 @@ def validate_identity(value, label):
             and re.fullmatch(r"[0-9a-f]{64}", value["sha256"]), f"{label}: invalid sha256")
 
 
-def validate_feed(feed):
-    validate_identity(feed, "QA feed")
+def validate_feed(feed, channel="qa"):
+    label = channel_settings(channel)["label"]
+    validate_identity(feed, f"{label} feed", channel)
     require(isinstance(feed.get("apkUrl"), str) and feed["apkUrl"].startswith("https://"),
-            "QA feed: invalid apkUrl")
+            f"{label} feed: invalid apkUrl")
     require(isinstance(feed.get("releaseNotes"), str) and feed["releaseNotes"].strip(),
-            "QA feed: missing releaseNotes")
+            f"{label} feed: missing releaseNotes")
 
 
-def validate_transition(current, candidate, compare_url=True):
+def validate_transition(current, candidate, compare_url=True, channel="qa"):
     """Reject rollback and same-version mutation, permitting exact retries."""
-    validate_feed(current)
-    validate_feed(candidate)
+    label = channel_settings(channel)["label"]
+    validate_feed(current, channel)
+    validate_feed(candidate, channel)
     require(candidate["versionCode"] >= current["versionCode"],
-            "Refusing to publish an older version than the current QA feed")
+            f"Refusing to publish an older version than the current {label} feed")
     if candidate["versionCode"] == current["versionCode"]:
         fields = FEED_FIELDS if compare_url else tuple(k for k in FEED_FIELDS if k != "apkUrl")
         require(all(current.get(key) == candidate.get(key) for key in fields),
-                "Current QA feed has the same versionCode with conflicting payload")
+                f"Current {label} feed has the same versionCode with conflicting payload")
         return "unchanged"
     return "advance"
 
 
-def load_artifacts(artifact_dir):
+def load_artifacts(artifact_dir, channel="qa"):
+    settings = channel_settings(channel)
     directory = Path(artifact_dir).resolve(strict=True)
     seal_path = directory / "seal.json"
     require(seal_path.is_file() and not seal_path.is_symlink(),
@@ -121,14 +144,28 @@ def load_artifacts(artifact_dir):
             "seal.json: unsupported schema")
     require(seal.get("complete") is True, "Release seal is incomplete")
     metadata = read_json_bytes((directory / "metadata.json").read_bytes(), "metadata.json")
-    validate_identity(metadata, "metadata.json")
+    validate_identity(metadata, "metadata.json", channel)
+    require(metadata.get("validationOnly", False) is False,
+            "Validation-only candidates cannot be published or staged")
     require(metadata.get("certificateSha256") == QA_CERTIFICATE,
-            "APK signer does not match the shipped QA certificate")
+            "APK signer does not match the durable release certificate")
     require(metadata.get("signatureVerified") is True, "APK signature verification did not pass")
     require(metadata.get("debuggable") is False, "Refusing a debuggable APK")
     revision = metadata.get("sourceRevision")
     require(isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40,64}", revision),
             "metadata.json: missing exact sourceRevision")
+    if channel == "release":
+        gate = metadata.get("weeklyReleaseGate")
+        require(isinstance(gate, dict) and gate.get("status") == "eligible",
+                "Stable publication requires an eligible weekly QA gate")
+        selected = gate.get("selected")
+        require(isinstance(selected, dict) and all(selected.get(key) == metadata.get(key)
+                                                   for key in ("sourceRevision", "versionName", "versionCode")),
+                "Weekly QA gate selected a different source or version")
+        build = selected.get("buildNumber")
+        require(positive_integer(build) and selected.get("qaReleaseId") ==
+                f"qa-{metadata['versionName']}-{metadata['versionCode']}-build-{build}",
+                "Weekly QA gate is missing the selected immutable QA build identity")
     filename = metadata.get("fileName")
     require(isinstance(filename, str)
             and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*\.apk", filename),
@@ -138,19 +175,33 @@ def load_artifacts(artifact_dir):
     require(apk.stat().st_size == metadata["sizeBytes"], "APK size differs from metadata")
     require(file_hash(apk) == metadata["sha256"], "APK SHA-256 differs from metadata")
     baseline = metadata.get("baseline")
-    require(isinstance(baseline, dict) and positive_integer(baseline.get("versionCode")),
-            "metadata.json: missing verified baseline versionCode")
-    require(metadata["versionCode"] > baseline["versionCode"],
-            "Candidate versionCode must be newer than its tested baseline")
-    if "certificateSha256" in baseline:
-        require(baseline["certificateSha256"] == QA_CERTIFICATE, "Baseline signer is incompatible")
-    if "packageName" in baseline:
-        require(baseline["packageName"] == QA_PACKAGE, "Baseline package is incompatible")
+    bootstrap = metadata.get("baselineMode") == "first-stable-install"
+    if bootstrap:
+        require(channel == "release" and metadata.get("stableBootstrap") is True and baseline is None,
+                "First stable install requires explicit release bootstrap metadata and no baseline")
+    else:
+        require(metadata.get("stableBootstrap", False) is False,
+                "Stable bootstrap flag conflicts with baseline mode")
+        require(isinstance(baseline, dict) and positive_integer(baseline.get("versionCode")),
+                "metadata.json: missing verified baseline versionCode")
+        require(metadata["versionCode"] > baseline["versionCode"],
+                "Candidate versionCode must be newer than its tested baseline")
+        if "certificateSha256" in baseline or channel == "release":
+            require(baseline.get("certificateSha256") == QA_CERTIFICATE, "Baseline signer is incompatible")
+        if "packageName" in baseline or channel == "release":
+            require(baseline.get("packageName") == settings["package"], "Baseline package is incompatible")
     qa_path, report_path = directory / "qa-result.json", directory / "QA-report.md"
     qa = read_json_bytes(qa_path.read_bytes(), "qa-result.json")
     require(qa.get("passed") is True, "QA did not pass")
     require(qa.get("sha256") == metadata["sha256"], "QA result refers to a different APK")
     require(qa.get("sourceRevision") == revision, "QA result refers to a different source revision")
+    if channel == "release":
+        require(qa.get("channel") == channel and qa.get("packageName") == settings["package"],
+                "Release QA must identify the stable channel and package")
+        require(qa.get("baselineMode") == metadata.get("baselineMode"),
+                "Release QA baseline mode differs from metadata")
+        require(qa.get("stableBootstrap", False) is bootstrap,
+                "Release QA bootstrap evidence differs from metadata")
     report = report_path.read_text(encoding="utf-8")
     require(all(item in report for item in (metadata["sha256"], filename, revision)),
             "QA report must identify this exact APK filename, SHA-256, and source revision")
@@ -170,46 +221,51 @@ def load_artifacts(artifact_dir):
     return metadata, files
 
 
-def candidate_feed(metadata, apk_url):
+def candidate_feed(metadata, apk_url, channel="qa"):
     feed = {key: metadata[key] for key in FEED_FIELDS if key in metadata}
     feed["apkUrl"] = apk_url
     feed["releaseNotes"] = metadata.get("releaseNotes") or (
-        f"Expressive Launcher {metadata['versionName']} QA build. "
+        f"Expressive Launcher {metadata['versionName']} {channel_settings(channel)['label']} build. "
         "The exact APK passed the retained automated and emulator QA gates.")
-    validate_feed(feed)
+    validate_feed(feed, channel)
     return feed
 
 
-def release_tag(metadata):
+def release_tag(metadata, channel="qa"):
     require(re.fullmatch(r"\d+\.\d+\.\d+", metadata["versionName"]),
-            "QA versionName must have three numeric components")
-    return f"qa-v{metadata['versionName']}-{metadata['versionCode']}"
+            "Release versionName must have three numeric components")
+    return f"{channel_settings(channel)['tagPrefix']}{metadata['versionName']}-{metadata['versionCode']}"
 
 
-def download_url(tag, filename):
-    require(isinstance(tag, str) and re.fullmatch(r"qa-v\d+\.\d+\.\d+-[1-9]\d*", tag),
-            "Invalid QA release tag")
+def download_url(tag, filename, channel="qa"):
+    prefix = re.escape(channel_settings(channel)["tagPrefix"])
+    require(isinstance(tag, str) and re.fullmatch(prefix + r"\d+\.\d+\.\d+-[1-9]\d*", tag),
+            "Invalid channel release tag")
     require(isinstance(filename, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", filename),
             "Unsafe GitHub asset filename")
     return f"https://github.com/{GITHUB_REPOSITORY}/releases/download/{tag}/{filename}"
 
 
-def validate_github_feed(feed):
-    validate_feed(feed)
-    tag = release_tag(feed)
+def validate_github_feed(feed, channel="qa"):
+    validate_feed(feed, channel)
+    tag = release_tag(feed, channel)
     parsed = urllib.parse.urlsplit(feed["apkUrl"])
     filename = parsed.path.rsplit("/", 1)[-1]
-    require(filename.endswith(".apk") and feed["apkUrl"] == download_url(tag, filename),
-            "QA feed APK must belong to the pinned GitHub repository and version tag")
+    require(filename.endswith(".apk") and feed["apkUrl"] == download_url(tag, filename, channel),
+            "Channel feed APK must belong to the pinned GitHub repository and version tag")
 
 
-def release_identity(metadata):
-    return (f"<!-- expressive-qa source={metadata['sourceRevision']} "
+def release_identity(metadata, channel="qa"):
+    channel_settings(channel)
+    return (f"<!-- expressive-{channel} source={metadata['sourceRevision']} "
             f"sha256={metadata['sha256']} versionCode={metadata['versionCode']} -->")
 
 
 class GitHub:
-    def __init__(self):
+    def __init__(self, channel="qa"):
+        self.channel = channel
+        self.settings = channel_settings(channel)
+        self.feed_path = feed_path(channel)
         self.root = f"repos/{GITHUB_REPOSITORY}"
 
     def environment(self):
@@ -278,20 +334,20 @@ class GitHub:
     def feed(self):
         # preflight separately verifies repo access and branch existence, so 404
         # here means the manifest is absent (first GitHub publication).
-        result = self.api(f"{self.root}/contents/{QA_FEED_PATH}?ref={UPDATES_BRANCH}", missing_ok=True)
+        result = self.api(f"{self.root}/contents/{self.feed_path}?ref={UPDATES_BRANCH}", missing_ok=True)
         if result is None:
             return None, None
-        require(result.get("type") == "file" and result.get("path") == QA_FEED_PATH
-                and result.get("encoding") == "base64", "GitHub QA manifest is not the expected file")
+        require(result.get("type") == "file" and result.get("path") == self.feed_path
+                and result.get("encoding") == "base64", "GitHub channel manifest is not the expected file")
         blob_sha = result.get("sha")
         require(isinstance(blob_sha, str) and re.fullmatch(r"[0-9a-f]{40}", blob_sha),
-                "GitHub QA manifest has an invalid blob SHA")
+                "GitHub channel manifest has an invalid blob SHA")
         try:
             raw = base64.b64decode("".join(result["content"].split()), validate=True)
         except (KeyError, TypeError, ValueError, binascii.Error):
-            raise PublishError("GitHub QA manifest has invalid base64 content") from None
-        feed = read_json_bytes(raw, "GitHub QA manifest")
-        validate_github_feed(feed)
+            raise PublishError("GitHub channel manifest has invalid base64 content") from None
+        feed = read_json_bytes(raw, "GitHub channel manifest")
+        validate_github_feed(feed, self.channel)
         return feed, blob_sha
 
     def find_release(self, tag):
@@ -312,30 +368,36 @@ class GitHub:
         raise PublishError("GitHub release lookup exceeded its pagination limit")
 
     def validate_release(self, release, metadata):
-        tag = release_tag(metadata)
+        validate_identity(metadata, "release metadata", self.channel)
+        tag = release_tag(metadata, self.channel)
         require(positive_integer(release.get("id")), "GitHub returned an invalid release ID")
-        require(release.get("tag_name") == tag and release.get("prerelease") is True
+        require(release.get("tag_name") == tag and release.get("prerelease") is self.settings["prerelease"]
                 and type(release.get("draft")) is bool,
-                "Existing GitHub release has conflicting tag or QA state")
+                "Existing GitHub release has conflicting tag or channel state")
         require(isinstance(release.get("body"), str)
-                and release_identity(metadata) in release["body"],
+                and release_identity(metadata, self.channel) in release["body"],
                 "Existing GitHub release conflicts with the sealed source or APK")
 
     def ensure_release(self, metadata, target_revision):
-        tag = release_tag(metadata)
+        validate_identity(metadata, "release metadata", self.channel)
+        tag = release_tag(metadata, self.channel)
         release = self.find_release(tag)
         if release is None:
-            body = (f"Expressive Launcher {metadata['versionName']} QA\n\n"
+            label = self.settings["label"]
+            checks = ("Android fresh-install checks" if metadata.get("stableBootstrap") is True
+                      else "Android upgrade checks")
+            body = (f"Expressive Launcher {metadata['versionName']} {label}\n\n"
                     f"Source revision: `{metadata['sourceRevision']}`\n\n"
                     f"APK SHA-256: `{metadata['sha256']}`\n\n"
-                    "Release-signed, minified QA package. Automated tests and isolated "
-                    "Android upgrade checks passed for the exact attached APK.\n\n"
+                    f"Release-signed, minified {label} package. Automated tests and isolated "
+                    f"{checks} passed for the exact attached APK.\n\n"
                     "Derived from Lawnchair and AOSP Launcher3; see the repository's "
-                    "license and upstream notices.\n\n" + release_identity(metadata))
+                    "license and upstream notices.\n\n" + release_identity(metadata, self.channel))
             release = self.api(f"{self.root}/releases", method="POST", body={
                 "tag_name": tag, "target_commitish": target_revision,
-                "name": f"Expressive Launcher {metadata['versionName']} QA ({metadata['versionCode']})",
-                "body": body, "draft": True, "prerelease": True, "make_latest": "false"})
+                "name": f"Expressive Launcher {metadata['versionName']} {label} ({metadata['versionCode']})",
+                "body": body, "draft": True, "prerelease": self.settings["prerelease"],
+                "make_latest": "false"})
         self.validate_release(release, metadata)
         return release
 
@@ -407,25 +469,30 @@ class GitHub:
         return asset
 
     def publish_release(self, release, metadata):
+        self.validate_release(release, metadata)
         if release["draft"]:
             self.api(f"{self.root}/releases/{release['id']}", method="PATCH",
-                     body={"draft": False, "prerelease": True, "make_latest": "false"})
+                     body={"draft": False, "prerelease": self.settings["prerelease"], "make_latest": "false"})
         result = self.api(f"{self.root}/releases/{release['id']}")
         self.validate_release(result, metadata)
         require(result["draft"] is False, "GitHub release is still a draft")
         return result
 
-    def update_feed(self, proposed):
+    def update_feed(self, proposed, metadata=None):
+        validate_github_feed(proposed, self.channel)
         current, blob_sha = self.feed()
-        if current is not None and validate_transition(current, proposed) == "unchanged":
+        if self.channel == "release":
+            require(isinstance(metadata, dict), "Stable feed update requires sealed baseline metadata")
+            validate_stable_baseline(current, proposed, metadata)
+        if current is not None and validate_transition(current, proposed, channel=self.channel) == "unchanged":
             return False
         raw = (json.dumps(proposed, indent=2) + "\n").encode("utf-8")
-        body = {"message": f"Publish QA {proposed['versionName']} ({proposed['versionCode']})",
+        body = {"message": f"Publish {self.settings['label']} {proposed['versionName']} ({proposed['versionCode']})",
                 "content": base64.b64encode(raw).decode("ascii"), "branch": UPDATES_BRANCH}
         if blob_sha is not None:
             body["sha"] = blob_sha
-        self.api(f"{self.root}/contents/{QA_FEED_PATH}", method="PUT", body=body)
-        require(self.feed()[0] == proposed, "GitHub QA feed readback differs after update")
+        self.api(f"{self.root}/contents/{self.feed_path}", method="PUT", body=body)
+        require(self.feed()[0] == proposed, "GitHub channel feed readback differs after update")
         return True
 
 
@@ -441,40 +508,61 @@ def public_download_digest(url, expected_size):
     return size, digest.hexdigest()
 
 
-def public_feed(optional=False):
+def public_feed(optional=False, channel="qa"):
     # A cache-busting query prevents an earlier cached missing manifest from
     # obscuring the first promotion. No credentials accompany anonymous checks.
-    url = QA_FEED_URL + "?verification=" + str(time.time_ns())
+    url = feed_url(channel) + "?verification=" + str(time.time_ns())
     request = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
             require(response.geturl().startswith("https://"), "Public feed redirected to insecure HTTP")
-            feed = read_json_bytes(response.read(MAX_JSON_BYTES + 1), "public QA feed")
+            feed = read_json_bytes(response.read(MAX_JSON_BYTES + 1), "public channel feed")
     except urllib.error.HTTPError as error:
         if optional and error.code == 404:
             return None
         raise
-    validate_github_feed(feed)
+    validate_github_feed(feed, channel)
     return feed
 
 
-def publish(artifact_dir, promote, receipt):
-    metadata, files = load_artifacts(artifact_dir)
-    tag = release_tag(metadata)
-    proposed = candidate_feed(metadata, download_url(tag, metadata["fileName"]))
-    validate_github_feed(proposed)
-    receipt.update({"status": "validated-local", "provider": "github", "channel": "qa",
-                    "repository": GITHUB_REPOSITORY, "tag": tag, "feedUrl": QA_FEED_URL,
+def validate_stable_baseline(current, proposed, metadata):
+    """A first stable install cannot replace an existing stable baseline.
+
+    The identical feed is permitted for a retry after the feed write succeeded
+    but a later verification response failed. Later stable releases must have
+    tested the exact package bytes still offered by the stable channel.
+    """
+    if current is not None and validate_transition(current, proposed, channel="release") == "unchanged":
+        return
+    if metadata.get("stableBootstrap") is True:
+        require(current is None, "First stable install cannot replace an existing stable feed")
+    else:
+        require(current is not None, "Missing stable feed requires an explicit first-stable-install candidate")
+        baseline = metadata.get("baseline", {})
+        require(all(baseline.get(key) == current.get(key)
+                    for key in ("versionCode", "packageName", "sha256", "sizeBytes")),
+                "Current stable feed differs from the candidate's tested baseline")
+
+
+def publish(artifact_dir, promote, receipt, channel="qa"):
+    metadata, files = load_artifacts(artifact_dir, channel)
+    tag = release_tag(metadata, channel)
+    proposed = candidate_feed(metadata, download_url(tag, metadata["fileName"], channel), channel)
+    validate_github_feed(proposed, channel)
+    receipt.update({"status": "validated-local", "provider": "github", "channel": channel,
+                    "repository": GITHUB_REPOSITORY, "tag": tag, "feedUrl": feed_url(channel),
                     "sourceRevision": metadata["sourceRevision"],
                     "versionCode": metadata["versionCode"], "versionName": metadata["versionName"],
                     "sha256": metadata["sha256"], "sizeBytes": metadata["sizeBytes"], "files": {}})
-    github = GitHub()
+    github = GitHub(channel)
     target_revision = github.preflight()
     current, _ = github.feed()
     if current is not None:
-        validate_transition(current, proposed)
-    require(public_feed(optional=current is None) == current,
-            "Authenticated and public GitHub QA feeds disagree")
+        validate_transition(current, proposed, channel=channel)
+    if channel == "release":
+        validate_stable_baseline(current, proposed, metadata)
+    require(public_feed(optional=current is None, channel=channel) == current,
+            "Authenticated and public GitHub channel feeds disagree")
     release = github.ensure_release(metadata, target_revision)
     release_id = release["id"]
     receipt.update({"status": "staging", "releaseId": release_id,
@@ -495,23 +583,25 @@ def publish(artifact_dir, promote, receipt):
         asset = github.stage(release_id, name, path)
         receipt["files"][name] = {"id": asset["id"], "sizeBytes": path.stat().st_size,
                                   "sha256": file_hash(path), "verified": True,
-                                  "downloadUrl": download_url(tag, name)}
+                                  "downloadUrl": download_url(tag, name, channel)}
     receipt["status"] = "draft-staged-verified" if release["draft"] else "published-staged-verified"
     current, _ = github.feed()
     if current is not None:
-        validate_transition(current, proposed)
+        validate_transition(current, proposed, channel=channel)
+    if channel == "release":
+        validate_stable_baseline(current, proposed, metadata)
     if not promote:
         return
     release = github.publish_release(release, metadata)
     receipt.update({"status": "release-published-verifying", "draft": False})
     for name, path in files.items():
         asset = github.asset(release_id, name)
-        require(asset is not None and asset.get("browser_download_url") == download_url(tag, name),
+        require(asset is not None and asset.get("browser_download_url") == download_url(tag, name, channel),
                 f"Published GitHub asset URL differs from the pinned release: {name}")
         verified = False
         for attempt in range(4):
             try:
-                size, digest = public_download_digest(download_url(tag, name), path.stat().st_size)
+                size, digest = public_download_digest(download_url(tag, name, channel), path.stat().st_size)
                 if size == path.stat().st_size and digest == file_hash(path):
                     verified = True
                     break
@@ -522,18 +612,18 @@ def publish(artifact_dir, promote, receipt):
         require(verified, f"Anonymous size/SHA-256 verification failed; feed was not updated: {name}")
         receipt["files"][name]["publicDownloadVerified"] = True
     receipt["status"] = "promoting-feed"
-    changed = github.update_feed(proposed)
+    changed = github.update_feed(proposed, metadata=metadata) if channel == "release" else github.update_feed(proposed)
     receipt["status"] = "feed-written-verifying"
     for attempt in range(4):
         try:
-            if public_feed() == proposed:
+            if public_feed(channel=channel) == proposed:
                 break
         except (OSError, ValueError, PublishError):
             pass
         if attempt == 3:
             raise PublishError("GitHub feed may have advanced, but anonymous readback was not verified")
         time.sleep(3 * (attempt + 1))
-    require(github.feed()[0] == proposed, "Final authenticated GitHub QA feed verification failed")
+    require(github.feed()[0] == proposed, "Final authenticated GitHub channel feed verification failed")
     receipt.update({"status": "released", "feedVerified": True, "feedChanged": changed})
 
 
@@ -542,15 +632,17 @@ def main():
     parser.add_argument("--expected-provider", choices=["github"], default="github",
                         help="Reject candidates without the GitHub publication contract")
     parser.add_argument("--artifact-dir", required=True, type=Path)
+    parser.add_argument("--channel", choices=CHANNELS, default="qa",
+                        help="Publish only this package and update channel (default: qa)")
     parser.add_argument("--promote", action="store_true",
-                        help="Publish the verified QA prerelease and advance its GitHub update manifest")
+                        help="Publish the verified selected-channel release and advance its update manifest")
     parser.add_argument("--output", required=True, type=Path, help="Publication receipt JSON")
     args = parser.parse_args()
     receipt = {"status": "started", "promoteRequested": args.promote,
                "startedAt": dt.datetime.now(dt.timezone.utc).isoformat()}
     code = 0
     try:
-        publish(args.artifact_dir, args.promote, receipt)
+        publish(args.artifact_dir, args.promote, receipt, channel=args.channel)
     except (PublishError, OSError, ValueError) as error:
         receipt["lastCompletedState"] = receipt["status"]
         receipt["status"] = "failed"

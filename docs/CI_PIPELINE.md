@@ -4,6 +4,11 @@ Jenkins runs full tests, signed/minified QA builds, isolated upgrade checks, sea
 and GitHub publication. Codex handles research, implementation, focused development checks,
 exploratory device validation and diagnosis. Failed publication preserves the exact tested candidate.
 
+The [weekly release workflow](WEEKLY_RELEASES.md) adds Saturday 3:00 a.m. Eastern stable builds
+when the Monday/Wednesday/Friday QA week is green. QA runs keep their existing schedule and channel.
+Stable uses separate `expressive-release-build` and `expressive-release-publish` jobs, with a live
+weekly gate before building and again before publication.
+
 ## Infrastructure
 
 - Source checkout: `/Users/daryldenson/Documents/ChatGPT/New project`, `codex/pixel-parity`.

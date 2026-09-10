@@ -21,12 +21,14 @@ import uuid
 import xml.etree.ElementTree as ET
 
 PACKAGE = "dev.launcher.expressive.l3.debug"
+RELEASE_PACKAGE = "dev.launcher.expressive.l3"
 ROLE = "android.app.role.HOME"
 REQUIRED_FLOWS = {
     "guest_identity", "baseline_install", "seed_preference", "same_signer_upgrade",
     "preference_retention", "warm_start", "cold_start", "drawer_swipe",
     "local_search", "current_date_handoff", "clean_app_logs",
 }
+BOOTSTRAP_FLOWS = (REQUIRED_FLOWS - {'baseline_install', 'same_signer_upgrade'}) | {'first_stable_install', 'same_version_reinstall'}
 
 
 def digest(path: Path) -> str:
@@ -41,17 +43,18 @@ def bounds(node: ET.Element) -> tuple[int, int, int, int]:
     return values
 
 
-def app_log_failures(logs: str, crash: str, events: str) -> list[str]:
+def app_log_failures(logs: str, crash: str, events: str, package: str = PACKAGE) -> list[str]:
     """Recognize process-specific fatal/ANR records while retaining nonfatal warnings."""
     combined = logs + "\n" + crash
     failures = []
-    if re.search(r"FATAL EXCEPTION[\s\S]{0,1500}?Process: " + re.escape(PACKAGE), combined):
+    exact_package = re.escape(package) + r'(?=[:,\s]|$)'
+    if re.search(r"FATAL EXCEPTION[\s\S]{0,1500}?Process: " + exact_package, combined):
         failures.append("fatal_exception")
-    if re.search(r"(?:ANR in |am_anr[^\n]*)" + re.escape(PACKAGE), logs + "\n" + events):
+    if re.search(r"(?:ANR in |am_anr[^\n]*)" + exact_package, logs + "\n" + events):
         failures.append("anr")
-    if re.search(r"am_crash[^\n]*" + re.escape(PACKAGE), events):
+    if re.search(r"am_crash[^\n]*" + exact_package, events):
         failures.append("process_crash")
-    if re.search(r">>> " + re.escape(PACKAGE) + r"(?::[^ ]+)? <<<", combined):
+    if re.search(r">>> " + re.escape(package) + r"(?::[^ ]+)? <<<", combined):
         failures.append("native_crash")
     return failures
 
@@ -59,6 +62,17 @@ def app_log_failures(logs: str, crash: str, events: str) -> list[str]:
 class Smoke:
     def __init__(self, args):
         self.args = args
+        self.channel = getattr(args, 'channel', 'qa')
+        self.bootstrap = getattr(args, 'bootstrap_stable', False)
+        if self.channel not in ('qa', 'release') or (self.bootstrap and self.channel != 'release'):
+            raise ValueError('Stable bootstrap requires the release channel')
+        if self.bootstrap and args.baseline_apk is not None:
+            raise ValueError('First stable install must not claim a prior baseline')
+        if not self.bootstrap and args.baseline_apk is None:
+            raise ValueError('A delivered baseline is required for upgrade QA')
+        self.package = PACKAGE if self.channel == 'qa' else RELEASE_PACKAGE
+        self.install_baseline = args.apk if self.bootstrap else args.baseline_apk
+        self.required_flows = BOOTSTRAP_FLOWS if self.bootstrap else REQUIRED_FLOWS
         self.out = args.output_dir.resolve()
         self.out.mkdir(parents=True, exist_ok=False)
         self.sdk = args.android_home.resolve()
@@ -71,16 +85,23 @@ class Smoke:
             "sourceRevision": args.source_revision,
             "apk": str(args.apk.resolve()), "apkSha256": digest(args.apk),
             "sha256": digest(args.apk),
-            "baselineApk": str(args.baseline_apk.resolve()),
-            "baselineSha256": digest(args.baseline_apk),
+            "baselineApk": None if self.bootstrap else str(args.baseline_apk.resolve()),
+            "baselineSha256": None if self.bootstrap else digest(args.baseline_apk),
             "avd": self.avd_name, "serial": self.serial,
             "flows": {}, "evidence": [],
-            "scope": "quiesced-adb-upgrade-smoke",
+            "scope": "first-stable-install-and-reinstall-smoke" if self.bootstrap else "quiesced-adb-upgrade-smoke",
             "limitations": [
                 "Does not test live updater download, notifications, or installer UI.",
                 "No physical device, privileged Quickstep, widgets, rotation, or midnight rollover coverage.",
             ],
         }
+        if self.channel == 'release':
+            self.result.update(channel='release', packageName=self.package,
+                               baselineMode='first-stable-install' if self.bootstrap else 'quiesced-upgrade',
+                               stableBootstrap=self.bootstrap)
+            if self.bootstrap:
+                self.result['baseline'] = None
+                self.result['limitations'].append('No previously shipped stable version exists; same-version reinstall is not an upgrade test.')
 
     def save(self, name, value):
         p = self.out / name
@@ -208,7 +229,7 @@ class Smoke:
         return root
 
     def metadata(self, name):
-        dump = self.shell("dumpsys", "package", PACKAGE)
+        dump = self.shell("dumpsys", "package", self.package)
         self.save(name + "-package.txt", dump)
         data = {}
         for key in ("versionCode", "versionName", "firstInstallTime", "lastUpdateTime"):
@@ -218,11 +239,13 @@ class Smoke:
         data["role"] = self.shell("cmd", "role", "get-role-holders", ROLE)
         data["resolver"] = self.shell("cmd", "package", "resolve-activity", "--brief", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME")
         self.save(name + "-metadata.json", json.dumps(data, indent=2))
-        self.require(PACKAGE in data["role"] and PACKAGE in data["resolver"], "QA launcher is not the retained default HOME")
+        self.require(self.package in data["role"].splitlines() and
+                     any(line.startswith(self.package + '/') for line in data['resolver'].splitlines()),
+                     "Launcher is not the retained default HOME")
         return data
 
     def preferences(self, name):
-        self.shell("am", "start", "-W", "-n", PACKAGE + "/app.lawnchair.ui.preferences.PreferenceActivity")
+        self.shell("am", "start", "-W", "-n", self.package + "/app.lawnchair.ui.preferences.PreferenceActivity")
         time.sleep(1)
         root = self.capture(name + "-root")
         self.tap(self.node(root, text="Home screen"))
@@ -235,18 +258,19 @@ class Smoke:
 
     def quiesce(self):
         self.shell("am", "start", "-W", "-a", "android.settings.SETTINGS")
-        self.shell("am", "force-stop", PACKAGE)
-        self.require(not self.shell("pidof", PACKAGE, check=False), "Launcher did not stop")
+        self.shell("am", "force-stop", self.package)
+        self.require(not self.shell("pidof", self.package, check=False), "Launcher did not stop")
 
     def run(self):
         self.start()
         self.adb("logcat", "-c")
-        self.require("Success" in self.adb("install", str(self.args.baseline_apk.resolve()), timeout=180), "Baseline install failed")
-        self.shell("cmd", "role", "add-role-holder", ROLE, PACKAGE)
-        self.shell("cmd", "package", "set-home-activity", PACKAGE)
+        self.require("Success" in self.adb("install", str(self.install_baseline.resolve()), timeout=180), "Initial install failed")
+        self.shell("cmd", "role", "add-role-holder", ROLE, self.package)
+        self.shell("cmd", "package", "set-home-activity", self.package)
         self.home("baseline-home")
         before = self.metadata("baseline")
-        self.passed("baseline_install", version=before["versionName"], versionCode=before["versionCode"])
+        self.passed("first_stable_install" if self.bootstrap else "baseline_install",
+                    version=before["versionName"], versionCode=before["versionCode"])
         _, switch = self.preferences("baseline-preference")
         self.require(switch.get("checked") == "false", "Fresh baseline preference unexpectedly enabled")
         self.tap(switch)
@@ -260,24 +284,29 @@ class Smoke:
         self.require("Success" in self.adb("install", "-r", str(self.args.apk.resolve()), timeout=180), "Candidate upgrade failed")
         after = self.metadata("candidate")
         self.require(before["firstInstallTime"] == after["firstInstallTime"], "Upgrade changed firstInstallTime")
-        self.require(int(after["versionCode"]) > int(before["versionCode"]), "Candidate version must advance baseline")
-        installed = self.shell("pm", "path", PACKAGE).splitlines()[0].removeprefix("package:")
+        if self.bootstrap:
+            self.require(after['versionCode'] == before['versionCode'] and after['versionName'] == before['versionName'],
+                         'First stable reinstall must keep the same candidate version')
+        else:
+            self.require(int(after["versionCode"]) > int(before["versionCode"]), "Candidate version must advance baseline")
+        installed = self.shell("pm", "path", self.package).splitlines()[0].removeprefix("package:")
         remote_digest = self.shell("sha256sum", installed).split()[0]
         self.require(remote_digest == self.result["apkSha256"], "Installed APK bytes differ from candidate")
         self.result["versionName"] = after["versionName"]
         self.result["versionCode"] = int(after["versionCode"])
-        self.passed("same_signer_upgrade", firstInstallTime=after["firstInstallTime"], installedSha256=remote_digest)
+        self.passed("same_version_reinstall" if self.bootstrap else "same_signer_upgrade",
+                    firstInstallTime=after["firstInstallTime"], installedSha256=remote_digest)
         self.home("candidate-first-home")
         _, switch = self.preferences("candidate-preference-retained")
         self.require(switch.get("checked") == "true", "Seeded preference lost during upgrade")
         self.passed("preference_retention", preference="Infinite scrolling", value=True)
-        pid = self.shell("pidof", "-s", PACKAGE)
+        pid = self.shell("pidof", "-s", self.package)
         self.home("candidate-warm-home")
-        self.require(pid and self.shell("pidof", "-s", PACKAGE) == pid, "Warm HOME recreated process")
+        self.require(pid and self.shell("pidof", "-s", self.package) == pid, "Warm HOME recreated process")
         self.passed("warm_start", pid=pid)
         self.quiesce()
         root = self.home("candidate-cold-home")
-        cold_pid = self.shell("pidof", "-s", PACKAGE)
+        cold_pid = self.shell("pidof", "-s", self.package)
         self.require(cold_pid and cold_pid != pid, "Cold HOME did not create a new process")
         self.passed("cold_start", pid=cold_pid)
         x1, y1, x2, y2 = bounds(self.node(root, rid="workspace"))
@@ -320,10 +349,10 @@ class Smoke:
         self.save("crash.txt", crash)
         self.save("events.txt", events)
         # Keep nonfatal E-level warnings as evidence; fail process-specific crashes/ANRs.
-        failures = app_log_failures(logs, crash, events)
+        failures = app_log_failures(logs, crash, events, self.package)
         self.require(not failures, f"QA launcher fatal exception or ANR captured: {failures}")
         self.passed("clean_app_logs", fatal=False, anr=False)
-        self.require(REQUIRED_FLOWS == set(self.result["flows"]), "Required flow evidence incomplete")
+        self.require(self.required_flows == set(self.result["flows"]), "Required flow evidence incomplete")
         self.result["passed"] = True
 
     def finish(self):
@@ -348,7 +377,9 @@ class Smoke:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apk", required=True, type=Path)
-    parser.add_argument("--baseline-apk", required=True, type=Path)
+    parser.add_argument("--baseline-apk", type=Path)
+    parser.add_argument('--channel', choices=('qa', 'release'), default='qa')
+    parser.add_argument('--bootstrap-stable', action='store_true')
     parser.add_argument("--output-dir", required=True, type=Path, help="New directory; existing evidence is never replaced")
     parser.add_argument("--source-revision", required=True)
     parser.add_argument("--android-home", type=Path, default=Path(os.environ.get("ANDROID_HOME", str(Path.home() / "Library/Android/sdk"))))

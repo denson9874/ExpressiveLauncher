@@ -1,0 +1,49 @@
+pipeline {
+    agent { label 'expressive-macos-android' }
+    options { disableConcurrentBuilds(); timeout(time: 90, unit: 'MINUTES'); skipDefaultCheckout() }
+    parameters {
+        string(name: 'VALIDATION_QA_RELEASE_ID', defaultValue: '', description: 'Optional private infrastructure trial using current clean HEAD; candidate is permanently non-publishable. Leave empty for the Saturday gate.')
+    }
+    environment {
+        SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
+        EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
+        ANDROID_HOME = '/Users/daryldenson/Library/Android/sdk'
+        ANDROID_SDK_ROOT = '/Users/daryldenson/Library/Android/sdk'
+        JAVA_HOME = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
+        EXPRESSIVE_KEYSTORE_PROPERTIES = '/Users/daryldenson/Documents/ChatGPT/New project/keystore.properties'
+        PATH = '/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+    }
+    stages {
+        stage('Gate week and prepare stable source') {
+            steps {
+                script { env.RUN_WORKSPACE = "${env.WORKSPACE}/build-${env.BUILD_NUMBER}" }
+                sh '''python3 "$SOURCE_REPOSITORY/ci/weekly_release.py" prepare --workspace "$RUN_WORKSPACE" --validation-qa-release-id "$VALIDATION_QA_RELEASE_ID"'''
+            }
+        }
+        stage('Pipeline contract tests') {
+            steps { sh '''cd "$RUN_WORKSPACE/source"
+                python3 -m unittest discover -s ci/tests -v
+            ''' }
+        }
+        stage('Unit tests and signed Release build') {
+            steps { sh '''cd "$RUN_WORKSPACE/source"
+                ./gradlew --no-scan --no-parallel --console=plain testLawnWithQuickstepExpressiveDebugUnitTest assembleLawnWithQuickstepExpressiveRelease
+            ''' }
+        }
+        stage('Verify stable package and signer') {
+            steps { sh '''python3 "$RUN_WORKSPACE/source/ci/weekly_release.py" stage --workspace "$RUN_WORKSPACE"''' }
+        }
+        stage('Stable installation and device checks') {
+            steps { sh '''python3 "$RUN_WORKSPACE/source/ci/weekly_release.py" smoke --workspace "$RUN_WORKSPACE"''' }
+        }
+        stage('Seal stable candidate') {
+            steps { sh '''python3 "$RUN_WORKSPACE/source/ci/weekly_release.py" seal --workspace "$RUN_WORKSPACE"''' }
+        }
+    }
+    post {
+        always {
+            junit testResults: "build-${env.BUILD_NUMBER}/source/build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest/TEST-*.xml", allowEmptyResults: true
+            archiveArtifacts artifacts: "build-${env.BUILD_NUMBER}/artifacts/**,build-${env.BUILD_NUMBER}/weekly-gate.json,build-${env.BUILD_NUMBER}/run-info.json", allowEmptyArchive: true, fingerprint: true
+        }
+    }
+}

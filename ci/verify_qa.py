@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Verify an immutable Expressive QA APK and write release metadata.
+"""Verify an immutable Expressive APK and write channel-specific release metadata.
 
 Only Android's apksigner/aapt2 executables and Python's standard library are used.
-The supplied baseline must be the previously delivered QA APK, not a new build.
+The supplied baseline must be the previously delivered APK of the same channel.
+Only explicit first-stable installation omits the baseline; selected QA provenance remains required.
 No signing key is read and neither APK is modified.
 """
 
@@ -19,6 +20,7 @@ import zipfile
 
 
 QA_PACKAGE = "dev.launcher.expressive.l3.debug"
+RELEASE_PACKAGE = "dev.launcher.expressive.l3"
 EXPECTED_CERTIFICATE_SHA256 = (
     "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2"
 )
@@ -181,7 +183,33 @@ def unique_json_fields(pairs):
     return result
 
 
-def verify_qa(apk, baseline_apk, version_name, version_code, build_tools):
+def verify_qa(apk, baseline_apk, version_name, version_code, build_tools, channel='qa',
+              bootstrap_stable=False, qa_metadata=None, source_revision=None, validation_only=False):
+    if channel not in ('qa', 'release'):
+        raise VerificationError('Unknown distribution channel')
+    if channel == 'qa' and (bootstrap_stable or qa_metadata is not None or validation_only):
+        raise VerificationError('Stable verification flags cannot be used for QA')
+    if bootstrap_stable and baseline_apk is not None:
+        raise VerificationError('First stable install must not claim a prior baseline')
+    if not bootstrap_stable and baseline_apk is None:
+        raise VerificationError('A previously delivered baseline APK is required')
+    if channel == 'release':
+        if isinstance(qa_metadata, Path):
+            qa_metadata = json.loads(qa_metadata.read_text())
+        if (not isinstance(qa_metadata, dict) or qa_metadata.get('channel') != 'qa' or
+                qa_metadata.get('packageName') != QA_PACKAGE or qa_metadata.get('signatureVerified') is not True or
+                qa_metadata.get('debuggable') is not False or
+                qa_metadata.get('certificateSha256') != EXPECTED_CERTIFICATE_SHA256 or
+                not re.fullmatch(r'[0-9a-f]{40}', str(qa_metadata.get('sourceRevision', ''))) or
+                not re.fullmatch(r'[0-9a-f]{64}', str(qa_metadata.get('sha256', '')))):
+            raise VerificationError('Stable verification requires trusted signed QA metadata from preparation')
+        if (qa_metadata.get('versionName') != version_name or type(qa_metadata.get('versionCode')) is not int or
+                qa_metadata['versionCode'] != version_code):
+            raise VerificationError('Stable version must exactly match the selected QA version')
+        if not re.fullmatch(r'[0-9a-f]{40}', source_revision or ''):
+            raise VerificationError('Stable source revision must be a full commit SHA')
+        if qa_metadata.get('sourceRevision') != source_revision and not validation_only:
+            raise VerificationError('Stable source must exactly match the selected QA source')
     if not version_name or not 1 <= version_code <= 2_100_000_000:
         raise VerificationError("Expected versionName must be nonempty and versionCode must be 1..2100000000")
     for name in ("apksigner", "aapt2"):
@@ -190,36 +218,45 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools):
             raise VerificationError("Missing executable Android build tool: " + str(executable))
 
     candidate = inspect_apk(apk, build_tools)
-    baseline = inspect_apk(baseline_apk, build_tools)
-    for label, artifact in (("Candidate", candidate), ("Baseline", baseline)):
-        if artifact["packageName"] != QA_PACKAGE:
-            raise VerificationError(f"{label} package must be {QA_PACKAGE}; got {artifact['packageName']}")
+    baseline = inspect_apk(baseline_apk, build_tools) if baseline_apk is not None else None
+    artifacts = [(apk, candidate)] + ([(baseline_apk, baseline)] if baseline is not None else [])
+    package = QA_PACKAGE if channel == 'qa' else RELEASE_PACKAGE
+    for label, artifact in [("Candidate", candidate)] + ([("Baseline", baseline)] if baseline is not None else []):
+        if artifact["packageName"] != package:
+            raise VerificationError(f"{label} package must be {package}; got {artifact['packageName']}")
         if artifact["debuggable"]:
-            raise VerificationError(f"{label} APK is debuggable; deliver the release-signed Qa variant")
+            variant = 'Qa' if channel == 'qa' else 'Release'
+            raise VerificationError(f"{label} APK is debuggable; deliver the release-signed {variant} variant")
         if artifact["certificateSha256"] != EXPECTED_CERTIFICATE_SHA256:
-            raise VerificationError(f"{label} signing certificate does not match the durable Expressive QA signer")
-    if candidate["certificateSha256"] != baseline["certificateSha256"]:
+            signer_channel = 'QA' if channel == 'qa' else 'release'
+            raise VerificationError(f"{label} signing certificate does not match the durable Expressive {signer_channel} signer")
+    if baseline is not None and candidate["certificateSha256"] != baseline["certificateSha256"]:
         raise VerificationError("Candidate signing certificate differs from the delivered baseline")
     if candidate["versionName"] != version_name or candidate["versionCode"] != version_code:
         raise VerificationError(
             f"Candidate version is {candidate['versionName']}/code{candidate['versionCode']}; "
             f"expected {version_name}/code{version_code}"
         )
-    if candidate["versionCode"] <= baseline["versionCode"]:
+    if baseline is not None and candidate["versionCode"] <= baseline["versionCode"]:
         raise VerificationError("Candidate versionCode must be strictly newer than the delivered baseline")
 
     feed = verify_feed_bundle(apk, candidate, build_tools) if candidate["versionCode"] >= 10 else None
 
     # Recheck both files after all tool calls, including time spent inspecting the baseline.
-    for path, artifact in ((apk, candidate), (baseline_apk, baseline)):
+    for path, artifact in artifacts:
         if file_digest(path) != (artifact["sizeBytes"], artifact["sha256"]):
             raise VerificationError("APK changed before metadata could be written: " + str(path))
     return {
         "schemaVersion": 1,
-        "channel": "qa",
+        "channel": channel,
         **candidate,
         **({"googleDiscoverSupport": feed} if feed is not None else {}),
-        "baseline": {**baseline, "candidateIsNewer": True, "signerMatches": True},
+        "baseline": {**baseline, "candidateIsNewer": True, "signerMatches": True} if baseline is not None else None,
+        **({'baselineMode': 'first-stable-install' if bootstrap_stable else 'quiesced-upgrade',
+            'stableBootstrap': bootstrap_stable, 'sourceRevision': source_revision,
+            'validationOnly': validation_only,
+            'selectedQa': {key: qa_metadata[key] for key in ('sourceRevision', 'versionName', 'versionCode', 'sha256')}}
+           if channel == 'release' else {}),
     }
 
 
@@ -240,25 +277,32 @@ def write_metadata(output, metadata):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apk", required=True, type=Path)
-    parser.add_argument("--baseline-apk", required=True, type=Path)
+    parser.add_argument("--baseline-apk", type=Path)
+    parser.add_argument('--channel', choices=('qa', 'release'), default='qa')
+    parser.add_argument('--bootstrap-stable', action='store_true')
+    parser.add_argument('--qa-metadata', type=Path)
+    parser.add_argument('--source-revision')
+    parser.add_argument('--validation-only', action='store_true')
     parser.add_argument("--version-name", required=True)
     parser.add_argument("--version-code", required=True, type=int)
     parser.add_argument("--build-tools", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
-        protected = [args.apk, args.baseline_apk, args.build_tools / "apksigner", args.build_tools / "aapt2"]
+        protected = [path for path in [args.apk, args.baseline_apk, args.qa_metadata,
+                                      args.build_tools / "apksigner", args.build_tools / "aapt2"] if path is not None]
         for path in protected:
             if args.output.resolve() == path.resolve() or (
                 args.output.exists() and path.exists() and args.output.samefile(path)
             ):
                 raise VerificationError("Metadata output must not overwrite an APK or Android build tool")
-        metadata = verify_qa(args.apk, args.baseline_apk, args.version_name, args.version_code, args.build_tools)
+        metadata = verify_qa(args.apk, args.baseline_apk, args.version_name, args.version_code, args.build_tools,
+                             args.channel, args.bootstrap_stable, args.qa_metadata, args.source_revision, args.validation_only)
         write_metadata(args.output, metadata)
-    except (VerificationError, OSError) as error:
+    except (VerificationError, OSError, json.JSONDecodeError) as error:
         print("QA verification failed: " + str(error), file=sys.stderr)
         return 1
-    print(f"Verified QA {metadata['versionName']}/code{metadata['versionCode']}: "
+    print(f"Verified {metadata['channel']} {metadata['versionName']}/code{metadata['versionCode']}: "
           f"{metadata['sizeBytes']} bytes, SHA-256 {metadata['sha256']}")
     print("Metadata: " + str(args.output))
     return 0

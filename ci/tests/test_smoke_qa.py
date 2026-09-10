@@ -1,6 +1,8 @@
 """Regression coverage for the crash gate's distinction between warnings and failures."""
 import importlib.util
+import argparse
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -59,6 +61,68 @@ class SnapshotTransitionTests(unittest.TestCase):
                 runner.capture("broken")
         self.assertEqual(runner.adb.call_count, 3)
         self.assertEqual(runner.save.call_count, 3)
+
+
+class StableSmokeContractTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.apk = self.root / 'stable.apk'
+        self.apk.write_bytes(b'stable fixture')
+
+    def args(self, **changes):
+        fields = dict(apk=self.apk, baseline_apk=None, output_dir=self.root / 'evidence',
+                      android_home=self.root / 'sdk', source_revision='a' * 40,
+                      channel='release', bootstrap_stable=True)
+        fields.update(changes)
+        return argparse.Namespace(**fields)
+
+    def test_bootstrap_records_reinstall_without_claiming_prior_version(self):
+        runner = smoke.Smoke(self.args())
+        self.assertEqual(smoke.RELEASE_PACKAGE, runner.package)
+        self.assertEqual(self.apk, runner.install_baseline)
+        self.assertIsNone(runner.result['baselineApk'])
+        self.assertIsNone(runner.result['baselineSha256'])
+        self.assertIsNone(runner.result['baseline'])
+        self.assertEqual('first-stable-install', runner.result['baselineMode'])
+        self.assertTrue(runner.result['stableBootstrap'])
+        self.assertEqual('release', runner.result['channel'])
+        self.assertEqual(11, len(runner.required_flows))
+        self.assertNotIn('same_signer_upgrade', runner.required_flows)
+        self.assertIn('same_version_reinstall', runner.required_flows)
+
+    def test_normal_stable_retains_upgrade_gate(self):
+        runner = smoke.Smoke(self.args(bootstrap_stable=False, baseline_apk=self.apk))
+        self.assertEqual(smoke.REQUIRED_FLOWS, runner.required_flows)
+        self.assertFalse(runner.result['stableBootstrap'])
+        self.assertEqual('quiesced-upgrade', runner.result['baselineMode'])
+        self.assertEqual('quiesced-adb-upgrade-smoke', runner.result['scope'])
+
+    def test_invalid_modes_fail_before_allocating_evidence_or_device(self):
+        for changes in ({'channel': 'qa'}, {'baseline_apk': self.apk}, {'bootstrap_stable': False}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                smoke.Smoke(self.args(**changes))
+        self.assertFalse((self.root / 'evidence').exists())
+
+    def test_release_crashes_are_gated_without_matching_qa_package_prefix(self):
+        for package in (smoke.RELEASE_PACKAGE, smoke.RELEASE_PACKAGE + ':worker'):
+            log = f'FATAL EXCEPTION: main\nProcess: {package}, PID: 123'
+            self.assertEqual(['fatal_exception'], smoke.app_log_failures(log, '', '', smoke.RELEASE_PACKAGE))
+        qa_log = f'FATAL EXCEPTION: main\nProcess: {smoke.PACKAGE}, PID: 123'
+        self.assertEqual([], smoke.app_log_failures(qa_log, '', '', smoke.RELEASE_PACKAGE))
+        self.assertEqual(['anr'], smoke.app_log_failures('', '', f'am_anr: [0,123,{smoke.RELEASE_PACKAGE},0]', smoke.RELEASE_PACKAGE))
+        self.assertEqual(['process_crash'], smoke.app_log_failures('', '', f'am_crash: [0,123,{smoke.RELEASE_PACKAGE},0]', smoke.RELEASE_PACKAGE))
+        self.assertEqual(['native_crash'], smoke.app_log_failures('', f'>>> {smoke.RELEASE_PACKAGE} <<<', '', smoke.RELEASE_PACKAGE))
+
+    def test_qa_home_cannot_satisfy_stable_home_retention_by_prefix(self):
+        runner = smoke.Smoke(self.args())
+        runner.save = Mock()
+        runner.shell = Mock(side_effect=[
+            'versionCode=14 minSdk=37\nversionName=1.0.13\nfirstInstallTime=1\nlastUpdateTime=2',
+            smoke.PACKAGE, smoke.PACKAGE + '/app.lawnchair.LawnchairLauncher'])
+        with self.assertRaisesRegex(RuntimeError, 'retained default HOME'):
+            runner.metadata('candidate')
 
 
 if __name__ == "__main__":

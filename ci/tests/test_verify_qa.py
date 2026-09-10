@@ -203,5 +203,78 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(b"immutable candidate bytes", self.apk.read_bytes())
 
 
+class StableContractTests(unittest.TestCase):
+    setUp = ReleaseContractTests.setUp
+    run_fixture = ReleaseContractTests.run_fixture
+
+    def stable(self, bootstrap=True, qa_changes=None, validation=False, source='a' * 40):
+        selected = dict(channel='qa', packageName=verify.QA_PACKAGE, versionName='1.0.8', versionCode=9,
+                        certificateSha256=CERT, debuggable=False, signatureVerified=True,
+                        sourceRevision='a' * 40, sha256='d' * 64)
+        selected.update(qa_changes or {})
+        with patch.object(verify.subprocess, 'run', side_effect=self.run_fixture):
+            return verify.verify_qa(self.apk, None if bootstrap else self.baseline, '1.0.8', 9, self.tools,
+                                    channel='release', bootstrap_stable=bootstrap, qa_metadata=selected,
+                                    source_revision=source, validation_only=validation)
+
+    def configure_stable(self):
+        self.responses[('aapt2', self.apk.name)] = badging(package=verify.RELEASE_PACKAGE)
+        self.responses[('aapt2', self.baseline.name)] = badging(8, '1.0.7', package=verify.RELEASE_PACKAGE)
+
+    def test_first_stable_owns_release_identity_and_explicit_no_baseline(self):
+        self.configure_stable()
+        result = self.stable()
+        self.assertEqual(verify.RELEASE_PACKAGE, result['packageName'])
+        self.assertEqual('release', result['channel'])
+        self.assertEqual('first-stable-install', result['baselineMode'])
+        self.assertTrue(result['stableBootstrap'])
+        self.assertIsNone(result['baseline'])
+        self.assertFalse(result['validationOnly'])
+        self.assertEqual('d' * 64, result['selectedQa']['sha256'])
+        self.assertTrue(all(Path(command[-1]) == self.apk for command in self.commands))
+
+    def test_stable_upgrade_requires_previous_stable_package_and_progression(self):
+        self.configure_stable()
+        result = self.stable(bootstrap=False)
+        self.assertFalse(result['stableBootstrap'])
+        self.assertEqual('quiesced-upgrade', result['baselineMode'])
+        self.assertTrue(result['baseline']['candidateIsNewer'])
+        self.responses[('aapt2', self.baseline.name)] = badging(8, '1.0.7')
+        with self.assertRaisesRegex(verify.VerificationError, 'package must be'):
+            self.stable(bootstrap=False)
+        self.responses[('aapt2', self.baseline.name)] = badging(package=verify.RELEASE_PACKAGE)
+        with self.assertRaisesRegex(verify.VerificationError, 'strictly newer'):
+            self.stable(bootstrap=False)
+
+    def test_qa_apk_cannot_be_renamed_into_stable(self):
+        with self.assertRaisesRegex(verify.VerificationError, 'package must be'):
+            self.stable()
+
+    def test_selected_qa_version_source_and_certificate_are_required(self):
+        self.configure_stable()
+        for changes in ({'versionName': '1.0.9'}, {'versionCode': 10}, {'sourceRevision': 'b' * 40},
+                        {'certificateSha256': 'e' * 64}, {'packageName': verify.RELEASE_PACKAGE},
+                        {'signatureVerified': False}, {'debuggable': True}, {'sha256': ''}):
+            with self.subTest(changes=changes), self.assertRaises(verify.VerificationError):
+                self.stable(qa_changes=changes)
+
+    def test_private_validation_allows_only_source_difference_and_retains_marker(self):
+        self.configure_stable()
+        result = self.stable(source='b' * 40, validation=True)
+        self.assertTrue(result['validationOnly'])
+        self.assertEqual('b' * 40, result['sourceRevision'])
+        self.assertEqual('a' * 40, result['selectedQa']['sourceRevision'])
+        for changes in ({'versionCode': 10}, {'certificateSha256': 'e' * 64}, {'sourceRevision': 'not-a-sha'}):
+            with self.subTest(changes=changes), self.assertRaises(verify.VerificationError):
+                self.stable(qa_changes=changes, validation=True)
+
+    def test_missing_or_contradictory_baseline_flags_fail_closed(self):
+        for kwargs in ({}, {'channel': 'qa', 'bootstrap_stable': True}, {'channel': 'release'}):
+            with self.subTest(kwargs=kwargs), self.assertRaises(verify.VerificationError):
+                verify.verify_qa(self.apk, None, '1.0.8', 9, self.tools, **kwargs)
+        with self.assertRaisesRegex(verify.VerificationError, 'must not claim'):
+            verify.verify_qa(self.apk, self.baseline, '1.0.8', 9, self.tools, channel='release', bootstrap_stable=True)
+
+
 if __name__ == "__main__":
     unittest.main()

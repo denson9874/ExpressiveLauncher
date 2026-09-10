@@ -21,33 +21,61 @@ def main():
     parser.add_argument('--release-id')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--publication-receipt', type=Path)
+    parser.add_argument('--channel', choices=['qa', 'release'], default='qa')
     args = parser.parse_args()
     here = Path(__file__).resolve().parent
     if args.operation == 'stage':
         source = args.workspace / 'source'
         output = args.workspace / 'artifacts'
-        apks = list((source / 'build/outputs/apk/lawnWithQuickstepExpressive/qa').glob('*.apk'))
-        if len(apks) != 1: raise SystemExit('Expected exactly one Qa APK')
-        name = f'ExpressiveLauncherL3-{args.version_name}-Android17-QPR2-Beta4-Jenkins-QA-release-signed.apk'
+        apks = list((source / 'build/outputs/apk/lawnWithQuickstepExpressive' / args.channel).glob('*.apk'))
+        if len(apks) != 1: raise SystemExit('Expected exactly one APK for the selected channel')
+        label = 'QA' if args.channel == 'qa' else 'Release'
+        name = f'ExpressiveLauncherL3-{args.version_name}-Android17-QPR2-Beta4-Jenkins-{label}-release-signed.apk'
         apk = output / name
         shutil.copyfile(apks[0], apk)
-        subprocess.run(['python3', str(here / 'verify_qa.py'), '--apk', str(apk),
-            '--baseline-apk', str(output / 'baseline.apk'), '--version-name', args.version_name,
+        command = ['python3', str(here / 'verify_qa.py'), '--apk', str(apk),
+            '--version-name', args.version_name,
             '--version-code', args.version_code, '--build-tools', str(Path(os.environ['ANDROID_HOME']) / 'build-tools/37.0.0'),
-            '--output', str(output / 'metadata.json')], check=True)
+            '--output', str(output / 'metadata.json')]
+        if args.channel == 'release':
+            source_info = json.loads((output / 'source.json').read_text())
+            command += ['--channel', 'release', '--qa-metadata', str(output / 'qa-metadata.json'),
+                        '--source-revision', source_info['sourceRevision']]
+            if source_info.get('baselineMode') == 'first-stable-install': command.append('--bootstrap-stable')
+            else: command += ['--baseline-apk', str(output / 'baseline.apk')]
+            if source_info.get('validationOnly') is True: command.append('--validation-only')
+        else:
+            command += ['--baseline-apk', str(output / 'baseline.apk')]
+        subprocess.run(command, check=True)
     elif args.operation == 'smoke':
         output = args.workspace / 'artifacts'
         metadata = json.loads((output / 'metadata.json').read_text())
         evidence = output / 'device-qa'
-        subprocess.run(['python3', str(here / 'smoke_qa.py'), '--apk', str(output / metadata['fileName']),
-            '--baseline-apk', str(output / 'baseline.apk'), '--output-dir', str(evidence),
-            '--source-revision', args.source_revision], check=True)
+        command = ['python3', str(here / 'smoke_qa.py'), '--apk', str(output / metadata['fileName']),
+            '--output-dir', str(evidence), '--source-revision', args.source_revision]
+        if args.channel == 'release':
+            command += ['--channel', 'release']
+            if metadata.get('stableBootstrap') is True: command.append('--bootstrap-stable')
+            else: command += ['--baseline-apk', str(output / 'baseline.apk')]
+        else:
+            command += ['--baseline-apk', str(output / 'baseline.apk')]
+        subprocess.run(command, check=True)
         shutil.copyfile(evidence / 'qa-result.json', output / 'qa-result.json')
     else:
-        if not re.fullmatch(r'qa-\d+\.\d+\.\d+-\d+-build-\d+', args.release_id or ''):
+        if not re.fullmatch(args.channel + r'-\d+\.\d+\.\d+-\d+-build-\d+', args.release_id or ''):
             raise SystemExit('Invalid sealed release ID')
         release = Path(os.environ['EXPRESSIVE_CI_HOME']) / 'releases' / args.release_id
         metadata = json.loads((release / 'metadata.json').read_text())
+        if metadata.get('channel') != args.channel:
+            raise SystemExit('Sealed candidate belongs to a different publication channel')
+        if args.channel == 'release' and args.operation != 'publish':
+            raise SystemExit('Legacy migration is restricted to QA')
+        if args.channel == 'release':
+            from weekly_release import guard, live_gate, require_publish_selection
+            repository = Path(os.environ['SOURCE_REPOSITORY'])
+            guard(repository)
+            gate = live_gate(repository, args.output.with_suffix('.pipeline-gate.json'))
+            require_publish_selection(metadata, gate)
         revision = metadata['sourceRevision']
         if not re.fullmatch('[0-9a-f]{40}', revision): raise SystemExit('Invalid recorded source revision')
         # Reuse publication/migration code from the candidate's exact source commit.
@@ -67,7 +95,9 @@ def main():
             if args.operation == 'publish':
                 # Old Drive publishers reject this flag before performing any upload.
                 command += ['--artifact-dir', str(release), '--expected-provider', 'github']
-                if os.environ.get('PROMOTE_QA_FEED', '').lower() == 'true': command.append('--promote')
+                if args.channel == 'release': command += ['--channel', 'release']
+                promotion = 'PROMOTE_QA_FEED' if args.channel == 'qa' else 'PROMOTE_RELEASE_FEED'
+                if os.environ.get(promotion, '').lower() == 'true': command.append('--promote')
             else:
                 command += ['--publication-receipt', str(args.publication_receipt)]
             subprocess.run(command, check=True)
