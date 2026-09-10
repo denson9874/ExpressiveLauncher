@@ -10,7 +10,8 @@ Use direct Pixel Launcher behavior when its package is present; never substitute
 without identifying it. Preserve previous working AVDs/images. Do not copy proprietary code or
 depend on private Pixel APIs. If a newer reference cannot be booted reliably, make no product change.
 
-Read docs/PIXEL_PARITY.md, docs/DIRECT_DISTRIBUTION.md, and docs/CI_PIPELINE.md. Select exactly one
+Read docs/PIXEL_PARITY.md, docs/DIRECT_DISTRIBUTION.md, docs/CI_PIPELINE.md, and
+docs/GITHUB_RELEASE_CHANGELOG.md. Select exactly one
 valuable, feasible, evidence-backed gap. Explain the observed gap before editing, implement the
 smallest complete change, and add focused regression coverage. Preserve existing launcher features,
 accessibility, Android compatibility and user data. If no safe improvement can be fully validated,
@@ -46,6 +47,16 @@ or publish a developer Debug APK. The GitHub CLI uses the worker's existing keyr
 embed credentials in source, APKs or receipts. Publication must reach terminal SUCCESS with a
 provider=github, status=released, feedVerified=true receipt for the exact source/version/bytes.
 A draft or uploaded asset is not an update available to users.
+
+Every new published build must have a high-quality GitHub changelog following
+docs/GITHUB_RELEASE_CHANGELOG.md. Give it a catchy release-specific title, clear user-facing changes,
+short friendly jokes and an original riddle with a revealable answer, all grounded in the actual
+diff and verified QA evidence. After the successful Jenkins publication receipt, update only the
+matching release title/body using a retained Markdown file and gh release edit --notes-file.
+Preserve the exact hidden source/hash/version identity comment and upstream attribution. Read back
+the complete title/body and verify release identity, assets and channel manifests are unchanged.
+Keep the draft and before/after evidence, and include the release/changelog link in the final report.
+If this editorial step fails, report and retry it separately without rebuilding or bumping the version.
 
 If build, QA or publication fails, retain the candidate commit and all evidence. Diagnose the precise
 failed stage. Retry publication against the same sealed bytes; do not increment the version again

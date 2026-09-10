@@ -76,6 +76,13 @@ The recurring Pixel-parity automation is authorized to promote every successful,
 automatically. Stable releases remain separate. The CLI still supports draft-only staging for manual
 review when explicitly requested.
 
+Every newly published build also requires an authored GitHub changelog under
+[the release changelog standard](GITHUB_RELEASE_CHANGELOG.md): a catchy title, useful changes,
+release-specific humor and a riddle with a revealable answer. After Jenkins verifies publication,
+Codex updates only the release title/body, preserves the identity comment and attribution, and
+verifies the readback and unchanged assets/manifests. This editorial step does not rebuild an APK
+or modify its seal. Release notes are part of completing the recurring release workflow.
+
 ```sh
 # Retain and verify a GitHub draft without changing the public update manifest.
 python3 ci/jenkins/control.py run --job publish --release-id qa-VERSION-CODE-build-NUMBER
