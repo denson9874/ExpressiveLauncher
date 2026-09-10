@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 import urllib.error
@@ -125,10 +126,11 @@ class StablePreparationTests(unittest.TestCase):
     def test_first_stable_requires_explicit_flag_and_exact_public_404(self):
         missing = urllib.error.HTTPError(prepare.RELEASE_FEED, 404, 'Not Found', {}, None)
         self.addCleanup(missing.close)
-        with patch.object(prepare, 'download', side_effect=missing):
+        with patch.object(prepare, 'download', side_effect=missing), patch.object(prepare, 'verify_first_stable_history', return_value={'authenticated': True}) as history:
             self.assertEqual((None, prepare.RELEASE_FEED), prepare.delivered_baseline(self.output, 'release', True))
             with self.assertRaises(urllib.error.HTTPError):
                 prepare.delivered_baseline(self.output, 'release')
+            history.assert_called_once_with()
         self.assertFalse((self.output / 'baseline.apk').exists())
         for error in (urllib.error.HTTPError(prepare.RELEASE_FEED, 403, 'Denied', {}, None),
                       urllib.error.HTTPError(prepare.RELEASE_FEED, 500, 'Error', {}, None),
@@ -184,6 +186,89 @@ class StablePreparationTests(unittest.TestCase):
         (self.release / 'candidate.apk').write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError, 'sealed bytes changed'):
             prepare.retain_qa_provenance(self.home, self.release_id, self.output, 'b' * 40, True)
+
+
+class StableBootstrapHistoryTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.output = Path(self.temp.name)
+        self.qa_release = dict(tag_name='qa-v1.0.13-14', prerelease=True, draft=False,
+                               published_at='2026-09-09T20:36:58Z')
+
+    def bootstrap(self):
+        missing = urllib.error.HTTPError(prepare.RELEASE_FEED, 404, 'Not Found', {}, None)
+        self.addCleanup(missing.close)
+        with patch.object(prepare, 'download', side_effect=missing):
+            return prepare.delivered_baseline(self.output, 'release', True)
+
+    def test_empty_authenticated_history_allows_first_stable_and_retains_proof(self):
+        with patch.object(prepare, 'authenticated_github_json', side_effect=[[], [[self.qa_release]]]) as api:
+            self.assertEqual((None, prepare.RELEASE_FEED), self.bootstrap())
+        self.assertEqual([
+            unittest.mock.call(f'/repos/{prepare.REPOSITORY}/commits?sha=updates&path=release/latest.json&per_page=1'),
+            unittest.mock.call(f'/repos/{prepare.REPOSITORY}/releases?per_page=100', paginate=True),
+        ], api.call_args_list)
+        proof = json.loads((self.output / 'stable-bootstrap-history.json').read_text())
+        self.assertTrue(proof['authenticated'])
+        self.assertEqual(0, proof['feedHistoryCount'])
+        self.assertEqual(0, proof['publishedStableReleaseCount'])
+        self.assertEqual(1, proof['releasesInspected'])
+        self.assertFalse((self.output / 'baseline.apk').exists())
+
+    def test_deleted_feed_with_history_cannot_rebootstrap(self):
+        with patch.object(prepare, 'authenticated_github_json', return_value=[{'sha': 'a' * 40}]) as api:
+            with self.assertRaisesRegex(ValueError, 'publication history'):
+                self.bootstrap()
+        self.assertEqual(1, api.call_count)
+        self.assertFalse((self.output / 'stable-bootstrap-history.json').exists())
+
+    def test_published_stable_on_later_page_blocks_even_without_feed_history(self):
+        stable = dict(self.qa_release, tag_name='v1.0.13-14', prerelease=False)
+        for release in (stable, dict(stable, prerelease=True), dict(stable, tag_name='historic-stable')):
+            with self.subTest(release=release), patch.object(prepare, 'authenticated_github_json',
+                    side_effect=[[], [[self.qa_release], [release]]]), self.assertRaisesRegex(ValueError, 'published stable release'):
+                self.bootstrap()
+        self.assertFalse((self.output / 'stable-bootstrap-history.json').exists())
+
+    def test_unpublished_draft_is_not_claimed_as_previously_delivered_stable(self):
+        draft = dict(tag_name='v1.0.13-14', prerelease=False, draft=True, published_at=None)
+        with patch.object(prepare, 'authenticated_github_json', side_effect=[[], [[draft], []]]):
+            proof = prepare.verify_first_stable_history()
+        self.assertEqual(1, proof['releasesInspected'])
+
+    def test_unknown_api_shapes_and_incomplete_release_records_fail_closed(self):
+        for replies in ([{}], [[], {}], [[], []], [[], [self.qa_release]],
+                        [[], [[{}]]], [[], [[dict(self.qa_release, published_at=None)]]],
+                        [[], [[dict(self.qa_release, prerelease='true')]]]):
+            with self.subTest(replies=replies), patch.object(prepare, 'authenticated_github_json', side_effect=replies), self.assertRaises(ValueError):
+                self.bootstrap()
+        self.assertFalse((self.output / 'stable-bootstrap-history.json').exists())
+
+    def test_api_uncertainty_cannot_establish_absence(self):
+        for replies in ([ValueError('authentication unavailable')], [[], ValueError('releases unavailable')]):
+            with self.subTest(replies=replies), patch.object(prepare, 'authenticated_github_json', side_effect=replies), self.assertRaises(ValueError):
+                self.bootstrap()
+        self.assertFalse((self.output / 'stable-bootstrap-history.json').exists())
+
+    def test_authenticated_cli_uses_get_and_all_release_pages_without_credentials(self):
+        response = subprocess.CompletedProcess([], 0, '[[]]', '')
+        endpoint = f'/repos/{prepare.REPOSITORY}/releases?per_page=100'
+        with patch.object(prepare.subprocess, 'run', return_value=response) as run:
+            self.assertEqual([[]], prepare.authenticated_github_json(endpoint, paginate=True))
+        self.assertEqual(['gh', 'api', '--hostname', 'github.com', '--method', 'GET', '--paginate', '--slurp', endpoint], run.call_args.args[0])
+        self.assertEqual(120, run.call_args.kwargs['timeout'])
+        self.assertEqual(subprocess.DEVNULL, run.call_args.kwargs['stdin'])
+
+    def test_cli_errors_timeouts_and_invalid_json_are_sanitized_failures(self):
+        for result in (subprocess.CompletedProcess([], 1, '', 'sensitive diagnostic'),
+                       subprocess.CompletedProcess([], 0, 'not json', ''),
+                       subprocess.TimeoutExpired('gh', 120), FileNotFoundError('gh missing')):
+            kwargs = {'side_effect': result} if isinstance(result, Exception) else {'return_value': result}
+            with self.subTest(result=result), patch.object(prepare.subprocess, 'run', **kwargs):
+                with self.assertRaises(ValueError) as error:
+                    prepare.authenticated_github_json('/repos/example/repository/commits')
+                self.assertNotIn('sensitive diagnostic', str(error.exception))
 
 
 if __name__ == '__main__':

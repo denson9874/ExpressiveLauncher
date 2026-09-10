@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prepare immutable source and its channel's baseline, or an explicit first stable install."""
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -111,6 +112,57 @@ def retain_qa_provenance(ci_home, release_id, output, revision, validation_only=
     return provenance
 
 
+def authenticated_github_json(endpoint, paginate=False):
+    """Use gh's existing authentication without extracting or printing credentials."""
+    command = ['gh', 'api', '--hostname', 'github.com', '--method', 'GET']
+    if paginate:
+        command.extend(['--paginate', '--slurp'])
+    command.append(endpoint)
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                                timeout=120, check=False)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError('Cannot establish authenticated stable distribution history') from error
+    if result.returncode:
+        # gh stderr is deliberately not copied into build logs.
+        raise ValueError(f'Authenticated stable history request failed (exit {result.returncode})')
+    try:
+        return json.loads(result.stdout)
+    except (ValueError, TypeError) as error:
+        raise ValueError('Authenticated stable history response is not valid JSON') from error
+
+
+def verify_first_stable_history():
+    """A missing public feed is first-install evidence only if no stable history exists."""
+    commits_endpoint = f'/repos/{REPOSITORY}/commits?sha=updates&path=release/latest.json&per_page=1'
+    commits = authenticated_github_json(commits_endpoint)
+    if not isinstance(commits, list):
+        raise ValueError('Stable feed history response must be a commit list')
+    if commits:
+        raise ValueError('Stable feed has publication history; restore its delivered baseline instead of bootstrapping')
+    releases_endpoint = f'/repos/{REPOSITORY}/releases?per_page=100'
+    pages = authenticated_github_json(releases_endpoint, paginate=True)
+    if not isinstance(pages, list) or not pages or any(not isinstance(page, list) for page in pages):
+        raise ValueError('Stable release history response must contain every paginated release list')
+    count = 0
+    for page in pages:
+        for release in page:
+            if (not isinstance(release, dict) or type(release.get('draft')) is not bool or
+                    type(release.get('prerelease')) is not bool or
+                    not isinstance(release.get('tag_name'), str) or not release['tag_name'] or
+                    (not release['draft'] and (not isinstance(release.get('published_at'), str) or
+                                              not release['published_at']))):
+                raise ValueError('Stable release history contains an incomplete release identity')
+            if not release['draft'] and (not release['prerelease'] or
+                                        re.fullmatch(r'v\d+\.\d+\.\d+-\d+', release['tag_name'])):
+                raise ValueError('A published stable release already exists; first-stable bootstrap is unavailable')
+            count += 1
+    return {'schemaVersion': 1, 'checkedAt': datetime.now(timezone.utc).isoformat(),
+            'repository': REPOSITORY, 'feedPath': 'release/latest.json', 'branch': 'updates',
+            'authenticated': True, 'feedHistoryCount': 0, 'publishedStableReleaseCount': 0,
+            'releasesInspected': count}
+
+
 def delivered_baseline(output, channel='qa', bootstrap_stable=False):
     if bootstrap_stable and channel != 'release':
         raise ValueError('Stable bootstrap cannot be used for QA')
@@ -120,6 +172,8 @@ def delivered_baseline(output, channel='qa', bootstrap_stable=False):
     except urllib.error.HTTPError as error:
         if channel == 'release' and bootstrap_stable and error.code == 404 and error.url == url:
             error.close()
+            history = verify_first_stable_history()
+            (output / 'stable-bootstrap-history.json').write_text(json.dumps(history, indent=2) + '\n')
             (output / 'baseline-feed.json').unlink(missing_ok=True)
             return None, url
         raise

@@ -47,7 +47,9 @@ verify signing continuity, and test upgrade/settings retention, Home launches, d
 date handoff and launcher crash/ANR logs on the pinned Android guest.
 
 The first stable release has no shipped stable baseline. Only an explicit, verified missing stable
-feed permits `first-stable-install` mode. That mode tests a fresh installation, seeds a preference,
+feed, with authenticated confirmation that no stable feed history or prior stable release exists,
+permits `first-stable-install` mode. A deleted feed after stable publication holds the release; it
+does not reset this rule. That mode tests a fresh installation, seeds a preference,
 reinstalls the same exact stable APK and verifies retention plus the normal smoke flows. Its report
 does not claim a prior-version stable upgrade. A QA APK is never used as a stable upgrade baseline.
 The selected sealed QA metadata still establishes the exact intended version/source and signer.

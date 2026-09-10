@@ -782,20 +782,23 @@ class StablePublishPolicyTest(unittest.TestCase):
         with mock.patch.object(github, "api", return_value=self.release(False)) as api:
             github.publish_release(self.release(), self.metadata)
         self.assertEqual(api.call_args_list[0].kwargs["body"],
-                         {"draft": False, "prerelease": False, "make_latest": "false"})
+                         {"draft": False, "prerelease": False, "make_latest": "true"})
         with self.assertRaisesRegex(publisher.PublishError, "conflicting tag or channel"):
             github.validate_release({**self.release(), "prerelease": True}, self.metadata)
 
     def test_bootstrap_refuses_existing_stable_before_release_or_asset_writes(self):
         current = self.feed()
         current["versionCode"] -= 1
-        github = mock.Mock(spec=publisher.GitHub)
-        github.feed.return_value = (current, "c" * 40)
-        with mock.patch.object(publisher, "GitHub", return_value=github):
+        github = publisher.GitHub("release")
+        with mock.patch.object(publisher, "GitHub", return_value=github), \
+                mock.patch.object(github, "preflight"), \
+                mock.patch.object(github, "feed", return_value=(current, "c" * 40)), \
+                mock.patch.object(github, "ensure_release") as ensure, \
+                mock.patch.object(github, "stage") as stage:
             with self.assertRaisesRegex(publisher.PublishError, "cannot replace an existing stable feed"):
                 publisher.publish(self.directory, True, {}, "release")
-        github.ensure_release.assert_not_called()
-        github.stage.assert_not_called()
+        ensure.assert_not_called()
+        stage.assert_not_called()
 
     def test_missing_feed_requires_bootstrap_and_upgrade_requires_exact_baseline(self):
         baseline = self.upgrade_candidate()
@@ -811,8 +814,10 @@ class StablePublishPolicyTest(unittest.TestCase):
     def test_stable_feed_write_rechecks_bootstrap_and_only_writes_release_path(self):
         github = publisher.GitHub("release")
         with mock.patch.object(github, "feed", side_effect=[(None, None), (self.feed(), "c" * 40)]), \
+                mock.patch.object(github, "require_initial_stable_history") as history, \
                 mock.patch.object(github, "api", return_value={}) as api:
             self.assertTrue(github.update_feed(self.feed(), metadata=self.metadata))
+        history.assert_called_once_with(self.metadata)
         self.assertEqual(api.call_args.args[0], github.root + "/contents/release/latest.json")
         self.assertNotIn("sha", api.call_args.kwargs["body"])
         earlier = {**self.feed(), "versionCode": 8}
@@ -821,6 +826,70 @@ class StablePublishPolicyTest(unittest.TestCase):
             with self.assertRaisesRegex(publisher.PublishError, "existing stable feed"):
                 github.update_feed(self.feed(), metadata=self.metadata)
             api.assert_not_called()
+
+    def test_first_stable_requires_empty_authenticated_manifest_and_release_history(self):
+        github = publisher.GitHub("release")
+        qa_release = {"tag_name": "qa-v1.0.8-9", "draft": False, "prerelease": True}
+        with mock.patch.object(github, "api", side_effect=[[], [qa_release]]) as api:
+            github.validate_stable_state(None, self.feed(), self.metadata)
+        self.assertIn("/commits?", api.call_args_list[0].args[0])
+        query = publisher.urllib.parse.parse_qs(publisher.urllib.parse.urlsplit(api.call_args_list[0].args[0]).query)
+        self.assertEqual(query, {"sha": ["updates"], "path": ["release/latest.json"], "per_page": ["1"]})
+        self.assertEqual(api.call_args_list[1].args[0], github.root + "/releases?per_page=100&page=1")
+
+    def test_deleted_stable_feed_cannot_rebootstrap_even_same_candidate(self):
+        github = publisher.GitHub("release")
+        with mock.patch.object(publisher, "GitHub", return_value=github), \
+                mock.patch.object(github, "preflight"), mock.patch.object(github, "feed", return_value=(None, None)), \
+                mock.patch.object(github, "api", return_value=[{"sha": "c" * 40}]) as api, \
+                mock.patch.object(github, "ensure_release") as ensure, mock.patch.object(github, "stage") as stage:
+            with self.assertRaisesRegex(publisher.PublishError, "previously existed"):
+                publisher.publish(self.directory, True, {}, "release")
+        self.assertEqual(api.call_count, 1)
+        ensure.assert_not_called()
+        stage.assert_not_called()
+
+    def test_history_failure_or_invalid_response_never_allows_bootstrap(self):
+        github = publisher.GitHub("release")
+        for responses in ([publisher.PublishError("HTTP 403")], [{}],
+                          [[], publisher.PublishError("HTTP 503")], [[], {}], [[], [{"tag_name": "v1.0.7-8"}]]):
+            with self.subTest(responses=responses), mock.patch.object(github, "api", side_effect=responses):
+                with self.assertRaises(publisher.PublishError):
+                    github.validate_stable_state(None, self.feed(), self.metadata)
+
+    def test_partial_first_publication_only_recovers_the_exact_candidate(self):
+        github = publisher.GitHub("release")
+        with mock.patch.object(github, "api", side_effect=[[], [self.release(False)]]):
+            github.validate_stable_state(None, self.feed(), self.metadata)
+        for changed in ({"tag_name": "v1.0.7-8"}, {"body": "different source and bytes"}, {"prerelease": True}):
+            with self.subTest(changed=changed), \
+                    mock.patch.object(github, "api", side_effect=[[], [{**self.release(False), **changed}]]):
+                with self.assertRaises(publisher.PublishError):
+                    github.validate_stable_state(None, self.feed(), self.metadata)
+
+    def test_existing_exact_feed_retry_does_not_require_absent_history(self):
+        github = publisher.GitHub("release")
+        with mock.patch.object(github, "api") as api:
+            github.validate_stable_state(self.feed(), self.feed(), self.metadata)
+            api.assert_not_called()
+
+    def test_history_is_rechecked_before_first_manifest_write(self):
+        github = publisher.GitHub("release")
+        with mock.patch.object(github, "feed", return_value=(None, None)), \
+                mock.patch.object(github, "api", return_value=[{"sha": "c" * 40}]) as api:
+            with self.assertRaisesRegex(publisher.PublishError, "previously existed"):
+                github.update_feed(self.feed(), metadata=self.metadata)
+        self.assertEqual(api.call_count, 1)
+        self.assertNotIn("method", api.call_args.kwargs)
+
+    def test_release_history_pagination_does_not_hide_prior_stable_release(self):
+        github = publisher.GitHub("release")
+        qa_page = [{"tag_name": f"qa-v1.0.{index}-1", "draft": False, "prerelease": True} for index in range(100)]
+        prior = {**self.release(False), "tag_name": "v1.0.7-8"}
+        with mock.patch.object(github, "api", side_effect=[[], qa_page, [prior]]) as api:
+            with self.assertRaisesRegex(publisher.PublishError, "already published"):
+                github.validate_stable_state(None, self.feed(), self.metadata)
+        self.assertIn("page=2", api.call_args.args[0])
 
     def test_stable_rollback_and_same_version_mutation_are_rejected(self):
         current = self.feed()

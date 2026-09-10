@@ -350,6 +350,40 @@ class GitHub:
         validate_github_feed(feed, self.channel)
         return feed, blob_sha
 
+    def require_initial_stable_history(self, metadata):
+        """A missing file cannot reset an established stable distribution.
+
+        A first publication can fail after exposing its release but before its
+        first manifest commit. Only that exact release may resume in this case;
+        the ordinary immutable-asset verification still applies to every file.
+        """
+        require(self.channel == "release", "Stable history checks require the release channel")
+        query = urllib.parse.urlencode({"sha": UPDATES_BRANCH, "path": self.feed_path, "per_page": 1})
+        history = self.api(f"{self.root}/commits?{query}")
+        require(isinstance(history, list), "Stable manifest history is unavailable or invalid")
+        require(not history, "Stable manifest previously existed; a missing feed cannot bootstrap again")
+        expected_tag = release_tag(metadata, self.channel)
+        for page in range(1, 101):
+            releases = self.api(f"{self.root}/releases?per_page=100&page={page}")
+            require(isinstance(releases, list), "Stable release history is unavailable or invalid")
+            for release in releases:
+                require(isinstance(release, dict) and isinstance(release.get("tag_name"), str)
+                        and type(release.get("draft")) is bool and type(release.get("prerelease")) is bool,
+                        "Stable release history contains an invalid record")
+                stable_tag = re.fullmatch(r"v\d+\.\d+\.\d+-[1-9]\d*", release["tag_name"])
+                if not release["draft"] and (not release["prerelease"] or stable_tag):
+                    require(release["tag_name"] == expected_tag,
+                            "Another stable release was already published; missing feed requires recovery")
+                    self.validate_release(release, metadata)
+            if len(releases) < 100:
+                return
+        raise PublishError("Stable release history exceeds the bounded audit limit")
+
+    def validate_stable_state(self, current, proposed, metadata):
+        validate_stable_baseline(current, proposed, metadata)
+        if current is None:
+            self.require_initial_stable_history(metadata)
+
     def find_release(self, tag):
         release = self.api(f"{self.root}/releases/tags/{tag}", missing_ok=True)
         if release is not None:
@@ -472,7 +506,8 @@ class GitHub:
         self.validate_release(release, metadata)
         if release["draft"]:
             self.api(f"{self.root}/releases/{release['id']}", method="PATCH",
-                     body={"draft": False, "prerelease": self.settings["prerelease"], "make_latest": "false"})
+                     body={"draft": False, "prerelease": self.settings["prerelease"],
+                           "make_latest": "true" if self.channel == "release" else "false"})
         result = self.api(f"{self.root}/releases/{release['id']}")
         self.validate_release(result, metadata)
         require(result["draft"] is False, "GitHub release is still a draft")
@@ -483,7 +518,7 @@ class GitHub:
         current, blob_sha = self.feed()
         if self.channel == "release":
             require(isinstance(metadata, dict), "Stable feed update requires sealed baseline metadata")
-            validate_stable_baseline(current, proposed, metadata)
+            self.validate_stable_state(current, proposed, metadata)
         if current is not None and validate_transition(current, proposed, channel=self.channel) == "unchanged":
             return False
         raw = (json.dumps(proposed, indent=2) + "\n").encode("utf-8")
@@ -560,7 +595,7 @@ def publish(artifact_dir, promote, receipt, channel="qa"):
     if current is not None:
         validate_transition(current, proposed, channel=channel)
     if channel == "release":
-        validate_stable_baseline(current, proposed, metadata)
+        github.validate_stable_state(current, proposed, metadata)
     require(public_feed(optional=current is None, channel=channel) == current,
             "Authenticated and public GitHub channel feeds disagree")
     release = github.ensure_release(metadata, target_revision)
@@ -589,7 +624,7 @@ def publish(artifact_dir, promote, receipt, channel="qa"):
     if current is not None:
         validate_transition(current, proposed, channel=channel)
     if channel == "release":
-        validate_stable_baseline(current, proposed, metadata)
+        github.validate_stable_state(current, proposed, metadata)
     if not promote:
         return
     release = github.publish_release(release, metadata)
