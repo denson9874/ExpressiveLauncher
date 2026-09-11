@@ -9,10 +9,12 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import app.lawnchair.allapps.views.SearchResultView.Companion.FLAG_HIDE_SUBTITLE
 import app.lawnchair.font.FontManager
+import app.lawnchair.launcher
 import app.lawnchair.search.adapter.CALCULATOR
 import app.lawnchair.search.adapter.HISTORY
 import app.lawnchair.search.adapter.SETTINGS
 import app.lawnchair.search.adapter.SearchTargetCompat
+import app.lawnchair.search.adapter.SearchTargetFactory.Companion.PRIVATE_SPACE_RECOVERY_ACTION_ID
 import app.lawnchair.search.adapter.WEB_SUGGESTION
 import app.lawnchair.util.copyToClipboard
 import com.android.app.search.LayoutType
@@ -78,6 +80,9 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
 
     override fun bind(target: SearchTargetCompat, shortcuts: List<SearchTargetCompat>) {
         flags = getFlags(target.extras)
+        // A recycled result must not retain Private Space's direct-open action.
+        setOnClickListener(icon)
+        icon.setOnClickListener(icon)
 
         icon.bind(target) {
             title.text = it.title
@@ -131,6 +136,19 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
                     toastMessage = context.getString(R.string.calculator_search_result_copied_toast),
                 )
             }
+        }
+        if (isSetting && target.searchAction?.id == PRIVATE_SPACE_RECOVERY_ACTION_ID) {
+            val openPrivateSpace = OnClickListener {
+                val appsView = context.launcher.appsView
+                // Dismiss search's IME while this window owns focus, before Android authenticates.
+                appsView.searchUiManager?.editText?.hideKeyboard()
+                val handled = appsView.privateProfileManager?.openPrivateSpace() == true
+                if (!handled) {
+                    target.searchAction?.intent?.let { intent -> handleSearchTargetClick(context, intent) }
+                }
+            }
+            setOnClickListener(openPrivateSpace)
+            icon.setOnClickListener(openPrivateSpace)
         }
     }
 

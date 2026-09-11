@@ -223,12 +223,12 @@ class SearchTargetFactory(
     }
 
     /**
-     * Returns Android's state-blind Private Space recovery entry point for an exact search.
+     * Returns a state-blind Private Space entry point for an exact search.
      *
      * Deliberately do not inspect users, profile state, or installed private apps here. Showing
      * different results for configured and unconfigured devices would disclose that a hidden
-     * Private Space exists. Android owns the returned destination and decides whether to show
-     * setup, authentication, or settings after the user explicitly opens it.
+     * Private Space exists. The click handler opens an existing space through Android's unlock
+     * flow; the returned system intent is the setup fallback for an unconfigured device.
      */
     fun createPrivateSpaceRecoveryTarget(query: String): SearchTargetCompat? {
         if (!isExactPrivateSpaceQuery(query, context.getString(R.string.private_space_label))) {
@@ -243,7 +243,7 @@ class SearchTargetFactory(
     }
 
     internal fun createPrivateSpaceRecoveryTarget(settingsIntent: Intent): SearchTargetCompat {
-        val id = "private_space_recovery"
+        val id = PRIVATE_SPACE_RECOVERY_ACTION_ID
         val title = context.getString(R.string.private_space_label)
         val subtitle = context.getString(R.string.private_space_secondary_label)
         val action = SearchActionCompat.Builder(id, title)
@@ -420,6 +420,8 @@ class SearchTargetFactory(
     }
 
     companion object {
+        const val PRIVATE_SPACE_RECOVERY_ACTION_ID = "private_space_recovery"
+
         private const val HASH_ALGORITHM = "SHA-256"
 
         // TODO find a way to properly provide tag/provide ids to search target

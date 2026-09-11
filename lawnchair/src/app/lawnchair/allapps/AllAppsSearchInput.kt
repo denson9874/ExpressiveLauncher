@@ -540,6 +540,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     }
 
     override fun onSearchResult(query: String, items: ArrayList<AdapterItem>?) {
+        // Unlocking a profile refreshes app search while its successful callback exits search.
+        // A queued provider result must not reopen the old query after that reset.
+        if (query != Utilities.trim(input.text)) return
         if (items != null) {
             apps.setSearchResults(items)
             notifyResultChanged()

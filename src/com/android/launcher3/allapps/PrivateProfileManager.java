@@ -65,6 +65,7 @@ import com.android.app.animation.Interpolators;
 import com.android.launcher3.BuildConfig;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Flags;
+import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimatedPropertySetter;
@@ -319,6 +320,44 @@ public class PrivateProfileManager extends UserProfileManager {
     public void setQuietMode(boolean enable) {
         setQuietMode(enable, mAllApps.mActivityContext);
         mReadyToAnimate = true;
+    }
+
+    /** Opens an existing Private Space after an explicit search-result action. */
+    public boolean openPrivateSpace() {
+        UserHandle profile = getProfileUser();
+        if (profile == null) {
+            // Let Android's setup destination handle devices without a private profile.
+            return false;
+        }
+        final boolean locked;
+        try {
+            locked = mUserManager.isQuietModeEnabled(profile);
+        } catch (SecurityException e) {
+            // The existing request path recovers HOME authority without assuming an unlock.
+            lockingAction(/* lock */ false);
+            return true;
+        }
+        if (locked) {
+            // Record Android's observed state, including a cold or stale model, so the later
+            // successful refresh takes the normal DISABLED -> ENABLED post-unlock path.
+            setCurrentState(STATE_DISABLED);
+            // Android owns authentication. Keep search and private apps unchanged until reset()
+            // receives the successful unlock; cancellation must not reveal the container.
+            lockingAction(/* lock */ false);
+        } else if (isEnabled()) {
+            mAllApps.resetAndScrollToPrivateSpaceHeader();
+        } else {
+            // Android is unlocked but the model has not caught up. Keep the search until a
+            // fresh app list can take the normal post-unlock path, including from UNKNOWN.
+            setCurrentState(STATE_DISABLED);
+            reloadPrivateSpaceApps();
+        }
+        return true;
+    }
+
+    @VisibleForTesting
+    void reloadPrivateSpaceApps() {
+        LauncherAppState.getInstance(mAllApps.getContext()).getModel().forceReload();
     }
 
     /**
@@ -872,13 +911,9 @@ public class PrivateProfileManager extends UserProfileManager {
 
     private void exitSearchAndExpand() {
         mAllApps.updateHeaderScroll(0);
-        // Animate to A-Z with 0 time to reset the animation with proper state management.
-        mAllApps.animateToSearchState(false, 0);
-        MAIN_EXECUTOR.post(() -> {
-            mAllApps.mSearchUiManager.resetSearch();
-            mAllApps.switchToTab(ActivityAllAppsContainerView.AdapterHolder.MAIN);
-            expandPrivateSpace();
-        });
+        // Reveal the destination even when Private Space animations are disabled.
+        mAllApps.resetAndScrollToPrivateSpaceHeader();
+        MAIN_EXECUTOR.post(this::expandPrivateSpace);
     }
 
     private void attachFloatingMaskView(boolean expand) {

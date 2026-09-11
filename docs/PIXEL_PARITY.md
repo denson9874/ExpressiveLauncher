@@ -4,7 +4,7 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
-## Current QA delivery — 2026-09-06
+## Jenkins adoption QA delivery — 2026-09-06
 
 Version **1.0.8 / code 9** was built and published through Jenkins from commit
 `92ea47b6e2d159d87fce1ec2bbbbad7d258ff4cb`. Build #1 passed 45 pipeline checks,
@@ -15,16 +15,16 @@ exact identity, delivery evidence and [pipeline operations](CI_PIPELINE.md).
 
 ## Reference environment
 
-- Reference date: 2026-09-09
+- Reference date: 2026-09-11
 - Latest public beta: Android 17 QPR2 Beta 4, released 2026-08-28; official release notes updated 2026-09-02
 - Guest build: `CP41.260814.003.B1` (`dev-keys`), Android SDK full version `37.2`, security patch `2026-08-05`
 - Guest fingerprint: `google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260814.003.B1/16166531:user/dev-keys`
 - System image: `system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a`, revision 4
-- AVD: `Expressive_Parity_Explore_20260909`, freshly created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size
+- AVD: `Expressive_Parity_Explore_20260911`, freshly created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size
 - Android Emulator: 37.2.5.0, build 16079175
 - Pixel Launcher: `com.google.android.apps.nexuslauncher`, versionCode 907, versionName `17`
 - Rollback retained: the prior `Pixel_8_Pro_Android_17_QPR2_Beta3` and `Pixel_8_Pro` Beta 2 AVDs and images were not removed
-- Current evidence directory: `artifacts/pixel-parity-20260909`; prior September 4 and September 7 evidence remains retained (generated QA evidence, not committed)
+- Current evidence directory: `artifacts/pixel-parity-20260911`; prior September 4, September 7 and September 9 evidence remains retained (generated QA evidence, not committed)
 
 Official reference: [Android 17 QPR2 release notes](https://developer.android.com/about/versions/17/qpr2/release-notes)
 and [Google Play system-image repository](https://dl.google.com/android/repository/sys-img/google_apis_playstore/sys-img2-3.xml).
@@ -75,6 +75,41 @@ bridge requires the successful GitHub receipt, backs up and updates only the fix
 file, and verifies public readback; 14 focused migration tests passed.
 
 ## Implemented parity improvements
+
+### 2026-09-11 — Unlock hidden Private Space directly into its apps (candidate 1.0.14)
+
+**Observed gap.** On the connected Pixel 11 Pro XL (`CP41.260814.003.C2`), signed QA
+1.0.13 / code 14 correctly locked and hid Private Space, including after a launcher restart.
+Searching the full `private space` label recovered a neutral result, but opening it diverted to
+Android's Private Space settings. The user had to return to the drawer to reach the apps.
+On the freshly verified Beta 4 Pixel Launcher guest above, the same hidden-space search instead
+authenticates and directly reveals the private apps with search cleared.
+
+**Implementation.** The recovery row, icon and keyboard action now use the existing public
+`UserManager.requestQuietModeEnabled` unlock path. The manager reads actual quiet mode and waits
+for the confirmed model transition before opening the container; stale or unknown launcher state
+is reconciled without assuming authentication succeeded. Already-unlocked spaces open directly.
+Search's keyboard is dismissed before authentication, and late provider callbacks for a cleared
+query are rejected so they cannot restore the recovery results over the opened space. Opening
+also scrolls to the destination when Private Space animation is disabled. The exact-query result
+remains state-blind, Android setup remains the fallback when no profile exists, and the settings
+gear keeps its settings destination.
+
+**Focused validation.** Eighteen unit checks pass: nine manager dispatch/state/navigation cases,
+six rendered row/icon/keyboard/rebinding cases, two existing recovery-target cases, and one real
+late-result delivery regression. Live testing exposed the late callback after the initial test
+pass; the corrected developer APK subsequently passed all 27 exploratory checks. These include
+lock/hide, cancelled authentication with the query preserved, icon retry, authenticated direct
+opening, delayed-callback stability, hidden keyboard, cold-process recovery, the settings gear,
+ordinary app search and cold HOME startup. No launcher crash or ANR was observed in the captured
+test interval. Evidence is retained in `artifacts/pixel-parity-20260911`, including the reference,
+physical baseline, focused XML results, and `developer-ime-final-ui/result.json`.
+
+Version **1.0.14 / code 15** is the candidate record. Jenkins owns the full suite, signed minified
+Qa build, isolated same-signer upgrade, seal and publication. The physical phone disconnected
+after baseline reproduction, so the candidate's physical retest remains pending reconnection.
+Candidate build/publication receipts and subsequent installer evidence belong with this run's
+retained artifacts; this entry does not claim an unverified release or phone installation.
 
 ### 2026-09-09 — Use saved phone numbers in contact search (candidate 1.0.13)
 
