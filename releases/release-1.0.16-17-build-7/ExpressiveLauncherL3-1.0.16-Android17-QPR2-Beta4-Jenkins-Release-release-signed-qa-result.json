@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "sourceRevision": "e49bbfe3d60ac5823db6ab302964917790b756d8",
+  "apk": "/Users/daryldenson/Library/Application Support/Expressive CI/agent/workspace/expressive-release-build/build-7/artifacts/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-Release-release-signed.apk",
+  "apkSha256": "4b4126642c3e6d485781ce5043a048d071278f9c58211d9d091811df0a5b9399",
+  "sha256": "4b4126642c3e6d485781ce5043a048d071278f9c58211d9d091811df0a5b9399",
+  "baselineApk": null,
+  "baselineSha256": null,
+  "avd": "Expressive_CI_20260912_185412_d9ec4566",
+  "serial": "emulator-5580",
+  "flows": {
+    "guest_identity": {
+      "passed": true,
+      "build": "CP41.260814.003.B1",
+      "sdk": 37
+    },
+    "first_stable_install": {
+      "passed": true,
+      "version": "1.0.16",
+      "versionCode": "17"
+    },
+    "seed_preference": {
+      "passed": true,
+      "preference": "Infinite scrolling",
+      "value": true
+    },
+    "same_version_reinstall": {
+      "passed": true,
+      "firstInstallTime": "2026-09-12 18:55:16",
+      "installedSha256": "4b4126642c3e6d485781ce5043a048d071278f9c58211d9d091811df0a5b9399"
+    },
+    "preference_retention": {
+      "passed": true,
+      "preference": "Infinite scrolling",
+      "value": true
+    },
+    "warm_start": {
+      "passed": true,
+      "pid": "5831"
+    },
+    "cold_start": {
+      "passed": true,
+      "pid": "6163"
+    },
+    "drawer_swipe": {
+      "passed": true,
+      "path": [
+        672,
+        2094,
+        672,
+        658
+      ],
+      "durationMs": 350
+    },
+    "local_search": {
+      "passed": true,
+      "query": "Calendar"
+    },
+    "current_date_handoff": {
+      "passed": true,
+      "guestEpoch": 1789253827,
+      "intentEpochs": [
+        1789253827
+      ]
+    },
+    "clean_app_logs": {
+      "passed": true,
+      "fatal": false,
+      "anr": false
+    }
+  },
+  "evidence": [
+    "baseline-home-launch.txt",
+    "baseline-home.png",
+    "baseline-home.xml",
+    "baseline-metadata.json",
+    "baseline-package.txt",
+    "baseline-preference-reopened-root.png",
+    "baseline-preference-reopened-root.xml",
+    "baseline-preference-reopened.png",
+    "baseline-preference-reopened.xml",
+    "baseline-preference-root.png",
+    "baseline-preference-root.xml",
+    "baseline-preference-seeded.png",
+    "baseline-preference-seeded.xml",
+    "baseline-preference.png",
+    "baseline-preference.xml",
+    "baseline-seeded-home-launch.txt",
+    "baseline-seeded-home.png",
+    "baseline-seeded-home.xml",
+    "candidate-cold-home-launch.txt",
+    "candidate-cold-home.png",
+    "candidate-cold-home.xml",
+    "candidate-date-handoff-dump-attempt-1.txt",
+    "candidate-date-handoff.png",
+    "candidate-date-handoff.xml",
+    "candidate-date-home-launch.txt",
+    "candidate-date-home.png",
+    "candidate-date-home.xml",
+    "candidate-date-intents.txt",
+    "candidate-drawer.png",
+    "candidate-drawer.xml",
+    "candidate-final-home-launch.txt",
+    "candidate-final-home.png",
+    "candidate-final-home.xml",
+    "candidate-first-home-launch.txt",
+    "candidate-first-home.png",
+    "candidate-first-home.xml",
+    "candidate-metadata.json",
+    "candidate-package.txt",
+    "candidate-preference-retained-root.png",
+    "candidate-preference-retained-root.xml",
+    "candidate-preference-retained.png",
+    "candidate-preference-retained.xml",
+    "candidate-search-calendar.png",
+    "candidate-search-calendar.xml",
+    "candidate-search-focused.png",
+    "candidate-search-focused.xml",
+    "candidate-search-ime-attempt-1.txt",
+    "candidate-search-ime-ready.txt",
+    "candidate-warm-home-launch.txt",
+    "candidate-warm-home.png",
+    "candidate-warm-home.xml",
+    "commands.log",
+    "crash.txt",
+    "emulator-stop.txt",
+    "emulator-version.txt",
+    "emulator.log",
+    "events.txt",
+    "guest-properties.txt",
+    "image-source.properties",
+    "logcat.txt"
+  ],
+  "scope": "first-stable-install-and-reinstall-smoke",
+  "limitations": [
+    "Does not test live updater download, notifications, or installer UI.",
+    "No physical device, privileged Quickstep, widgets, rotation, or midnight rollover coverage.",
+    "No previously shipped stable version exists; same-version reinstall is not an upgrade test."
+  ],
+  "channel": "release",
+  "packageName": "dev.launcher.expressive.l3",
+  "baselineMode": "first-stable-install",
+  "stableBootstrap": true,
+  "baseline": null,
+  "avdPath": "/Users/daryldenson/.android/avd/Expressive_CI_20260912_185412_d9ec4566.avd",
+  "guestBuild": "CP41.260814.003.B1",
+  "guestSdk": 37,
+  "guestFingerprint": "google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260814.003.B1/16166531:user/dev-keys",
+  "versionName": "1.0.16",
+  "versionCode": 17,
+  "reportSha256": "84f838fefc16287b9c9938ccf2e2c5fcc99af47a22739d9b7de938ef1134e4c1"
+}
