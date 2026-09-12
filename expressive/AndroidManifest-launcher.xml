@@ -177,14 +177,10 @@ SystemUI remains responsible for Overview and gesture navigation.
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:node="remove" />
-    <!--
-         Expressive uses direct distribution. File search still uses a user-selected Storage Access
-         Framework tree, so prevent dependencies from merging restricted broad-storage or
-         visual-media permissions into the release manifest.
-    -->
-    <uses-permission
-        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:node="remove" />
+    <!-- GitHub-distributed Expressive can ask the user to grant Android's all-files special access
+         for file search and wallpaper effects. A selected SAF folder remains available without it.
+         Keep legacy storage and separate visual-media permissions excluded. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission
         android:name="android.permission.READ_MEDIA_IMAGES"
         tools:node="remove" />

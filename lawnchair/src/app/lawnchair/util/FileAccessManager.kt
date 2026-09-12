@@ -116,9 +116,9 @@ internal fun shouldInvalidateSelectedTreeAccess(
 /**
  * Tracks Android media permissions, all-files special access, and a persisted SAF folder grant.
  *
- * The Expressive/Play channels never request `MANAGE_EXTERNAL_STORAGE`: a launcher does not gain
- * Play-policy eligibility merely by offering file search. Those channels expose a folder picker,
- * retain the returned URI grant, and report [FileAccessState.Partial] for general file access.
+ * Directly distributed Expressive builds can request all-files special access for wallpaper pixels.
+ * Play builds expose a folder picker instead, retain its URI grant, and report
+ * [FileAccessState.Partial] for general file access.
  */
 class FileAccessManager private constructor(private val context: Context) : SafeCloseable {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)

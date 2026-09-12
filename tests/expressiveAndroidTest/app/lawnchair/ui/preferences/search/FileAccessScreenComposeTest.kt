@@ -2,6 +2,7 @@ package app.lawnchair.ui.preferences.search
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Environment
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -27,7 +28,7 @@ class FileAccessScreenComposeTest {
     val composeRule = createEmptyComposeRule()
 
     @Test
-    fun expressiveManifest_omitsRestrictedStoragePermissions() {
+    fun expressiveManifest_declaresWallpaperAccessWithoutSeparateMediaPermissions() {
         assumeTrue("Expressive-only storage contract", BuildConfig.IS_EXPRESSIVE_PRODUCT)
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val packageInfo = context.packageManager.getPackageInfo(
@@ -35,10 +36,11 @@ class FileAccessScreenComposeTest {
             PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()),
         )
 
-        assertThat(BuildConfig.CAN_REQUEST_MANAGE_ALL_FILES_ACCESS).isFalse()
+        assertThat(BuildConfig.CAN_REQUEST_MANAGE_ALL_FILES_ACCESS).isTrue()
         assertThat(BuildConfig.CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS).isFalse()
+        assertThat(packageInfo.requestedPermissions.orEmpty().asList())
+            .contains(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
         assertThat(packageInfo.requestedPermissions.orEmpty().asList()).containsNoneOf(
-            Manifest.permission.MANAGE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.READ_MEDIA_IMAGES,
             Manifest.permission.READ_MEDIA_VIDEO,
@@ -47,8 +49,9 @@ class FileAccessScreenComposeTest {
     }
 
     @Test
-    fun expressiveFilesScreen_usesSelectedFolderInsteadOfRestrictedAccess() {
+    fun expressiveFilesScreen_preservesFolderAlternativeWithoutUndeclaredMediaRequest() {
         assumeTrue("Expressive-only storage contract", BuildConfig.IS_EXPRESSIVE_PRODUCT)
+        assumeTrue("Folder alternative is offered before a full grant", !Environment.isExternalStorageManager())
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
         val intent = PreferenceActivity.createIntent(
@@ -57,13 +60,11 @@ class FileAccessScreenComposeTest {
         )
         ActivityScenario.launch<PreferenceActivity>(intent).use {
             composeRule.onNodeWithText(
+                context.getString(R.string.search_pref_result_all_files_title),
+            ).assertIsDisplayed()
+            composeRule.onNodeWithText(
                 context.getString(R.string.search_pref_result_selected_folder_title),
             ).assertIsDisplayed()
-            assertThat(
-                composeRule.onAllNodesWithText(
-                    context.getString(R.string.search_pref_result_all_files_title),
-                ).fetchSemanticsNodes(),
-            ).isEmpty()
             assertThat(
                 composeRule.onAllNodesWithText(
                     context.getString(R.string.search_pref_result_visual_media_title),

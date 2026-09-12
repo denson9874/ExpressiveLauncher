@@ -86,7 +86,7 @@ fun ColumnScope.WithWallpaper(
 
     if (showPermissionDialog) {
         WallpaperAccessPermissionDialog(
-            managedFilesChecked = allFilesAccessState != FileAccessState.Denied,
+            managedFilesChecked = allFilesAccessState == FileAccessState.Full,
             onDismiss = {
                 showPermissionDialog = false
             },

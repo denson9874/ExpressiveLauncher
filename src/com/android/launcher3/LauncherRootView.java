@@ -58,6 +58,8 @@ public class LauncherRootView extends InsettableFrameLayout {
     private final boolean mEnableTaskbarOnPhone;
 
     private final PreferenceManager pref;
+    private boolean mWallpaperBlurApplied;
+    private Drawable mUnblurredBackground;
 
     public LauncherRootView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -69,8 +71,23 @@ public class LauncherRootView extends InsettableFrameLayout {
         
         mEnableTaskbarOnPhone = PreferenceCacheExtensionsKt.firstCached(prefs2.getEnableTaskbarOnPhone());
 
-        if (pref.getEnableWallpaperBlur().get()) {
-            setUpBlur(context);
+        refreshWallpaperBlur();
+    }
+
+    private void refreshWallpaperBlur() {
+        if (!pref.getEnableWallpaperBlur().get() || !canReadStaticWallpaper()) {
+            if (mWallpaperBlurApplied) {
+                setBackground(mUnblurredBackground);
+                mUnblurredBackground = null;
+                mWallpaperBlurApplied = false;
+            }
+            return;
+        }
+
+        // All-files access is granted in another activity. Reconcile it when Home returns,
+        // while keeping the already prepared bitmap across ordinary focus changes.
+        if (!mWallpaperBlurApplied) {
+            setUpBlur(getContext());
         }
     }
 
@@ -102,7 +119,9 @@ public class LauncherRootView extends InsettableFrameLayout {
                 .radius(pref.getWallpaperBlur().get())
                 .blur(originalBitmap);
 
+        mUnblurredBackground = getBackground();
         setBackground(new BitmapDrawable(getContext().getResources(), blurredBitmap));
+        mWallpaperBlurApplied = true;
     }
 
     @SuppressLint("MissingPermission")
@@ -199,6 +218,9 @@ public class LauncherRootView extends InsettableFrameLayout {
     @Override
     public void onWindowFocusChanged(boolean hasWindowFocus) {
         super.onWindowFocusChanged(hasWindowFocus);
+        if (hasWindowFocus) {
+            refreshWallpaperBlur();
+        }
         if (mWindowStateListener != null) {
             mWindowStateListener.onWindowFocusChanged(hasWindowFocus);
         }

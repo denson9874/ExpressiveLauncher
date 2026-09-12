@@ -3,7 +3,7 @@ package app.lawnchair.ui.util
 import com.android.launcher3.BuildConfig
 
 internal fun isPlayStoreChannel(channel: String): Boolean {
-    return channel == "play" || channel == "expressive"
+    return channel == "play"
 }
 
 fun isPlayStoreFlavor(): Boolean = isPlayStoreChannel(BuildConfig.FLAVOR_channel)

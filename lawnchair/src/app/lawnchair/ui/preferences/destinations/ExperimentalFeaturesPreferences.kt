@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -47,8 +48,9 @@ fun ExperimentalFeaturesPreferences(
         val fileAccessManager = remember { FileAccessManager.getInstance(context) }
         val allFilesAccessState by fileAccessManager.allFilesAccessState.collectAsStateWithLifecycle()
         val wallpaperAccessState by fileAccessManager.wallpaperAccessState.collectAsStateWithLifecycle()
-        val hasPermission = wallpaperAccessState != FileAccessState.Denied
+        val hasPermission = wallpaperAccessState == FileAccessState.Full
         var showPermissionDialog by remember { mutableStateOf(false) }
+        var enableBlurAfterPermission by rememberSaveable { mutableStateOf(false) }
 
         val folderIconShapeAdapter = prefs2.folderShape.getAdapter()
         val folderIconShapeSubtitle = iconShapeEntries(context)
@@ -108,16 +110,22 @@ fun ExperimentalFeaturesPreferences(
         }
         if (showPermissionDialog) {
             WallpaperAccessPermissionDialog(
-                managedFilesChecked = allFilesAccessState != FileAccessState.Denied,
+                managedFilesChecked = allFilesAccessState == FileAccessState.Full,
                 onDismiss = {
                     showPermissionDialog = false
                 },
-                onPermissionRequest = { fileAccessManager.refresh() },
+                onPermissionRequest = { enableBlurAfterPermission = true },
             )
         }
         LifecycleResumeEffect(Unit) {
             showPermissionDialog = false
             fileAccessManager.refresh()
+            if (enableBlurAfterPermission) {
+                enableBlurAfterPermission = false
+                if (fileAccessManager.wallpaperAccessState.value == FileAccessState.Full) {
+                    enableWallpaperBlur.onChange(true)
+                }
+            }
             onPauseOrDispose { }
         }
 

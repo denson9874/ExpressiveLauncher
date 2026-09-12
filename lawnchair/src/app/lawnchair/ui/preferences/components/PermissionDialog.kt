@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,7 +41,6 @@ import app.lawnchair.util.openAppPermissionSettings
 import app.lawnchair.util.requestManageAllFilesAccessPermission
 import com.android.launcher3.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 
@@ -135,81 +133,24 @@ fun WallpaperAccessPermissionDialog(
         } else {
             val latestOnDismiss by rememberUpdatedState(onDismiss)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val mediaPermission = rememberMultiplePermissionsState(
-                    listOf(
-                        Manifest.permission.READ_MEDIA_IMAGES,
-                        Manifest.permission.READ_MEDIA_VIDEO,
-                        Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
-                    ),
-                )
-
-                AlertDialog(
-                    onDismissRequest = onDismiss,
-                    modifier = modifier,
-                    title = {
-                        Text(stringResource(R.string.permission_desc_wallpaper_multiple))
-                    },
-                    text = {
-                        Column {
-                            Text(stringResource(R.string.permission_desc_wallpaper_multiple_desc, stringResource(id = R.string.derived_app_name)))
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            PermissionRow(
-                                isChecked = managedFilesChecked,
-                                onClick = {
-                                    onPermissionRequest()
-                                    context.requestManageAllFilesAccessPermission()
-                                },
-                                permissionName = stringResource(R.string.permission_label_manage_all_files),
-                            )
-                            PermissionRow(
-                                isChecked = mediaPermission.allPermissionsGranted,
-                                onClick = {
-                                    onPermissionRequest()
-                                    if (mediaPermission.shouldShowRationale) {
-                                        context.openAppPermissionSettings()
-                                    } else {
-                                        mediaPermission.launchMultiplePermissionRequest()
-                                    }
-                                },
-                                permissionName = stringResource(id = R.string.permission_label_read_photos_videos),
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = onDismiss,
-                            shapes = ButtonDefaults.shapes(),
-                        ) { Text(stringResource(android.R.string.cancel)) }
-                    },
-                )
-
-                LaunchedEffect(managedFilesChecked, mediaPermission.allPermissionsGranted) {
-                    if (managedFilesChecked && mediaPermission.allPermissionsGranted) {
-                        latestOnDismiss()
-                    }
-                }
-            } else {
-                PermissionDialog(
-                    title = stringResource(R.string.permissions_manage_storage),
-                    modifier = modifier,
-                    text = stringResource(
-                        R.string.permission_desc_wallpaper_base,
-                        stringResource(id = R.string.derived_app_name),
-                        stringResource(R.string.permission_desc_ending_manage_all_files),
-                    ),
-                    isPermanentlyDenied = true,
-                    onConfirm = {},
-                    onDismiss = onDismiss,
-                    onGoToSettings = {
-                        context.requestManageAllFilesAccessPermission()
-                    },
-                )
-                LaunchedEffect(managedFilesChecked) {
-                    if (managedFilesChecked) {
-                        latestOnDismiss()
-                    }
+            PermissionDialog(
+                title = stringResource(R.string.wallpaper_access_title),
+                modifier = modifier,
+                text = stringResource(
+                    R.string.wallpaper_all_files_access_description,
+                    stringResource(id = R.string.derived_app_name),
+                ),
+                isPermanentlyDenied = true,
+                onConfirm = {},
+                onDismiss = onDismiss,
+                onGoToSettings = {
+                    onPermissionRequest()
+                    context.requestManageAllFilesAccessPermission()
+                },
+            )
+            LaunchedEffect(managedFilesChecked) {
+                if (managedFilesChecked) {
+                    latestOnDismiss()
                 }
             }
         }

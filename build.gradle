@@ -154,10 +154,10 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse("dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("15")
+        .orElse("16")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("1.0.14")
+        .orElse("1.0.15")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("")
@@ -416,6 +416,9 @@ android {
             buildConfigField "String", "MAJOR_VERSION", "\"${expressiveVersionName}\""
             buildConfigField "boolean", "STANDARD_HOME_ONLY", "true"
             buildConfigField "boolean", "IS_EXPRESSIVE_PRODUCT", "true"
+            // Expressive is distributed through GitHub; Android still requires the user's explicit
+            // all-files special-access grant before file search or wallpaper effects can use it.
+            buildConfigField "boolean", "CAN_REQUEST_MANAGE_ALL_FILES_ACCESS", "true"
             buildConfigField "String", "EXPRESSIVE_QA_UPDATE_MANIFEST_URL", "\"${expressiveQaUpdateManifestUrl}\""
             buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", "\"${expressiveReleaseUpdateManifestUrl}\""
             buildConfigField "String", "PRIVACY_POLICY_URL", "\"${expressivePrivacyPolicyUrl}\""
@@ -555,27 +558,33 @@ def expressiveReleaseManifest = layout.buildDirectory.file(
         "intermediates/merged_manifests/lawnWithQuickstepExpressiveRelease/" +
                 "processLawnWithQuickstepExpressiveReleaseManifest/AndroidManifest.xml",
 )
+def expressiveQaManifest = layout.buildDirectory.file(
+        "intermediates/merged_manifests/lawnWithQuickstepExpressiveQa/" +
+                "processLawnWithQuickstepExpressiveQaManifest/AndroidManifest.xml",
+)
 def playReleaseManifest = layout.buildDirectory.file(
         "intermediates/merged_manifests/lawnWithQuickstepPlayRelease/" +
                 "processLawnWithQuickstepPlayReleaseManifest/AndroidManifest.xml",
 )
 
-def verifyPlaySafeStorageManifests = tasks.register("verifyPlaySafeStorageManifests") {
+def verifyStoragePermissionManifests = tasks.register("verifyStoragePermissionManifests") {
     group = "verification"
-    description = "Verifies that Play release manifests expose Home without restricted storage permissions."
+    description = "Verifies Expressive all-files access and Play storage restrictions in merged Home manifests."
     dependsOn(
+            "processLawnWithQuickstepExpressiveQaManifest",
             "processLawnWithQuickstepExpressiveReleaseManifest",
             "processLawnWithQuickstepPlayReleaseManifest",
     )
-    inputs.files(expressiveReleaseManifest, playReleaseManifest)
+    inputs.files(expressiveQaManifest, expressiveReleaseManifest, playReleaseManifest)
 
     doLast {
         def manifests = [
-                expressive: expressiveReleaseManifest.get().asFile,
+                expressiveQa: expressiveQaManifest.get().asFile,
+                expressiveRelease: expressiveReleaseManifest.get().asFile,
                 play: playReleaseManifest.get().asFile,
         ]
+        def allFilesPermission = "android.permission.MANAGE_EXTERNAL_STORAGE"
         def forbiddenPermissions = [
-                "android.permission.MANAGE_EXTERNAL_STORAGE",
                 "android.permission.READ_EXTERNAL_STORAGE",
                 "android.permission.WRITE_EXTERNAL_STORAGE",
                 "android.permission.READ_MEDIA_IMAGES",
@@ -588,6 +597,12 @@ def verifyPlaySafeStorageManifests = tasks.register("verifyPlaySafeStorageManife
                 throw new GradleException("Missing merged ${channel} release manifest: ${manifestFile}")
             }
             def manifestText = manifestFile.getText("UTF-8")
+            def declaresAllFiles = manifestText.contains("android:name=\"${allFilesPermission}\"")
+            if (declaresAllFiles != (channel != "play")) {
+                throw new GradleException(
+                        "${channel} manifest ${channel == 'play' ? 'must not' : 'must'} declare ${allFilesPermission}",
+                )
+            }
             forbiddenPermissions.each { permission ->
                 if (manifestText.contains("android:name=\"${permission}\"")) {
                     throw new GradleException(
@@ -600,6 +615,13 @@ def verifyPlaySafeStorageManifests = tasks.register("verifyPlaySafeStorageManife
             }
         }
     }
+}
+
+// Preserve the existing verification entry point for local scripts and older documentation.
+def verifyPlaySafeStorageManifests = tasks.register("verifyPlaySafeStorageManifests") {
+    group = "verification"
+    description = "Compatibility alias for channel-specific storage manifest verification."
+    dependsOn verifyStoragePermissionManifests
 }
 
 verifyExpressivePlayRelease.configure {
@@ -617,6 +639,7 @@ tasks.configureEach { task ->
             "packageLawnWithQuickstepExpressiveRelease",
     ]) {
         task.dependsOn verifyExpressiveDirectSigning
+        task.dependsOn verifyStoragePermissionManifests
     }
 }
 

@@ -127,7 +127,11 @@ fun FileSearchProvider(
                     adapter = allFilesAccessAdapter,
                     onPermissionRequest = viewModel::refreshAccessStates,
                 )
-            } else {
+            }
+            // Keep a persisted folder useful while the user chooses whether to grant broader
+            // access. Both choices share the general-file search preference, so show the folder
+            // alternative only until all-files access is granted.
+            if (allFilesAccessState != FileAccessState.Full) {
                 val selectedTreeUri by viewModel.selectedTreeUri.collectAsStateWithLifecycle()
                 val selectedTreeLabel by viewModel.selectedTreeLabel.collectAsStateWithLifecycle()
                 SelectedFolderAccessSetting(
@@ -210,19 +214,9 @@ private fun ManageExternalStorageSetting(
             label = stringResource(R.string.search_pref_result_all_files_title),
             description = stringResource(R.string.permissions_needed),
             checked = false,
-            onCheckedChange = {
-                if (accessState == FileAccessState.Denied) {
-                    showPermissionDialog = true
-                } else {
-                    adapter.onChange(it)
-                }
-            },
-            onClick = {
-                if (accessState == FileAccessState.Denied) {
-                    showPermissionDialog = true
-                }
-            },
-            switchEnabled = accessState != FileAccessState.Denied,
+            onCheckedChange = { showPermissionDialog = true },
+            onClick = { showPermissionDialog = true },
+            switchEnabled = false,
             modifier = modifier,
         )
     }
@@ -236,7 +230,7 @@ private fun ManageExternalStorageSetting(
 }
 
 /**
- * Play-safe general file access. Android grants only the directory the user explicitly chooses,
+ * Folder-scoped general file access. Android grants only the directory the user explicitly chooses,
  * and [FileAccessManager] keeps that grant across process restarts.
  */
 @Composable
@@ -472,7 +466,7 @@ private fun GenericAccessSetting(
 private fun FileAccessPermissionDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    rationale: String = stringResource(R.string.permissions_manage_storage_description, stringResource(id = R.string.derived_app_name)),
+    rationale: String = stringResource(R.string.file_search_all_files_access_description, stringResource(id = R.string.derived_app_name)),
     onPermissionRequest: () -> Unit = {},
 ) {
     val context = LocalContext.current

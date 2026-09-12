@@ -9,4 +9,7 @@
     <string name="wallpaper_carousel_state_collapsed" translatable="false">Not selected. Activate once to select this preview.</string>
     <string name="wallpaper_carousel_state_selected_open" translatable="false">Selected. Activate to open Wallpaper &amp; style.</string>
     <string name="wallpaper_carousel_state_selected_apply" translatable="false">Selected. Activate to apply this wallpaper.</string>
+    <string name="wallpaper_access_title" translatable="false">Allow wallpaper access</string>
+    <string name="wallpaper_all_files_access_description" translatable="false">To read your current wallpaper for previews and blur, %1$s needs Android’s “All files access” permission. Open Settings and enable “Allow access to manage all files”. You can revoke this access at any time.</string>
+    <string name="file_search_all_files_access_description" translatable="false">Allow %1$s to find files throughout shared storage. All files access also lets wallpaper previews and Blur wallpaper read your current wallpaper. You can keep using a selected folder for file search without granting this access.</string>
 </resources>

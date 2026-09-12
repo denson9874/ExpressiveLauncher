@@ -13,6 +13,28 @@ public APK bytes before promoting the existing QA feed. This release supersedes 
 publication hold described below. See [the release record](JENKINS_ADOPTION_RELEASE.md) for its
 exact identity, delivery evidence and [pipeline operations](CI_PIPELINE.md).
 
+## Direct-distribution wallpaper access correction — 2026-09-12 (candidate 1.0.15)
+
+The user reported Blur wallpaper showing a Play Store policy denial in the GitHub-distributed
+Expressive QA APK. The exact published 1.0.14/code15 reproduced that dialog on the pinned
+`CP41.260814.003.B1` guest and did not declare `MANAGE_EXTERNAL_STORAGE`.
+
+Expressive now declares Android’s all-files special access for both QA and stable, and its build
+capability enables the matching Settings request. The separate upstream Play flavor stays restricted.
+Wallpaper access requests only the special access needed for current wallpaper pixels; it does not
+request separate photo/video permissions. A successful grant completes the requested blur toggle on
+return, while cancellation leaves it off. Home refreshes blur after grants and restores its original
+background after revocation. Existing selected-folder search remains available before full access,
+and a partial folder grant no longer blocks opening the all-files request.
+
+This is a correction to Expressive’s direct-distribution contract, not a newly claimed Pixel feature.
+The focused policy suite passed 20 unit tests; five Compose instrumentation checks passed on the
+isolated Android17 QPR2 Beta4 emulator. Live Android Settings grant/deny/revoke flows, visible blur,
+regrant, and persisted-folder retention are retained in `artifacts/blur-wallpaper-access-20260912`.
+The 1.0.15/code16 candidate must pass Jenkins full unit/signing/minification/upgrade checks before
+any delivery claim. The user paused stable publication; no release is authorized by this correction
+or its test results. See [direct distribution](DIRECT_DISTRIBUTION.md) for the permission workflow.
+
 ## Reference environment
 
 - Reference date: 2026-09-11

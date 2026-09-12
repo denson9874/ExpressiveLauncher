@@ -14,6 +14,27 @@ shrinking and the durable signer.
 A developer `Debug` APK uses a different certificate and cannot update an installed release-signed
 QA build in place, even though its application ID is also suffixed `.debug`.
 
+## Wallpaper and all-files access
+
+Expressive is distributed directly through GitHub. Its QA and stable APKs declare Android’s
+`MANAGE_EXTERNAL_STORAGE` special access so the user can allow reading the current wallpaper for
+Blur wallpaper and wallpaper previews. Android still requires an explicit grant in Settings;
+installing or updating the APK does not grant access automatically.
+
+In **Settings → Experimental features → Blur wallpaper**, select **Open settings** and
+enable **Allow access to manage all files** for Expressive. Returning after a successful grant
+completes the requested blur toggle. Cancelling leaves blur off. Revoking access restores the normal
+wallpaper when Home returns, while keeping the saved blur preference for a later grant.
+
+This does not require a separate photo/video-library grant. A selected folder or selected photos
+cannot authorize reading the current static wallpaper. File Search keeps its selected-folder option
+until full access is granted, and retains that folder grant if full access is later revoked.
+The separate upstream Play flavor continues to omit all-files access.
+
+`verifyStoragePermissionManifests` checks the actual merged Expressive Qa/Release and Play manifests,
+including their Home activity and channel-specific storage permissions. Expressive packaging runs
+this check automatically.
+
 ## One-time signing setup
 
 Run `scripts/configure-expressive-release-signing.sh` once on the signing Mac. It creates:

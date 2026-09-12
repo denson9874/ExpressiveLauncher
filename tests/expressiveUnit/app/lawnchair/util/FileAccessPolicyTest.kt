@@ -9,6 +9,7 @@ import app.lawnchair.search.algorithms.data.FileInfo
 import app.lawnchair.search.algorithms.engine.provider.mergeFileResultSources
 import app.lawnchair.ui.preferences.components.search.applyFolderGrantToSearchPreferences
 import app.lawnchair.ui.util.isPlayStoreChannel
+import com.android.launcher3.BuildConfig
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,11 +23,27 @@ import org.robolectric.annotation.ConscryptMode
 class FileAccessPolicyTest {
 
     @Test
-    fun playPolicy_recognizesBothPlayDistributedChannels() {
+    fun playPolicy_excludesDirectlyDistributedExpressiveChannel() {
         assertThat(isPlayStoreChannel("play")).isTrue()
-        assertThat(isPlayStoreChannel("expressive")).isTrue()
+        assertThat(isPlayStoreChannel("expressive")).isFalse()
         assertThat(isPlayStoreChannel("github")).isFalse()
         assertThat(isPlayStoreChannel("nightly")).isFalse()
+    }
+
+    @Test
+    fun expressiveWallpaperAccess_requiresAnActualSpecialAccessGrant() {
+        assertThat(BuildConfig.CAN_REQUEST_MANAGE_ALL_FILES_ACCESS).isTrue()
+        assertThat(BuildConfig.CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS).isFalse()
+        for (granted in listOf(false, true)) {
+            val state = resolveAllFilesAccessState(
+                sdkInt = 37,
+                canRequestManageAllFiles = BuildConfig.CAN_REQUEST_MANAGE_ALL_FILES_ACCESS,
+                isExternalStorageManager = granted,
+                hasSelectedTreeAccess = false,
+                hasLegacyReadPermission = false,
+            )
+            assertThat(state).isEqualTo(if (granted) FileAccessState.Full else FileAccessState.Denied)
+        }
     }
 
     @Test
@@ -71,7 +88,7 @@ class FileAccessPolicyTest {
     }
 
     @Test
-    fun expressivePolicy_doesNotTreatUndeclaredAllFilesAppOpAsAccess() {
+    fun playPolicy_doesNotTreatUndeclaredAllFilesAppOpAsAccess() {
         val state = resolveAllFilesAccessState(
             sdkInt = 37,
             canRequestManageAllFiles = false,
