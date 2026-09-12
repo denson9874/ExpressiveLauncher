@@ -40,6 +40,20 @@ The 1.0.15/code16 candidate must pass Jenkins full unit/signing/minification/upg
 any delivery claim. The user paused stable publication; no release is authorized by this correction
 or its test results. See [direct distribution](DIRECT_DISTRIBUTION.md) for the permission workflow.
 
+## Expressive Bloom branding — 2026-09-12 (candidate 1.0.16)
+
+The user approved the new Expressive Bloom icon for GitHub and current/future app builds.
+The shared Expressive resources now use its transparent color foreground, ink-indigo
+background and dedicated monochrome silhouette. Application, Preferences, round and
+themed icons share the same artwork. Both launcher and embedded feed defaults advance
+to 1.0.16/code17 so this can upgrade the already sealed 1.0.15 candidate.
+
+Asset exports preserve Android's centered 66dp adaptive safe circle on a 108dp canvas;
+the approved repository artwork and 512px listing icon are retained alongside a repeatable
+export script. See [app icon assets](APP_ICON.md). This entry records the implementation;
+signed Jenkins results, device screenshots and publication receipts are retained under
+`artifacts/expressive-icon-20260912` when completed. Weekly stable publication remains paused.
+
 ## Reference environment
 
 - Reference date: 2026-09-11
