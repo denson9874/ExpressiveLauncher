@@ -52,7 +52,8 @@ let canvas = 432
 let scale = 131.0 / radius
 let foreground = context(canvas)
 foreground.interpolationQuality = .high
-foreground.draw(source, in: CGRect(x: 216 - centerX * scale, y: 216 - centerY * scale,
+// Bitmap rows run from the top; CGContext drawing coordinates run from the bottom.
+foreground.draw(source, in: CGRect(x: 216 - centerX * scale, y: 216 - (Double(source.height) - centerY) * scale,
                                   width: Double(source.width) * scale, height: Double(source.height) * scale))
 save(foreground.makeImage()!, "expressive/res/drawable-xxxhdpi/ic_launcher_expressive_foreground.png")
 
