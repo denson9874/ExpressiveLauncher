@@ -1,6 +1,6 @@
 # Source provenance
 
-This public repository contains the application source snapshot for **Expressive Launcher 1.0.12 / version code 13**.
+This public repository is based on the application source snapshot for **Expressive Launcher 1.0.12 / version code 13**. The current `main` branch also includes the **Expressive Bloom** branding update described below; the original snapshot is preserved by `source-v1.0.12-13`.
 
 | Item | Identity |
 | --- | --- |
@@ -13,11 +13,17 @@ This public repository contains the application source snapshot for **Expressive
 
 ## Publication snapshot
 
-The application was developed in a separate working repository. Its source revision above identifies the build's recorded input; that local commit history was not imported into this repository. The public `main` commit and `source-v1.0.12-13` tag contain the source snapshot with the publication documentation described below. The existing public repository history and original release assets are preserved.
+The application was developed in a separate working repository. Its source revision above identifies the build's recorded input; that local commit history was not imported into this repository. The initial public commit, `1ba2ee49b0f165dd1f2e67cf68323a51a13006ef`, and the `source-v1.0.12-13` tag contain the source snapshot with the publication documentation described below. The existing public repository history and original release assets are preserved.
 
 The application implementation, resources, tests, build dependencies, Gradle files and wrapper were retained from the recorded source. Git normalized the Google Fonts catalog from CRLF to LF line endings; its JSON data is unchanged. Publication preparation adds the README, comparison graphics, build/download guides and readable third-party notices. It replaces workstation-specific paths in the Jenkins environment blocks and selected operations documents with `/path/to/...` placeholders. Configure those paths for your own environment before using the CI templates.
 
 Inherited GitHub workflow and community configuration is retained under [`docs/reference/upstream-github`](reference/upstream-github/). It is reference material; it is not enabled as Expressive automation. The repository-root contribution guide now points to Expressive. Original license notices and source headers remain intact. No private signing material, developer local.properties or retained personal-device evidence is included.
+
+## Expressive Bloom branding update
+
+The `main` branch now carries the approved [Expressive Bloom artwork](assets/expressive/expressive-bloom.png), coordinated repository graphics, and updated Android and store icon resources. Builds made from this source use the new branding. The application version remains **1.0.12 / version code 13** in this public source baseline.
+
+This branding change does not replace the historical signed APK identified above. Its source tag, package identity, checksum, validation results, and release downloads remain associated with the original build and icon. Each newly published QA or stable build supplies its own version and verification evidence through the existing release process.
 
 ## Get the complete source
 

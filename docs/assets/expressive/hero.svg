@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1240" height="360" viewBox="0 0 1240 360" role="img" aria-labelledby="title desc">
 <title id="title">Expressive Launcher — Make Home yours</title><desc id="desc">A Pixel-inspired Android 17 Home experience built on Launcher3 and Lawnchair. Source code, signed QA builds, and verified updates.</desc>
-<rect width="1240" height="360" rx="30" fill="#173b34"/>
-<circle cx="1195" cy="35" r="245" fill="#245044"/><circle cx="1195" cy="35" r="175" fill="#31614d"/>
-<g fill="#d9f591"><rect x="960" y="161" width="82" height="82" rx="28"/><circle cx="1105" cy="202" r="41"/><rect x="960" y="263" width="82" height="82" rx="41"/><rect x="1064" y="263" width="82" height="82" rx="22" transform="rotate(-12 1105 304)"/></g>
-<g font-family="Arial, Helvetica, sans-serif"><text x="54" y="67" font-size="15" letter-spacing="3" font-weight="700" fill="#c6e5ce">ANDROID HOME, WITH PERSONALITY</text>
-<text x="50" y="140" font-size="64" font-weight="700" fill="#fffaf0">Expressive Launcher</text>
-<text x="54" y="187" font-size="28" fill="#dcebdc">A familiar Home. Room to make it yours.</text>
-<text x="54" y="229" font-size="18" fill="#b9d1c4">Launcher3 foundation · Lawnchair customization · Expressive refinements</text>
-<rect x="54" y="270" width="142" height="40" rx="20" fill="#d9f591"/><text x="125" y="296" text-anchor="middle" font-size="15" font-weight="700" fill="#173b34">Android 17+</text>
-<rect x="210" y="270" width="149" height="40" rx="20" fill="#2f574b"/><text x="284" y="296" text-anchor="middle" font-size="15" fill="#fffaf0">Source available</text>
-<rect x="373" y="270" width="158" height="40" rx="20" fill="#2f574b"/><text x="452" y="296" text-anchor="middle" font-size="15" fill="#fffaf0">Signed QA builds</text></g></svg>
+<rect width="1240" height="360" rx="30" fill="#121126"/>
+<circle cx="1195" cy="35" r="245" fill="#252147"/><circle cx="1195" cy="35" r="175" fill="#393064"/>
+<g><rect x="960" y="161" width="82" height="82" rx="28" fill="#b980ff"/><circle cx="1105" cy="202" r="41" fill="#68b7ff"/><rect x="960" y="263" width="82" height="82" rx="41" fill="#ff8795"/><rect x="1064" y="263" width="82" height="82" rx="22" fill="#65e6bd" transform="rotate(-12 1105 304)"/></g>
+<g font-family="Arial, Helvetica, sans-serif"><text x="54" y="67" font-size="15" letter-spacing="3" font-weight="700" fill="#c8b0ef">ANDROID HOME, WITH PERSONALITY</text>
+<text x="50" y="140" font-size="64" font-weight="700" fill="#fcf9ff">Expressive Launcher</text>
+<text x="54" y="187" font-size="28" fill="#e8e0f4">A familiar Home. Room to make it yours.</text>
+<text x="54" y="229" font-size="18" fill="#bfb4d4">Launcher3 foundation · Lawnchair customization · Expressive refinements</text>
+<rect x="54" y="270" width="142" height="40" rx="20" fill="#65e6bd"/><text x="125" y="296" text-anchor="middle" font-size="15" font-weight="700" fill="#121126">Android 17+</text>
+<rect x="210" y="270" width="149" height="40" rx="20" fill="#302849"/><text x="284" y="296" text-anchor="middle" font-size="15" fill="#fcf9ff">Source available</text>
+<rect x="373" y="270" width="158" height="40" rx="20" fill="#302849"/><text x="452" y="296" text-anchor="middle" font-size="15" fill="#fcf9ff">Signed QA builds</text></g></svg>

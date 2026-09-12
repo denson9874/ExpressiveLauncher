@@ -1,6 +1,10 @@
 ![Expressive Launcher: a Pixel-inspired Android 17 Home experience](docs/assets/expressive/hero.svg)
 
 <p align="center">
+  <img src="docs/assets/expressive/expressive-bloom.png" width="192" height="192" alt="Expressive Bloom: interlocking violet, blue, coral, and mint petals on a deep-indigo background" />
+</p>
+
+<p align="center">
   <strong><a href="https://github.com/denson9874/ExpressiveLauncher/releases">Download builds</a></strong> ·
   <strong><a href="docs/BUILDING.md">Build from source</a></strong> ·
   <strong><a href="docs/FEATURE_COMPARISON.md">Compare features</a></strong> ·
@@ -11,7 +15,7 @@
 
 **A focused, Pixel-inspired Home experience for Android 17.** Expressive builds on the real [Launcher3](https://android.googlesource.com/platform/packages/apps/Launcher3/) foundation through [Lawnchair](https://github.com/LawnchairLauncher/lawnchair), keeping its familiar Home screens, app drawer, folders, widgets, and customization while refining everyday setup, interactions, and updates.
 
-This repository contains the **application source, build instructions, signed QA downloads, and release verification files**. The current source snapshot is **1.0.12 / version code 13**. See [source provenance](docs/SOURCE_PROVENANCE.md) for the upstream baseline and the relationship to published builds.
+This repository contains the **application source, build instructions, signed QA downloads, and release verification files**. The source on `main` is based on **1.0.12 / version code 13**, with the new **Expressive Bloom** icon for builds made from this source. The original [`source-v1.0.12-13`](https://github.com/denson9874/ExpressiveLauncher/tree/source-v1.0.12-13) snapshot and previously published APKs retain their original branding. See [source provenance](docs/SOURCE_PROVENANCE.md) for the upstream baseline and the relationship to published builds.
 
 ## Get Expressive
 
