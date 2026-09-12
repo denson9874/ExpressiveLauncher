@@ -1,4 +1,4 @@
-![Expressive Launcher: a Pixel-inspired Android 17 Home experience](docs/assets/expressive/hero.svg)
+![Expressive Launcher: a Pixel-inspired Android 17 Home experience](docs/assets/expressive/hero-bloom.svg)
 
 <p align="center">
   <img src="docs/assets/expressive/expressive-bloom.png" width="192" height="192" alt="Expressive Bloom: interlocking violet, blue, coral, and mint petals on a deep-indigo background" />
@@ -19,14 +19,14 @@ This repository contains the **application source, build instructions, signed QA
 
 ## Get Expressive
 
-**Featured QA build: [1.0.12](https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v1.0.12-13)** · Android 17 / API 37 minimum · Signed for the Expressive QA channel.
+**Featured QA build: [1.0.16 — In Full Bloom](https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v1.0.16-17)** · Android 17 / API 37 minimum · Signed for the Expressive QA channel.
 
 | File | What you get |
 | --- | --- |
-| **[Download the APK](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed.apk)** | Installable Expressive Launcher 1.0.12 QA app, about 21.8 MB. |
-| [QA report](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-QA-report.md) | Build identity, automated test totals, and verification summary. |
-| [Package metadata](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-metadata.json) | Package, version, size, SHA-256, and signing-certificate information. |
-| [Device test results](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-qa-result.json) | Results from the isolated Android upgrade and smoke tests. |
+| **[Download the APK](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.16-17/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-QA-release-signed.apk)** | Installable Expressive Launcher 1.0.16 QA app with the Bloom icon, about 21.8 MB. |
+| [QA report](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.16-17/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-QA-release-signed-QA-report.md) | Build identity, automated test totals, and verification summary. |
+| [Package metadata](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.16-17/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-QA-release-signed-metadata.json) | Package, version, size, SHA-256, and signing-certificate information. |
+| [Device test results](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.16-17/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-QA-release-signed-qa-result.json) | Results from the isolated Android upgrade and smoke tests. |
 | [Application source](https://github.com/denson9874/ExpressiveLauncher/tree/main) | Browse the project, resources, tests, and build scripts. |
 
 **[All releases and older builds](https://github.com/denson9874/ExpressiveLauncher/releases)** · **[Download/file guide](downloads/README.md)** · **[QA update manifest](https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json)**
@@ -63,7 +63,7 @@ The updater checks periodically when Android schedules it and a network is avail
 
 ## What has been validated
 
-The published **1.0.12 QA** build passed **167 application tests, 104 pipeline checks, and 11 isolated Android device checks**. Additional physical Pixel 11 Pro XL testing verified weather toggles, settings reopening, restart persistence, and retained widget bindings. A genuine 1.0.11 installation also received the automatic GitHub update notification and opened the correct 1.0.12 offer. The downloadable [QA report](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-QA-report.md) and [device results](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-qa-result.json) describe the automated build's scope.
+The published **1.0.16 QA** build passed **197 application tests, 191 pipeline checks, and 11 isolated Android device checks**. Jenkins verified its release signature and a same-signer upgrade from 1.0.14, including retained preferences, warm/cold launch, drawer/search behavior, and clean launcher crash logs. The downloadable [QA report](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.16-17/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-QA-release-signed-QA-report.md) and [device results](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.16-17/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-QA-release-signed-qa-result.json) describe the automated build's scope. See [the icon assets](docs/APP_ICON.md) for the color and themed artwork used by future source builds.
 
 Expressive runs as a standard Home app; root is not required for that role. Android still owns system Recents and gesture navigation. Weather needs an available provider and approval; Discover needs the Google app and the bundled support component installed; Smartspacer is optional external software. The full Android 17 Launcher3 core port remains in progress. See [architecture and port status](docs/ANDROID17_PORT.md).
 
