@@ -63,6 +63,80 @@ class SnapshotTransitionTests(unittest.TestCase):
         self.assertEqual(runner.save.call_count, 3)
 
 
+class KeyboardReadinessTests(unittest.TestCase):
+    @staticmethod
+    def ime_dump(shown=True, package=smoke.RELEASE_PACKAGE):
+        flag = str(shown).lower()
+        return f"""Input Method Manager Service state:
+  mCurrentImeUserId=0
+  mStartInputHistory:
+    mImeWindowVis=3
+    mInputShown=true
+  UserId=0
+    mBindingController:
+      mImeWindowVis={3 if shown else 0}
+    mVisibilityStateComputer:
+      mInputShown={flag}
+    Input Methods:
+Input method client state for client:
+  mActive=true
+Input method service state for Gboard:
+  mDecorViewVisible={flag} mWindowVisible={flag} mInShowWindow=false
+  mInputStarted=true mInputViewStarted={flag}
+  mInputEditorInfo:
+    packageName={package} fieldId=2131362281
+  mShowInputRequested={flag}
+  History:
+    mDecorViewVisible=true mWindowVisible=true
+    mInputStarted=true mInputViewStarted=true
+"""
+
+    def test_active_visible_keyboard_serving_exact_launcher_is_ready(self):
+        self.assertTrue(smoke.keyboard_ready(self.ime_dump(), smoke.RELEASE_PACKAGE))
+        self.assertTrue(smoke.keyboard_ready(self.ime_dump().replace('mImeWindowVis=3', 'mImeWindowVis=0x3'), smoke.RELEASE_PACKAGE))
+        self.assertFalse(smoke.keyboard_ready(self.ime_dump(package=smoke.PACKAGE), smoke.RELEASE_PACKAGE))
+
+    def test_focused_or_show_requested_keyboard_and_historical_visibility_are_not_ready(self):
+        hidden = self.ime_dump(False)
+        self.assertFalse(smoke.keyboard_ready(hidden, smoke.RELEASE_PACKAGE))
+        self.assertFalse(smoke.keyboard_ready(hidden.replace('mInputShown=false', 'mInputShown=true'), smoke.RELEASE_PACKAGE))
+        self.assertFalse(smoke.keyboard_ready(self.ime_dump().replace('mInputViewStarted=true', 'mInputViewStarted=false', 1), smoke.RELEASE_PACKAGE))
+        self.assertFalse(smoke.keyboard_ready(self.ime_dump().replace('  UserId=0', '  UserId=10'), smoke.RELEASE_PACKAGE))
+        self.assertFalse(smoke.keyboard_ready('', smoke.RELEASE_PACKAGE))
+
+    def runner(self):
+        runner = smoke.Smoke.__new__(smoke.Smoke)
+        runner.package = smoke.RELEASE_PACKAGE
+        runner.save = Mock()
+        return runner
+
+    def test_cold_keyboard_waits_for_current_visible_state_and_retains_evidence(self):
+        runner = self.runner()
+        runner.shell = Mock(side_effect=[self.ime_dump(False), self.ime_dump()])
+        now = [0.0]
+        with patch.object(smoke.time, 'monotonic', side_effect=lambda: now[0]), \
+             patch.object(smoke.time, 'sleep', side_effect=lambda delay: now.__setitem__(0, now[0] + delay)):
+            runner.wait_for_keyboard('search', timeout=2)
+        self.assertEqual(runner.shell.call_count, 2)
+        self.assertEqual(now[0], 1)
+        runner.save.assert_any_call('search-ime-attempt-1.txt', self.ime_dump(False))
+        runner.save.assert_any_call('search-ime-ready.txt', self.ime_dump())
+        self.assertTrue(all(call.args == ('dumpsys', '-t', '3', 'input_method') for call in runner.shell.call_args_list))
+
+    def test_timeout_is_bounded_preserves_failure_and_never_injects_text(self):
+        runner = self.runner()
+        runner.shell = Mock(return_value=self.ime_dump(False))
+        now = [0.0]
+        with patch.object(smoke.time, 'monotonic', side_effect=lambda: now[0]), \
+             patch.object(smoke.time, 'sleep', side_effect=lambda delay: now.__setitem__(0, now[0] + delay)):
+            with self.assertRaisesRegex(RuntimeError, 'within 2s'):
+                runner.wait_for_keyboard('search', timeout=2)
+        self.assertEqual(now[0], 2)
+        self.assertEqual(runner.shell.call_count, 2)
+        runner.save.assert_any_call('search-ime-timeout.txt', self.ime_dump(False))
+        self.assertTrue(all(call.args == ('dumpsys', '-t', '3', 'input_method') for call in runner.shell.call_args_list))
+
+
 class StableSmokeContractTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

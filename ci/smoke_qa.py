@@ -31,6 +31,31 @@ REQUIRED_FLOWS = {
 BOOTSTRAP_FLOWS = (REQUIRED_FLOWS - {'baseline_install', 'same_signer_upgrade'}) | {'first_stable_install', 'same_version_reinstall'}
 
 
+def keyboard_ready(dump: str, package: str) -> bool:
+    """Require the current user's visible IME and its active editor, never dump history."""
+    manager = dump.split("\nInput method client state for ", 1)[0]
+    current = re.search(r"(?m)^\s*mCurrentImeUserId=(\d+)\s*$", manager)
+    if current is None:
+        return False
+    user = re.search(r"(?ms)^  UserId=" + current[1] + r"\n(.*?)(?=^  UserId=|\Z)", manager)
+    if user is None:
+        return False
+    state = user[1].split("\n    Input Methods:", 1)[0]
+    visibility = re.findall(r"(?m)^\s*mImeWindowVis=(0x[0-9a-fA-F]+|\d+)\s*$", state)
+    shown = re.findall(r"(?m)^\s*mInputShown=(true|false)\s*$", state)
+    if len(visibility) != 1 or shown != ["true"] or int(visibility[0], 0) & 3 != 3:
+        return False
+    service = dump.partition("\nInput method service state for ")[2]
+    lifecycle, separator, editor = service.partition("\n  mInputEditorInfo:")
+    if not separator:
+        return False
+    for field in ("mDecorViewVisible", "mWindowVisible", "mInputStarted", "mInputViewStarted"):
+        if re.findall(r"\b" + field + r"=(true|false)\b", lifecycle) != ["true"]:
+            return False
+    editor = editor.split("\n  mShowInputRequested=", 1)[0]
+    return re.findall(r"(?m)^\s*packageName=(\S+)", editor) == [package]
+
+
 def digest(path: Path) -> str:
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
@@ -218,6 +243,26 @@ class Smoke:
         self.shell("input", "tap", str((x1+x2)//2), str((y1+y2)//2))
         time.sleep(1)
 
+    def wait_for_keyboard(self, name, timeout=30):
+        deadline = time.monotonic() + timeout
+        attempt, last_dump = 0, ""
+        while time.monotonic() < deadline:
+            attempt += 1
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                last_dump = self.shell("dumpsys", "-t", "3", "input_method", timeout=min(5, remaining))
+            except subprocess.TimeoutExpired:
+                last_dump = "Input method dump timed out before keyboard readiness was established."
+            self.save(f"{name}-ime-attempt-{attempt}.txt", last_dump)
+            if time.monotonic() < deadline and keyboard_ready(last_dump, self.package):
+                self.save(f"{name}-ime-ready.txt", last_dump)
+                return
+            time.sleep(min(1, max(0, deadline - time.monotonic())))
+        self.save(f"{name}-ime-timeout.txt", last_dump)
+        raise RuntimeError(f"Keyboard did not become visible for {self.package} within {timeout}s")
+
     def home(self, name):
         output = self.shell("am", "start", "-W", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME")
         self.save(f"{name}-launch.txt", output)
@@ -321,7 +366,10 @@ class Smoke:
         self.passed("drawer_swipe", path=[x, start_y, x, end_y], durationMs=350)
         self.tap(self.node(root, rid="search_container_all_apps"))
         root = self.capture("candidate-search-focused")
-        self.node(root, rid="input")
+        # Opening the search surface can focus its editor without requesting the IME.
+        # Activate the actual editor and wait before injecting any text into a cold keyboard.
+        self.tap(self.node(root, rid="input"))
+        self.wait_for_keyboard("candidate-search")
         self.shell("input", "text", "Calendar")
         time.sleep(2)
         root = self.capture("candidate-search-calendar")
