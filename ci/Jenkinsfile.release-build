@@ -2,7 +2,7 @@ pipeline {
     agent { label 'expressive-macos-android' }
     options { disableConcurrentBuilds(); timeout(time: 90, unit: 'MINUTES'); skipDefaultCheckout() }
     parameters {
-        string(name: 'VALIDATION_QA_RELEASE_ID', defaultValue: '', description: 'Optional private infrastructure trial using current clean HEAD; candidate is permanently non-publishable. Leave empty for the Saturday gate.')
+        string(name: 'VALIDATION_QA_RELEASE_ID', defaultValue: '', description: 'Optional explicit QA selection using current clean HEAD (legacy parameter name). Every successful sealed stable build publishes automatically. Leave empty for Saturday source selection.')
     }
     environment {
         SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
@@ -44,6 +44,13 @@ pipeline {
         always {
             junit testResults: "build-${env.BUILD_NUMBER}/source/build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest/TEST-*.xml", allowEmptyResults: true
             archiveArtifacts artifacts: "build-${env.BUILD_NUMBER}/artifacts/**,build-${env.BUILD_NUMBER}/weekly-gate.json,build-${env.BUILD_NUMBER}/run-info.json", allowEmptyArchive: true, fingerprint: true
+        }
+        success {
+            script {
+                def releaseId = sh(script: 'python3 -c \'import json,os; print(json.load(open(os.environ["RUN_WORKSPACE"] + "/run-info.json"))["releaseId"])\'', returnStdout: true).trim()
+                build job: 'expressive-release-publish', wait: false,
+                    parameters: [string(name: 'RELEASE_ID', value: releaseId)]
+            }
         }
     }
 }

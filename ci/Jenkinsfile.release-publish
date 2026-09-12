@@ -2,7 +2,7 @@ pipeline {
     agent { label 'expressive-macos-android' }
     options { disableConcurrentBuilds(); timeout(time: 30, unit: 'MINUTES'); skipDefaultCheckout() }
     parameters {
-        string(name: 'RELEASE_ID', defaultValue: '', description: 'Sealed stable candidate from the current eligible Saturday build')
+        string(name: 'RELEASE_ID', defaultValue: '', description: 'Sealed stable candidate whose originating Jenkins build completed SUCCESS')
     }
     environment {
         SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
@@ -11,7 +11,7 @@ pipeline {
         PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }
     stages {
-        stage('Recheck weekly gate and publish stable') {
+        stage('Verify green build and publish GitHub stable branch') {
             steps {
                 sh '''python3 "$SOURCE_REPOSITORY/ci/weekly_release.py" publish --release-id "$RELEASE_ID" --output "$WORKSPACE/publication-$BUILD_NUMBER.json"'''
             }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Jenkins adapters for the gated Saturday stable build and publication."""
+"""Jenkins adapters for scheduled builds and automatic green stable publication."""
 import argparse
 import json
 import os
@@ -81,8 +81,11 @@ def prepare(args, repository, ci_home):
     guard(repository)
     workspace = args.workspace
     workspace.mkdir(parents=True, exist_ok=True)
-    validation = bool(args.validation_qa_release_id)
-    if validation:
+    manual_selection = bool(args.validation_qa_release_id)
+    # Preserve the legacy source-difference marker consumed by candidate scripts.
+    # Publication eligibility is now recorded separately after terminal SUCCESS.
+    validation = manual_selection
+    if manual_selection:
         release_id = args.validation_qa_release_id
         if not re.fullmatch(r'qa-\d+\.\d+\.\d+-[1-9]\d*-build-[1-9]\d*', release_id):
             raise ValueError('Invalid validation QA release ID')
@@ -90,8 +93,8 @@ def prepare(args, repository, ci_home):
         selected = {key: qa[key] for key in ('sourceRevision', 'versionName', 'versionCode')}
         selected.update(qaReleaseId=release_id)
         validate_selection(selected)
-        gate = {'status': 'validation-only', 'selected': selected,
-                'reason': 'Private infrastructure trial; not eligible for publication'}
+        gate = {'status': 'manual-selection', 'selected': selected,
+                'reason': 'Explicit stable build selection; publication requires a sealed green Jenkins build'}
         revision = git(repository, 'rev-parse', 'HEAD')
     else:
         gate = live_gate(repository, workspace / 'weekly-gate.json')
@@ -138,11 +141,6 @@ def main():
         guard(repository)
         if not re.fullmatch(r'release-\d+\.\d+\.\d+-[1-9]\d*-build-[1-9]\d*', args.release_id or ''):
             raise ValueError('Invalid stable release ID')
-        metadata = json.loads((ci_home / 'releases' / args.release_id / 'metadata.json').read_text())
-        if metadata.get('validationOnly') is True:
-            raise ValueError('Validation-only candidates can never be published')
-        gate = live_gate(repository, args.output.with_suffix('.weekly-gate.json'))
-        require_publish_selection(metadata, gate)
         run('python3', repository / 'ci/pipeline.py', 'publish', '--release-id', args.release_id,
             '--channel', 'release', '--output', args.output)
     else:

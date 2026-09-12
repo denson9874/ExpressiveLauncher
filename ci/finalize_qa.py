@@ -88,6 +88,10 @@ def main(argv=None):
                     if bootstrap else 'The automated upgrade uses the documented quiesced ADB install sequence on an isolated emulator.')
     validation_notice = ('\nThis is a private pipeline-validation artifact and is not eligible for publication.\n'
                          if metadata.get('validationOnly') else '')
+    if metadata.get('weeklyReleaseGate', {}).get('status') == 'manual-selection':
+        validation_notice = ('\nThis build uses an explicitly selected QA version and current committed source. '
+                             'The legacy validationOnly marker records that source selection; green stable '
+                             'publication requires a separate exact-build authorization and receipt.\n')
     report = f'''# Expressive Launcher {metadata['versionName']} — Jenkins {channel_label} release
 
 This report describes the exact APK built and tested by Jenkins. Publication status is recorded separately in the publication receipt.

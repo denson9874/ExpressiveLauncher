@@ -133,7 +133,7 @@ def validate_transition(current, candidate, compare_url=True, channel="qa"):
     return "advance"
 
 
-def load_artifacts(artifact_dir, channel="qa"):
+def load_artifacts(artifact_dir, channel="qa", authorization=None):
     settings = channel_settings(channel)
     directory = Path(artifact_dir).resolve(strict=True)
     seal_path = directory / "seal.json"
@@ -145,8 +145,13 @@ def load_artifacts(artifact_dir, channel="qa"):
     require(seal.get("complete") is True, "Release seal is incomplete")
     metadata = read_json_bytes((directory / "metadata.json").read_bytes(), "metadata.json")
     validate_identity(metadata, "metadata.json", channel)
-    require(metadata.get("validationOnly", False) is False,
-            "Validation-only candidates cannot be published or staged")
+    if authorization is not None:
+        require(channel == "release", "Green stable authorization cannot be used for QA")
+        from green_stable import validate_authorization
+        validate_authorization(authorization, directory, metadata)
+    else:
+        require(metadata.get("validationOnly", False) is False,
+                "Validation-only candidates cannot be published or staged")
     require(metadata.get("certificateSha256") == QA_CERTIFICATE,
             "APK signer does not match the durable release certificate")
     require(metadata.get("signatureVerified") is True, "APK signature verification did not pass")
@@ -154,7 +159,7 @@ def load_artifacts(artifact_dir, channel="qa"):
     revision = metadata.get("sourceRevision")
     require(isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40,64}", revision),
             "metadata.json: missing exact sourceRevision")
-    if channel == "release":
+    if channel == "release" and authorization is None:
         gate = metadata.get("weeklyReleaseGate")
         require(isinstance(gate, dict) and gate.get("status") == "eligible",
                 "Stable publication requires an eligible weekly QA gate")
@@ -478,8 +483,11 @@ class GitHub:
         require(positive_integer(release_id) and positive_integer(asset_id),
                 "Upload placeholder recovery requires positive release and asset IDs")
         stem = Path(metadata["fileName"]).stem
-        require(name in (metadata["fileName"], f"{stem}-QA-report.md",
-                         f"{stem}-metadata.json", f"{stem}-qa-result.json"),
+        allowed = {metadata["fileName"], f"{stem}-QA-report.md",
+                   f"{stem}-metadata.json", f"{stem}-qa-result.json"}
+        if self.channel == "release":
+            allowed.update({f"{stem}-seal.json", f"{stem}-publication-authorization.json"})
+        require(name in allowed,
                 "Refusing to remove an unexpected GitHub artifact name")
         release = self.api(f"{self.root}/releases/{release_id}")
         self.validate_release(release, metadata)
@@ -579,8 +587,19 @@ def validate_stable_baseline(current, proposed, metadata):
                 "Current stable feed differs from the candidate's tested baseline")
 
 
-def publish(artifact_dir, promote, receipt, channel="qa"):
-    metadata, files = load_artifacts(artifact_dir, channel)
+def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=None):
+    authorization = None
+    if authorization_path is not None:
+        authorization_path = Path(authorization_path)
+        require(authorization_path.is_file() and not authorization_path.is_symlink(),
+                "Publication authorization must be a regular file")
+        authorization = read_json_bytes(authorization_path.read_bytes(), "publication authorization")
+    metadata, files = (load_artifacts(artifact_dir, channel, authorization)
+                       if authorization is not None else load_artifacts(artifact_dir, channel))
+    if authorization is not None:
+        stem = Path(metadata["fileName"]).stem
+        files[f"{stem}-seal.json"] = Path(artifact_dir) / "seal.json"
+        files[f"{stem}-publication-authorization.json"] = authorization_path
     tag = release_tag(metadata, channel)
     proposed = candidate_feed(metadata, download_url(tag, metadata["fileName"], channel), channel)
     validate_github_feed(proposed, channel)
@@ -589,6 +608,9 @@ def publish(artifact_dir, promote, receipt, channel="qa"):
                     "sourceRevision": metadata["sourceRevision"],
                     "versionCode": metadata["versionCode"], "versionName": metadata["versionName"],
                     "sha256": metadata["sha256"], "sizeBytes": metadata["sizeBytes"], "files": {}})
+    if authorization is not None:
+        receipt["publicationAuthorization"] = authorization
+        receipt["publicationAuthorizationSha256"] = file_hash(authorization_path)
     github = GitHub(channel)
     target_revision = github.preflight()
     current, _ = github.feed()
@@ -646,6 +668,10 @@ def publish(artifact_dir, promote, receipt, channel="qa"):
                 time.sleep(3 * (attempt + 1))
         require(verified, f"Anonymous size/SHA-256 verification failed; feed was not updated: {name}")
         receipt["files"][name]["publicDownloadVerified"] = True
+    if authorization is not None:
+        from stable_branch import publish_stable_branch
+        receipt["status"] = "publishing-stable-branch"
+        receipt["stableBranch"] = publish_stable_branch(github, metadata, files, authorization)
     receipt["status"] = "promoting-feed"
     changed = github.update_feed(proposed, metadata=metadata) if channel == "release" else github.update_feed(proposed)
     receipt["status"] = "feed-written-verifying"
@@ -672,12 +698,15 @@ def main():
     parser.add_argument("--promote", action="store_true",
                         help="Publish the verified selected-channel release and advance its update manifest")
     parser.add_argument("--output", required=True, type=Path, help="Publication receipt JSON")
+    parser.add_argument("--publication-authorization", type=Path,
+                        help="Exact green Jenkins stable publication authorization")
     args = parser.parse_args()
     receipt = {"status": "started", "promoteRequested": args.promote,
                "startedAt": dt.datetime.now(dt.timezone.utc).isoformat()}
     code = 0
     try:
-        publish(args.artifact_dir, args.promote, receipt, channel=args.channel)
+        publish(args.artifact_dir, args.promote, receipt, channel=args.channel,
+                authorization_path=args.publication_authorization)
     except (PublishError, OSError, ValueError) as error:
         receipt["lastCompletedState"] = receipt["status"]
         receipt["status"] = "failed"
@@ -691,4 +720,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # Shared branch helpers must use this same PublishError and module state.
+    sys.modules["publish_qa"] = sys.modules[__name__]
     sys.exit(main())

@@ -36,7 +36,7 @@ class Client:
 def configure(client, kind):
     job = ET.Element('flow-definition', {'plugin': 'workflow-job'})
     ET.SubElement(job, 'description').text = ('Expressive Launcher: retained signed artifacts, separate QA/stable channels; '
-        'stable publication requires the Saturday weekly QA gate.')
+        'successful sealed stable builds automatically publish to the GitHub stable branch and stable update feed.')
     ET.SubElement(job, 'keepDependencies').text = 'true'
     props = ET.SubElement(job, 'properties')
     param_property = ET.SubElement(props, 'hudson.model.ParametersDefinitionProperty')

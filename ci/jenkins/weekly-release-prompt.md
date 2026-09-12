@@ -1,5 +1,7 @@
 Run the weekly Expressive Launcher stable release on Saturdays at 3:00 a.m. America/New_York.
-The user authorized this stable publication only when the week's QA builds are green. Keep the
+The user authorized scheduled stable source selection when the week's QA builds are green and,
+on September 12, 2026, automatic upload of every successful sealed stable build to GitHub's literal
+stable branch. Keep the
 Monday/Wednesday/Friday 3:00 a.m. QA automation and its separate QA channel unchanged.
 
 Work only in the saved Expressive Launcher project on a clean codex/pixel-parity checkout. Preserve
@@ -26,16 +28,20 @@ Track the exact queue/build to terminal completion and inspect its archived evid
 The first stable build explicitly tests fresh installation and same-version reinstall/preference
 retention because there is no previous stable feed. Later stable builds must upgrade from the exact
 published stable baseline. Treat a missing baseline after stable has been published as a blocker,
-not permission to bootstrap again. Validation-only infrastructure candidates are never publishable.
+not permission to bootstrap again. Historical validation-only metadata remains immutable;
+ci/green_stable.py records the separate exact-build authorization under the newer publication policy.
 
-Only after release-build SUCCESS and complete seal verification, submit the actual sealed ID with
+After release-build SUCCESS and complete seal verification, follow the automatically queued
+expressive-release-publish job. For a failed upload, retry its actual sealed ID with
 `python3 ci/jenkins/control.py run --job release-publish --release-id release-VERSION-CODE-build-NUMBER`.
-Jenkins rechecks the current week and exact selected source before publishing. Require a terminal
-SUCCESS receipt with provider=github, channel=release, status=released, feedVerified=true and matching
-source/version/APK hash. Publish a normal GitHub stable release under vVERSION-CODE and advance only
-updates:release/latest.json after complete authenticated and anonymous asset verification. Preserve
-QA releases and updates:qa/latest.json. Keep failed receipts and retry the same sealed bytes only
-while the current weekly gate still permits them. Never claim a staged or partial result is released.
+Jenkins rechecks terminal upstream SUCCESS and exact seal/test/source/version bindings before
+publishing. Require a terminal SUCCESS receipt with provider=github, channel=release, status=released,
+feedVerified=true, verified stableBranch evidence and matching source/version/APK hash. Publish a
+normal GitHub stable release under vVERSION-CODE and commit the exact APK and evidence to
+stable:releases/RELEASE_ID/. Verify the branch and its root latest.json through authenticated and
+anonymous reads, then advance updates:release/latest.json for existing app compatibility. Preserve
+QA releases and updates:qa/latest.json. Keep failed receipts and retry the same sealed bytes.
+Never claim a staged or partial result is released.
 
 After publication, write a high-quality weekly GitHub changelog covering verified user-facing changes
 since the prior stable release. Give it a catchy title, friendly release-specific jokes and an original

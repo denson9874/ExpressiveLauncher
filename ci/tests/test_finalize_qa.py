@@ -76,6 +76,15 @@ class StableSealingTests(unittest.TestCase):
         self.assertTrue(json.loads((self.release / 'metadata.json').read_text())['validationOnly'])
         self.assertIn('not eligible for publication', (self.release / 'QA-report.md').read_text())
 
+    def test_manual_source_selection_preserves_marker_with_current_publication_policy(self):
+        self.source['validationOnly'] = self.metadata['validationOnly'] = True
+        self.source['weeklyReleaseGate'] = {'status': 'manual-selection'}
+        self.run_finalize()
+        self.assertTrue(json.loads((self.release / 'metadata.json').read_text())['validationOnly'])
+        report = (self.release / 'QA-report.md').read_text()
+        self.assertIn('separate exact-build authorization', report)
+        self.assertNotIn('not eligible for publication', report)
+
     def test_channel_package_mode_and_validation_mismatches_cannot_seal(self):
         cases = [(self.qa, 'channel', 'qa'), (self.qa, 'packageName', 'dev.launcher.expressive.l3.debug'),
                  (self.qa, 'baselineMode', 'quiesced-upgrade'), (self.qa, 'stableBootstrap', False),

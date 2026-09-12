@@ -71,11 +71,48 @@ def main():
         if args.channel == 'release' and args.operation != 'publish':
             raise SystemExit('Legacy migration is restricted to QA')
         if args.channel == 'release':
-            from weekly_release import guard, live_gate, require_publish_selection
+            from weekly_release import guard
+            from green_stable import authorize, validate_authorization
+            from publish_qa import publish
             repository = Path(os.environ['SOURCE_REPOSITORY'])
             guard(repository)
-            gate = live_gate(repository, args.output.with_suffix('.pipeline-gate.json'))
-            require_publish_selection(metadata, gate)
+            # Publication policy belongs to the current committed infrastructure;
+            # the APK and original test evidence remain bound to their build source.
+            authorization_path = args.output.with_suffix('.authorization.json')
+            retained_authorization = Path(os.environ['EXPRESSIVE_CI_HOME']) / 'publication-authorizations' / (args.release_id + '.json')
+            if retained_authorization.exists():
+                authorization = json.loads(retained_authorization.read_text())
+                validate_authorization(authorization, release, metadata)
+            else:
+                authorization = authorize(release, args.release_id, repository)
+                retained_authorization.parent.mkdir(parents=True, exist_ok=True)
+                # Publish complete bytes atomically without replacing an existing
+                # authorization, including when a worker is interrupted mid-write.
+                with tempfile.NamedTemporaryFile(dir=retained_authorization.parent, delete=False) as stream:
+                    pending = Path(stream.name)
+                    stream.write((json.dumps(authorization, indent=2) + '\n').encode())
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                try:
+                    os.link(pending, retained_authorization)
+                finally:
+                    pending.unlink()
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            authorization_path.write_bytes(retained_authorization.read_bytes())
+            revision = subprocess.check_output(['git', '-C', str(repository), 'rev-parse', 'HEAD'], text=True).strip()
+            publisher_files = ['pipeline.py', 'publish_qa.py', 'green_stable.py', 'stable_branch.py']
+            receipt = {'status': 'started', 'publisherSourceRevision': revision,
+                       'publisherFiles': {name: hashlib.sha256((here / name).read_bytes()).hexdigest()
+                                          for name in publisher_files}}
+            try:
+                publish(release, os.environ.get('PROMOTE_RELEASE_FEED', '').lower() == 'true',
+                        receipt, channel='release', authorization_path=authorization_path)
+            except Exception as error:
+                receipt.update(lastCompletedState=receipt['status'], status='failed', error=str(error))
+                raise
+            finally:
+                args.output.write_text(json.dumps(receipt, indent=2) + '\n')
+            return
         revision = metadata['sourceRevision']
         if not re.fullmatch('[0-9a-f]{40}', revision): raise SystemExit('Invalid recorded source revision')
         # Reuse publication/migration code from the candidate's exact source commit.
