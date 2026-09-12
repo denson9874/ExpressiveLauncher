@@ -17,6 +17,12 @@
   public static final ** CREATOR;
 }
 
+# Material3's SheetState.Saver stores SheetValue directly in Compose saved state. After process
+# death, Parcel restores it through Java enum serialization, which reflects on values(). R8
+# otherwise removes that method and the values array, crashing Preferences restoration. Keep this
+# small serialized enum's identity and members without retaining unrelated Material3 classes.
+-keep enum androidx.compose.material3.SheetValue { *; }
+
 # Lawnchair specific rules.
 -keep,allowshrinking,allowoptimization class app.lawnchair.LawnchairProto$* { *; }
 -keep,allowshrinking,allowoptimization class app.lawnchair.LawnchairApp { *; }

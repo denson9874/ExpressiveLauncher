@@ -27,6 +27,11 @@ return, while cancellation leaves it off. Home refreshes blur after grants and r
 background after revocation. Existing selected-folder search remains available before full access,
 and a partial folder grant no longer blocks opening the all-files request.
 
+Signed candidate testing also exposed a crash when Android restored Preferences after revoking
+access. Material3 saves `SheetValue` as a serializable enum, but R8 had removed its reflective
+`values()` method. A keep rule for that one enum preserves the saved-state contract. The minified
+candidate must pass the same revoke-and-return path; an unminified test cannot detect this removal.
+
 This is a correction to Expressive’s direct-distribution contract, not a newly claimed Pixel feature.
 The focused policy suite passed 20 unit tests; five Compose instrumentation checks passed on the
 isolated Android17 QPR2 Beta4 emulator. Live Android Settings grant/deny/revoke flows, visible blur,
