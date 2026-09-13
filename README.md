@@ -8,6 +8,7 @@
   <strong><a href="https://github.com/denson9874/ExpressiveLauncher/releases">Download builds</a></strong> ·
   <strong><a href="docs/BUILDING.md">Build from source</a></strong> ·
   <strong><a href="docs/FEATURE_COMPARISON.md">Compare features</a></strong> ·
+  <strong><a href="docs/REUSE_AND_ATTRIBUTION.md">Reuse and attribution</a></strong> ·
   <strong><a href="https://github.com/denson9874/ExpressiveLauncher/issues">Report an issue</a></strong>
 </p>
 
@@ -89,6 +90,11 @@ Use **JDK 21** and the **Android 37.1 SDK**. The SystemUI submodule is required:
 For contributions, start with [CONTRIBUTING.md](CONTRIBUTING.md). Report Expressive issues in [this repository](https://github.com/denson9874/ExpressiveLauncher/issues).
 
 ## Credits and license
+
+**Expressive-specific contributions are by Daryl Denson and the Expressive Launcher contributors.**
+Reusing them carries the applicable license and attribution obligations. See the
+[Expressive NOTICE](NOTICE), [reuse and attribution guide](docs/REUSE_AND_ATTRIBUTION.md),
+and [contribution index](docs/SOURCE_PROVENANCE.md#expressive-contribution-index).
 
 Expressive stands on the work of **AOSP Launcher3**, **Lawnchair**, and their contributors. It is an independent project; it is not an official Google, Pixel, or Lawnchair release.
 
