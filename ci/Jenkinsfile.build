@@ -3,8 +3,8 @@ pipeline {
     options { disableConcurrentBuilds(); timeout(time: 90, unit: 'MINUTES'); skipDefaultCheckout() }
     parameters {
         string(name: 'SOURCE_REVISION', defaultValue: '', description: 'Full recorded commit on codex/pixel-parity')
-        string(name: 'VERSION_NAME', defaultValue: '1.0.8', description: 'Expected QA version')
-        string(name: 'VERSION_CODE', defaultValue: '9', description: 'Expected monotonically increasing version code')
+        string(name: 'VERSION_NAME', defaultValue: '', description: 'Required: expected QA version from the recorded source')
+        string(name: 'VERSION_CODE', defaultValue: '', description: 'Required: monotonically increasing version code from the recorded source')
         string(name: 'BASELINE_RELEASE_ID', defaultValue: '', description: 'Optional sealed QA baseline for initial GitHub channel bootstrap')
     }
     environment {

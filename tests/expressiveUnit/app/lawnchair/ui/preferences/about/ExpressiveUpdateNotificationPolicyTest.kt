@@ -12,6 +12,24 @@ class ExpressiveUpdateNotificationPolicyTest {
     }
 
     @Test
+    fun selectedOtherChannel_canNotifyForSameVersionButNeverDowngrades() {
+        assertThat(
+            shouldPostExpressiveUpdateNotification(18, 18, snapshot(), NOW, allowSameVersion = true),
+        ).isTrue()
+        assertThat(
+            shouldPostExpressiveUpdateNotification(18, 17, snapshot(), NOW, allowSameVersion = true),
+        ).isFalse()
+        assertThat(
+            shouldPostExpressiveUpdateNotification(18, 18, snapshot(lastNotified = 18), NOW, allowSameVersion = true),
+        ).isFalse()
+        assertThat(
+            shouldPostExpressiveUpdateNotification(
+                18, 18, snapshot(snoozedVersion = 18, snoozeUntil = NOW + 1000), NOW, allowSameVersion = true,
+            ),
+        ).isFalse()
+    }
+
+    @Test
     fun newBuild_notifiesOnlyOnceUntilSnoozed() {
         assertThat(shouldPost(current = 7, available = 8)).isTrue()
         assertThat(

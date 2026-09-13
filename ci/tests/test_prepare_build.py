@@ -87,7 +87,7 @@ class SealedBaselineTests(unittest.TestCase):
                 path.write_bytes(original)
 
     def test_signed_production_and_debug_builds_cannot_bootstrap_qa(self):
-        for key, value in [('packageName', 'dev.launcher.expressive.l3'), ('channel', 'release'),
+        for key, value in [('packageName', 'dev.launcher.expressive.l3.debug'), ('channel', 'release'),
                            ('signatureVerified', False), ('debuggable', True)]:
             with self.subTest(key=key):
                 prior = self.metadata[key]
@@ -156,7 +156,7 @@ class StablePreparationTests(unittest.TestCase):
             destination.write_text(json.dumps(feed) if url == prepare.RELEASE_FEED else 'APK')
         with patch.object(prepare, 'download', side_effect=fetch):
             self.assertEqual(feed, prepare.delivered_baseline(self.output, 'release')[0])
-            for key, value in (('channel', 'qa'), ('packageName', prepare.QA_PACKAGE)):
+            for key, value in (('channel', 'qa'), ('packageName', prepare.LEGACY_QA_PACKAGE)):
                 old = feed[key]
                 feed[key] = value
                 with self.subTest(key=key), self.assertRaisesRegex(ValueError, 'outside'):
@@ -269,6 +269,66 @@ class StableBootstrapHistoryTests(unittest.TestCase):
                 with self.assertRaises(ValueError) as error:
                     prepare.authenticated_github_json('/repos/example/repository/commits')
                 self.assertNotIn('sensitive diagnostic', str(error.exception))
+
+class UnifiedQaMigrationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.output = Path(self.temp.name)
+        self.branch = {'object': {'sha': 'a' * 40}}
+        self.legacy = dict(tag_name='qa-v1.0.16-17', prerelease=True, draft=False, published_at='2026-09-12T12:00:00Z')
+        self.stable = dict(schemaVersion=1, channel='release', packageName=prepare.RELEASE_PACKAGE,
+                           versionName='1.0.16', versionCode=17, sha256='b' * 64, sizeBytes=3,
+                           apkUrl=f'https://github.com/{prepare.REPOSITORY}/releases/download/v1.0.16-17/stable.apk')
+
+    def download(self, url, destination, channel='qa'):
+        if url == prepare.FEED:
+            raise urllib.error.HTTPError(url, 404, 'Not Found', {}, None)
+        self.assertEqual('release', channel)
+        destination.write_text(json.dumps(self.stable) if url == prepare.RELEASE_FEED else 'APK')
+
+    def test_first_unified_qa_downloads_stable_as_same_package_upgrade_baseline(self):
+        with patch.object(prepare, 'download', side_effect=self.download), patch.object(
+                prepare, 'authenticated_github_json', side_effect=[self.branch, [], [[self.legacy]]]):
+            baseline, url = prepare.delivered_baseline(self.output)
+        self.assertEqual(self.stable, baseline)
+        self.assertEqual(prepare.RELEASE_FEED, url)
+        proof = json.loads((self.output / 'qa-channel-migration.json').read_text())
+        self.assertEqual(('release', 'qa'), (proof['fromChannel'], proof['toChannel']))
+        self.assertEqual(self.stable['sha256'], proof['baselineSha256'])
+        self.assertTrue(proof['history']['authenticated'])
+        self.assertEqual('qa-v2/latest.json', proof['history']['feedPath'])
+        self.assertEqual('APK', (self.output / 'baseline.apk').read_text())
+
+    def test_deleted_unified_qa_feed_or_previously_published_v2_blocks_migration(self):
+        published = dict(self.legacy, tag_name='qa-v2.0.0-18')
+        for replies in ([self.branch, [{'sha': 'c' * 40}]], [self.branch, [], [[self.legacy], [published]]]):
+            with self.subTest(replies=replies), patch.object(prepare, 'download', side_effect=self.download), patch.object(
+                    prepare, 'authenticated_github_json', side_effect=replies), self.assertRaises(ValueError):
+                prepare.delivered_baseline(self.output)
+        self.assertFalse((self.output / 'qa-channel-migration.json').exists())
+        self.assertFalse((self.output / 'baseline.apk').exists())
+
+    def test_uncertain_identity_or_history_never_establishes_new_channel(self):
+        for replies in ([{}], [self.branch, {}], [self.branch, [], []], [self.branch, [], [[{}]]]):
+            with self.subTest(replies=replies), patch.object(prepare, 'authenticated_github_json', side_effect=replies), self.assertRaises(ValueError):
+                prepare.verify_first_unified_qa_history()
+
+    def test_non404_and_redirect404_do_not_fall_back_to_stable(self):
+        for url, code in ((prepare.FEED, 403), (prepare.FEED, 500), (prepare.RELEASE_FEED, 404)):
+            error = urllib.error.HTTPError(url, code, 'Unavailable', {}, None)
+            self.addCleanup(error.close)
+            with patch.object(prepare, 'download', side_effect=error), patch.object(prepare, 'verify_first_unified_qa_history') as history:
+                with self.assertRaises(urllib.error.HTTPError):
+                    prepare.delivered_baseline(self.output)
+                history.assert_not_called()
+
+    def test_legacy_qa_package_cannot_be_the_unified_upgrade_baseline(self):
+        feed = dict(self.stable, channel='qa', packageName=prepare.LEGACY_QA_PACKAGE)
+        def deliver(url, destination, channel='qa'):
+            destination.write_text(json.dumps(feed))
+        with patch.object(prepare, 'download', side_effect=deliver), self.assertRaisesRegex(ValueError, 'outside'):
+            prepare.delivered_baseline(self.output)
 
 
 if __name__ == '__main__':

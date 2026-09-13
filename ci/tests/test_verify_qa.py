@@ -129,7 +129,7 @@ class ReleaseContractTests(unittest.TestCase):
 
     def test_wrong_candidate_or_baseline_package_rejected(self):
         for path in (self.apk, self.baseline):
-            with self.subTest(path=path), patch.dict(self.responses, {("aapt2", path.name): badging(package="dev.launcher.expressive.l3")}):
+            with self.subTest(path=path), patch.dict(self.responses, {("aapt2", path.name): badging(package="dev.launcher.expressive.l3.debug")}):
                 with self.assertRaisesRegex(verify.VerificationError, "package must be"):
                     self.verify_candidate()
 
@@ -239,21 +239,22 @@ class StableContractTests(unittest.TestCase):
         self.assertFalse(result['stableBootstrap'])
         self.assertEqual('quiesced-upgrade', result['baselineMode'])
         self.assertTrue(result['baseline']['candidateIsNewer'])
-        self.responses[('aapt2', self.baseline.name)] = badging(8, '1.0.7')
+        self.responses[('aapt2', self.baseline.name)] = badging(8, '1.0.7', package=verify.QA_PACKAGE + '.debug')
         with self.assertRaisesRegex(verify.VerificationError, 'package must be'):
             self.stable(bootstrap=False)
         self.responses[('aapt2', self.baseline.name)] = badging(package=verify.RELEASE_PACKAGE)
         with self.assertRaisesRegex(verify.VerificationError, 'strictly newer'):
             self.stable(bootstrap=False)
 
-    def test_qa_apk_cannot_be_renamed_into_stable(self):
+    def test_legacy_qa_apk_cannot_be_renamed_into_stable(self):
+        self.responses[('aapt2', self.apk.name)] = badging(package=verify.QA_PACKAGE + '.debug')
         with self.assertRaisesRegex(verify.VerificationError, 'package must be'):
             self.stable()
 
     def test_selected_qa_version_source_and_certificate_are_required(self):
         self.configure_stable()
         for changes in ({'versionName': '1.0.9'}, {'versionCode': 10}, {'sourceRevision': 'b' * 40},
-                        {'certificateSha256': 'e' * 64}, {'packageName': verify.RELEASE_PACKAGE},
+                        {'certificateSha256': 'e' * 64}, {'packageName': 'other.package'},
                         {'signatureVerified': False}, {'debuggable': True}, {'sha256': ''}):
             with self.subTest(changes=changes), self.assertRaises(verify.VerificationError):
                 self.stable(qa_changes=changes)

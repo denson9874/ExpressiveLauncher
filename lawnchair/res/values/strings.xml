@@ -776,7 +776,13 @@
     <string name="auto_updater_description">Checks for Nightly updates when opening the About screen</string>
 
     <string name="expressive_update_channel_qa">QA</string>
-    <string name="expressive_update_channel_release">Release</string>
+    <string name="expressive_update_channel_release">Stable</string>
+    <string name="expressive_update_channel_label">Update channel</string>
+    <string name="expressive_update_channel_description">Choose where this app receives updates. Your layout and settings stay in place.</string>
+    <string name="expressive_update_channel_qa_description">Early access to tested changes. Issues are more likely.</string>
+    <string name="expressive_update_channel_stable_description">Stable releases after QA testing.</string>
+    <string name="expressive_update_installed_channel">Installed build: %1$s</string>
+    <string name="expressive_update_waiting_for_channel">%1$s currently offers %2$s. You’ll keep this version until that channel catches up.</string>
     <string name="expressive_update_notification_channel">Launcher updates</string>
     <string name="expressive_update_notification_channel_description">New Expressive Launcher builds for this installation channel</string>
     <string name="expressive_update_notification_title">Expressive Launcher %1$s is available</string>

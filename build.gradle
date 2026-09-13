@@ -154,16 +154,16 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse("dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("17")
+        .orElse("18")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("1.0.16")
+        .orElse("2.0.0")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("")
         .get()
 final def expressiveQaUpdateManifestUrl = providers.gradleProperty("expressiveQaUpdateManifestUrl")
-        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json")
+        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json")
         .get()
 final def expressiveReleaseUpdateManifestUrl = providers.gradleProperty("expressiveReleaseUpdateManifestUrl")
         .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json")
@@ -646,6 +646,11 @@ tasks.configureEach { task ->
 androidComponents {
     onVariants(selector().all()) { variant ->
         def channel = variant.productFlavors.last().second
+        if (channel == "expressive" && variant.buildType == "qa") {
+            // Expressive 2.0 QA and stable replace the same signed application in place. Leave
+            // developer Debug and upstream Lawnchair variants on their existing identities.
+            variant.applicationId.set(expressiveApplicationId)
+        }
         def productName = channel == "expressive" ? "ExpressiveLauncherL3" : "Lawnchair"
         def launcherComponentKey = variant.makeResValueKey("string", "launcher_component")
         variant.resValues.put(

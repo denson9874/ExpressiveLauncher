@@ -20,9 +20,9 @@ ZONE = ZoneInfo("America/New_York")
 JENKINS_URL = "http://127.0.0.1:8091/"
 BUILD_JOB = "expressive-qa-build"
 PUBLISH_JOB = "expressive-qa-publish"
-QA_PACKAGE = "dev.launcher.expressive.l3.debug"
+QA_PACKAGE = "dev.launcher.expressive.l3"
 REPOSITORY = "denson9874/ExpressiveLauncher"
-FEED_URL = f"https://raw.githubusercontent.com/{REPOSITORY}/updates/qa/latest.json"
+FEED_URL = f"https://raw.githubusercontent.com/{REPOSITORY}/updates/qa-v2/latest.json"
 REQUIRED_DAYS = {0: "Monday", 2: "Wednesday", 4: "Friday"}
 RUN_FIELDS = "number,url,timestamp,duration,building,result,queueId,actions[parameters[name,value]]"
 

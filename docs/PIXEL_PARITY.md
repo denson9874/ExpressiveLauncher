@@ -54,6 +54,27 @@ export script. See [app icon assets](APP_ICON.md). This entry records the implem
 signed Jenkins results, device screenshots and publication receipts are retained under
 `artifacts/expressive-icon-20260912` when completed. Weekly stable publication remains paused.
 
+## One app with selectable update channels — 2026-09-12 (candidate 2.0.0)
+
+The user selected one app with in-place QA/Stable channel switching for the new 2.0 series.
+Signed QA and Stable now share `dev.launcher.expressive.l3` and the existing release signer.
+The About screen stores the selected channel, uses it for manual and background checks, and
+keeps that choice across process restarts and build-channel replacements. A channel change
+cancels stale work; installation revalidates the selected request and APK immediately before
+handoff. Equal-version builds from the other channel can replace the installed build, while
+an older selected channel waits until it catches up without downgrading user data.
+
+QA 2.x uses `updates:qa-v2/latest.json`. The legacy QA 1.x `.debug` package and its existing
+`updates:qa/latest.json` feed remain intact. Android does not transfer private launcher data
+between these package IDs; legacy QA users need a one-time move to the unified app. Existing
+Stable 1.0.16/code17 is the authenticated baseline for the first signed QA 2.0.0/code18 upgrade.
+
+Local CI regression checks passed 260 tests. The full app suite, signed/minified Jenkins
+candidate, in-place baseline upgrade and interactive channel-selection evidence are recorded
+under `artifacts/unified-channel-2.0.0-20260912` as they complete. This entry records candidate
+behavior, not an unverified publication. Subsequent new scheduled candidates advance to
+2.0.1/code19 and onward; retries keep the same version. The existing QA schedule is preserved.
+
 ## Reference environment
 
 - Reference date: 2026-09-11

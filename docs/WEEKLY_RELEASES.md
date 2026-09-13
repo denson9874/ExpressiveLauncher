@@ -45,9 +45,12 @@ python3 ci/jenkins/control.py status --job release-publish --number PUBLICATION_
 ## Separate stable package and evidence
 
 The stable build uses `assembleLawnWithQuickstepExpressiveRelease`, package
-`dev.launcher.expressive.l3`, minification and the existing durable signing identity. QA remains
-`dev.launcher.expressive.l3.debug`. These are separate Android installations: this schedule does
-not convert a QA installation or copy its private settings into the stable app.
+`dev.launcher.expressive.l3`, minification and the existing durable signing identity. From 2.0.0,
+signed QA uses the same package and signer, as explicitly requested by the user. About provides
+a persistent Stable/QA update-channel choice. New QA manifests live at `updates:qa-v2/latest.json`;
+Stable continues to use `updates:release/latest.json`. The legacy 1.x QA package `.debug` and
+its `updates:qa/latest.json` feed remain separate. Existing stable data survives an upgrade to
+QA 2.0.0; legacy QA private data cannot be transferred by an Android package update.
 
 Stable builds run the full Expressive unit suite and isolated device checks for the actual Release
 APK. Subsequent stable builds verify their version is newer than the delivered stable baseline,
@@ -59,7 +62,8 @@ feed, with authenticated confirmation that no stable feed history or prior stabl
 permits `first-stable-install` mode. A deleted feed after stable publication holds the release; it
 does not reset this rule. That mode tests a fresh installation, seeds a preference,
 reinstalls the same exact stable APK and verifies retention plus the normal smoke flows. Its report
-does not claim a prior-version stable upgrade. A QA APK is never used as a stable upgrade baseline.
+does not claim a prior-version stable upgrade. Stable build validation continues to use the exact
+previously shipped stable APK as its baseline, even though QA 2.x shares its installation identity.
 The selected sealed QA metadata still establishes the exact intended version/source and signer.
 
 Jenkins seals under `releases/release-VERSION-CODE-build-NUMBER`. Its successful build queues
@@ -79,7 +83,8 @@ original publication restriction while retaining the original report as build-ti
 Authenticated and anonymous verification must confirm the exact committed APK and manifest.
 Only then does the publisher advance `updates:release/latest.json`, preserving compatibility with
 the stable app's existing updater. Success requires verified GitHub assets, the `stable` branch,
-and the stable update feed. QA tags, assets and `updates:qa/latest.json` remain independent.
+and the stable update feed. QA tags, assets and `updates:qa-v2/latest.json` remain independent;
+the legacy QA manifest is preserved for 1.x installations.
 A retry reuses the retained authorization and never replaces signed assets.
 
 The source-selected build must contain the stable pipeline support. Do not silently build newer

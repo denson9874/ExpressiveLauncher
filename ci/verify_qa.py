@@ -2,7 +2,8 @@
 """Verify an immutable Expressive APK and write channel-specific release metadata.
 
 Only Android's apksigner/aapt2 executables and Python's standard library are used.
-The supplied baseline must be the previously delivered APK of the same channel.
+The supplied baseline must be a previously delivered APK with the same package.
+The first unified QA release upgrades the stable baseline in place; later QA uses its own feed.
 Only explicit first-stable installation omits the baseline; selected QA provenance remains required.
 No signing key is read and neither APK is modified.
 """
@@ -19,7 +20,7 @@ import tempfile
 import zipfile
 
 
-QA_PACKAGE = "dev.launcher.expressive.l3.debug"
+QA_PACKAGE = "dev.launcher.expressive.l3"
 RELEASE_PACKAGE = "dev.launcher.expressive.l3"
 EXPECTED_CERTIFICATE_SHA256 = (
     "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2"
@@ -196,8 +197,11 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools, channe
     if channel == 'release':
         if isinstance(qa_metadata, Path):
             qa_metadata = json.loads(qa_metadata.read_text())
+        trusted_qa_packages = {QA_PACKAGE}
+        if isinstance(qa_metadata, dict) and str(qa_metadata.get('versionName', '')).startswith('1.'):
+            trusted_qa_packages.add(QA_PACKAGE + '.debug')
         if (not isinstance(qa_metadata, dict) or qa_metadata.get('channel') != 'qa' or
-                qa_metadata.get('packageName') != QA_PACKAGE or qa_metadata.get('signatureVerified') is not True or
+                qa_metadata.get('packageName') not in trusted_qa_packages or qa_metadata.get('signatureVerified') is not True or
                 qa_metadata.get('debuggable') is not False or
                 qa_metadata.get('certificateSha256') != EXPECTED_CERTIFICATE_SHA256 or
                 not re.fullmatch(r'[0-9a-f]{40}', str(qa_metadata.get('sourceRevision', ''))) or

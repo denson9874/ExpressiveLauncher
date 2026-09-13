@@ -63,7 +63,7 @@ class PublishPolicyTest(unittest.TestCase):
             publisher.load_artifacts(self.directory)
 
     def test_production_wrong_signer_and_debug_variants_are_rejected(self):
-        for field, invalid in (("packageName", "dev.launcher.expressive.l3"),
+        for field, invalid in (("packageName", "dev.launcher.expressive.l3.debug"),
                                ("channel", "release"), ("certificateSha256", "b" * 64),
                                ("debuggable", True), ("signatureVerified", False),
                                ("versionCode", True)):
@@ -170,7 +170,7 @@ class PublishPolicyTest(unittest.TestCase):
                     publisher.validate_transition(candidate, conflicting)
 
     def test_feed_rejects_other_channel_package_or_schema(self):
-        for key, value in (("channel", "release"), ("packageName", "dev.launcher.expressive.l3"),
+        for key, value in (("channel", "release"), ("packageName", "dev.launcher.expressive.l3.debug"),
                            ("schemaVersion", 2)):
             with self.subTest(key=key):
                 current = self.feed()
@@ -690,7 +690,7 @@ class StablePublishPolicyTest(unittest.TestCase):
         publisher.load_artifacts(self.directory, "release")
         with self.assertRaisesRegex(publisher.PublishError, "wrong channel"):
             publisher.load_artifacts(self.directory)
-        self.metadata["packageName"] = publisher.QA_PACKAGE
+        self.metadata["packageName"] = publisher.QA_PACKAGE + ".debug"
         self.write_artifacts()
         with mock.patch.object(publisher, "GitHub") as github:
             with self.assertRaisesRegex(publisher.PublishError, "wrong package"):
@@ -708,7 +708,7 @@ class StablePublishPolicyTest(unittest.TestCase):
 
     def test_stable_requires_durable_signer_and_exact_stable_qa_evidence(self):
         for target, field, value in ((self.metadata, "certificateSha256", "b" * 64),
-                                     (self.qa, "channel", "qa"), (self.qa, "packageName", publisher.QA_PACKAGE),
+                                     (self.qa, "channel", "qa"), (self.qa, "packageName", publisher.QA_PACKAGE + ".debug"),
                                      (self.qa, "baselineMode", "stable-upgrade"),
                                      (self.qa, "stableBootstrap", False), (self.qa, "passed", False)):
             with self.subTest(field=field):
@@ -750,7 +750,7 @@ class StablePublishPolicyTest(unittest.TestCase):
         self.assertIn("/v1.0.8-9/", feed["apkUrl"])
         self.assertIn("expressive-release source=", publisher.release_identity(self.metadata, "release"))
         publisher.validate_github_feed(feed, "release")
-        for changed in ({"channel": "qa"}, {"packageName": publisher.QA_PACKAGE},
+        for changed in ({"channel": "qa"}, {"packageName": publisher.QA_PACKAGE + ".debug"},
                         {"apkUrl": feed["apkUrl"].replace("/v1.0.8-9/", "/qa-v1.0.8-9/")}):
             with self.subTest(changed=changed):
                 with self.assertRaises(publisher.PublishError):
@@ -928,6 +928,99 @@ class StablePublishPolicyTest(unittest.TestCase):
         self.assertEqual(len(receipt["files"]), 4)
         self.assertTrue(all(item["publicDownloadVerified"] for item in receipt["files"].values()))
 
+class UnifiedQaPublicationTests(unittest.TestCase):
+    write_artifacts = PublishPolicyTest.write_artifacts
+    feed = PublishPolicyTest.feed
 
-if __name__ == "__main__":
+    def setUp(self):
+        PublishPolicyTest.setUp(self)
+        self.baseline = dict(schemaVersion=1, channel='release', packageName=publisher.RELEASE_PACKAGE,
+                             versionName='1.0.16', versionCode=17, sha256='b' * 64, sizeBytes=3,
+                             certificateSha256=publisher.QA_CERTIFICATE)
+        self.metadata.update(versionName='2.0.0', versionCode=18, baseline=self.baseline,
+                             baselineChannel='release', baselineFeed=publisher.feed_url('release'))
+        self.metadata['qaChannelMigration'] = dict(
+            fromChannel='release', toChannel='qa', packageName=publisher.QA_PACKAGE,
+            baselineFeed=publisher.feed_url('release'), baselineVersionCode=17, baselineSha256='b' * 64,
+            history=dict(authenticated=True, feedHistoryCount=0, publishedUnifiedQaReleaseCount=0,
+                         feedPath='qa-v2/latest.json'))
+        self.qa.update(channel='qa', packageName=publisher.QA_PACKAGE, baselineSha256='b' * 64)
+        self.write_artifacts()
+
+    def test_new_qa_feed_and_tag_keep_legacy_feed_untouched(self):
+        self.assertEqual('qa-v2/latest.json', publisher.feed_path('qa'))
+        self.assertEqual('release/latest.json', publisher.feed_path('release'))
+        self.assertEqual('qa-v2.0.0-18', publisher.release_tag(self.metadata))
+        metadata, _ = publisher.load_artifacts(self.directory)
+        self.assertEqual(publisher.RELEASE_PACKAGE, metadata['packageName'])
+        self.assertEqual('release', metadata['baselineChannel'])
+
+    def test_migration_requires_sealed_exact_baseline_and_authenticated_history(self):
+        original = copy.deepcopy(self.metadata)
+        cases = [('baselineChannel', None), ('baselineFeed', publisher.feed_url('qa')),
+                 ('qaChannelMigration', None), ('qaChannelMigration', {}),
+                 ('qaChannelMigration', {**original['qaChannelMigration'], 'baselineSha256': 'e' * 64}),
+                 ('qaChannelMigration', {**original['qaChannelMigration'], 'history': {'authenticated': False}})]
+        for field, value in cases:
+            with self.subTest(field=field, value=value):
+                self.metadata = {**copy.deepcopy(original), field: value}
+                self.write_artifacts()
+                with self.assertRaises(publisher.PublishError):
+                    publisher.load_artifacts(self.directory)
+
+    def test_device_result_must_cover_same_canonical_baseline(self):
+        for field, value in (('baselineSha256', 'e' * 64), ('packageName', publisher.QA_PACKAGE + '.debug'), ('channel', 'release')):
+            with self.subTest(field=field):
+                original = self.qa[field]
+                self.qa[field] = value
+                self.write_artifacts()
+                with self.assertRaisesRegex(publisher.PublishError, 'device evidence'):
+                    publisher.load_artifacts(self.directory)
+                self.qa[field] = original
+
+    def test_migration_rechecks_stable_public_feed_and_exact_tested_bytes(self):
+        github = publisher.GitHub('qa')
+        stable = mock.Mock()
+        stable.feed.return_value = (self.baseline, 'c' * 40)
+        with mock.patch.object(github, 'require_initial_unified_qa_history') as history, mock.patch.object(
+                publisher, 'GitHub', return_value=stable), mock.patch.object(publisher, 'public_feed', return_value=self.baseline):
+            github.validate_unified_qa_state(None, self.feed(), self.metadata)
+            history.assert_called_once_with(self.metadata)
+            for field, value in (('sha256', 'e' * 64), ('sizeBytes', 4), ('versionCode', 16), ('packageName', publisher.QA_PACKAGE + '.debug')):
+                changed = {**self.baseline, field: value}
+                stable.feed.return_value = (changed, 'd' * 40)
+                with mock.patch.object(publisher, 'public_feed', return_value=changed), self.assertRaisesRegex(publisher.PublishError, 'tested baseline'):
+                    github.validate_unified_qa_state(None, self.feed(), self.metadata)
+
+    def test_deleted_feed_or_other_v2_release_cannot_restart_migration(self):
+        github = publisher.GitHub()
+        other = dict(tag_name='qa-v2.0.1-19', draft=False, prerelease=True)
+        for replies in ([[{'sha': 'c' * 40}]], [[], [other]]):
+            with self.subTest(replies=replies), mock.patch.object(github, 'api', side_effect=replies), self.assertRaises(publisher.PublishError):
+                github.require_initial_unified_qa_history(self.metadata)
+
+    def test_exact_release_may_resume_before_first_feed_commit(self):
+        github = publisher.GitHub()
+        exact = dict(id=23, tag_name='qa-v2.0.0-18', draft=False, prerelease=True,
+                     body=publisher.release_identity(self.metadata))
+        with mock.patch.object(github, 'api', side_effect=[[], [exact]]):
+            github.require_initial_unified_qa_history(self.metadata)
+        exact['body'] = 'different artifact'
+        with mock.patch.object(github, 'api', side_effect=[[], [exact]]), self.assertRaises(publisher.PublishError):
+            github.require_initial_unified_qa_history(self.metadata)
+
+    def test_established_qa_requires_exact_qa_baseline_and_identical_retry_is_allowed(self):
+        github = publisher.GitHub()
+        github.validate_unified_qa_state(self.feed(), self.feed(), self.metadata)
+        current = {**self.feed(), 'versionCode': 17, 'versionName': '1.9.9', 'sha256': 'b' * 64, 'sizeBytes': 3}
+        with self.assertRaisesRegex(publisher.PublishError, 'cannot replace an established'):
+            github.validate_unified_qa_state(current, self.feed(), self.metadata)
+        self.metadata.update(baselineChannel='qa', baseline=current, baselineFeed=publisher.feed_url('qa'))
+        github.validate_unified_qa_state(current, self.feed(), self.metadata)
+        self.metadata['baseline'] = {**current, 'sha256': 'e' * 64}
+        with self.assertRaisesRegex(publisher.PublishError, 'tested baseline'):
+            github.validate_unified_qa_state(current, self.feed(), self.metadata)
+
+
+if __name__ == '__main__':
     unittest.main()

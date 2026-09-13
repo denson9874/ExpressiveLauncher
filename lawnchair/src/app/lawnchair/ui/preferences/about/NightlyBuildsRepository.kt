@@ -16,11 +16,14 @@ import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 import kotlin.io.path.createDirectories
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.outputStream
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -29,9 +32,23 @@ import kotlinx.coroutines.launch
 internal class NightlyBuildsRepository(
     val applicationContext: Context,
     val api: GitHubService,
-    private val expressiveUpdateConfig: ExpressiveUpdateConfig? = null,
+    expressiveUpdateConfig: ExpressiveUpdateConfig? = null,
 ) {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val requests = ExpressiveUpdateRequestGeneration()
+    private var expressiveUpdateConfig = expressiveUpdateConfig
+    private var runningJob: Job? = null
+    private var validatedDownload: ValidatedDownload? = null
+    private var completedDownload: File? = null
+    private val installerFiles = mutableSetOf<File>()
+
+    private data class ValidatedDownload(
+        val file: File,
+        val update: UpdateState.Available,
+        val generation: Long,
+        val config: ExpressiveUpdateConfig,
+        val selectionRevision: Long,
+    )
 
     val updateState: StateFlow<UpdateState>
         field = MutableStateFlow<UpdateState>(UpdateState.UpToDate)
@@ -40,44 +57,70 @@ internal class NightlyBuildsRepository(
     private var latestBuildNumber: Int = 0
     private var currentCommitHash: String = BuildConfig.COMMIT_HASH
 
-    fun checkForUpdate() {
-        coroutineScope.launch(Dispatchers.Default) {
-            updateState.update { UpdateState.Checking }
-            try {
-                if (expressiveUpdateConfig != null) {
-                    checkExpressiveUpdate(expressiveUpdateConfig)
-                } else {
-                    checkNightlyUpdate()
-                }
-            } catch (e: Exception) {
-                when (e) {
-                    is IOException -> {
-                        Log.e(TAG, "Network error during update check", e)
-                    }
+    fun selectUpdateChannel(config: ExpressiveUpdateConfig) = synchronized(requests) {
+        expressiveUpdateConfig = config
+        checkForUpdate()
+    }
 
-                    else -> {
-                        Log.e(TAG, "Failed to check for update", e)
-                    }
+    fun close() = synchronized(requests) {
+        requests.advance()
+        discardCompletedDownload()
+        coroutineScope.cancel()
+    }
+
+    fun checkForUpdate() = synchronized(requests) {
+        val generation = requests.advance()
+        val config = expressiveUpdateConfig
+        discardCompletedDownload()
+        runningJob?.cancel()
+        updateState.update { UpdateState.Checking }
+        runningJob = coroutineScope.launch(Dispatchers.Default) {
+            try {
+                if (config != null) {
+                    checkExpressiveUpdate(config, generation)
+                } else {
+                    checkNightlyUpdate(generation)
                 }
-                updateState.update { UpdateState.Failed }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to check for update", e)
+                publishState(generation, UpdateState.Failed)
             }
         }
     }
 
-    private suspend fun checkExpressiveUpdate(config: ExpressiveUpdateConfig) {
-        when (
-            val decision = fetchExpressiveUpdateDecision(
-                api = api,
-                config = config,
-                currentVersionCode = BuildConfig.VERSION_CODE.toLong(),
-                currentPackageName = BuildConfig.APPLICATION_ID,
-            )
-        ) {
+    private fun publishState(generation: Long, state: UpdateState) {
+        requests.withCurrent(generation) { updateState.update { state } }
+    }
+
+    private fun discardCompletedDownload() = synchronized(requests) {
+        completedDownload?.let(::deleteUnlessHandedToInstaller)
+        completedDownload = null
+        validatedDownload = null
+    }
+
+    private fun deleteUnlessHandedToInstaller(file: File): Unit = synchronized(requests) {
+        // Android may read the granted URI after this repository closes or the channel changes.
+        if (file !in installerFiles) file.delete()
+    }
+
+    private suspend fun checkExpressiveUpdate(config: ExpressiveUpdateConfig, generation: Long) {
+        val decision = fetchExpressiveUpdateDecision(
+            api = api,
+            config = config,
+            currentVersionCode = BuildConfig.VERSION_CODE.toLong(),
+            currentPackageName = BuildConfig.APPLICATION_ID,
+            installedChannel = installedExpressiveUpdateConfig()?.channel ?: config.channel,
+        )
+        currentCoroutineContext().ensureActive()
+        when (decision) {
             is ExpressiveUpdateDecision.Available -> {
                 val update = decision.manifest
-                updateState.update {
+                publishState(
+                    generation,
                     UpdateState.Available(
-                        name = "Expressive Launcher ${update.versionName} (${config.channel.wireName.uppercase()})",
+                        name = "Expressive Launcher ${update.versionName} (${if (config.channel == ExpressiveUpdateChannel.QA) "QA" else "Stable"})",
                         url = update.apkUrl,
                         changelogState = null,
                         expectedSha256 = update.sha256,
@@ -85,11 +128,16 @@ internal class NightlyBuildsRepository(
                         expectedVersionCode = update.versionCode,
                         expectedPackageName = update.packageName,
                         releaseNotes = update.releaseNotes,
-                    )
-                }
+                    ),
+                )
             }
 
-            ExpressiveUpdateDecision.UpToDate -> updateState.update { UpdateState.UpToDate }
+            is ExpressiveUpdateDecision.WaitingForChannel -> publishState(
+                generation,
+                UpdateState.WaitingForChannel(decision.manifest.versionName, config.channel.wireName),
+            )
+
+            ExpressiveUpdateDecision.UpToDate -> publishState(generation, UpdateState.UpToDate)
 
             is ExpressiveUpdateDecision.Rejected -> {
                 throw IOException("Rejected Expressive update manifest: ${decision.reason}")
@@ -97,7 +145,7 @@ internal class NightlyBuildsRepository(
         }
     }
 
-    private suspend fun checkNightlyUpdate() {
+    private suspend fun checkNightlyUpdate(generation: Long) {
         val releases = api.getReleases()
         val nightly = releases.firstOrNull { it.tagName == "nightly" }
         val asset = nightly?.assets?.firstOrNull()
@@ -107,7 +155,7 @@ internal class NightlyBuildsRepository(
 
         if (nightly != null && nightly.targetCommitish != expectedBranch) {
             Log.d(TAG, "Skipping update from branch ${nightly.targetCommitish}, expected $expectedBranch")
-            updateState.update { UpdateState.Disabled(UpdateDisabledReason.MAJOR_IS_NEWER) }
+            publishState(generation, UpdateState.Disabled(UpdateDisabledReason.MAJOR_IS_NEWER))
             return
         }
 
@@ -122,7 +170,8 @@ internal class NightlyBuildsRepository(
 
         if (asset != null && latestBuildNumber > currentBuildNumber) {
             val commitList = getCommitsSinceCurrentVersion()
-            updateState.update {
+            publishState(
+                generation,
                 UpdateState.Available(
                     asset.name,
                     asset.browserDownloadUrl,
@@ -134,62 +183,113 @@ internal class NightlyBuildsRepository(
                         )
                     },
                     expectedSha256 = asset.sha256Hash,
-                )
-            }
+                ),
+            )
         } else {
-            updateState.update { UpdateState.UpToDate }
+            publishState(generation, UpdateState.UpToDate)
         }
     }
 
-    fun downloadUpdate(installAfterDownload: Boolean = false) {
-        val currentState = updateState.value
-        if (currentState !is UpdateState.Available) return
-
-        coroutineScope.launch(Dispatchers.IO) {
-            updateState.update { UpdateState.Downloading(0f) }
+    fun downloadUpdate(installAfterDownload: Boolean = false) = synchronized(requests) {
+        val currentState = updateState.value as? UpdateState.Available ?: return@synchronized
+        val config = expressiveUpdateConfig
+        val selectionRevision = ExpressiveUpdateChannelPreferences(applicationContext).selectionRevision()
+        val generation = requests.advance()
+        runningJob?.cancel()
+        discardCompletedDownload()
+        updateState.update { UpdateState.Downloading(0f) }
+        runningJob = coroutineScope.launch(Dispatchers.IO) {
+            var downloadedFile: File? = null
             try {
                 val file = downloadApk(currentState) { progress ->
-                    updateState.update { UpdateState.Downloading(progress) }
+                    publishState(generation, UpdateState.Downloading(progress))
                 }
-                if (file != null) {
-                    updateState.update { UpdateState.Downloaded(file) }
-                    if (installAfterDownload) {
-                        installUpdate(file)
+                downloadedFile = file
+                currentCoroutineContext().ensureActive()
+                if (file == null) {
+                    publishState(generation, UpdateState.Failed)
+                    return@launch
+                }
+                requests.withCurrent(generation) {
+                    completedDownload = file
+                    if (config != null) {
+                        validatedDownload = ValidatedDownload(file, currentState, generation, config, selectionRevision)
                     }
-                } else {
-                    Log.e(TAG, "Downloaded file is null")
-                    updateState.update { UpdateState.Failed }
+                    updateState.update { UpdateState.Downloaded(file) }
+                    if (installAfterDownload) installUpdate(file)
                 }
+            } catch (e: CancellationException) {
+                downloadedFile?.let(::deleteUnlessHandedToInstaller)
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Download failed", e)
-                updateState.update { UpdateState.Failed }
+                publishState(generation, UpdateState.Failed)
+            } finally {
+                if (!requests.isCurrent(generation)) downloadedFile?.let(::deleteUnlessHandedToInstaller)
             }
         }
     }
 
-    fun installUpdate(file: File, forceInstall: Boolean = false) {
-        if (!forceInstall && applicationContext.isApkMajorVersionNewer(file)) {
-            updateState.update { UpdateState.MajorUpdate(file) }
-            return
+    fun installUpdate(file: File, forceInstall: Boolean = false) = synchronized(requests) {
+        // A callback from an old channel's sheet or download must never open the installer.
+        if (expressiveUpdateConfig != null) {
+            val download = validatedDownload ?: return@synchronized
+            if (
+                download.file != file || !requests.isCurrent(download.generation) ||
+                download.config != expressiveUpdateConfig
+            ) return@synchronized
+            val isValid = runCatching {
+                applicationContext.validateExpressiveUpdateApk(file, download.update, verifyBytes = true)
+            }.getOrElse {
+                Log.e(TAG, "Unable to revalidate the downloaded APK", it)
+                false
+            }
+            if (!isValid) {
+                updateState.update { UpdateState.Failed }
+                discardCompletedDownload()
+                return@synchronized
+            }
         }
-        if (!applicationContext.hasInstallPermission()) {
-            // todo expose proper permission UI instead of requesting immediately on click
-            applicationContext.requestInstallPermission()
-            return
+        val openInstaller = installer@{
+            if (!forceInstall && applicationContext.isApkMajorVersionNewer(file)) {
+                updateState.update { UpdateState.MajorUpdate(file) }
+                return@installer
+            }
+            if (!applicationContext.hasInstallPermission()) {
+                applicationContext.requestInstallPermission()
+                return@installer
+            }
+            val uri = FileProvider.getUriForFile(
+                applicationContext,
+                "${BuildConfig.APPLICATION_ID}.fileprovider",
+                file,
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            applicationContext.startActivity(intent)
+            installerFiles += file
         }
-        val uri = FileProvider.getUriForFile(
-            applicationContext,
-            "${BuildConfig.APPLICATION_ID}.fileprovider",
-            file,
-        )
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        val download = validatedDownload
+        if (expressiveUpdateConfig != null && download != null) {
+            // Serialize only the final handoff with persisted selection, including A -> B -> A.
+            ExpressiveUpdateChannelPreferences(applicationContext).withCurrentSelection(
+                download.config,
+                download.selectionRevision,
+                openInstaller,
+            )
+        } else {
+            openInstaller()
         }
-        applicationContext.startActivity(intent)
+        Unit
     }
 
-    fun resetToDownloaded(file: File) {
+    fun resetToDownloaded(file: File) = synchronized(requests) {
+        if (expressiveUpdateConfig != null) {
+            val download = validatedDownload ?: return@synchronized
+            if (download.file != file || !requests.isCurrent(download.generation)) return@synchronized
+        }
         updateState.update { UpdateState.Downloaded(file) }
     }
 
@@ -211,6 +311,8 @@ internal class NightlyBuildsRepository(
                 // If current commit not found, show last N commits
                 commits.take(MAX_FALLBACK_COMMITS)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get commits", e)
             null
@@ -218,60 +320,59 @@ internal class NightlyBuildsRepository(
     }
 
     private suspend fun downloadApk(update: UpdateState.Available, onProgress: (Float) -> Unit): File? {
-        return try {
-            val cacheDir = applicationContext.cacheDir
-            val apkDirPath = cacheDir.toPath().resolve("updates").createDirectories()
-            val apkFilePath = apkDirPath.resolve("Lawnchair-update.apk").apply { deleteIfExists() }
-
-            val responseBody = api.downloadFile(update.url)
-            val totalBytes = responseBody.contentLength().takeIf { it > 0L }
-                ?: update.expectedSizeBytes
-                ?: -1L
-            if (totalBytes <= 0L) {
-                Log.w(TAG, "The update download did not report a usable size")
-                return null
-            }
-
-            val messageDigest = java.security.MessageDigest.getInstance("SHA-256")
-
-            responseBody.byteStream().use { input ->
-                apkFilePath.outputStream().use { output ->
-                    val buffer = ByteArray(8192)
-                    var bytesDownloaded = 0L
-                    var bytesRead: Int
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        messageDigest.update(buffer, 0, bytesRead)
-                        bytesDownloaded += bytesRead
-                        onProgress((bytesDownloaded.toFloat() / totalBytes).coerceIn(0f, 1f))
+        val apkDir = applicationContext.cacheDir.toPath().resolve("updates").createDirectories().toFile()
+        // Separate paths keep a cancelled stream from corrupting the next channel's download.
+        val apkFile = File.createTempFile("Expressive-update-", ".apk", apkDir)
+        var verified = false
+        try {
+            api.downloadFile(update.url).use { responseBody ->
+                val totalBytes = responseBody.contentLength().takeIf { it > 0L }
+                    ?: update.expectedSizeBytes
+                    ?: -1L
+                if (totalBytes <= 0L) return null
+                val messageDigest = MessageDigest.getInstance("SHA-256")
+                responseBody.byteStream().use { input ->
+                    apkFile.outputStream().use { output ->
+                        val buffer = ByteArray(8192)
+                        var bytesDownloaded = 0L
+                        while (true) {
+                            currentCoroutineContext().ensureActive()
+                            val bytesRead = input.read(buffer)
+                            if (bytesRead == -1) break
+                            bytesDownloaded += bytesRead
+                            if (update.expectedSizeBytes != null && bytesDownloaded > update.expectedSizeBytes) {
+                                Log.e(TAG, "APK exceeds the expected size")
+                                return null
+                            }
+                            output.write(buffer, 0, bytesRead)
+                            messageDigest.update(buffer, 0, bytesRead)
+                            onProgress((bytesDownloaded.toFloat() / totalBytes).coerceIn(0f, 1f))
+                        }
                     }
                 }
-            }
-            if (update.expectedSha256 != null) {
-                val computedHash = messageDigest.digest().joinToString("") { "%02x".format(it) }
-                if (!computedHash.equals(update.expectedSha256, ignoreCase = true)) {
-                    Log.e(TAG, "SHA256 verification failed")
-                    apkFilePath.deleteIfExists()
+                currentCoroutineContext().ensureActive()
+                if (update.expectedSha256 != null) {
+                    val hash = messageDigest.digest().joinToString("") { "%02x".format(it) }
+                    if (!hash.equals(update.expectedSha256, ignoreCase = true)) {
+                        Log.e(TAG, "SHA256 verification failed")
+                        return null
+                    }
+                }
+                if (update.expectedSizeBytes != null && apkFile.length() != update.expectedSizeBytes) {
+                    Log.e(TAG, "APK size verification failed")
                     return null
                 }
-                Log.d(TAG, "SHA256 verification passed")
+                if (!applicationContext.validateExpressiveUpdateApk(apkFile, update)) return null
+                verified = true
+                return apkFile
             }
-
-            val apkFile = apkFilePath.toFile()
-            if (update.expectedSizeBytes != null && apkFile.length() != update.expectedSizeBytes) {
-                Log.e(TAG, "APK size verification failed")
-                apkFilePath.deleteIfExists()
-                return null
-            }
-            if (!applicationContext.validateExpressiveUpdateApk(apkFile, update)) {
-                apkFilePath.deleteIfExists()
-                return null
-            }
-
-            apkFile
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "APK download failed", e)
-            null
+            return null
+        } finally {
+            if (!verified) apkFile.delete()
         }
     }
 
@@ -283,14 +384,33 @@ internal class NightlyBuildsRepository(
 private fun Context.validateExpressiveUpdateApk(
     apkFile: File,
     update: UpdateState.Available,
+    verifyBytes: Boolean = false,
 ): Boolean {
     if (update.expectedPackageName == null && update.expectedVersionCode == null) return true
 
+    if (!apkFile.isFile) return false
+    if (verifyBytes) {
+        if (apkFile.length() != update.expectedSizeBytes) return false
+        val digest = MessageDigest.getInstance("SHA-256")
+        apkFile.inputStream().use { input ->
+            val buffer = ByteArray(8192)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        val hash = digest.digest().joinToString("") { "%02x".format(it) }
+        if (!hash.equals(update.expectedSha256, ignoreCase = true)) return false
+    }
     val candidate = packageManager.getPackageArchiveInfo(
         apkFile.absolutePath,
         PackageManager.GET_SIGNING_CERTIFICATES,
     ) ?: return false.also { Log.e("UpdateCheck", "Unable to parse downloaded APK") }
-    if (candidate.packageName != update.expectedPackageName) {
+    if (
+        candidate.packageName != EXPRESSIVE_UPDATE_PACKAGE_NAME ||
+        candidate.packageName != packageName || candidate.packageName != update.expectedPackageName
+    ) {
         Log.e("UpdateCheck", "Downloaded APK package does not match the update manifest")
         return false
     }
@@ -303,6 +423,10 @@ private fun Context.validateExpressiveUpdateApk(
         packageName,
         PackageManager.GET_SIGNING_CERTIFICATES,
     )
+    if (PackageInfoCompat.getLongVersionCode(candidate) < PackageInfoCompat.getLongVersionCode(installed)) {
+        Log.e("UpdateCheck", "Downloaded APK would downgrade the installed app")
+        return false
+    }
     if (!signingLineageAccepts(installed.signingDigests(), candidate.signingDigests())) {
         Log.e("UpdateCheck", "Downloaded APK signing certificate does not match the installed app")
         return false

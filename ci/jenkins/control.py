@@ -42,7 +42,7 @@ def configure(client, kind):
     param_property = ET.SubElement(props, 'hudson.model.ParametersDefinitionProperty')
     definitions = ET.SubElement(param_property, 'parameterDefinitions')
     if kind == 'build':
-        parameters = [('SOURCE_REVISION', ''), ('VERSION_NAME', '1.0.8'), ('VERSION_CODE', '9'), ('BASELINE_RELEASE_ID', '')]
+        parameters = [('SOURCE_REVISION', ''), ('VERSION_NAME', ''), ('VERSION_CODE', ''), ('BASELINE_RELEASE_ID', '')]
     elif kind == 'release-build':
         parameters = [('VALIDATION_QA_RELEASE_ID', '')]
     else:
@@ -75,8 +75,8 @@ def main():
     parser.add_argument('operation', choices=['configure', 'run', 'status', 'console'])
     parser.add_argument('--job', choices=list(JOBS))
     parser.add_argument('--revision')
-    parser.add_argument('--version-name', default='1.0.8')
-    parser.add_argument('--version-code', default='9')
+    parser.add_argument('--version-name')
+    parser.add_argument('--version-code')
     parser.add_argument('--release-id')
     parser.add_argument('--baseline-release-id', default='')
     parser.add_argument('--validation-qa-release-id', default='')
@@ -92,6 +92,8 @@ def main():
         args.job = args.job or 'build'
         if args.job == 'build':
             if not re.fullmatch('[0-9a-f]{40}', args.revision or ''): parser.error('Full --revision is required')
+            if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', args.version_name or ''): parser.error('Explicit --version-name is required (for example, 2.0.0)')
+            if not re.fullmatch(r'[1-9][0-9]*', args.version_code or ''): parser.error('Explicit positive --version-code is required')
             if args.baseline_release_id and not re.fullmatch(r'qa-\d+\.\d+\.\d+-\d+-build-\d+', args.baseline_release_id): parser.error('Invalid --baseline-release-id')
             data = {'SOURCE_REVISION': args.revision, 'VERSION_NAME': args.version_name, 'VERSION_CODE': args.version_code, 'BASELINE_RELEASE_ID': args.baseline_release_id}
         elif args.job == 'release-build':

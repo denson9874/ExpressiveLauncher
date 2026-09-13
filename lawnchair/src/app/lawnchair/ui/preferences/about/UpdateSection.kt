@@ -63,6 +63,20 @@ fun UpdateSection(
                 )
             }
 
+            is UpdateState.WaitingForChannel -> {
+                val channelName = stringResource(
+                    if (updateState.channelName == "qa") R.string.expressive_update_channel_qa
+                    else R.string.expressive_update_channel_release,
+                )
+                Text(
+                    text = stringResource(R.string.expressive_update_waiting_for_channel, channelName, updateState.versionName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+            }
+
             is UpdateState.Available -> {
                 Button(
                     onClick = onViewChanges,

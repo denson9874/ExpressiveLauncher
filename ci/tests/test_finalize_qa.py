@@ -112,6 +112,35 @@ class StableSealingTests(unittest.TestCase):
         self.assertEqual('Qa', (self.release / 'mapping/mapping.txt').read_text())
         self.assertIn('Jenkins QA release', (self.release / 'QA-report.md').read_text())
 
+class UnifiedQaSealTests(unittest.TestCase):
+    def setUp(self):
+        self.package = 'dev.launcher.expressive.l3'
+        self.baseline = dict(packageName=self.package, versionCode=17, sha256='b' * 64)
+        self.metadata = dict(channel='qa', packageName=self.package, baseline=self.baseline)
+        self.source = dict(channel='qa', sourceRevision='a' * 40, baselineChannel='release',
+                           baselineFeed='https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json')
+        self.source['qaChannelMigration'] = dict(
+            fromChannel='release', toChannel='qa', packageName=self.package, baselineFeed=self.source['baselineFeed'],
+            baselineVersionCode=17, baselineSha256='b' * 64,
+            history=dict(authenticated=True, feedHistoryCount=0, publishedUnifiedQaReleaseCount=0,
+                         feedPath='qa-v2/latest.json'))
+        self.qa = dict(channel='qa', packageName=self.package, baselineSha256='b' * 64)
+
+    def test_seal_retains_migration_proof_bound_to_tested_stable_baseline(self):
+        finalize.validate_provenance(self.metadata, self.source, self.qa)
+        self.assertEqual(self.source['qaChannelMigration'], self.metadata['qaChannelMigration'])
+        self.assertEqual('release', self.metadata['baselineChannel'])
+
+    def test_other_baseline_bytes_or_package_cannot_claim_migration(self):
+        for changes in ({'baselineSha256': 'c' * 64}, {'packageName': self.package + '.debug'}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                finalize.validate_provenance(self.metadata, self.source, {**self.qa, **changes})
+
+    def test_missing_history_or_wrong_migration_identity_fails_closed(self):
+        for value in (None, {}, {'history': None}, {**self.source['qaChannelMigration'], 'toChannel': 'release'}):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                finalize.validate_provenance(self.metadata, {**self.source, 'qaChannelMigration': value}, self.qa)
+
 
 if __name__ == '__main__':
     unittest.main()

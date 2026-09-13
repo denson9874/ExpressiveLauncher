@@ -22,7 +22,9 @@ When eligible, submit `python3 ci/jenkins/control.py run --job release-build` wi
 override. Jenkins repeats the gate, builds the actual signed/minified Release variant from the
 selected Friday source and version, runs full unit and stable-package device checks, and seals the
 candidate. Do not add features, increment the version again, substitute current HEAD, or relabel a
-QA APK. The stable package is dev.launcher.expressive.l3; the QA package remains separate.
+QA APK. From 2.0.0, signed QA and Stable share dev.launcher.expressive.l3 and the durable signer
+for in-place channel switching, while their build types and publication feeds remain distinct.
+QA 2.x uses updates:qa-v2/latest.json; preserve the legacy .debug QA1.x feed at updates:qa/latest.json.
 Track the exact queue/build to terminal completion and inspect its archived evidence.
 
 The first stable build explicitly tests fresh installation and same-version reinstall/preference
@@ -40,7 +42,8 @@ feedVerified=true, verified stableBranch evidence and matching source/version/AP
 normal GitHub stable release under vVERSION-CODE and commit the exact APK and evidence to
 stable:releases/RELEASE_ID/. Verify the branch and its root latest.json through authenticated and
 anonymous reads, then advance updates:release/latest.json for existing app compatibility. Preserve
-QA releases and updates:qa/latest.json. Keep failed receipts and retry the same sealed bytes.
+QA releases, updates:qa-v2/latest.json and the legacy updates:qa/latest.json. Keep failed receipts
+and retry the same sealed bytes.
 Never claim a staged or partial result is released.
 
 After publication, write a high-quality weekly GitHub changelog covering verified user-facing changes

@@ -28,6 +28,7 @@ data class AboutUiState(
     val topLinks: List<Link> = emptyList(),
     val bottomLinks: List<Link> = emptyList(),
     val updateState: UpdateState = UpdateState.Hidden,
+    val selectedUpdateChannel: String? = null,
 )
 
 /**
@@ -102,6 +103,9 @@ sealed interface UpdateState {
 
     /** The application is up to date, no new updates available. */
     data object UpToDate : UpdateState
+
+    /** Selected channel is behind this installation; wait without downgrading. */
+    data class WaitingForChannel(val versionName: String, val channelName: String) : UpdateState
 
     /**
      * A new update is available. Contains the name and URL of the update.

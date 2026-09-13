@@ -13,19 +13,19 @@ spec.loader.exec_module(smoke)
 
 class AppCrashGateTests(unittest.TestCase):
     def test_launcher_runtime_fatal_blocks(self):
-        log = "E AndroidRuntime: FATAL EXCEPTION: main\nE AndroidRuntime: Process: dev.launcher.expressive.l3.debug, PID: 123\n"
+        log = "E AndroidRuntime: FATAL EXCEPTION: main\nE AndroidRuntime: Process: dev.launcher.expressive.l3, PID: 123\n"
         self.assertEqual(smoke.app_log_failures(log, "", ""), ["fatal_exception"])
 
     def test_crash_buffer_alone_blocks(self):
-        crash = "FATAL EXCEPTION: main\nProcess: dev.launcher.expressive.l3.debug, PID: 123"
+        crash = "FATAL EXCEPTION: main\nProcess: dev.launcher.expressive.l3, PID: 123"
         self.assertEqual(smoke.app_log_failures("", crash, ""), ["fatal_exception"])
 
     def test_anr_event_blocks_without_main_log_message(self):
-        events = "I am_anr: [0,123,dev.launcher.expressive.l3.debug,0,Input dispatching timed out]"
+        events = "I am_anr: [0,123,dev.launcher.expressive.l3,0,Input dispatching timed out]"
         self.assertEqual(smoke.app_log_failures("", "", events), ["anr"])
 
     def test_process_crash_event_blocks(self):
-        events = "I am_crash: [0,123,dev.launcher.expressive.l3.debug,0,java.lang.RuntimeException]"
+        events = "I am_crash: [0,123,dev.launcher.expressive.l3,0,java.lang.RuntimeException]"
         self.assertEqual(smoke.app_log_failures("", "", events), ["process_crash"])
 
     def test_other_package_crash_does_not_claim_launcher_crash(self):
@@ -33,11 +33,11 @@ class AppCrashGateTests(unittest.TestCase):
         self.assertEqual(smoke.app_log_failures(log, "", ""), [])
 
     def test_native_tombstone_blocks(self):
-        crash = "F DEBUG: pid: 123, tid: 123, name: launcher >>> dev.launcher.expressive.l3.debug <<<"
+        crash = "F DEBUG: pid: 123, tid: 123, name: launcher >>> dev.launcher.expressive.l3 <<<"
         self.assertEqual(smoke.app_log_failures("", crash, ""), ["native_crash"])
 
     def test_caught_launcher_warning_is_not_a_fatal(self):
-        log = "E SystemUiProxy: dev.launcher.expressive.l3.debug recent-tasks unavailable\nE Snapshot: caught java.lang.NullPointerException"
+        log = "E SystemUiProxy: dev.launcher.expressive.l3 recent-tasks unavailable\nE Snapshot: caught java.lang.NullPointerException"
         self.assertEqual(smoke.app_log_failures(log, "", ""), [])
 
 
@@ -94,7 +94,7 @@ Input method service state for Gboard:
     def test_active_visible_keyboard_serving_exact_launcher_is_ready(self):
         self.assertTrue(smoke.keyboard_ready(self.ime_dump(), smoke.RELEASE_PACKAGE))
         self.assertTrue(smoke.keyboard_ready(self.ime_dump().replace('mImeWindowVis=3', 'mImeWindowVis=0x3'), smoke.RELEASE_PACKAGE))
-        self.assertFalse(smoke.keyboard_ready(self.ime_dump(package=smoke.PACKAGE), smoke.RELEASE_PACKAGE))
+        self.assertFalse(smoke.keyboard_ready(self.ime_dump(package=smoke.PACKAGE + ".debug"), smoke.RELEASE_PACKAGE))
 
     def test_focused_or_show_requested_keyboard_and_historical_visibility_are_not_ready(self):
         hidden = self.ime_dump(False)
@@ -183,7 +183,7 @@ class StableSmokeContractTests(unittest.TestCase):
         for package in (smoke.RELEASE_PACKAGE, smoke.RELEASE_PACKAGE + ':worker'):
             log = f'FATAL EXCEPTION: main\nProcess: {package}, PID: 123'
             self.assertEqual(['fatal_exception'], smoke.app_log_failures(log, '', '', smoke.RELEASE_PACKAGE))
-        qa_log = f'FATAL EXCEPTION: main\nProcess: {smoke.PACKAGE}, PID: 123'
+        qa_log = f'FATAL EXCEPTION: main\nProcess: {smoke.PACKAGE}.debug, PID: 123'
         self.assertEqual([], smoke.app_log_failures(qa_log, '', '', smoke.RELEASE_PACKAGE))
         self.assertEqual(['anr'], smoke.app_log_failures('', '', f'am_anr: [0,123,{smoke.RELEASE_PACKAGE},0]', smoke.RELEASE_PACKAGE))
         self.assertEqual(['process_crash'], smoke.app_log_failures('', '', f'am_crash: [0,123,{smoke.RELEASE_PACKAGE},0]', smoke.RELEASE_PACKAGE))
@@ -194,7 +194,7 @@ class StableSmokeContractTests(unittest.TestCase):
         runner.save = Mock()
         runner.shell = Mock(side_effect=[
             'versionCode=14 minSdk=37\nversionName=1.0.13\nfirstInstallTime=1\nlastUpdateTime=2',
-            smoke.PACKAGE, smoke.PACKAGE + '/app.lawnchair.LawnchairLauncher'])
+            smoke.PACKAGE + '.debug', smoke.PACKAGE + '.debug/app.lawnchair.LawnchairLauncher'])
         with self.assertRaisesRegex(RuntimeError, 'retained default HOME'):
             runner.metadata('candidate')
 

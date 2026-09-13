@@ -133,7 +133,9 @@ fun About(
         )
     }
     val scope = rememberCoroutineScope()
-    val expressiveUpdateConfig = remember { installedExpressiveUpdateConfig() }
+    val expressiveUpdateConfig = remember(uiState.selectedUpdateChannel) {
+        selectedExpressiveUpdateConfig(context)
+    }
 
     val prefs: PreferenceManager = PreferenceManager.getInstance(context)
 
@@ -244,16 +246,16 @@ fun About(
                 }
             }
             item {
-                DailySparkCard(
-                    content = dailyContent,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            item {
                 if (expressiveUpdateConfig != null) {
+                    ExpressiveUpdateChannelControl(
+                        selectedChannel = expressiveUpdateConfig.channel,
+                        onSelect = { channel ->
+                            openBottomSheet = false
+                            promptRequestedByNotification = false
+                            (context as? Activity)?.intent?.removeExtra(EXTRA_OPEN_EXPRESSIVE_UPDATE_PROMPT)
+                            viewModel.selectUpdateChannel(channel)
+                        },
+                    )
                     ExpressiveUpdateNotificationControl(config = expressiveUpdateConfig)
                 }
                 UpdateSection(
@@ -273,6 +275,12 @@ fun About(
                     onDismissMajorUpdate = {
                         viewModel.resetToDownloaded(it)
                     },
+                )
+            }
+            item {
+                DailySparkCard(
+                    content = dailyContent,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
                 )
             }
             item {

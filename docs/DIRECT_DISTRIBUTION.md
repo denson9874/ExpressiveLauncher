@@ -1,18 +1,25 @@
 # Expressive Launcher direct distribution
 
-Expressive Launcher uses two independent update channels:
+Starting with 2.0.0, Expressive Launcher offers two selectable update channels in one app:
 
-- `qa`: `dev.launcher.expressive.l3.debug`, served by GitHub QA prereleases and `updates:qa/latest.json`.
-- `release`: `dev.launcher.expressive.l3`, served by separate GitHub stable releases and `updates:release/latest.json`.
+- `qa`: GitHub QA prereleases and `updates:qa-v2/latest.json`.
+- `release`: GitHub stable releases and `updates:release/latest.json`.
 
-Both APKs are signed by the same durable Expressive release key. The separate application IDs let
-QA and release coexist on one device, while Android's same-signer rule protects each channel from
-an untrusted replacement.
+Both APKs use `dev.launcher.expressive.l3` and the same durable Expressive release key. Changing
+channels keeps the existing app and its data; a newer matching APK replaces it in place after the
+user confirms Android's installer. The selected channel cannot bypass package, signature, digest,
+or version checks, and a lower-version stable release is never offered as a downgrade.
+
+The first QA 2.0.0 / code 18 candidate upgrades stable 1.0.16 / code 17 in place. Legacy 1.x QA
+uses the separate `dev.launcher.expressive.l3.debug` package and `updates:qa/latest.json`.
+That feed and its published assets remain intact. Moving a legacy QA installation to the unified
+2.x app requires a one-time move to the canonical application; Android cannot transfer its private
+data across package IDs. Keep the legacy installation until any desired backup/restore is completed.
 
 The QA distribution channel uses the Gradle `Qa` variant: it inherits release minification/resource
 shrinking and the durable signer.
-A developer `Debug` APK uses a different certificate and cannot update an installed release-signed
-QA build in place, even though its application ID is also suffixed `.debug`.
+A developer `Debug` APK keeps its `.debug` application ID and different certificate. It cannot
+replace the signed 2.x QA/stable application or a legacy release-signed QA installation in place.
 
 ## Wallpaper and all-files access
 
@@ -47,9 +54,10 @@ The keystore and credential backup are the permanent update identity. Store encr
 backups in two independent locations. Losing the key prevents future in-place updates. Never commit
 the keystore or either properties file.
 
-An older debug-certificate-signed QA build cannot be upgraded to the new release-signed QA track.
-Uninstall that build once, install the first release-signed QA APK, and subsequent QA updates install
-in place. Release builds should use the release key from their first installation onward.
+An older debug-certificate-signed development build cannot replace the release-signed app.
+Install the canonical signed application as a separate app and preserve the old installation until
+its desired data has been backed up or moved. Release builds use the release key from their first
+installation onward; never change that signing identity when changing channels.
 
 ## Publishing an update
 
@@ -76,10 +84,11 @@ declared byte size and SHA-256, and a signing lineage containing the installed c
 
 ## Upgrade validation before publication
 
-Before uploading a candidate, validate a true same-signer upgrade from the last delivered Qa APK
+Before uploading a candidate, validate a true same-signer upgrade from the last delivered 2.x QA APK
 on an isolated, seeded emulator. Confirm the original install time, default HOME, folder contents,
 settings, current package path/version, and clean new startup logs. Do not uninstall or clear app
 data to hide a failed upgrade. A user-requested publication hold also keeps feeds and sharing unchanged.
+For the initial 2.0.0 QA candidate, use the published canonical stable 1.0.16 / code 17 as this baseline.
 
 On the Android 17 QPR2 Beta 4 guest `CP41.260814.003.B1`, replacing the APK through ADB while
 Expressive HOME was foreground intermittently restarted it using the removed previous APK path.
@@ -92,11 +101,11 @@ user delivery. Do not add app resource/class-loader workarounds for a pre-Applic
 
 ## Update notifications
 
-The installed build selects its update source; users cannot accidentally cross channels:
+The user selects the update source from About; the preference survives app restarts:
 
-- QA builds check only `https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json`.
-- Release builds check only `https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json`.
-- An alert is eligible only when the matching manifest's `versionCode` is greater than the
+- QA selects `https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json`.
+- Stable selects `https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json`.
+- An alert is eligible only when the selected manifest's `versionCode` is greater than the
   installed build's `versionCode`.
 
 After the user enables update notifications from About, Android's persisted job scheduler checks
@@ -120,4 +129,5 @@ A channel manifest avoids GitHub's shared `latest` endpoint, which excludes QA p
 Already-installed 1.0.10 and earlier binaries still have their original Drive manifest URL. During the
 one-time QA migration, that existing manifest can point to the verified GitHub-hosted migration APK,
 without uploading another Drive APK. After upgrade, all checks use GitHub. Preserve historical Drive
-files. Stable publication/migration remains separate, with its own package and manifest.
+files. That history applies to legacy 1.x QA only. Starting with 2.0, QA and stable retain separate
+manifests and share the canonical application ID described above.

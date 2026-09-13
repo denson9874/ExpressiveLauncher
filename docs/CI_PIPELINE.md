@@ -7,7 +7,8 @@ exploratory device validation and diagnosis. Failed publication preserves the ex
 The [weekly release workflow](WEEKLY_RELEASES.md) adds Saturday 3:00 a.m. Eastern stable builds
 when the Monday/Wednesday/Friday QA week is green. QA runs keep their existing schedule and channel.
 Stable uses separate `expressive-release-build` and `expressive-release-publish` jobs, with a live
-weekly gate before building and again before publication.
+weekly gate before scheduled building. Successful sealed stable builds automatically publish to the
+GitHub `stable` branch and stable update feed after the publisher rechecks their evidence.
 
 ## Infrastructure
 
@@ -40,6 +41,25 @@ Finish the focused change and its local development checks, increment the patch 
 code once, update the parity ledger, and commit only source/tests/version/docs on `codex/pixel-parity`.
 A candidate commit is a source record, not a release claim. Do not commit APKs, logs, keys or AVDs.
 
+The user started the **2.0 series** with the **2.0.0 / code 18** QA candidate on September 12, 2026,
+following published QA and stable 1.0.16 / code 17. The launcher and embedded feed companion use
+the same version defaults in `build.gradle` and `expressiveFeed/build.gradle`. Continue the existing
+Monday/Wednesday/Friday schedule with 2.0.1 / code 19, 2.0.2 / code 20, and so on as new candidates
+are implemented; a no-op run does not bump either value. The major-version change never resets
+Android's monotonically increasing version code. A stable build keeps its selected QA source's
+version. GitHub publication retains the established tag formats: `qa-v2.0.0-18` for this QA candidate
+and `v2.0.0-18` only if that version later passes and publishes as stable.
+
+The CLI and Jenkins require explicit expected version parameters for every QA build. They have
+no baked-in version fallback, so subsequent 2.0.x builds cannot silently reuse an older default.
+
+QA and stable 2.x use the same signed application ID, `dev.launcher.expressive.l3`, allowing an
+in-place channel switch with launcher data retained. QA 2.x uses `updates:qa-v2/latest.json`;
+stable keeps `updates:release/latest.json`. The legacy `updates:qa/latest.json` continues to describe
+1.x QA's separate `.debug` package and must not be overwritten with a 2.x canonical-package APK.
+The first 2.0 QA build verifies its upgrade against the published stable 1.0.16 / code 17. After the
+QA 2.x feed exists, subsequent QA candidates use that channel's current published baseline.
+
 ```sh
 python3 ci/jenkins/control.py run --job build --revision FULL_COMMIT_SHA \
   --version-name VERSION --version-code CODE
@@ -47,10 +67,11 @@ python3 ci/jenkins/control.py status --job build --number BUILD_NUMBER
 ```
 
 Jenkins verifies that the revision belongs to the saved branch and prepares detached main/submodule
-worktrees at the exact recorded commits. Normal builds download the live GitHub QA manifest from
-`https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json` and its
-versioned GitHub APK. Other repositories, stable-channel assets, credential-bearing URLs and HTTP
-redirect downgrades are rejected. Bytes and SHA-256 must agree with the manifest.
+worktrees at the exact recorded commits. Normal 2.x QA builds download the live GitHub manifest from
+`https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json` and its
+versioned GitHub APK. The first QA 2.x bootstrap uses the exact authenticated stable baseline described
+above. Other repositories, unrelated channel assets, credential-bearing URLs and HTTP redirect
+downgrades are rejected. Bytes and SHA-256 must agree with the manifest.
 
 For the initial GitHub channel bootstrap only, an operator can explicitly select a retained, sealed
 QA baseline. This does not silently fall back from a missing or broken feed:
@@ -109,8 +130,9 @@ fail without replacement or deletion. An empty failed-upload starter placeholder
 from the matching candidate draft after rechecking its exact asset ID, name, zero size and source identity. Draft staging does not make an update available to users.
 
 With promotion, Jenkins publishes the prerelease, verifies a complete anonymous APK download, and
-updates `updates:qa/latest.json` using the existing Contents API blob SHA. This protects against
-concurrent feed writes. The stable manifest `updates:release/latest.json` and stable package are excluded.
+updates `updates:qa-v2/latest.json` using the existing Contents API blob SHA. This protects against
+concurrent feed writes. The stable manifest `updates:release/latest.json` and legacy
+`updates:qa/latest.json` are excluded from a 2.x QA publication.
 A published release whose manifest update failed can be retried against the same sealed bytes.
 
 The receipt is the authoritative status record. A build pass, created draft or successful asset upload
@@ -134,7 +156,8 @@ python3 ci/jenkins/control.py run --job publish --release-id qa-VERSION-CODE-bui
   --promote --bridge-legacy-qa
 ```
 
-Production migration is separate; never point the stable manifest at a QA package.
+That bridge is for legacy 1.x QA's `.debug` package only. Never point the legacy manifest at the
+canonical 2.x package. Stable and QA 2.x use their own manifests despite sharing an application ID.
 
 Validate the older installed build's actual notification, snooze, download, integrity checks and Android
 installer handoff after publication. Also verify the installed migration build reads GitHub and reports

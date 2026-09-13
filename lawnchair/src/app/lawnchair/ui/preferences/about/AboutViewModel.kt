@@ -89,7 +89,8 @@ class AboutViewModel(
     private val api: GitHubService = gitHubApiRetrofit.create()
     private val prefs: PreferenceManager = PreferenceManager.getInstance(application)
     private val prefs2: PreferenceManager2 = PreferenceManager2.getInstance(application)
-    private val expressiveUpdateConfig = installedExpressiveUpdateConfig()
+    private val updateChannelPreferences = ExpressiveUpdateChannelPreferences(application)
+    private var expressiveUpdateConfig = updateChannelPreferences.selectedConfig()
 
     private val nightlyBuildsRepository = NightlyBuildsRepository(
         applicationContext = application,
@@ -118,6 +119,7 @@ class AboutViewModel(
                 supportAndPr = branding.supportAndPr,
                 topLinks = branding.topLinks,
                 bottomLinks = branding.bottomLinks,
+                selectedUpdateChannel = expressiveUpdateConfig?.channel?.wireName,
             )
         }
 
@@ -156,6 +158,21 @@ class AboutViewModel(
 
     fun downloadUpdate() {
         nightlyBuildsRepository.downloadUpdate()
+    }
+
+    internal fun selectUpdateChannel(channel: ExpressiveUpdateChannel) {
+        val config = updateChannelPreferences.select(channel) ?: return
+        if (config == expressiveUpdateConfig) return
+        expressiveUpdateConfig = config
+        uiState.update { it.copy(selectedUpdateChannel = channel.wireName, updateState = UpdateState.Checking) }
+        ExpressiveUpdateNotifications.cancel(getApplication())
+        ExpressiveUpdateScheduler.onChannelChanged(getApplication())
+        nightlyBuildsRepository.selectUpdateChannel(config)
+    }
+
+    override fun onCleared() {
+        nightlyBuildsRepository.close()
+        super.onCleared()
     }
 
     fun downloadAndInstallUpdate() {

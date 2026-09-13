@@ -20,7 +20,7 @@ import time
 import uuid
 import xml.etree.ElementTree as ET
 
-PACKAGE = "dev.launcher.expressive.l3.debug"
+PACKAGE = "dev.launcher.expressive.l3"
 RELEASE_PACKAGE = "dev.launcher.expressive.l3"
 ROLE = "android.app.role.HOME"
 REQUIRED_FLOWS = {
@@ -107,6 +107,7 @@ class Smoke:
         self.avd_name = "Expressive_CI_" + time.strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:8]
         self.result = {
             "schemaVersion": 1, "passed": False,
+            "channel": self.channel, "packageName": self.package,
             "sourceRevision": args.source_revision,
             "apk": str(args.apk.resolve()), "apkSha256": digest(args.apk),
             "sha256": digest(args.apk),

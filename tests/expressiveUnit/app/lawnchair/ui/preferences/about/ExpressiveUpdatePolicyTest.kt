@@ -6,7 +6,7 @@ import org.junit.Test
 class ExpressiveUpdatePolicyTest {
 
     @Test
-    fun qaBuild_usesOnlyQaManifest() {
+    fun qaBuild_defaultsToQaManifest() {
         assertThat(expressiveUpdateConfig("qa", QA_URL, RELEASE_URL)).isEqualTo(
             ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL),
         )
@@ -14,10 +14,85 @@ class ExpressiveUpdatePolicyTest {
     }
 
     @Test
-    fun releaseBuild_usesOnlyReleaseManifest() {
+    fun releaseBuild_defaultsToReleaseManifest() {
         assertThat(expressiveUpdateConfig("release", QA_URL, RELEASE_URL)).isEqualTo(
             ExpressiveUpdateConfig(ExpressiveUpdateChannel.RELEASE, RELEASE_URL),
         )
+    }
+
+    @Test
+    fun savedChannel_selectsItsFeedForEitherBuild() {
+        assertThat(expressiveUpdateConfig("qa", QA_URL, RELEASE_URL, "release"))
+            .isEqualTo(ExpressiveUpdateConfig(ExpressiveUpdateChannel.RELEASE, RELEASE_URL))
+        assertThat(expressiveUpdateConfig("release", QA_URL, RELEASE_URL, "qa"))
+            .isEqualTo(ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL))
+        assertThat(expressiveUpdateConfig("qa", QA_URL, RELEASE_URL, "invalid"))
+            .isEqualTo(ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL))
+        assertThat(expressiveUpdateConfig("debug", QA_URL, RELEASE_URL, "release")).isNull()
+    }
+
+    @Test
+    fun stableBehindInstalledQa_waitsWithoutOfferingDowngrade() {
+        val stable = manifest(17).copy(channel = "release")
+        assertThat(
+            evaluateExpressiveUpdate(
+                stable,
+                ExpressiveUpdateConfig(ExpressiveUpdateChannel.RELEASE, RELEASE_URL),
+                18,
+                RELEASE_PACKAGE,
+                installedChannel = ExpressiveUpdateChannel.QA,
+            ),
+        ).isEqualTo(ExpressiveUpdateDecision.WaitingForChannel(stable))
+    }
+
+    @Test
+    fun sameVersionOnOtherChannel_canReplaceInstalledBuildInPlace() {
+        val stable = manifest(18).copy(channel = "release")
+        assertThat(
+            evaluateExpressiveUpdate(
+                stable,
+                ExpressiveUpdateConfig(ExpressiveUpdateChannel.RELEASE, RELEASE_URL),
+                18,
+                RELEASE_PACKAGE,
+                installedChannel = ExpressiveUpdateChannel.QA,
+            ),
+        ).isEqualTo(ExpressiveUpdateDecision.Available(stable))
+        val qa = manifest(18)
+        assertThat(
+            evaluateExpressiveUpdate(
+                qa,
+                ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL),
+                18,
+                QA_PACKAGE,
+                installedChannel = ExpressiveUpdateChannel.RELEASE,
+            ),
+        ).isEqualTo(ExpressiveUpdateDecision.Available(qa))
+    }
+
+    @Test
+    fun selectingOlderQaFromStable_alsoWaitsRatherThanDowngrading() {
+        val qa = manifest(17)
+        assertThat(
+            evaluateExpressiveUpdate(
+                qa,
+                ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL),
+                18,
+                QA_PACKAGE,
+                installedChannel = ExpressiveUpdateChannel.RELEASE,
+            ),
+        ).isEqualTo(ExpressiveUpdateDecision.WaitingForChannel(qa))
+    }
+
+    @Test
+    fun evenMatchingLegacyQaPackage_cannotBecomeUnifiedChannelUpdate() {
+        assertThat(
+            evaluateExpressiveUpdate(
+                manifest(18).copy(packageName = "dev.launcher.expressive.l3.debug"),
+                ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL),
+                17,
+                "dev.launcher.expressive.l3.debug",
+            ),
+        ).isEqualTo(ExpressiveUpdateDecision.Rejected(ExpressiveUpdateRejection.WRONG_PACKAGE))
     }
 
     @Test
@@ -52,7 +127,7 @@ class ExpressiveUpdatePolicyTest {
             evaluateExpressiveUpdate(manifest(7).copy(channel = "release"), config, 6, QA_PACKAGE),
         ).isEqualTo(ExpressiveUpdateDecision.Rejected(ExpressiveUpdateRejection.WRONG_CHANNEL))
         assertThat(
-            evaluateExpressiveUpdate(manifest(7).copy(packageName = RELEASE_PACKAGE), config, 6, QA_PACKAGE),
+            evaluateExpressiveUpdate(manifest(7).copy(packageName = "dev.launcher.expressive.l3.debug"), config, 6, QA_PACKAGE),
         ).isEqualTo(ExpressiveUpdateDecision.Rejected(ExpressiveUpdateRejection.WRONG_PACKAGE))
     }
 
@@ -100,9 +175,9 @@ class ExpressiveUpdatePolicyTest {
     )
 
     private companion object {
-        const val QA_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json"
+        const val QA_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json"
         const val RELEASE_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json"
-        const val QA_PACKAGE = "dev.launcher.expressive.l3.debug"
+        const val QA_PACKAGE = "dev.launcher.expressive.l3"
         const val RELEASE_PACKAGE = "dev.launcher.expressive.l3"
     }
 }

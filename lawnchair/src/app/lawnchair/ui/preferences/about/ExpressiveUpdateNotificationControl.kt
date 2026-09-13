@@ -1,6 +1,7 @@
 package app.lawnchair.ui.preferences.about
 
 import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.android.launcher3.R
 
 @Composable
@@ -29,6 +34,18 @@ internal fun ExpressiveUpdateNotificationControl(
     val context = LocalContext.current
     var notificationsEnabled by remember {
         mutableStateOf(ExpressiveUpdateNotifications.canNotify(context))
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, config) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsEnabled = ExpressiveUpdateNotifications.canNotify(context)
+                ExpressiveUpdateScheduler.ensureScheduled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        notificationsEnabled = ExpressiveUpdateNotifications.canNotify(context)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -62,7 +79,11 @@ internal fun ExpressiveUpdateNotificationControl(
         } else {
             Button(
                 onClick = {
-                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                        ExpressiveUpdateNotifications.openSettings(context)
+                    } else {
+                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                 },
                 shapes = ButtonDefaults.shapes(),
             ) {

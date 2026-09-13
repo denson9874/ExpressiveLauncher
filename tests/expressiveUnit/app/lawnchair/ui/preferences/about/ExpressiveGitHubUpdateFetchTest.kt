@@ -154,10 +154,10 @@ class ExpressiveGitHubUpdateFetchTest {
     """.trimIndent()
 
     private companion object {
-        const val QA_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json"
+        const val QA_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json"
         const val RELEASE_URL = "https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json"
         const val APK_URL = "https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-1.0.11-12/ExpressiveLauncher-qa.apk"
-        const val QA_PACKAGE = "dev.launcher.expressive.l3.debug"
+        const val QA_PACKAGE = "dev.launcher.expressive.l3"
         const val RELEASE_PACKAGE = "dev.launcher.expressive.l3"
         val QA_CONFIG = ExpressiveUpdateConfig(ExpressiveUpdateChannel.QA, QA_URL)
     }

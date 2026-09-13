@@ -29,10 +29,10 @@ import urllib.request
 
 GITHUB_REPOSITORY = "denson9874/ExpressiveLauncher"
 UPDATES_BRANCH = "updates"
-QA_FEED_PATH = "qa/latest.json"
+QA_FEED_PATH = "qa-v2/latest.json"
 QA_FEED_URL = f"https://raw.githubusercontent.com/{GITHUB_REPOSITORY}/{UPDATES_BRANCH}/{QA_FEED_PATH}"
 API_VERSION = "2026-03-10"
-QA_PACKAGE = "dev.launcher.expressive.l3.debug"
+QA_PACKAGE = "dev.launcher.expressive.l3"
 RELEASE_PACKAGE = "dev.launcher.expressive.l3"
 QA_CERTIFICATE = "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2"
 CHANNELS = {
@@ -88,11 +88,16 @@ def channel_settings(channel):
 
 def feed_path(channel):
     channel_settings(channel)
-    return f"{channel}/latest.json"
+    return QA_FEED_PATH if channel == "qa" else "release/latest.json"
 
 
 def feed_url(channel):
     return f"https://raw.githubusercontent.com/{GITHUB_REPOSITORY}/{UPDATES_BRANCH}/{feed_path(channel)}"
+
+
+def unified_qa(metadata):
+    version = re.fullmatch(r'(\d+)\.\d+\.\d+', str(metadata.get('versionName', '')))
+    return metadata.get('channel') == 'qa' and version is not None and int(version[1]) >= 2
 
 
 def validate_identity(value, label, channel="qa"):
@@ -195,11 +200,35 @@ def load_artifacts(artifact_dir, channel="qa", authorization=None):
             require(baseline.get("certificateSha256") == QA_CERTIFICATE, "Baseline signer is incompatible")
         if "packageName" in baseline or channel == "release":
             require(baseline.get("packageName") == settings["package"], "Baseline package is incompatible")
+    if unified_qa(metadata):
+        require(metadata.get('baselineChannel') in ('qa', 'release'),
+                'Unified QA must record the tested baseline channel')
+        require(baseline.get('packageName') == QA_PACKAGE and baseline.get('certificateSha256') == QA_CERTIFICATE,
+                'Unified QA requires a verified same-package, same-signer baseline')
+        require(metadata.get('baselineFeed') == feed_url(metadata['baselineChannel']),
+                'Unified QA baseline feed does not match its recorded channel')
+        if metadata['baselineChannel'] == 'release':
+            migration = metadata.get('qaChannelMigration', {})
+            require(isinstance(migration, dict), 'Unified QA migration evidence must be an object')
+            history = migration.get('history', {})
+            require(isinstance(history, dict), 'Unified QA migration history must be an object')
+            require(migration.get('fromChannel') == 'release' and migration.get('toChannel') == 'qa' and
+                    migration.get('packageName') == QA_PACKAGE and
+                    migration.get('baselineFeed') == feed_url('release') and
+                    migration.get('baselineSha256') == baseline.get('sha256') and
+                    migration.get('baselineVersionCode') == baseline.get('versionCode') and
+                    history.get('authenticated') is True and history.get('feedHistoryCount') == 0 and
+                    history.get('publishedUnifiedQaReleaseCount') == 0 and history.get('feedPath') == QA_FEED_PATH,
+                    'First unified QA requires authenticated migration evidence')
     qa_path, report_path = directory / "qa-result.json", directory / "QA-report.md"
     qa = read_json_bytes(qa_path.read_bytes(), "qa-result.json")
     require(qa.get("passed") is True, "QA did not pass")
     require(qa.get("sha256") == metadata["sha256"], "QA result refers to a different APK")
     require(qa.get("sourceRevision") == revision, "QA result refers to a different source revision")
+    if unified_qa(metadata):
+        require(qa.get('channel') == 'qa' and qa.get('packageName') == QA_PACKAGE and
+                qa.get('baselineSha256') == baseline.get('sha256'),
+                'Unified QA device evidence must identify the canonical package and exact baseline')
     if channel == "release":
         require(qa.get("channel") == channel and qa.get("packageName") == settings["package"],
                 "Release QA must identify the stable channel and package")
@@ -354,6 +383,49 @@ class GitHub:
         feed = read_json_bytes(raw, "GitHub channel manifest")
         validate_github_feed(feed, self.channel)
         return feed, blob_sha
+
+    def require_initial_unified_qa_history(self, metadata):
+        require(self.channel == 'qa', 'Unified QA history checks require the QA channel')
+        query = urllib.parse.urlencode({'sha': UPDATES_BRANCH, 'path': self.feed_path, 'per_page': 1})
+        history = self.api(f'{self.root}/commits?{query}')
+        require(isinstance(history, list) and not history,
+                'Unified QA manifest history exists or is unavailable; restore its delivered baseline')
+        expected_tag = release_tag(metadata, 'qa')
+        for page in range(1, 101):
+            releases = self.api(f'{self.root}/releases?per_page=100&page={page}')
+            require(isinstance(releases, list), 'Unified QA release history is unavailable')
+            for release in releases:
+                require(isinstance(release, dict) and isinstance(release.get('tag_name'), str) and
+                        type(release.get('draft')) is bool and type(release.get('prerelease')) is bool,
+                        'Unified QA release history contains an incomplete identity')
+                match = re.fullmatch(r'qa-v(\d+)\.\d+\.\d+-\d+', release['tag_name'])
+                if not release['draft'] and match and int(match[1]) >= 2:
+                    require(release['tag_name'] == expected_tag,
+                            'A different unified QA release already exists; restore its feed')
+                    self.validate_release(release, metadata)
+            if len(releases) < 100:
+                return
+        raise PublishError('Unified QA release history exceeded the bounded complete scan')
+
+    def validate_unified_qa_state(self, current, proposed, metadata):
+        if not unified_qa(metadata):
+            return
+        if current is not None:
+            if validate_transition(current, proposed, channel='qa') == 'unchanged':
+                return
+            require(metadata.get('baselineChannel') == 'qa',
+                    'The first unified QA migration cannot replace an established QA feed')
+            baseline = current
+        else:
+            require(metadata.get('baselineChannel') == 'release',
+                    'A missing unified QA feed requires a tested stable-to-QA migration')
+            self.require_initial_unified_qa_history(metadata)
+            baseline = GitHub('release').feed()[0]
+            require(baseline is not None and public_feed(channel='release') == baseline,
+                    'The stable migration baseline is missing or differs between authenticated and public feeds')
+        require(all(metadata.get('baseline', {}).get(key) == baseline.get(key)
+                    for key in ('packageName', 'versionCode', 'sha256', 'sizeBytes')),
+                'Current delivered feed differs from the unified QA candidate tested baseline')
 
     def require_initial_stable_history(self, metadata):
         """A missing file cannot reset an established stable distribution.
@@ -527,6 +599,9 @@ class GitHub:
         if self.channel == "release":
             require(isinstance(metadata, dict), "Stable feed update requires sealed baseline metadata")
             self.validate_stable_state(current, proposed, metadata)
+        elif unified_qa(proposed):
+            require(isinstance(metadata, dict), 'Unified QA feed update requires sealed baseline metadata')
+            self.validate_unified_qa_state(current, proposed, metadata)
         if current is not None and validate_transition(current, proposed, channel=self.channel) == "unchanged":
             return False
         raw = (json.dumps(proposed, indent=2) + "\n").encode("utf-8")
@@ -618,6 +693,8 @@ def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=Non
         validate_transition(current, proposed, channel=channel)
     if channel == "release":
         github.validate_stable_state(current, proposed, metadata)
+    elif unified_qa(metadata):
+        github.validate_unified_qa_state(current, proposed, metadata)
     require(public_feed(optional=current is None, channel=channel) == current,
             "Authenticated and public GitHub channel feeds disagree")
     release = github.ensure_release(metadata, target_revision)
@@ -647,6 +724,8 @@ def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=Non
         validate_transition(current, proposed, channel=channel)
     if channel == "release":
         github.validate_stable_state(current, proposed, metadata)
+    elif unified_qa(metadata):
+        github.validate_unified_qa_state(current, proposed, metadata)
     if not promote:
         return
     release = github.publish_release(release, metadata)
@@ -673,7 +752,8 @@ def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=Non
         receipt["status"] = "publishing-stable-branch"
         receipt["stableBranch"] = publish_stable_branch(github, metadata, files, authorization)
     receipt["status"] = "promoting-feed"
-    changed = github.update_feed(proposed, metadata=metadata) if channel == "release" else github.update_feed(proposed)
+    changed = (github.update_feed(proposed, metadata=metadata)
+               if channel == "release" or unified_qa(metadata) else github.update_feed(proposed))
     receipt["status"] = "feed-written-verifying"
     for attempt in range(4):
         try:

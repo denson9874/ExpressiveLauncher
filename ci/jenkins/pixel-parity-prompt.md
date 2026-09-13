@@ -24,9 +24,22 @@ build or upload steps. The source-controlled jobs are ci/Jenkinsfile.build and c
 Do not install a second scheduler, recreate signing keys, expose credentials, or bypass failing gates.
 
 After the focused change and its local development checks are complete, increment versionCode and
-the patch version once, update the parity ledger, and commit only this run's source/tests/version/
+the patch version once. The user started the 2.0 series with the 2.0.0/code18 QA candidate on
+September 12, 2026. Continue from the recorded source version in both build.gradle and
+expressiveFeed/build.gradle: the next new candidate after 2.0.0/code18 is 2.0.1/code19, then
+2.0.2/code20. Keep the Monday/Wednesday/Friday 3:00 a.m. America/New_York schedule. Never reset
+Android versionCode for a new major version or bump again when retrying the same candidate.
+Update the parity ledger, and commit only this run's source/tests/version/
 documentation on codex/pixel-parity with a message beginning `Pixel parity:`. This is a candidate
 commit, not a successful release claim. Never commit APKs, logs, screenshots, AVDs, keys or credentials.
+
+From 2.0.0 onward, signed QA and stable both use dev.launcher.expressive.l3 so the app can switch
+update channels without losing its data. QA 2.x publication uses updates:qa-v2/latest.json;
+stable keeps updates:release/latest.json. Preserve updates:qa/latest.json for the legacy 1.x QA
+package dev.launcher.expressive.l3.debug. Never point a legacy QA manifest at the canonical package.
+The first QA 2.0 candidate must upgrade the published stable 1.0.16/code17 package in place; later
+QA candidates use the verified current QA 2.x baseline. Verify channel selection, restart persistence,
+and same-signer package/version checks. A lower-version stable feed must never cause a downgrade.
 
 Submit the exact full commit SHA and expected version to:
 `python3 ci/jenkins/control.py run --job build --revision FULL_SHA --version-name VERSION --version-code CODE`.
@@ -41,8 +54,9 @@ The user authorized automatic publication of future passing QA builds to
 https://github.com/denson9874/ExpressiveLauncher so the app can notify users of available updates.
 Publish only after all Jenkins build, signing, upgrade and seal gates pass. The versioned GitHub
 QA prerelease and its assets must pass authenticated and anonymous byte/hash verification before
-advancing updates:qa/latest.json. Keep stable releases, production manifests and the release package
-separate and unchanged. Never replace or delete old releases/assets, upload another APK to Drive,
+advancing updates:qa-v2/latest.json. Keep stable releases and their production manifest unchanged.
+The stable and QA 2.x packages intentionally share their identity; their publication feeds stay
+separate. Never replace or delete old releases/assets, upload another APK to Drive,
 or publish a developer Debug APK. The GitHub CLI uses the worker's existing keyring login; do not
 embed credentials in source, APKs or receipts. Publication must reach terminal SUCCESS with a
 provider=github, status=released, feedVerified=true receipt for the exact source/version/bytes.

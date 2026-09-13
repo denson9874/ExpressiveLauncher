@@ -14,8 +14,9 @@ import urllib.error
 import urllib.request
 
 REPOSITORY = 'denson9874/ExpressiveLauncher'
-FEED = f'https://raw.githubusercontent.com/{REPOSITORY}/updates/qa/latest.json'
-QA_PACKAGE = 'dev.launcher.expressive.l3.debug'
+FEED = f'https://raw.githubusercontent.com/{REPOSITORY}/updates/qa-v2/latest.json'
+QA_PACKAGE = 'dev.launcher.expressive.l3'
+LEGACY_QA_PACKAGE = QA_PACKAGE + '.debug'
 RELEASE_PACKAGE = 'dev.launcher.expressive.l3'
 RELEASE_FEED = f'https://raw.githubusercontent.com/{REPOSITORY}/updates/release/latest.json'
 EXPECTED_CERTIFICATE_SHA256 = 'c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2'
@@ -60,7 +61,7 @@ def download(url, destination, channel='qa'):
             output.write(chunk)
 
 
-def retained_baseline(ci_home, release_id, output=None):
+def retained_baseline(ci_home, release_id, output=None, allow_legacy_provenance=False):
     """Verify a retained QA seal; copy it only when requested as a QA baseline."""
     if not re.fullmatch(r'qa-\d+\.\d+\.\d+-\d+-build-\d+', release_id):
         raise ValueError('Invalid baseline release ID')
@@ -73,7 +74,10 @@ def retained_baseline(ci_home, release_id, output=None):
     if (metadata.get('sourceRevision') != seal.get('sourceRevision') or
             qa.get('sourceRevision') != seal.get('sourceRevision')):
         raise ValueError('Baseline provenance differs from its seal')
-    if (metadata.get('packageName') != QA_PACKAGE or metadata.get('channel') != 'qa' or
+    package_ok = metadata.get('packageName') == QA_PACKAGE
+    if allow_legacy_provenance and str(metadata.get('versionName', '')).startswith('1.'):
+        package_ok = package_ok or metadata.get('packageName') == LEGACY_QA_PACKAGE
+    if (not package_ok or metadata.get('channel') != 'qa' or
             metadata.get('signatureVerified') is not True or metadata.get('debuggable') is not False):
         raise ValueError('Baseline must be the signed non-debuggable QA package')
     name = metadata['fileName']
@@ -94,7 +98,7 @@ def retained_baseline(ci_home, release_id, output=None):
 
 
 def retain_qa_provenance(ci_home, release_id, output, revision, validation_only=False):
-    metadata = retained_baseline(ci_home, release_id)
+    metadata = retained_baseline(ci_home, release_id, allow_legacy_provenance=True)
     if metadata.get('certificateSha256') != EXPECTED_CERTIFICATE_SHA256:
         raise ValueError('Selected QA release does not have the durable Expressive certificate')
     if metadata.get('sourceRevision') != revision and not validation_only:
@@ -163,6 +167,36 @@ def verify_first_stable_history():
             'releasesInspected': count}
 
 
+def verify_first_unified_qa_history():
+    """Prove that an absent v2 QA feed is new, not a deleted delivered baseline."""
+    branch = authenticated_github_json(f'/repos/{REPOSITORY}/git/ref/heads/updates')
+    if not isinstance(branch, dict) or not re.fullmatch(r'[0-9a-f]{40}', str(branch.get('object', {}).get('sha', ''))):
+        raise ValueError('Cannot establish the authenticated updates branch')
+    commits = authenticated_github_json(
+        f'/repos/{REPOSITORY}/commits?sha=updates&path=qa-v2/latest.json&per_page=1')
+    if not isinstance(commits, list) or commits:
+        raise ValueError('Unified QA feed history exists or is unavailable; restore the delivered baseline')
+    pages = authenticated_github_json(f'/repos/{REPOSITORY}/releases?per_page=100', paginate=True)
+    if not isinstance(pages, list) or not pages or any(not isinstance(page, list) for page in pages):
+        raise ValueError('Unified QA release history is unavailable')
+    count = 0
+    for page in pages:
+        for release in page:
+            if (not isinstance(release, dict) or type(release.get('draft')) is not bool or
+                    type(release.get('prerelease')) is not bool or
+                    not isinstance(release.get('tag_name'), str) or
+                    (not release['draft'] and not release.get('published_at'))):
+                raise ValueError('Unified QA release history contains an incomplete identity')
+            tag = re.fullmatch(r'qa-v(\d+)\.\d+\.\d+-\d+', release['tag_name'])
+            if not release['draft'] and tag and int(tag[1]) >= 2:
+                raise ValueError('A published unified QA release exists; restore its delivered baseline')
+            count += 1
+    return {'schemaVersion': 1, 'checkedAt': datetime.now(timezone.utc).isoformat(),
+            'repository': REPOSITORY, 'feedPath': 'qa-v2/latest.json', 'branch': 'updates',
+            'authenticated': True, 'feedHistoryCount': 0, 'publishedUnifiedQaReleaseCount': 0,
+            'releasesInspected': count}
+
+
 def delivered_baseline(output, channel='qa', bootstrap_stable=False):
     if bootstrap_stable and channel != 'release':
         raise ValueError('Stable bootstrap cannot be used for QA')
@@ -170,6 +204,16 @@ def delivered_baseline(output, channel='qa', bootstrap_stable=False):
     try:
         download(url, output / 'baseline-feed.json', channel=channel)
     except urllib.error.HTTPError as error:
+        if channel == 'qa' and error.code == 404 and error.url == url:
+            error.close()
+            history = verify_first_unified_qa_history()
+            feed, baseline_url = delivered_baseline(output, 'release')
+            migration = {'schemaVersion': 1, 'fromChannel': 'release', 'toChannel': 'qa',
+                         'packageName': QA_PACKAGE, 'baselineFeed': baseline_url,
+                         'baselineVersionCode': feed['versionCode'], 'baselineSha256': feed['sha256'],
+                         'history': history}
+            (output / 'qa-channel-migration.json').write_text(json.dumps(migration, indent=2) + '\n')
+            return feed, baseline_url
         if channel == 'release' and bootstrap_stable and error.code == 404 and error.url == url:
             error.close()
             history = verify_first_stable_history()
@@ -234,6 +278,11 @@ def main(argv=None):
         if len(raw) != int(feed['sizeBytes']):
             raise SystemExit('Downloaded baseline size disagrees with the live feed')
     source_metadata = {'sourceRevision': revision, 'submoduleRevision': module_sha, 'baselineFeed': baseline_source}
+    if args.channel == 'qa':
+        source_metadata.update(channel='qa', baselineChannel=feed['channel'])
+        migration = output / 'qa-channel-migration.json'
+        if migration.exists():
+            source_metadata['qaChannelMigration'] = json.loads(migration.read_text())
     if args.channel == 'release':
         source_metadata.update(channel='release', baselineMode='first-stable-install' if feed is None else 'quiesced-upgrade',
                                stableBootstrap=feed is None, validationOnly=args.validation_only, qaProvenance=provenance)

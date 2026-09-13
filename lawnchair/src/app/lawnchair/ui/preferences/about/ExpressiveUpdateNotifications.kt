@@ -10,7 +10,9 @@ import android.app.job.JobScheduler
 import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.provider.Settings
 import androidx.annotation.StringRes
 import app.lawnchair.ui.preferences.PreferenceActivity
 import app.lawnchair.ui.preferences.navigation.About
@@ -18,6 +20,7 @@ import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -49,8 +52,11 @@ internal fun shouldPostExpressiveUpdateNotification(
     availableVersionCode: Long,
     snapshot: ExpressiveUpdateNotificationSnapshot,
     nowMillis: Long,
+    allowSameVersion: Boolean = false,
 ): Boolean {
-    if (availableVersionCode <= currentVersionCode) return false
+    if (availableVersionCode < currentVersionCode ||
+        (availableVersionCode == currentVersionCode && !allowSameVersion)
+    ) return false
     if (
         snapshot.snoozedVersionCode == availableVersionCode &&
         nowMillis < snapshot.snoozeUntilMillis
@@ -110,17 +116,19 @@ internal object ExpressiveUpdateNotifications {
     private const val CHANNEL_ID = "expressive_launcher_updates"
     private const val NOTIFICATION_ID = 0x455850
 
-    fun canNotify(context: Context): Boolean = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
-        PackageManager.PERMISSION_GRANTED &&
-        context.getSystemService(android.app.NotificationManager::class.java)
-            .areNotificationsEnabled()
+    fun canNotify(context: Context): Boolean {
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        return context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED &&
+            manager.areNotificationsEnabled() &&
+            manager.getNotificationChannel(CHANNEL_ID)?.importance != android.app.NotificationManager.IMPORTANCE_NONE
+    }
 
     fun post(
         context: Context,
         config: ExpressiveUpdateConfig,
         manifest: ExpressiveUpdateManifest,
-    ) {
-        if (!canNotify(context)) return
+    ): Boolean {
+        if (!canNotify(context)) return false
         val manager = context.getSystemService(android.app.NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(
@@ -161,15 +169,30 @@ internal object ExpressiveUpdateNotifications {
             .setCategory(Notification.CATEGORY_STATUS)
             .build()
         manager.notify(NOTIFICATION_ID, notification)
+        return true
     }
 
     fun cancel(context: Context) {
         context.getSystemService(android.app.NotificationManager::class.java)
             .cancel(NOTIFICATION_ID)
     }
+
+    fun openSettings(context: Context) {
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        val intent = if (manager.getNotificationChannel(CHANNEL_ID) != null) {
+            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
+        } else {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        }
+        context.startActivity(
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
 }
 
-private val ExpressiveUpdateChannel.displayNameResId: Int
+internal val ExpressiveUpdateChannel.displayNameResId: Int
     get() = when (this) {
         ExpressiveUpdateChannel.QA -> R.string.expressive_update_channel_qa
         ExpressiveUpdateChannel.RELEASE -> R.string.expressive_update_channel_release
@@ -183,7 +206,7 @@ internal object ExpressiveUpdateScheduler {
     private val FLEX_MILLIS = TimeUnit.HOURS.toMillis(1)
 
     fun ensureScheduled(context: Context) {
-        installedExpressiveUpdateConfig() ?: return
+        selectedExpressiveUpdateConfig(context) ?: return
         val scheduler = context.getSystemService(JobScheduler::class.java)
         if (!ExpressiveUpdateNotifications.canNotify(context)) {
             scheduler.cancel(PERIODIC_JOB_ID)
@@ -210,7 +233,7 @@ internal object ExpressiveUpdateScheduler {
     }
 
     fun scheduleAfterSnooze(context: Context, delayMillis: Long) {
-        if (installedExpressiveUpdateConfig() == null) return
+        if (selectedExpressiveUpdateConfig(context) == null || !ExpressiveUpdateNotifications.canNotify(context)) return
         val scheduler = context.getSystemService(JobScheduler::class.java)
         scheduler.schedule(
             JobInfo.Builder(
@@ -223,6 +246,12 @@ internal object ExpressiveUpdateScheduler {
                 .build(),
         )
     }
+
+    fun onChannelChanged(context: Context) {
+        val scheduler = context.getSystemService(JobScheduler::class.java)
+        listOf(PERIODIC_JOB_ID, IMMEDIATE_JOB_ID, SNOOZE_JOB_ID).forEach(scheduler::cancel)
+        ensureScheduled(context)
+    }
 }
 
 class ExpressiveUpdateJobService : JobService() {
@@ -230,7 +259,10 @@ class ExpressiveUpdateJobService : JobService() {
     private var runningJob: Job? = null
 
     override fun onStartJob(params: JobParameters): Boolean {
-        val config = installedExpressiveUpdateConfig() ?: return false
+        val selection = ExpressiveUpdateChannelPreferences(this)
+        val config = selection.selectedConfig() ?: return false
+        val selectionRevision = selection.selectionRevision()
+        val installedChannel = installedExpressiveUpdateConfig()?.channel ?: return false
         if (!ExpressiveUpdateNotifications.canNotify(this)) return false
         runningJob = scope.launch {
             var shouldRetry = false
@@ -241,6 +273,7 @@ class ExpressiveUpdateJobService : JobService() {
                         config = config,
                         currentVersionCode = BuildConfig.VERSION_CODE.toLong(),
                         currentPackageName = BuildConfig.APPLICATION_ID,
+                        installedChannel = installedChannel,
                     )
                 ) {
                     is ExpressiveUpdateDecision.Available -> {
@@ -252,21 +285,30 @@ class ExpressiveUpdateJobService : JobService() {
                                 availableVersionCode = manifest.versionCode,
                                 snapshot = store.snapshot(config.channel),
                                 nowMillis = System.currentTimeMillis(),
+                                allowSameVersion = config.channel != installedChannel,
                             )
                         ) {
-                            ExpressiveUpdateNotifications.post(
-                                context = this@ExpressiveUpdateJobService,
-                                config = config,
-                                manifest = manifest,
-                            )
-                            store.recordNotified(config.channel, manifest.versionCode)
+                            selection.withCurrentSelection(config, selectionRevision) {
+                                if (ExpressiveUpdateNotifications.post(
+                                        context = this@ExpressiveUpdateJobService,
+                                        config = config,
+                                        manifest = manifest,
+                                    )
+                                ) {
+                                    store.recordNotified(config.channel, manifest.versionCode)
+                                }
+                            }
                         }
                     }
 
                     ExpressiveUpdateDecision.UpToDate -> Unit
 
+                    is ExpressiveUpdateDecision.WaitingForChannel -> Unit
+
                     is ExpressiveUpdateDecision.Rejected -> Unit
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: Exception) {
                 shouldRetry = true
             } finally {

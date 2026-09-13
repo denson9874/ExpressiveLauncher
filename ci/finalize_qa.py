@@ -19,6 +19,29 @@ def validate_provenance(metadata, source, qa):
         raise ValueError('Device QA belongs to a different package')
     if metadata.get('sourceRevision', source['sourceRevision']) != source['sourceRevision']:
         raise ValueError('Verified APK belongs to a different source revision')
+    if channel == 'qa' and 'baselineChannel' in source:
+        baseline = metadata.get('baseline', {})
+        if (source['baselineChannel'] not in ('qa', 'release') or
+                metadata['packageName'] != 'dev.launcher.expressive.l3' or
+                baseline.get('packageName') != metadata['packageName'] or
+                qa.get('baselineSha256') != baseline.get('sha256')):
+            raise ValueError('Unified QA must test the exact same-package delivered baseline')
+        metadata.update(baselineChannel=source['baselineChannel'], baselineFeed=source['baselineFeed'])
+        migration = source.get('qaChannelMigration')
+        if source['baselineChannel'] == 'release':
+            history = migration.get('history', {}) if isinstance(migration, dict) else {}
+            if (not isinstance(history, dict) or not isinstance(migration, dict) or migration.get('fromChannel') != 'release' or
+                    migration.get('toChannel') != 'qa' or migration.get('packageName') != metadata['packageName'] or
+                    migration.get('baselineFeed') != source['baselineFeed'] or
+                    migration.get('baselineVersionCode') != baseline.get('versionCode') or
+                    migration.get('baselineSha256') != baseline.get('sha256') or
+                    history.get('authenticated') is not True or history.get('feedHistoryCount') != 0 or
+                    history.get('publishedUnifiedQaReleaseCount') != 0 or
+                    history.get('feedPath') != 'qa-v2/latest.json'):
+                raise ValueError('First unified QA requires authenticated migration provenance')
+            metadata['qaChannelMigration'] = migration
+        elif migration is not None:
+            raise ValueError('A normal QA upgrade cannot claim channel migration')
     if channel == 'release':
         bootstrap = metadata.get('stableBootstrap')
         mode = 'first-stable-install' if bootstrap else 'quiesced-upgrade'
@@ -86,6 +109,10 @@ def main(argv=None):
     device_scope = ('The first stable installation was tested on an isolated emulator, including a same-version '
                     'reinstall and preference retention. This is not an upgrade from a previously shipped stable version.'
                     if bootstrap else 'The automated upgrade uses the documented quiesced ADB install sequence on an isolated emulator.')
+    if metadata.get('qaChannelMigration'):
+        device_scope += (' This first unified QA release upgrades the exact publicly delivered stable APK '
+                         'in place under the same package and signing certificate, with preference retention. '
+                         'The legacy 1.x QA app and feed remain separate historical distributions.')
     validation_notice = ('\nThis is a private pipeline-validation artifact and is not eligible for publication.\n'
                          if metadata.get('validationOnly') else '')
     if metadata.get('weeklyReleaseGate', {}).get('status') == 'manual-selection':
