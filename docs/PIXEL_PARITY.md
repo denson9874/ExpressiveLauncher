@@ -75,6 +75,27 @@ under `artifacts/unified-channel-2.0.0-20260912` as they complete. This entry re
 behavior, not an unverified publication. Subsequent new scheduled candidates advance to
 2.0.1/code19 and onward; retries keep the same version. The existing QA schedule is preserved.
 
+## Respect themed icons on Home only — 2026-09-13 (candidate 2.0.1)
+
+On the user's Pixel 11 Pro XL running `CP41.260814.003.C2`, QA 2.0.0/code18 displayed
+Lawnicons in the app drawer and its prediction row even with **Themed icons: Home screen**
+selected and **Force monochrome** disabled. Lawnicons was selected as the normal icon pack.
+The provider had flattened themed artwork into the shared base bitmap, so the drawer's
+existing surface setting could no longer restore the original full-color icon.
+
+The provider now retains original artwork and supplies monochrome artwork separately to
+the icon factory. Home and drawer choose the corresponding cached rendering according to
+their existing settings. The known monochrome-only Lawnicons pack supplies themed artwork;
+native full-color icons remain available for surfaces with theming disabled. Ordinary colorful
+packs retain their original artwork. The icon-state format advances to invalidate previously
+flattened cached icons during an in-place upgrade, and source-map caching refreshes when
+theming is re-enabled or the source changes.
+
+Both launcher and embedded feed defaults advance to 2.0.1/code19. Regression results,
+signed Jenkins validation, physical-device screenshots, and delivery receipts are retained in
+`artifacts/lawnicons-home-only-20260913` as they complete. This entry records the candidate
+implementation; final device and publication results require that retained evidence.
+
 ## Reference environment
 
 - Reference date: 2026-09-11

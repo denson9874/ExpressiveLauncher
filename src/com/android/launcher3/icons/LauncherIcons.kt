@@ -19,7 +19,9 @@ import android.content.Context
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
 import android.os.UserHandle
+import app.lawnchair.icons.createBitmapWithThemedLayer
 import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.dagger.ApplicationContext
@@ -51,6 +53,11 @@ internal constructor(
     init {
         mThemeController = themeManager.themeController
     }
+
+    override fun createBadgedIconBitmap(icon: Drawable, options: IconOptions?): BitmapInfo =
+        createBitmapWithThemedLayer(icon, options, options?.mSourceHint) { base, baseOptions ->
+            super.createBadgedIconBitmap(base, baseOptions)
+        }
 
     /** Recycles a LauncherIcons that may be in-use. */
     fun recycle() {
