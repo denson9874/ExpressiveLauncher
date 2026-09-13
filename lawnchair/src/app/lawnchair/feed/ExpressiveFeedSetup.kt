@@ -1,3 +1,12 @@
+/*
+ * Copyright 2026 Daryl Denson and Expressive Launcher contributors.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Developed for Expressive Launcher.
+ * https://github.com/denson9874/ExpressiveLauncher
+ * See NOTICE and docs/SOURCE_PROVENANCE.md for project attribution.
+ */
+
 package app.lawnchair.feed
 
 import android.content.ClipData

@@ -5,6 +5,11 @@ source notices, component licenses, and prebuilt library provenance remain in th
 source snapshot. This page provides a readable index; each component keeps its
 own applicable license.
 
+Expressive's own attribution is recorded alongside its upstream credits in the
+root [NOTICE](../NOTICE). The [reuse guide](REUSE_AND_ATTRIBUTION.md) explains how
+to carry relevant notices forward. This index is not a replacement for any
+component's license or the notices in its source files.
+
 ## AOSP Launcher3 and Lawnchair
 
 The retained repository [Apache License 2.0](../LICENSE.txt) includes these notices:

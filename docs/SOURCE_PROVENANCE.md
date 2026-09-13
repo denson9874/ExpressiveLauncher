@@ -19,6 +19,33 @@ The application implementation, resources, tests, build dependencies, Gradle fil
 
 Inherited GitHub workflow and community configuration is retained under [`docs/reference/upstream-github`](reference/upstream-github/). It is reference material; it is not enabled as Expressive automation. The repository-root contribution guide now points to Expressive. Original license notices and source headers remain intact. No private signing material, developer local.properties or retained personal-device evidence is included.
 
+The later [attribution workflow](../.github/workflows/attribution.yml) is an
+Expressive-specific notice check. It does not enable the archived upstream
+workflows or build, sign, or publish application releases.
+
+## Expressive contribution index
+
+The following are selected Expressive additions in the public source snapshot.
+Their paths do not exist in the recorded Lawnchair baseline
+`eed2baf4efe4cf49540cf4ec474942dc743b83cc`; their implementations are present in the
+original public source snapshot. This is a contribution index, not a claim that
+the surrounding packages, dependencies, or launcher features originated here.
+
+| Contribution | Source |
+| --- | --- |
+| Expressive update-manifest validation and channel decisions | [ExpressiveUpdatePolicy.kt](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdatePolicy.kt) |
+| Update notification scheduling, reminders, and snooze decisions | [ExpressiveUpdateNotifications.kt](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotifications.kt) |
+| Notification permission and opt-in controls for Expressive updates | [ExpressiveUpdateNotificationControl.kt](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotificationControl.kt) |
+| Discover helper inspection and verification before requesting Android installation | [ExpressiveFeedSetup.kt](../lawnchair/src/app/lawnchair/feed/ExpressiveFeedSetup.kt) |
+
+The attribution hardening adds notices to those files without changing their
+implementations. The original [source snapshot](https://github.com/denson9874/ExpressiveLauncher/tree/source-v1.0.12-13)
+and [upstream baseline](https://github.com/LawnchairLauncher/lawnchair/tree/eed2baf4efe4cf49540cf4ec474942dc743b83cc)
+remain available for comparison. The [feature comparison](FEATURE_COMPARISON.md)
+credits the inherited functionality. [NOTICE](../NOTICE) and the
+[reuse guide](REUSE_AND_ATTRIBUTION.md) describe attribution for later distributions
+that include these notices; earlier published copies retain their existing terms.
+
 ## Expressive Bloom branding update
 
 The `main` branch now carries the approved [Expressive Bloom artwork](assets/expressive/expressive-bloom.png), coordinated repository graphics, and updated Android and store icon resources. Builds made from this source use the new branding. The application version remains **1.0.12 / version code 13** in this public source baseline.
