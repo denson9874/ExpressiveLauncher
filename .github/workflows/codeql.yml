@@ -1,0 +1,103 @@
+# Copyright 2026 Daryl Denson and Expressive Launcher contributors.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/denson9874/ExpressiveLauncher
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '35 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            os: ubuntu-latest
+            build-mode: none
+          - language: python
+            os: ubuntu-latest
+            build-mode: none
+          - language: java-kotlin
+            os: ubuntu-latest
+            build-mode: manual
+          - language: swift
+            os: macos-latest
+            build-mode: manual
+
+    steps:
+      - name: Check out source and pinned SystemUI submodule
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK 37.1
+        if: matrix.language == 'java-kotlin'
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: 'platform-tools platforms;android-37.1 build-tools;37.0.0'
+          log-accepted-android-sdk-licenses: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@311b4ee155dcdab395044f00946f664bd51ff173 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Build Expressive Java and Kotlin for analysis
+        if: matrix.language == 'java-kotlin'
+        shell: bash
+        # Debug also builds the Feed helper, without official signing credentials.
+        # Disable compilation caches and daemon reuse so CodeQL observes the build.
+        run: |
+          ./gradlew --no-daemon --no-scan --no-build-cache \
+            --no-configuration-cache --max-workers=2 \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            clean assembleLawnWithQuickstepExpressiveDebug
+
+      - name: Compile standalone Swift tools for analysis
+        if: matrix.language == 'swift'
+        shell: bash
+        # These are macOS graphics scripts, not an Xcode or SwiftPM project.
+        # Compile each entry point separately; do not execute asset generators.
+        run: |
+          codeql_swift_output="$RUNNER_TEMP/codeql-swift"
+          while IFS= read -r -d '' source; do
+            mkdir -p "$codeql_swift_output/$(dirname "$source")"
+            xcrun swiftc "$source" -o "$codeql_swift_output/${source%.swift}"
+          done < <(git ls-files -z -- '*.swift')
+
+      - name: Analyze and upload security results
+        uses: github/codeql-action/analyze@311b4ee155dcdab395044f00946f664bd51ff173 # v4
+        with:
+          category: "/language:${{ matrix.language }}"
+          wait-for-processing: true
