@@ -8,9 +8,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches:
-      - main
-      - 'codex/attribution-protection-*'
+    branches: [main]
   workflow_dispatch:
 
 permissions:
