@@ -660,6 +660,9 @@ apply from: "gradle/expressive-feed-assets.gradle"
 baselineProfile {
     saveInSrc = true
     mergeIntoMain = true
+    // The profile plugin resolves this independently of Android's source-set roots.
+    baselineProfileOutputDir = layout.projectDirectory
+            .dir("android/src/main/generated/baselineProfiles").asFile.absolutePath
     automaticGenerationDuringBuild = false
 }
 
