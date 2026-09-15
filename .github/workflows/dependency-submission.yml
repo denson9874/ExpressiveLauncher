@@ -62,6 +62,28 @@ jobs:
             assembleLawnWithQuickstepExpressiveDebug \
             :baseline-profile:assembleLawnWithQuickstepExpressiveBenchmark
 
+      - name: Verify QA and Release launcher security boundaries
+        shell: bash
+        run: |
+          ./gradlew --no-daemon --no-scan --no-configuration-cache --max-workers=2 \
+            processLawnWithQuickstepExpressiveQaManifest \
+            processLawnWithQuickstepExpressiveReleaseManifest
+          python3 -m unittest discover -s ci/tests -p test_check_security_manifests.py
+          python3 ci/check_security_manifests.py \
+            build/intermediates/merged_manifests/lawnWithQuickstepExpressiveQa/processLawnWithQuickstepExpressiveQaManifest/AndroidManifest.xml \
+            build/intermediates/merged_manifests/lawnWithQuickstepExpressiveRelease/processLawnWithQuickstepExpressiveReleaseManifest/AndroidManifest.xml
+
+      - name: Retain security validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: security-validation
+          retention-days: 7
+          path: |
+            build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest/*.xml
+            build/intermediates/merged_manifests/lawnWithQuickstepExpressiveQa/processLawnWithQuickstepExpressiveQaManifest/AndroidManifest.xml
+            build/intermediates/merged_manifests/lawnWithQuickstepExpressiveRelease/processLawnWithQuickstepExpressiveReleaseManifest/AndroidManifest.xml
+
   submit:
     name: Submit main dependency graph
     needs: generate
