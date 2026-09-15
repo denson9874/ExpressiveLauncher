@@ -53,10 +53,6 @@ class AboutScreenComposeTest {
                 composeRule.onAllNodesWithText(context.getString(R.string.support_and_pr))
                     .fetchSemanticsNodes().isEmpty(),
             )
-            assertTrue(
-                composeRule.onAllNodesWithText(context.getString(R.string.community))
-                    .fetchSemanticsNodes().isEmpty(),
-            )
             composeRule.onNodeWithTag(ABOUT_DAILY_SPARK_CARD_TAG).performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText(context.getString(R.string.about_daily_riddle_reveal_answer))
                 .performClick()
@@ -68,6 +64,17 @@ class AboutScreenComposeTest {
             composeRule.onNodeWithText("Daryl Denson").performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText(context.getString(R.string.design_and_development))
                 .assertIsDisplayed()
+            composeRule.onNodeWithText(context.getString(R.string.community))
+                .performScrollTo()
+                .assertIsDisplayed()
+            composeRule.onNodeWithText(context.getString(R.string.telegram_feedback))
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
+            composeRule.onNodeWithText(context.getString(R.string.telegram_announcements))
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
 
             // Let the About screen finish its normal entry animations before taking manual
             // control of time for the deterministic five-tap celebration assertion.

@@ -119,6 +119,22 @@ Jenkins full-suite, signed/minified upgrade, sealed artifact and publication res
 before delivery is claimed. Evidence is retained in `artifacts/pixel-parity-20260914-resumed`.
 No physical-device or spoken TalkBack validation is claimed.
 
+## Telegram feedback and announcements — 2026-09-15 (candidate 2.0.3)
+
+The user requested an Expressive community for issue reports, feedback and announcements.
+About now includes **Community → Telegram feedback** linking to
+`https://t.me/ExpressiveLauncherFeedback`, followed by **Telegram announcements** linking to
+`https://t.me/ExpressiveLauncher`. Both use the existing external-link row and Telegram icon.
+The GitHub Support destination and inherited Lawnchair community links remain in place.
+This is a user-requested support addition and does not claim a Pixel Launcher parity change.
+
+Both launcher and embedded feed defaults advance once to 2.0.3/code21. Ownership tests cover
+the exact Expressive URLs and order plus inherited Lawnchair destinations; the About UI test
+checks the Community heading and both clickable rows. This entry records the implementation.
+Focused tests, signed Jenkins validation, device navigation and publication results are retained
+in `artifacts/telegram-community-20260915` as they complete; publication is not established by
+this entry.
+
 ## Reference environment
 
 - Reference date: 2026-09-14

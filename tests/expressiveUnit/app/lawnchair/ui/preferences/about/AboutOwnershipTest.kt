@@ -46,6 +46,22 @@ class AboutOwnershipTest {
     }
 
     @Test
+    fun communityLinks_putOwnedFeedbackBeforeAnnouncements() {
+        assertThat(expressiveCommunityLinks()).containsExactly(
+            Link(
+                iconResId = R.drawable.ic_telegram,
+                labelResId = R.string.telegram_feedback,
+                url = "https://t.me/ExpressiveLauncherFeedback",
+            ),
+            Link(
+                iconResId = R.drawable.ic_telegram,
+                labelResId = R.string.telegram_announcements,
+                url = "https://t.me/ExpressiveLauncher",
+            ),
+        ).inOrder()
+    }
+
+    @Test
     fun brandingSelection_scopesDarylOwnershipToExpressiveBuilds() {
         val expressive = aboutBranding(
             isExpressiveProduct = true,
@@ -56,10 +72,15 @@ class AboutOwnershipTest {
 
         assertThat(expressive.coreTeam.map { it.name }).containsExactly("Daryl Denson")
         assertThat(expressive.supportAndPr).isEmpty()
-        assertThat(expressive.bottomLinks).isEmpty()
+        assertThat(expressive.bottomLinks).containsExactlyElementsIn(expressiveCommunityLinks()).inOrder()
         assertThat(lawnchair.coreTeam.map { it.name }).contains("Amogh Lele")
         assertThat(lawnchair.coreTeam.map { it.name }).doesNotContain("Daryl Denson")
         assertThat(lawnchair.topLinks.map { it.url })
             .contains("https://github.com/LawnchairLauncher/lawnchair")
+        assertThat(lawnchair.bottomLinks.map { it.url }).containsExactly(
+            "https://t.me/lccommunity",
+            "https://discord.com/invite/3x8qNWxgGZ",
+            "https://x.com/lawnchairapp",
+        ).inOrder()
     }
 }

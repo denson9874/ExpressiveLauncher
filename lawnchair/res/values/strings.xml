@@ -647,6 +647,8 @@
     <string name="community">Community</string>
     <string name="x_twitter" translatable="false">X</string>
     <string name="telegram">Telegram</string>
+    <string name="telegram_feedback">Telegram feedback</string>
+    <string name="telegram_announcements">Telegram announcements</string>
     <string name="news">News</string>
     <string name="discord" translatable="false">Discord</string>
 

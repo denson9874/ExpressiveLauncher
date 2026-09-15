@@ -22,6 +22,8 @@ internal object AboutDestinations {
     const val GITHUB_REPOSITORY_URL = "https://github.com/denson9874/ExpressiveLauncher"
     const val PAYPAL_PAYMENT_URL = "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2"
     const val RELEASE_BUILDS_URL = "$GITHUB_REPOSITORY_URL/releases"
+    const val TELEGRAM_FEEDBACK_URL = "https://t.me/ExpressiveLauncherFeedback"
+    const val TELEGRAM_ANNOUNCEMENTS_URL = "https://t.me/ExpressiveLauncher"
 }
 
 internal fun expressiveProductOwners(): List<TeamMember> = listOf(
@@ -56,6 +58,19 @@ internal fun expressiveProductLinks(): List<Link> = listOf(
     ),
 )
 
+internal fun expressiveCommunityLinks(): List<Link> = listOf(
+    Link(
+        iconResId = R.drawable.ic_telegram,
+        labelResId = R.string.telegram_feedback,
+        url = AboutDestinations.TELEGRAM_FEEDBACK_URL,
+    ),
+    Link(
+        iconResId = R.drawable.ic_telegram,
+        labelResId = R.string.telegram_announcements,
+        url = AboutDestinations.TELEGRAM_ANNOUNCEMENTS_URL,
+    ),
+)
+
 internal data class AboutBranding(
     val coreTeam: List<TeamMember>,
     val supportAndPr: List<TeamMember>,
@@ -71,7 +86,7 @@ internal fun aboutBranding(
         coreTeam = expressiveProductOwners(),
         supportAndPr = emptyList(),
         topLinks = expressiveProductLinks(),
-        bottomLinks = emptyList(),
+        bottomLinks = expressiveCommunityLinks(),
     )
 } else {
     AboutBranding(
