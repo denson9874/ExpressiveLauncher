@@ -2,7 +2,9 @@
 
 This review covers the 37 alerts reported against `0bb9673` and rechecks their
 source paths after dependency remediation in `e04051a`. The reported production
-paths are unchanged. Findings were traced through their direct callers and the
+code is unchanged. Source files have since moved under `android/`; the alert
+numbers and reviewed commit references below describe the original occurrences.
+Findings were traced through their direct callers and the
 Expressive Gradle source sets, including SystemUI submodule commit
 `e12acf0978875fc4adcebf46207b766106ffc92b`.
 
@@ -75,13 +77,13 @@ platform-contract verification, not a new cross-UID device penetration test.
 
 | Alert | Manifest | Why it does not enable debugging in the distributed launcher |
 | --- | --- | --- |
-| 7 | Root `AndroidManifest.xml` | Gradle main uses `AndroidManifest-common.xml`; the Expressive combined source set uses `expressive/AndroidManifest-launcher.xml`. The reported AOSP manifest is excluded. |
+| 7 | `android/AndroidManifest.xml` | Gradle main uses `android/AndroidManifest-common.xml`; the Expressive combined source set uses `android/expressive/AndroidManifest-launcher.xml`. The reported AOSP manifest is excluded. |
 | 8–9 | Pinned submodule `mechanics/compose/tests` and `mechanics/tests` | Instrumentation manifests; the mechanics module selects its root manifest for main. |
 | 10 | Pinned submodule `viewcapturelib/tests` | Assigned to `androidTest`, with a separate main manifest. |
-| 11 | `systemUI/animation/lib/tests` | Test-only instrumentation manifest; animation main selects its root manifest. |
-| 12 | `systemUI/viewcapture/tests` | Assigned to `androidTest`; this legacy project is also absent from Gradle settings, which include the pinned submodule's viewcapture library. |
-| 13 | `tests/AndroidManifest.xml` | Upstream instrumentation manifest; Expressive tests select `tests/ExpressiveAndroidTestManifest.xml`. |
-| 14–16 | `wmshell/multivalentScreenshotTests`, `multivalentTests`, and `tests/unittest` | Separate instrumentation manifests; wmshell main selects its root manifest. |
+| 11 | `android/systemUI/animation/lib/tests` | Test-only instrumentation manifest; animation main selects its root manifest. |
+| 12 | `android/systemUI/viewcapture/tests` | Assigned to `androidTest`; this legacy project is also absent from Gradle settings, which include the pinned submodule's viewcapture library. |
+| 13 | `android/tests/AndroidManifest.xml` | Upstream instrumentation manifest; Expressive tests select `android/tests/ExpressiveAndroidTestManifest.xml`. |
+| 14–16 | `android/wmshell/multivalentScreenshotTests`, `android/wmshell/multivalentTests`, and `android/wmshell/tests/unittest` | Separate instrumentation manifests; wmshell main selects its root manifest. |
 
 **Classification: alert 7 false positive; alerts 8–16 used in tests.** Preserve
 instrumentation debugging. QA explicitly sets `debuggable false`; Release is

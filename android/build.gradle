@@ -1,3 +1,4 @@
+// Expressive modification: group Android inputs under android/ while preserving root Gradle task and output paths.
 import app.cash.licensee.SpdxId
 import com.android.build.gradle.api.AndroidBasePlugin
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
@@ -88,7 +89,7 @@ allprojects {
     }
 
     ext {
-        FRAMEWORK_PREBUILTS_DIR = "$rootDir/prebuilts/libs"
+        FRAMEWORK_PREBUILTS_DIR = "$rootDir/android/prebuilts/libs"
 
         addFrameworkJar = { String name ->
             def frameworkJar = new File(FRAMEWORK_PREBUILTS_DIR, name)
@@ -298,7 +299,7 @@ android {
             'proguard.flags',
             'proguard_flags.flags',
             'proguard_plugins.flags'
-        ].collect { proj.file(it) }
+        ].collect { proj == rootProject ? proj.file("android/$it") : proj.file(it) }
     }.flatten().findAll { it.exists() }.toArray()
 
     def releaseSigning = null
@@ -333,7 +334,7 @@ android {
             minifyEnabled true
             shrinkResources true
             pseudoLocalesEnabled false
-            proguardFiles proguardFilesFromAosp + "proguard.pro"
+            proguardFiles proguardFilesFromAosp + "android/proguard.pro"
         }
 
         qa {
@@ -425,85 +426,89 @@ android {
     }
 
     sourceSets {
+        configureEach {
+            setRoot("android/src/$name")
+        }
+
         main {
-            res.srcDirs = ['res']
+            res.srcDirs = ['android/res']
 
             // Lawnchair-TODO: Don't include Compose Disabled, but there's has to be another way of making this NOT long
-            java.srcDirs = ['src', 'src_plugins', 'compose/facade/core', 'compose/facade/enabled', 'compose/features']
-            kotlin.directories.addAll('src', 'src_plugins', 'compose/facade/core', 'compose/facade/enabled', 'compose/features')
+            java.srcDirs = ['android/src', 'android/src_plugins', 'android/compose/facade/core', 'android/compose/facade/enabled', 'android/compose/features']
+            kotlin.directories.addAll('android/src', 'android/src_plugins', 'android/compose/facade/core', 'android/compose/facade/enabled', 'android/compose/features')
 
-            manifest.srcFile 'AndroidManifest-common.xml'
+            manifest.srcFile 'android/AndroidManifest-common.xml'
             proto {
-                srcDirs = ['protos/', 'quickstep/protos_overrides/']
+                srcDirs = ['android/protos/', 'android/quickstep/protos_overrides/']
             }
         }
 
         test {
-            java.srcDirs = ['tests/expressiveUnit']
-            kotlin.directories.addAll('tests/expressiveUnit')
+            java.srcDirs = ['android/tests/expressiveUnit']
+            kotlin.directories.addAll('android/tests/expressiveUnit')
         }
 
         androidTest {
-            java.srcDirs = ['tests/expressiveAndroidTest']
-            kotlin.directories.addAll('tests/expressiveAndroidTest')
-            manifest.srcFile 'tests/ExpressiveAndroidTestManifest.xml'
+            java.srcDirs = ['android/tests/expressiveAndroidTest']
+            kotlin.directories.addAll('android/tests/expressiveAndroidTest')
+            manifest.srcFile 'android/tests/ExpressiveAndroidTestManifest.xml'
         }
 
         debug {
-            java.srcDirs += ['tests/expressiveDebug']
-            kotlin.directories.addAll('tests/expressiveDebug')
-            manifest.srcFile 'tests/ExpressiveDebugManifest.xml'
+            java.srcDirs += ['android/tests/expressiveDebug']
+            kotlin.directories.addAll('android/tests/expressiveDebug')
+            manifest.srcFile 'android/tests/ExpressiveDebugManifest.xml'
         }
 
         lawn {
-            java.srcDirs = ['src_flags', 'src_shortcuts_overrides', 'lawnchair/src', 'tests/shared']
-            kotlin.directories.addAll('src_flags', 'src_shortcuts_overrides', 'lawnchair/src', 'tests/shared')
-            aidl.srcDirs = ['lawnchair/aidl']
-            res.srcDirs = ['lawnchair/res', 'platform_frameworks_libs_systemui/animationlib/res']
-            manifest.srcFile "lawnchair/AndroidManifest.xml"
+            java.srcDirs = ['android/src_flags', 'android/src_shortcuts_overrides', 'android/lawnchair/src', 'android/tests/shared']
+            kotlin.directories.addAll('android/src_flags', 'android/src_shortcuts_overrides', 'android/lawnchair/src', 'android/tests/shared')
+            aidl.srcDirs = ['android/lawnchair/aidl']
+            res.srcDirs = ['android/lawnchair/res', 'android/platform_frameworks_libs_systemui/animationlib/res']
+            manifest.srcFile "android/lawnchair/AndroidManifest.xml"
             assets {
-                srcDirs 'lawnchair/assets'
+                srcDirs 'android/lawnchair/assets'
             }
             proto {
-                srcDirs = ['lawnchair/protos/']
+                srcDirs = ['android/lawnchair/protos/']
             }
         }
 
         github {
-            manifest.srcFile "github/AndroidManifest.xml"
+            manifest.srcFile "android/github/AndroidManifest.xml"
         }
 
         nightly {
-            manifest.srcFile "nightly/AndroidManifest.xml"
-            res.srcDirs = ["nightly/res"]
+            manifest.srcFile "android/nightly/AndroidManifest.xml"
+            res.srcDirs = ["android/nightly/res"]
         }
 
         lawnWithQuickstepGithub {
-            manifest.srcFile "quickstep/AndroidManifest-launcher.xml"
+            manifest.srcFile "android/quickstep/AndroidManifest-launcher.xml"
         }
 
         lawnWithQuickstepNightly {
-            manifest.srcFile "quickstep/AndroidManifest-launcher.xml"
+            manifest.srcFile "android/quickstep/AndroidManifest-launcher.xml"
         }
 
         lawnWithQuickstepPlay {
             // The combined source set outranks the Lawnchair flavor that contributes broad media
             // permissions, allowing the Play manifest to remove them reliably.
-            manifest.srcFile "play/AndroidManifest.xml"
+            manifest.srcFile "android/play/AndroidManifest.xml"
         }
 
         lawnWithQuickstepExpressive {
-            manifest.srcFile "expressive/AndroidManifest-launcher.xml"
+            manifest.srcFile "android/expressive/AndroidManifest-launcher.xml"
             // Combined source sets outrank the Lawnchair app flavor. Product branding and
             // standard-Home dimensions therefore survive resource merging for this variant.
-            res.srcDirs = ["expressive/res"]
+            res.srcDirs = ["android/expressive/res"]
         }
 
         withQuickstep {
-            res.srcDirs = ['quickstep/res', 'quickstep/recents_ui_overrides/res']
-            java.srcDirs = ['quickstep/src', 'quickstep/dagger', 'quickstep/recents_ui_overrides/src', 'quickstep/src_protolog']
-            kotlin.directories.addAll('quickstep/src', 'quickstep/dagger', 'quickstep/recents_ui_overrides/src', 'quickstep/src_protolog')
-            manifest.srcFile "quickstep/AndroidManifest.xml"
+            res.srcDirs = ['android/quickstep/res', 'android/quickstep/recents_ui_overrides/res']
+            java.srcDirs = ['android/quickstep/src', 'android/quickstep/dagger', 'android/quickstep/recents_ui_overrides/src', 'android/quickstep/src_protolog']
+            kotlin.directories.addAll('android/quickstep/src', 'android/quickstep/dagger', 'android/quickstep/recents_ui_overrides/src', 'android/quickstep/src_protolog')
+            manifest.srcFile "android/quickstep/AndroidManifest.xml"
         }
     }
 }
@@ -655,12 +660,15 @@ apply from: "gradle/expressive-feed-assets.gradle"
 baselineProfile {
     saveInSrc = true
     mergeIntoMain = true
+    // The profile plugin resolves this independently of Android's source-set roots.
+    baselineProfileOutputDir = layout.projectDirectory
+            .dir("android/src/main/generated/baselineProfiles").asFile.absolutePath
     automaticGenerationDuringBuild = false
 }
 
 composeCompiler {
     stabilityConfigurationFiles.addAll(
-        layout.projectDirectory.file("compose_compiler_config.conf"),
+        layout.projectDirectory.file("android/compose_compiler_config.conf"),
     )
     reportsDestination = layout.buildDirectory.dir("compose_build_reports")
 }
@@ -829,7 +837,7 @@ dependencies {
 }
 
 ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.schemaLocation", "$projectDir/android/schemas")
     arg("dagger.hilt.disableModulesHaveInstallInCheck", "true")
 }
 
@@ -837,12 +845,12 @@ ksp {
 spotless {
     java {
         // LC-Note: Don't spotless AOSP code in compatlib
-        // target("compatLib/**/src/**/*.java")
+        // target("android/compatLib/**/src/**/*.java")
         googleJavaFormat().aosp()
         removeUnusedImports()
     }
     kotlin {
-        target("lawnchair/src/**/*.kt")
+        target("android/lawnchair/src/**/*.kt")
         ktlint(libs.ktlint.get().version).customRuleSets([
             libs.composeRules.get().toString()
         ]).editorConfigOverride([

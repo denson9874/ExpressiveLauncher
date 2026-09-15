@@ -13,8 +13,8 @@ Separate upstream Lawnchair product flavors keep their own resource overlays.
 
 - `docs/assets/expressive/expressive-bloom.png`: approved opaque artwork for repository branding.
 - `docs/assets/expressive/expressive-bloom-foreground.png`: transparent foreground artwork.
-- `expressive/res/drawable-xxxhdpi/ic_launcher_expressive_foreground.png`: 432px color layer.
-- `expressive/res/drawable-xxxhdpi/ic_launcher_expressive_monochrome.png`: matching white alpha silhouette.
+- `android/expressive/res/drawable-xxxhdpi/ic_launcher_expressive_foreground.png`: 432px color layer.
+- `android/expressive/res/drawable-xxxhdpi/ic_launcher_expressive_monochrome.png`: matching white alpha silhouette.
 - `fastlane/metadata/android/en-US/images/icon.png`: 512px listing artwork.
 
 Run `swift scripts/export-expressive-icon.swift` from the repository root on macOS to

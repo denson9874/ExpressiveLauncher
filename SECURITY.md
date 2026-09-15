@@ -49,7 +49,7 @@ Any disclosure date and researcher credit should be agreed in the private report
 ## System and security boundaries
 
 Expressive Launcher is an Android Home application built on Launcher3 and Lawnchair.
-This policy covers Expressive's app behavior, its bundled Feed integration, updater, and repository build and release tooling. Relevant areas include `lawnchair/`, `src/`, `quickstep/`, `expressive/`, `expressiveFeed/`, `ci/`, and `scripts/`.
+This policy covers Expressive's app behavior, its bundled Feed integration, updater, and repository build and release tooling. Relevant areas include `android/lawnchair/`, `android/src/`, `android/quickstep/`, `android/expressive/`, `android/expressiveFeed/`, `ci/`, and `scripts/`.
 
 Android provides the app sandbox, permissions, profile authentication, and package installation.
 Other installed apps, exported-component callers, imported files, content providers, widgets, integrations, and network responses may supply untrusted input.

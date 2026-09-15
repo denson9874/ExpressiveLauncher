@@ -73,7 +73,7 @@ are the authority for enforced branch and tag protections; CODEOWNERS alone does
 not enforce approval. These controls protect this repository's record and catch
 accidental omissions. They cannot control a separately hosted copy.
 
-The copy at `lawnchair/assets/expressive-NOTICE.txt` uses the existing Lawnchair
+The copy at `android/lawnchair/assets/expressive-NOTICE.txt` uses the existing Lawnchair
 asset directory so source builds can carry Expressive attribution with the app.
 This source change does not retrofit an already published APK. Release validation
 must verify the notice in each newly built distribution.

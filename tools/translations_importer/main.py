@@ -1,3 +1,4 @@
+# Expressive modification: resolve translation resources in the grouped android/ source tree.
 from apkutils import extract_strings
 from bs4 import BeautifulSoup, NavigableString
 from pathlib import Path
@@ -16,7 +17,7 @@ string_name = args.string_name
 strings = extract_strings(apk_path)
 
 p = Path(__file__)
-project_root = p.parent.parent.parent
+project_root = p.resolve().parents[2] / 'android'
 res_root = project_root / 'lawnchair' / 'res'
 
 def add_to_xml(locale, string_name, string):

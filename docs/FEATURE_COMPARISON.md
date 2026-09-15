@@ -39,44 +39,44 @@ They are not inventions exclusive to Expressive. AOSP's primary source is
 At a Glance, the drawer and search are easy to reach. Dock, folders, gestures and
 backup tools remain available under Advanced. Category icons respond to interaction
 and honor Android's animation setting. The drawer's scrollbar fades after use.
-Sources: [settings dashboard](../lawnchair/src/app/lawnchair/ui/preferences/destinations/PreferencesDashboard.kt),
-[category animation](../lawnchair/src/app/lawnchair/ui/preferences/components/controls/PreferenceCategory.kt),
-[transient scrollbar](../src/com/android/launcher3/views/RecyclerViewFastScroller.java).
+Sources: [settings dashboard](../android/lawnchair/src/app/lawnchair/ui/preferences/destinations/PreferencesDashboard.kt),
+[category animation](../android/lawnchair/src/app/lawnchair/ui/preferences/components/controls/PreferenceCategory.kt),
+[transient scrollbar](../android/src/com/android/launcher3/views/RecyclerViewFastScroller.java).
 
 **Discover setup inside Home settings.** Expressive includes a matching support APK
 and checks its identity and bytes before handing installation to Android. After
 setup, a switch controls Google's native panel beside the first Home page. The
 support component has no separate launcher icon. Sources:
-[settings integration](../lawnchair/src/app/lawnchair/ui/preferences/components/ExpressiveFeedPreferences.kt),
-[support installer](../lawnchair/src/app/lawnchair/feed/ExpressiveFeedSetup.kt),
+[settings integration](../android/lawnchair/src/app/lawnchair/ui/preferences/components/ExpressiveFeedPreferences.kt),
+[support installer](../android/lawnchair/src/app/lawnchair/feed/ExpressiveFeedSetup.kt),
 [integration details](GOOGLE_DISCOVER.md).
 
 **At a Glance refinements.** The built-in fallback leads with the date and available
 weather. Version 1.0.12 coordinates setup across open settings screens and recovers
 a valid saved weather-widget binding when an in-memory ID is stale. Sources:
-[target policy](../lawnchair/src/app/lawnchair/smartspace/provider/SmartspaceProvider.kt),
-[setup coordination](../lawnchair/src/app/lawnchair/smartspace/provider/SmartspaceSetupCoordinator.kt),
-[widget binding recovery](../lawnchair/src/app/lawnchair/HeadlessWidgetsManager.kt).
+[target policy](../android/lawnchair/src/app/lawnchair/smartspace/provider/SmartspaceProvider.kt),
+[setup coordination](../android/lawnchair/src/app/lawnchair/smartspace/provider/SmartspaceSetupCoordinator.kt),
+[widget binding recovery](../android/lawnchair/src/app/lawnchair/HeadlessWidgetsManager.kt).
 
 **Search access and clarity.** Expressive retains Lawnchair's search providers and
 offers a user-selected folder through Android's folder picker. Contact actions
 have distinct message/call accessibility descriptions. Sources:
-[file access settings](../lawnchair/src/app/lawnchair/ui/preferences/components/search/FileSearchProvider.kt),
-[contact result actions](../lawnchair/src/app/lawnchair/allapps/views/SearchResultRightLeftIcon.kt).
+[file access settings](../android/lawnchair/src/app/lawnchair/ui/preferences/components/search/FileSearchProvider.kt),
+[contact result actions](../android/lawnchair/src/app/lawnchair/allapps/views/SearchResultRightLeftIcon.kt).
 
 **Updates with a clear channel and verification path.** QA installations check the
 QA manifest; release installations use a separate release manifest. With notification
 permission, periodic checks notify users about newer matching builds and support
 reminders. Downloads are checked for size, SHA-256, package, version and signing
 lineage before Android's installer is offered. Sources:
-[update policy](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdatePolicy.kt),
-[notification and reminder policy](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotifications.kt),
-[download verification](../lawnchair/src/app/lawnchair/ui/preferences/about/NightlyBuildsRepository.kt).
+[update policy](../android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdatePolicy.kt),
+[notification and reminder policy](../android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotifications.kt),
+[download verification](../android/lawnchair/src/app/lawnchair/ui/preferences/about/NightlyBuildsRepository.kt).
 
 ## Dependencies and scope
 
 - **Android 17 / API 37 is required.** This is the minimum SDK in
-  [the build configuration](../build.gradle), not just a suggested test version.
+  [the build configuration](../android/build.gradle), not just a suggested test version.
   Android 17 device support does not mean the full AOSP Android 17 core port is
   finished; [the port notes](ANDROID17_PORT.md) describe that separate work.
 - **Discover comes from Google.** It needs the installed and enabled Google app,
@@ -95,7 +95,7 @@ lineage before Android's installer is offered. Sources:
   action. Separate stable support does not imply a stable build is already
   published; check [available releases](https://github.com/denson9874/ExpressiveLauncher/releases).
 - **No root is required for the Home app.** Expressive does not replace SystemUI's
-  Recents or system navigation. The [product manifest](../expressive/AndroidManifest-launcher.xml)
+  Recents or system navigation. The [product manifest](../android/expressive/AndroidManifest-launcher.xml)
   implements that boundary. Performance superiority, complete Pixel feature
   parity and compatibility with every Android 17 device are not claimed.
 

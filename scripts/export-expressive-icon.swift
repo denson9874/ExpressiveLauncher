@@ -55,7 +55,7 @@ foreground.interpolationQuality = .high
 // Bitmap rows run from the top; CGContext drawing coordinates run from the bottom.
 foreground.draw(source, in: CGRect(x: 216 - centerX * scale, y: 216 - (Double(source.height) - centerY) * scale,
                                   width: Double(source.width) * scale, height: Double(source.height) * scale))
-save(foreground.makeImage()!, "expressive/res/drawable-xxxhdpi/ic_launcher_expressive_foreground.png")
+save(foreground.makeImage()!, "android/expressive/res/drawable-xxxhdpi/ic_launcher_expressive_foreground.png")
 
 let monochrome = context(canvas)
 let colorPixels = foreground.data!.assumingMemoryBound(to: UInt8.self)
@@ -65,7 +65,7 @@ for index in stride(from: 0, to: canvas * canvas * 4, by: 4) {
     monoPixels[index] = alpha; monoPixels[index + 1] = alpha
     monoPixels[index + 2] = alpha; monoPixels[index + 3] = alpha
 }
-save(monochrome.makeImage()!, "expressive/res/drawable-xxxhdpi/ic_launcher_expressive_monochrome.png")
+save(monochrome.makeImage()!, "android/expressive/res/drawable-xxxhdpi/ic_launcher_expressive_monochrome.png")
 
 let artwork = load("docs/assets/expressive/expressive-bloom.png")
 let store = context(512)

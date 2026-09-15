@@ -24,22 +24,22 @@ NOTICE_MARKERS = (
     "The Android Open Source Project",
     "Lawnchair",
 )
-PACKAGED_NOTICE = "lawnchair/assets/expressive-NOTICE.txt"
+PACKAGED_NOTICE = "android/lawnchair/assets/expressive-NOTICE.txt"
 
 # Baseline license bytes from the public source checkout. An intentional license
 # update needs a review of the applicable rights before changing these digests.
 LICENSE_SHA256 = {
     "LICENSE.txt": "4bb3ad323fe4c27f06a47b39c0ae6ad35315f15c40e46c81a5211f7f519286ab",
-    "lawnchair/src/app/lawnchair/search/algorithms/data/calculator/LICENSE":
+    "android/lawnchair/src/app/lawnchair/search/algorithms/data/calculator/LICENSE":
         "6f1b3f6fecde974467f78fec9fdad2614c1652ec2bda13206b83c2f9f083a0c9",
     "docs/licenses/GoogleSansFlex-OFL.txt":
         "8e8f5ee54c1431ed9c56a2f80dbce767d20d849ab7314434c1460a06d5e566b7",
 }
 ATTRIBUTED_SOURCES = (
-    "lawnchair/src/app/lawnchair/feed/ExpressiveFeedSetup.kt",
-    "lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdatePolicy.kt",
-    "lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotifications.kt",
-    "lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotificationControl.kt",
+    "android/lawnchair/src/app/lawnchair/feed/ExpressiveFeedSetup.kt",
+    "android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdatePolicy.kt",
+    "android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotifications.kt",
+    "android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotificationControl.kt",
 )
 SOURCE_MARKERS = (
     "Expressive Launcher",

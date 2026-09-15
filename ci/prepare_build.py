@@ -20,6 +20,20 @@ def git(repo, *args):
     return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
 
 
+def prepare_source(repository, source, revision):
+    """Preserve the pinned SystemUI revision across old and reorganized checkouts."""
+    git(repository, 'worktree', 'add', '--detach', str(source), revision)
+    module_key = 'submodule.platform_frameworks_libs_systemui.path'
+    source_module = git(source, 'config', '-f', '.gitmodules', '--get', module_key)
+    repository_module = git(repository, 'config', '-f', '.gitmodules', '--get', module_key)
+    module_sha = git(source, 'rev-parse', 'HEAD:' + source_module)
+    git(repository / repository_module, 'worktree', 'add', '--detach',
+        str(source / source_module), module_sha)
+    if git(source, 'status', '--porcelain'):
+        raise SystemExit('Prepared source is not clean')
+    return module_sha
+
+
 def validate_download_url(url, redirect=False):
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != 'https' or parsed.username or parsed.password or parsed.port not in (None, 443):
@@ -96,12 +110,7 @@ def main():
     if source.exists():
         raise SystemExit('Build workspace already exists; use a new Jenkins build number')
     args.workspace.mkdir(parents=True, exist_ok=True)
-    git(args.repository, 'worktree', 'add', '--detach', str(source), revision)
-    module = 'platform_frameworks_libs_systemui'
-    module_sha = git(source, 'rev-parse', 'HEAD:' + module)
-    git(args.repository / module, 'worktree', 'add', '--detach', str(source / module), module_sha)
-    if git(source, 'status', '--porcelain'):
-        raise SystemExit('Prepared source is not clean')
+    module_sha = prepare_source(args.repository, source, revision)
     output = args.workspace / 'artifacts'; output.mkdir()
     if args.baseline_release_id:
         feed = retained_baseline(Path(os.environ['EXPRESSIVE_CI_HOME']), args.baseline_release_id, output)
