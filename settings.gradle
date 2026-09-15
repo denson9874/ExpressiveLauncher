@@ -16,6 +16,9 @@ plugins {
     id "com.gradle.develocity" version "4.5.0"
 }
 
+// Expressive modification: enforce patched transitive dependencies before project plugins resolve.
+apply from: 'gradle/dependency-security.gradle'
+
 def isCI = providers.environmentVariable('CI').present
 
 develocity {

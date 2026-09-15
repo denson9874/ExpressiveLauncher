@@ -53,6 +53,15 @@ jobs:
           cache-disabled: true
           artifact-retention-days: 7
 
+      - name: Test and assemble with the resolved dependencies
+        shell: bash
+        run: |
+          ./gradlew --no-daemon --no-scan --no-configuration-cache --max-workers=2 \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            testLawnWithQuickstepExpressiveDebugUnitTest \
+            assembleLawnWithQuickstepExpressiveDebug \
+            :baseline-profile:assembleLawnWithQuickstepExpressiveBenchmark
+
   submit:
     name: Submit main dependency graph
     needs: generate
