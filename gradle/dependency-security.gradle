@@ -1,0 +1,57 @@
+// Copyright 2026 Daryl Denson and Expressive Launcher contributors.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/denson9874/ExpressiveLauncher
+
+// Applied by settings.gradle before project buildscript/plugin resolution. These are minimum
+// constraints: they neither add libraries to an APK nor downgrade a newer transitive dependency.
+// Keep build tooling, UTP device-test configurations, and benchmark dependencies covered too.
+def patchedDependencies = [
+        'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20',
+        'org.apache.httpcomponents:httpclient:4.5.14',
+        'org.apache.commons:commons-lang3:3.18.0',
+        'org.jdom:jdom2:2.0.6.1',
+        'org.codehaus.plexus:plexus-utils:3.6.1',
+        'org.bitbucket.b_c:jose4j:0.9.6',
+        'org.bouncycastle:bcprov-jdk18on:1.85',
+        'org.bouncycastle:bcpkix-jdk18on:1.85',
+        'org.bouncycastle:bcutil-jdk18on:1.85',
+        'com.squareup.wire:wire-runtime:6.4.7',
+        'com.squareup.wire:wire-runtime-jvm:6.4.7',
+]
+
+// Keep Netty's interdependent modules on the patched 4.1 line. Native TLS artifacts have their
+// own version scheme and are intentionally absent from this list.
+[
+        'netty-common', 'netty-buffer', 'netty-transport', 'netty-resolver',
+        'netty-codec', 'netty-codec-http', 'netty-codec-http2', 'netty-codec-socks',
+        'netty-handler', 'netty-handler-proxy', 'netty-transport-native-unix-common',
+].each { module -> patchedDependencies.add("io.netty:${module}:4.1.137.Final".toString()) }
+
+gradle.beforeProject { project ->
+    project.buildscript.configurations.configureEach { configuration ->
+        if (configuration.name == 'classpath') {
+            patchedDependencies.each { coordinate ->
+                project.buildscript.dependencies.constraints.add(configuration.name, coordinate) {
+                    because 'Use patched build dependencies; see docs/DEPENDENCY_SECURITY.md'
+                }
+            }
+        }
+    }
+
+    def securityConstraints = project.configurations.create('dependencySecurityConstraints') {
+        canBeConsumed = false
+        canBeResolved = false
+        visible = false
+        description = 'Minimum patched versions for dependencies already used by this project'
+    }
+    patchedDependencies.each { coordinate ->
+        project.dependencies.constraints.add(securityConstraints.name, coordinate) {
+            because 'Use patched dependencies; see docs/DEPENDENCY_SECURITY.md'
+        }
+    }
+    project.configurations.configureEach { configuration ->
+        if (configuration != securityConstraints) {
+            configuration.extendsFrom(securityConstraints)
+        }
+    }
+}
