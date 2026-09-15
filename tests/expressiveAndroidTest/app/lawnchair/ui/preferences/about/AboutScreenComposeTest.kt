@@ -7,12 +7,17 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToKey
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -64,46 +69,53 @@ class AboutScreenComposeTest {
             composeRule.onNodeWithText("Daryl Denson").performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText(context.getString(R.string.design_and_development))
                 .assertIsDisplayed()
-            composeRule.onNodeWithText(context.getString(R.string.community))
-                .performScrollTo()
-                .assertIsDisplayed()
+            // Lazy-list rows below the viewport are not composed until the list scrolls to them.
+            val aboutList = composeRule.onNode(hasScrollToIndexAction())
+            aboutList.performScrollToNode(hasText(context.getString(R.string.community)))
+            composeRule.onNodeWithText(context.getString(R.string.community)).assertIsDisplayed()
+            aboutList.performScrollToKey(R.string.telegram_feedback)
             composeRule.onNodeWithText(context.getString(R.string.telegram_feedback))
-                .performScrollTo()
                 .assertIsDisplayed()
                 .assertHasClickAction()
+            aboutList.performScrollToKey(R.string.telegram_announcements)
             composeRule.onNodeWithText(context.getString(R.string.telegram_announcements))
-                .performScrollTo()
                 .assertIsDisplayed()
                 .assertHasClickAction()
 
             // Let the About screen finish its normal entry animations before taking manual
             // control of time for the deterministic five-tap celebration assertion.
-            composeRule.onNodeWithTag(ABOUT_EASTER_EGG_TARGET_TAG).performScrollTo().assertIsDisplayed()
+            aboutList.performScrollToIndex(0)
+            composeRule.onNodeWithTag(ABOUT_EASTER_EGG_TARGET_TAG).assertIsDisplayed()
             composeRule.mainClock.autoAdvance = false
-            repeat(5) {
-                composeRule.onNodeWithTag(ABOUT_EASTER_EGG_TARGET_TAG).performClick()
-            }
+            try {
+                repeat(5) {
+                    composeRule.onNodeWithTag(ABOUT_EASTER_EGG_TARGET_TAG).performClick()
+                }
 
-            composeRule.mainClock.advanceTimeBy(400)
-            composeRule.onNodeWithTag(ABOUT_EASTER_EGG_CELEBRATION_TAG)
-                .assertIsDisplayed()
-                .assertHasClickAction()
-                .assert(
-                    SemanticsMatcher.expectValue(
-                        SemanticsProperties.PaneTitle,
-                        context.getString(R.string.about_easter_egg_title),
-                    ),
-                )
-                .assert(
-                    SemanticsMatcher.expectValue(
-                        SemanticsProperties.LiveRegion,
-                        LiveRegionMode.Assertive,
-                    ),
-                )
-            composeRule.onNodeWithText(context.getString(R.string.about_easter_egg_title))
-                .assertIsDisplayed()
-            composeRule.onNodeWithText(context.getString(R.string.about_easter_egg_thank_you))
-                .assertIsDisplayed()
+                composeRule.mainClock.advanceTimeBy(400)
+                composeRule.onNodeWithTag(ABOUT_EASTER_EGG_CELEBRATION_TAG)
+                    .assertIsDisplayed()
+                    .assertHasClickAction()
+                    .assert(
+                        SemanticsMatcher.expectValue(
+                            SemanticsProperties.PaneTitle,
+                            context.getString(R.string.about_easter_egg_title),
+                        ),
+                    )
+                    .assert(
+                        SemanticsMatcher.expectValue(
+                            SemanticsProperties.LiveRegion,
+                            LiveRegionMode.Assertive,
+                        ),
+                    )
+                composeRule.onNodeWithText(context.getString(R.string.about_easter_egg_title))
+                    .assertIsDisplayed()
+                composeRule.onNodeWithText(context.getString(R.string.about_easter_egg_thank_you))
+                    .assertIsDisplayed()
+                composeRule.onNodeWithTag(ABOUT_EASTER_EGG_CELEBRATION_TAG).performClick()
+            } finally {
+                composeRule.mainClock.autoAdvance = true
+            }
         }
     }
 }
