@@ -21,9 +21,9 @@ Copyright (c) 2024, Lawnchair
 
 - [AOSP Launcher3 source](https://android.googlesource.com/platform/packages/apps/Launcher3)
 - [Lawnchair source](https://github.com/LawnchairLauncher/lawnchair)
-- [Retained in-app notices for Launcher3 and Android compatibility libraries](../lawnchair/assets/license.html)
+- [Retained in-app notices for Launcher3 and Android compatibility libraries](../android/lawnchair/assets/license.html)
 - [Android source revisions and integration provenance](ANDROID17_PORT.md)
-- [Prebuilt AOSP library origins and build commands](../prebuilts/libs/README.md)
+- [Prebuilt AOSP library origins and build commands](../android/prebuilts/libs/README.md)
 - [SystemUI dependency configuration](../.gitmodules); the dependency's own source notices remain with that repository.
 
 Individual source files may contain additional copyright notices. Those notices
@@ -31,12 +31,12 @@ remain authoritative for their respective files.
 
 ## Calculator
 
-The calculator component includes the [MIT License](../lawnchair/src/app/lawnchair/search/algorithms/data/calculator/LICENSE),
+The calculator component includes the [MIT License](../android/lawnchair/src/app/lawnchair/search/algorithms/data/calculator/LICENSE),
 with the retained notice `Copyright (c) 2018 Keelar`.
 
 ## Google Sans Flex
 
-The bundled [Google Sans Flex font](../lawnchair/res/font/googlesansflex_variable.ttf)
+The bundled [Google Sans Flex font](../android/lawnchair/res/font/googlesansflex_variable.ttf)
 contains this copyright notice in its font metadata:
 
 ```text

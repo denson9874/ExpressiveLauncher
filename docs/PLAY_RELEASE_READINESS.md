@@ -83,9 +83,9 @@ report is generated at `build/reports/lint-results-lawnWithQuickstepExpressiveRe
 
 ### Policy and account inputs required
 
-- Replace every placeholder in `play/privacy-policy-template.md`, have it reviewed, and publish it
+- Replace every placeholder in `android/play/privacy-policy-template.md`, have it reviewed, and publish it
   at the same public HTTPS URL embedded in the app and entered in Play Console.
-- Complete Data safety from `play/data-safety.md` against the exact shipping configuration.
+- Complete Data safety from `android/play/data-safety.md` against the exact shipping configuration.
 - Complete declarations for `QUERY_ALL_PACKAGES`, optional contact/media access, the gesture
   accessibility service, foreground service use, and notification permission.
 - Confirm whether the Play developer account is subject to the 12-testers-for-14-days production

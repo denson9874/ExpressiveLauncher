@@ -18,7 +18,7 @@ Official signed releases are produced by the maintainer's Jenkins pipeline. Cont
 - Explain the origin of a contribution and credit coauthors accurately. Update the
   [source provenance](docs/SOURCE_PROVENANCE.md) or
   [third-party notices](docs/THIRD_PARTY_NOTICES.md) when introducing a new origin or component.
-- Keep `lawnchair/assets/expressive-NOTICE.txt` identical to the root NOTICE. Run
+- Keep `android/lawnchair/assets/expressive-NOTICE.txt` identical to the root NOTICE. Run
   `python3 ci/check_attribution.py` before submitting. License-text changes require
   deliberate review of the relevant rights and the check's recorded hashes.
 

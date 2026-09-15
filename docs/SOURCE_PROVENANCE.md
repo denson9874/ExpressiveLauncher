@@ -33,10 +33,10 @@ the surrounding packages, dependencies, or launcher features originated here.
 
 | Contribution | Source |
 | --- | --- |
-| Expressive update-manifest validation and channel decisions | [ExpressiveUpdatePolicy.kt](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdatePolicy.kt) |
-| Update notification scheduling, reminders, and snooze decisions | [ExpressiveUpdateNotifications.kt](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotifications.kt) |
-| Notification permission and opt-in controls for Expressive updates | [ExpressiveUpdateNotificationControl.kt](../lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotificationControl.kt) |
-| Discover helper inspection and verification before requesting Android installation | [ExpressiveFeedSetup.kt](../lawnchair/src/app/lawnchair/feed/ExpressiveFeedSetup.kt) |
+| Expressive update-manifest validation and channel decisions | [ExpressiveUpdatePolicy.kt](../android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdatePolicy.kt) |
+| Update notification scheduling, reminders, and snooze decisions | [ExpressiveUpdateNotifications.kt](../android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotifications.kt) |
+| Notification permission and opt-in controls for Expressive updates | [ExpressiveUpdateNotificationControl.kt](../android/lawnchair/src/app/lawnchair/ui/preferences/about/ExpressiveUpdateNotificationControl.kt) |
+| Discover helper inspection and verification before requesting Android installation | [ExpressiveFeedSetup.kt](../android/lawnchair/src/app/lawnchair/feed/ExpressiveFeedSetup.kt) |
 
 The attribution hardening adds notices to those files without changing their
 implementations. The original [source snapshot](https://github.com/denson9874/ExpressiveLauncher/tree/source-v1.0.12-13)

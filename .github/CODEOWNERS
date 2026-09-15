@@ -7,8 +7,8 @@
 /docs/SOURCE_PROVENANCE.md @denson9874
 /docs/THIRD_PARTY_NOTICES.md @denson9874
 /docs/licenses/ @denson9874
-/lawnchair/assets/expressive-NOTICE.txt @denson9874
-/lawnchair/src/app/lawnchair/search/algorithms/data/calculator/LICENSE @denson9874
+/android/lawnchair/assets/expressive-NOTICE.txt @denson9874
+/android/lawnchair/src/app/lawnchair/search/algorithms/data/calculator/LICENSE @denson9874
 /ci/check_attribution.py @denson9874
 /ci/tests/test_check_attribution.py @denson9874
 /.github/ @denson9874

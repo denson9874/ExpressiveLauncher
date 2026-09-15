@@ -16,12 +16,19 @@ for official signed APKs. A local build is useful for development and testing.
 | Git | Submodule support and access to GitHub |
 | Network | Needed to obtain the wrapper, Android components and Maven dependencies on the first build |
 
-The build inputs are declared in [build.gradle](../build.gradle),
+The build inputs are declared in [build.gradle](../android/build.gradle),
 [the version catalog](../gradle/libs.versions.toml), and
 [the wrapper configuration](../gradle/wrapper/gradle-wrapper.properties).
 Install the requested SDK components through Android Studio's SDK Manager. Configure
 the SDK with an ignored `local.properties` file containing `sdk.dir=...`, or with
 your normal Android SDK environment configuration.
+
+Open the **repository root** in Android Studio and run `./gradlew` there. Android
+source and module build files live under `android/`; the root `settings.gradle`
+keeps the existing Gradle project names and selects `android/build.gradle` as the
+launcher build script. Keep `local.properties` and `keystore.properties` at the
+repository root. APKs and test reports still go to the root `build/` directory.
+See the [Android source guide](../android/README.md) for the folder map.
 
 ## Get the source and its submodule
 
@@ -38,7 +45,7 @@ git submodule update --init --recursive
 git submodule status --recursive
 ```
 
-The required submodule is `platform_frameworks_libs_systemui`, from
+The required submodule is `android/platform_frameworks_libs_systemui`, from
 [LawnchairLauncher/platform_frameworks_libs_systemui](https://github.com/LawnchairLauncher/platform_frameworks_libs_systemui).
 For this source snapshot, its recorded revision is
 `e12acf0978875fc4adcebf46207b766106ffc92b`. The checked-in gitlink is authoritative;
@@ -93,7 +100,7 @@ Results are written to
 `build/reports/tests/testLawnWithQuickstepExpressiveDebugUnitTest/` and
 `build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest/`.
 The suite includes Android-resource/Robolectric tests under
-[tests/expressiveUnit](../tests/expressiveUnit). Unit-test success does not replace
+[tests/expressiveUnit](../android/tests/expressiveUnit). Unit-test success does not replace
 installation, upgrade and visible feature testing on an Android device or emulator.
 
 ## Build with your own signing identity
@@ -122,7 +129,7 @@ The result is a minified, non-debuggable APK under
 `build/outputs/apk/lawnWithQuickstepExpressive/qa/`. Your own signer does not confer
 the ability to update official Expressive APKs. For independently distributed
 forks, configure your own application identity, update endpoints and signing
-lineage using the product properties in [build.gradle](../build.gradle).
+lineage using the product properties in [build.gradle](../android/build.gradle).
 
 ## Official delivery and port status
 

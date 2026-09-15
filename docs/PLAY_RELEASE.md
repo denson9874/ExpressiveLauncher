@@ -50,7 +50,7 @@ to share.
 
 ## 3. Publish the privacy policy
 
-Customize `play/privacy-policy-template.md`, obtain appropriate legal review, and publish it as a
+Customize `android/play/privacy-policy-template.md`, obtain appropriate legal review, and publish it as a
 public, non-editable HTTPS web page. The page must identify the developer shown in the store
 listing and include a working privacy contact. The release URL is compiled into Settings > About,
 so the same URL is visible both in the app and Play Console.
@@ -91,7 +91,7 @@ Create an app (default language English US, app, free unless a paid launch is in
 Play App Signing, and start with Internal testing. Complete every App content declaration before
 submitting for review:
 
-- Privacy policy and Data safety, using `play/data-safety.md` as the engineering worksheet
+- Privacy policy and Data safety, using `android/play/data-safety.md` as the engineering worksheet
 - Ads declaration: no ads, if the shipping configuration remains ad-free
 - App access: all core screens are accessible without an account
 - Target audience and content rating questionnaire
@@ -103,7 +103,7 @@ submitting for review:
 The current target is API 37, above the August 31, 2026 Play requirement of API 36. The minimum is
 also API 37, intentionally limiting availability to Android 17 devices.
 
-Use only `play/listing/en-US` for the initial Expressive listing. The inherited
+Use only `android/play/listing/en-US` for the initial Expressive listing. The inherited
 `fastlane/metadata/android` translations describe upstream Lawnchair and must not be uploaded for
 this product until they are rewritten and reviewed.
 

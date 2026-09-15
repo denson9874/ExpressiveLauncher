@@ -80,12 +80,16 @@ Use **JDK 21** and the **Android 37.1 SDK**. The SystemUI submodule is required:
 
 | Project area | Contents |
 | --- | --- |
-| [`lawnchair/`](lawnchair/) | Launcher customization, settings, search, and Expressive app behavior. |
-| [`src/`](src/) · [`quickstep/`](quickstep/) | Launcher3 foundation and integration code. |
-| [`expressive/`](expressive/) · [`expressiveFeed/`](expressiveFeed/) | Product branding/configuration and Discover support. |
-| [`tests/`](tests/) | App and interaction regression coverage. |
+| [`android/`](android/) | Application source, Android libraries, resources, and app tests. |
 | [`ci/`](ci/) | Jenkins build, verification, and release tooling. |
-| [`docs/`](docs/) | Build, architecture, feature, and delivery documentation. |
+| [`docs/`](docs/) | Build guides, architecture, security, and source provenance. |
+| [`scripts/`](scripts/) · [`tools/`](tools/) | Signing setup, artwork, and developer utilities. |
+| [`fastlane/`](fastlane/) | Store descriptions and artwork. |
+| [`downloads/`](downloads/) | Download and release-verification information. |
+
+Run Gradle from the repository root. The wrapper, dependency catalog, local SDK
+configuration, signing inputs, and `build/` outputs retain their existing locations.
+The [Android source guide](android/README.md) maps the folders inside `android/`.
 
 For contributions, start with [CONTRIBUTING.md](CONTRIBUTING.md). Report Expressive issues in [this repository](https://github.com/denson9874/ExpressiveLauncher/issues).
 

@@ -32,6 +32,9 @@ develocity {
 }
 
 rootProject.name = "expressive-launcher-l3"
+// Keep the wrapper, local.properties, signing inputs, task paths and build outputs at
+// the repository root while grouping Android source and build configuration together.
+rootProject.buildFileName = "android/build.gradle"
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -52,75 +55,93 @@ enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include ':iconloaderlib'
-project(':iconloaderlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/iconloaderlib')
+project(':iconloaderlib').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/iconloaderlib')
 
 include ':searchuilib'
-project(':searchuilib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/searchuilib')
+project(':searchuilib').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/searchuilib')
 
 include ':animationlib'
-project(':animationlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/animationlib')
+project(':animationlib').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/animationlib')
 
 include ':msdllib'
-project(':msdllib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/msdllib')
+project(':msdllib').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/msdllib')
 
 include ':contextualeducationlib'
-project(':contextualeducationlib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/contextualeducationlib')
+project(':contextualeducationlib').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/contextualeducationlib')
 
 include ':viewcapturelib'
-project(':viewcapturelib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/viewcapturelib')
+project(':viewcapturelib').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/viewcapturelib')
 
 include ':displaylib'
-project(':displaylib').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/displaylib')
+project(':displaylib').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/displaylib')
 
 include ':mechanics'
-project(':mechanics').projectDir = new File(rootDir, 'platform_frameworks_libs_systemui/mechanics')
+project(':mechanics').projectDir = new File(rootDir, 'android/platform_frameworks_libs_systemui/mechanics')
 
 include ':hidden-api'
+project(':hidden-api').projectDir = new File(rootDir, 'android/hidden-api')
 
 include ':shared'
-project(':shared').projectDir = new File(rootDir, 'systemUI/shared')
+project(':shared').projectDir = new File(rootDir, 'android/systemUI/shared')
 
 include ':plugin'
-project(':plugin').projectDir = new File(rootDir, 'systemUI/plugin')
+project(':plugin').projectDir = new File(rootDir, 'android/systemUI/plugin')
 
 include ':plugincore'
-project(':plugincore').projectDir = new File(rootDir, 'systemUI/plugin_core')
+project(':plugincore').projectDir = new File(rootDir, 'android/systemUI/plugin_core')
 
 include ':common'
-project(':common').projectDir = new File(rootDir, 'systemUI/common')
+project(':common').projectDir = new File(rootDir, 'android/systemUI/common')
 
 include ':log'
-project(':log').projectDir = new File(rootDir, 'systemUI/log')
+project(':log').projectDir = new File(rootDir, 'android/systemUI/log')
 
 include ':animation'
-project(':animation').projectDir = new File(rootDir, 'systemUI/animation')
+project(':animation').projectDir = new File(rootDir, 'android/systemUI/animation')
 
 include ':unfold'
-project(':unfold').projectDir = new File(rootDir, 'systemUI/unfold')
+project(':unfold').projectDir = new File(rootDir, 'android/systemUI/unfold')
 
 include ':utils'
-project(':utils').projectDir = new File(rootDir, 'systemUI/utils')
+project(':utils').projectDir = new File(rootDir, 'android/systemUI/utils')
 
 
 include ':compatLib'
+project(':compatLib').projectDir = new File(rootDir, 'android/compatLib')
 include ':compatLib:compatLibVQ'
+project(':compatLib:compatLibVQ').projectDir = new File(rootDir, 'android/compatLib/compatLibVQ')
 include ':compatLib:compatLibVR'
+project(':compatLib:compatLibVR').projectDir = new File(rootDir, 'android/compatLib/compatLibVR')
 include ':compatLib:compatLibVS'
+project(':compatLib:compatLibVS').projectDir = new File(rootDir, 'android/compatLib/compatLibVS')
 include ':compatLib:compatLibVT'
+project(':compatLib:compatLibVT').projectDir = new File(rootDir, 'android/compatLib/compatLibVT')
 include ':compatLib:compatLibVU'
+project(':compatLib:compatLibVU').projectDir = new File(rootDir, 'android/compatLib/compatLibVU')
 include ':compatLib:compatLibVV'
+project(':compatLib:compatLibVV').projectDir = new File(rootDir, 'android/compatLib/compatLibVV')
 include ':compatLib:compatLibVBaklava'
+project(':compatLib:compatLibVBaklava').projectDir = new File(rootDir, 'android/compatLib/compatLibVBaklava')
 
 include ':baseline-profile'
+project(':baseline-profile').projectDir = new File(rootDir, 'android/baseline-profile')
 
 include ':androidx-lib'
+project(':androidx-lib').projectDir = new File(rootDir, 'android/androidx-lib')
 include ':flags'
+project(':flags').projectDir = new File(rootDir, 'android/flags')
 include ':wmshell'
+project(':wmshell').projectDir = new File(rootDir, 'android/wmshell')
 include ':dagger'
+project(':dagger').projectDir = new File(rootDir, 'android/dagger')
 include ':concurrent'
+project(':concurrent').projectDir = new File(rootDir, 'android/concurrent')
 //include ':compose'
 include ':modules:widgetpicker'
+project(':modules').projectDir = new File(rootDir, 'android/modules')
+project(':modules:widgetpicker').projectDir = new File(rootDir, 'android/modules/widgetpicker')
 
 // Google Discover only accepts a privileged/system launcher or a debuggable bridge process.
 // Keep that narrowly scoped bridge in its own APK so the launcher itself remains non-debuggable.
 include ':expressiveFeed'
+project(':expressiveFeed').projectDir = new File(rootDir, 'android/expressiveFeed')
