@@ -96,18 +96,41 @@ signed Jenkins validation, physical-device screenshots, and delivery receipts ar
 `artifacts/lawnicons-home-only-20260913` as they complete. This entry records the candidate
 implementation; final device and publication results require that retained evidence.
 
+## Long-press the whole app search row — 2026-09-14 (candidate 2.0.2)
+
+On the verified Beta 4 guest, holding the Gmail search label in Pixel Launcher opens app
+actions. Expressive QA 2.0.1/code19 also opened actions from the small icon in its horizontal
+Gmail result, but holding that row's title launched Gmail on release. Pixel presents a grid
+result for this query; this comparison establishes the label gesture, not identical layouts.
+
+App and shortcut rows now forward long presses from their text and empty area to the existing
+icon action. The row consumes the gesture so release cannot also launch the result. Binding a
+settings, calculator, web or other action result clears the recycled long-press listener and
+state. Existing icon menus, drag handling, normal taps and keyboard launch remain in use.
+
+The corrected baseline regression had three expected failures among four tests. After the
+change, all 13 focused tests passed, including Private Space and contact accessibility checks.
+Development UI checks passed for app title and empty-area holds, shortcut title actions,
+dragging Compose onto Home, normal tap and keyboard launch, and a verified cold restart with
+the shortcut retained. No fatal exception or ANR was observed in the scoped device log.
+
+Both version defaults advance once to 2.0.2/code20. This records the candidate implementation;
+Jenkins full-suite, signed/minified upgrade, sealed artifact and publication results must pass
+before delivery is claimed. Evidence is retained in `artifacts/pixel-parity-20260914-resumed`.
+No physical-device or spoken TalkBack validation is claimed.
+
 ## Reference environment
 
-- Reference date: 2026-09-11
+- Reference date: 2026-09-14
 - Latest public beta: Android 17 QPR2 Beta 4, released 2026-08-28; official release notes updated 2026-09-02
 - Guest build: `CP41.260814.003.B1` (`dev-keys`), Android SDK full version `37.2`, security patch `2026-08-05`
 - Guest fingerprint: `google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260814.003.B1/16166531:user/dev-keys`
 - System image: `system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a`, revision 4
-- AVD: `Expressive_Parity_Explore_20260911`, freshly created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size
+- AVD: `Expressive_Parity_Explore_20260914`, created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size. Separate owned `Expressive_Parity_Widgets_20260914` used for development checks on the same verified guest.
 - Android Emulator: 37.2.5.0, build 16079175
 - Pixel Launcher: `com.google.android.apps.nexuslauncher`, versionCode 907, versionName `17`
 - Rollback retained: the prior `Pixel_8_Pro_Android_17_QPR2_Beta3` and `Pixel_8_Pro` Beta 2 AVDs and images were not removed
-- Current evidence directory: `artifacts/pixel-parity-20260911`; prior September 4, September 7 and September 9 evidence remains retained (generated QA evidence, not committed)
+- Current evidence directory: `artifacts/pixel-parity-20260914-resumed`; prior September 14 investigation and earlier evidence remain retained (generated QA evidence, not committed)
 
 Official reference: [Android 17 QPR2 release notes](https://developer.android.com/about/versions/17/qpr2/release-notes)
 and [Google Play system-image repository](https://dl.google.com/android/repository/sys-img/google_apis_playstore/sys-img2-3.xml).

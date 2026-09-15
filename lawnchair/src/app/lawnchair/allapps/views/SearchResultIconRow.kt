@@ -88,6 +88,17 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
             title.text = it.title
             tag = it
         }
+        if (target.searchAction == null) {
+            setOnLongClickListener {
+                icon.performLongClick()
+                // The icon's drag handler returns false even after opening its pre-drag menu.
+                // Consume the row gesture so release cannot also launch the result.
+                true
+            }
+        } else {
+            setOnLongClickListener(null)
+            isLongClickable = false
+        }
         val isSuggestion = (target.layoutType == LayoutType.HORIZONTAL_MEDIUM_TEXT || target.layoutType == LayoutType.WIDGET_LIVE) &&
             target.resultType == SearchTargetCompat.RESULT_TYPE_SUGGESTIONS &&
             (target.packageName == WEB_SUGGESTION || target.packageName == HISTORY)
