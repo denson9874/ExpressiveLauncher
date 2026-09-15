@@ -25,3 +25,5 @@ __pycache__
 .vscode
 .fleet
 lawnWithQuickstep/release
+# Expressive repository hygiene: local device backup exports are not source.
+/application.backup
