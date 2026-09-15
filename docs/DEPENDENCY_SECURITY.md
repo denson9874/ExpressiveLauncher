@@ -1,7 +1,5 @@
 # Dependency security maintenance
 
-The version catalog selects Kotlin **2.4.20**, including the build-cache
-[deserialization fix](https://github.com/advisories/GHSA-r937-wjx7-w2jp).
 The shared [dependency constraints](../gradle/dependency-security.gradle) apply
 before project plugins resolve, covering buildscript classpaths and project
 configurations, including Android device-test tooling and benchmarks.
@@ -21,6 +19,24 @@ These constraints upgrade existing dependencies and allow newer versions; they
 do not introduce these libraries into configurations that do not use them.
 Wire's multiplatform metadata selects the JVM runtime, so both coordinates are
 covered. Bouncy Castle's minimum matches the existing Robolectric provider.
+
+## Kotlin alert applicability
+
+Dependabot alert #49 ([GHSA-r937-wjx7-w2jp](https://github.com/advisories/GHSA-r937-wjx7-w2jp))
+is attributed to Kotlin Gradle Plugin 2.4.10. The
+[upstream security fix](https://github.com/JetBrains/kotlin/commit/bf51df665b458fda7c3eaf436c4d88dc119d7ec6)
+changes KAPT's `JavaClassCacheManager` deserialization. This build uses KSP and
+ordinary Java annotation processors; it does not apply KAPT. The complete
+dependency graph contains no `kotlin-annotation-processing` or KAPT runtime,
+and the selected Kotlin Gradle plugin/compiler jars do not contain that class.
+The reported vulnerable component is therefore not used by this source build.
+
+Kotlin remains at 2.4.10 to preserve the supported CodeQL analysis path.
+GitHub [confirmed](https://github.com/github/codeql/issues/22381)
+that Kotlin 2.4.20 support missed CodeQL 2.27.0 and is expected in 2.27.1.
+Reassess this exception if KAPT is introduced, and upgrade Kotlin together with
+a compatible stable CodeQL release. This applicability decision is not a claim
+that Kotlin 2.4.10 contains the upstream patch.
 
 ## Validation and future updates
 

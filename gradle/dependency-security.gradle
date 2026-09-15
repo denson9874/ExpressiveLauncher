@@ -6,7 +6,6 @@
 // constraints: they neither add libraries to an APK nor downgrade a newer transitive dependency.
 // Keep build tooling, UTP device-test configurations, and benchmark dependencies covered too.
 def patchedDependencies = [
-        'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20',
         'org.apache.httpcomponents:httpclient:4.5.14',
         'org.apache.commons:commons-lang3:3.18.0',
         'org.jdom:jdom2:2.0.6.1',
