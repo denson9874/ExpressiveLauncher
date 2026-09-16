@@ -31,7 +31,8 @@ def make_build(number, started):
 def evidence_for(build):
     identity = gate.build_identity(build)
     metadata = {key: identity[key] for key in ("sourceRevision", "versionName", "versionCode", "buildUrl")}
-    metadata.update(packageName=gate.QA_PACKAGE, channel="qa", sha256=f"{build['number']:064x}", sizeBytes=100,
+    metadata.update(packageName=gate.QA_PACKAGE, channel="qa", fileName="candidate.apk",
+                    sha256=f"{build['number']:064x}", sizeBytes=100,
                     unitTests={"tests": 10, "failures": 0, "errors": 0, "skipped": 0})
     files = {name: {"sizeBytes": 100, "sha256": metadata["sha256"]}
              for name in ("candidate.apk", "candidate-QA-report.md", "candidate-metadata.json", "candidate-qa-result.json")}
@@ -40,7 +41,7 @@ def evidence_for(build):
                    "flows": {"cold_start": {"passed": True}}}, "files": files}
 
 
-def publication_for(build, evidence, number=None):
+def publication_for(build, evidence, number=None, asset_policy="apk-only"):
     number = number or build["number"]
     identity = gate.build_identity(build)
     run = {"number": number, "timestamp": build["timestamp"] + 120_000, "duration": 60_000,
@@ -54,9 +55,13 @@ def publication_for(build, evidence, number=None):
                    publisherSourceRevision=identity["sourceRevision"], repository=gate.REPOSITORY, channel="qa",
                    tag=tag, feedUrl=gate.FEED_URL, releaseId=number,
                    releaseUrl=f"https://github.com/{gate.REPOSITORY}/releases/tag/{tag}")
+    files = evidence["files"]
+    if asset_policy is not None:
+        receipt["releaseAssetPolicy"] = asset_policy
+        files = {evidence["metadata"]["fileName"]: files[evidence["metadata"]["fileName"]]}
     receipt["files"] = {name: {**data, "id": index + 1, "verified": True, "publicDownloadVerified": True,
                                "downloadUrl": f"https://github.com/{gate.REPOSITORY}/releases/download/{tag}/{name}"}
-                        for index, (name, data) in enumerate(evidence["files"].items())}
+                        for index, (name, data) in enumerate(files.items())}
     return run, receipt
 
 
@@ -88,6 +93,36 @@ class WeeklyGateTest(unittest.TestCase):
         self.assertEqual(result["selected"], gate.build_identity(self.builds[-1]))
         self.assertEqual(result["windowStart"], "2026-09-07T00:00:00-04:00")
         self.assertEqual(result["windowEnd"], "2026-09-12T00:00:00-04:00")
+
+    def test_historical_and_mixed_receipts_preserve_full_seal_validation(self):
+        for build in self.builds:
+            number = build["number"]
+            _, self.receipts[number] = publication_for(build, self.sealed[number], asset_policy=None)
+            self.assertEqual(self.evaluate()["status"], "eligible")
+        del self.receipts[3]["files"]["candidate-QA-report.md"]
+        self.held(self.evaluate(), "publication assets differ")
+
+    def test_apk_only_receipts_reject_missing_or_extra_public_files(self):
+        original = copy.deepcopy(self.receipts[3])
+        for files in ({}, {"candidate-metadata.json": original["files"]["candidate.apk"]},
+                      {**original["files"], "candidate-QA-report.md": {}}, []):
+            with self.subTest(files=files):
+                self.receipts[3] = copy.deepcopy(original)
+                self.receipts[3]["files"] = files
+                self.held(self.evaluate(), "publication assets")
+
+    def test_unknown_or_explicit_null_asset_policy_holds(self):
+        for policy in ("all-files", "apk-only-v2", None, True):
+            with self.subTest(policy=policy):
+                self.receipts[3]["releaseAssetPolicy"] = policy
+                self.held(self.evaluate(), "unknown publication asset policy")
+
+    def test_apk_only_receipt_requires_apk_identity_and_all_internal_evidence(self):
+        self.sealed[3]["metadata"]["fileName"] = "missing.apk"
+        self.held(self.evaluate(), "sealed publication APK identity")
+        self.sealed[3]["metadata"]["fileName"] = "candidate.apk"
+        del self.sealed[3]["files"]["candidate-QA-report.md"]
+        self.held(self.evaluate(), "sealed publication file identities")
 
     def test_missing_each_required_day_cannot_be_green(self):
         for index, day in enumerate(("Monday", "Wednesday", "Friday")):

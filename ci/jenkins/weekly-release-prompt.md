@@ -39,7 +39,10 @@ expressive-release-publish job. For a failed upload, retry its actual sealed ID 
 Jenkins rechecks terminal upstream SUCCESS and exact seal/test/source/version bindings before
 publishing. Require a terminal SUCCESS receipt with provider=github, channel=release, status=released,
 feedVerified=true, verified stableBranch evidence and matching source/version/APK hash. Publish a
-normal GitHub stable release under vVERSION-CODE and commit the exact APK and evidence to
+normal GitHub stable release under vVERSION-CODE with only the signed APK attached. Require
+releaseAssetPolicy=apk-only in its receipt. Keep reports, metadata, device-result, seal and
+authorization JSON out of future release attachments, while retaining and validating them in
+local seals, Jenkins archives and the stable branch. Commit the exact APK and evidence to
 stable:releases/RELEASE_ID/. Verify the branch and its root latest.json through authenticated and
 anonymous reads, then advance updates:release/latest.json for existing app compatibility. Preserve
 QA releases, updates:qa-v2/latest.json and the legacy updates:qa/latest.json. Keep failed receipts

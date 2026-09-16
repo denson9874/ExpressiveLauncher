@@ -26,6 +26,10 @@ each of those days must have a matching successful GitHub publication receipt an
 Queued or running QA, missing days/evidence, failed, aborted or unstable QA builds hold the release.
 A no-op is not a passing build. Failed QA build attempts hold the week even if a later build passes.
 Transient publication failures can be resolved by a successful retry of the exact sealed candidate.
+New publication receipts declare `releaseAssetPolicy=apk-only` and must verify exactly the sealed
+APK as the release attachment. The gate also accepts historical receipts without that policy only
+when all four original assets verify. Both paths still require the complete internal seal and QA
+evidence; unknown policies, extra new attachments or missing expected files hold the release.
 
 The winner is Friday's latest verified build. Stable reuses its exact application source SHA,
 version name and code; it does not add a new feature or bump a version solely for promotion.
@@ -72,8 +76,9 @@ The publisher confirms the upstream job has actually finished successfully, then
 authorization bound to the build, seal, APK and original evidence. Failed, unstable, aborted,
 incomplete, unsigned, debuggable or mismatched candidates fail before upload.
 
-The publisher uploads/reuses exact APK, report, metadata, device result, seal and authorization
-bytes in a normal GitHub release `vVERSION-CODE`. It also commits those bytes under
+Future normal GitHub releases `vVERSION-CODE` attach only the exact signed APK. The report,
+metadata, device result, seal and authorization remain validated local/Jenkins evidence and are
+not release attachments. The publisher still commits the APK and that evidence under
 `stable:releases/RELEASE_ID/`, alongside root `latest.json`, `publication.json` and download instructions.
 The branch update preserves prior versions and unrelated files, uses a non-forced atomic commit,
 and rejects rollback or same-version conflicts. The original sealed files are never rewritten.

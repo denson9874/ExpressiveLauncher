@@ -128,8 +128,19 @@ def verify_receipt(run, receipt, identity, evidence):
             "publication repository, release, or feed differs")
     require(positive_int(receipt.get("releaseId")), "publication release ID is missing")
     files = receipt.get("files", {})
-    require(set(files) == set(evidence["files"]), "publication assets differ from the seal")
-    for name, expected in evidence["files"].items():
+    require(isinstance(files, dict), "publication assets must be a file map")
+    if "releaseAssetPolicy" in receipt:
+        require(receipt["releaseAssetPolicy"] == "apk-only", "unknown publication asset policy")
+        apk_name = metadata.get("fileName")
+        require(isinstance(apk_name, str) and apk_name in evidence["files"],
+                "sealed publication APK identity is missing")
+        expected_files = {apk_name: evidence["files"][apk_name]}
+    else:
+        # Retained receipts predate the APK-only download policy. Keep checking
+        # all four historical attachments against the unchanged internal seal.
+        expected_files = evidence["files"]
+    require(set(files) == set(expected_files), "publication assets differ from the seal or asset policy")
+    for name, expected in expected_files.items():
         asset = files[name]
         require(asset.get("verified") is True and asset.get("publicDownloadVerified") is True
                 and positive_int(asset.get("id")), "asset verification is incomplete: " + name)

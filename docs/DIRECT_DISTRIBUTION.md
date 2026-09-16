@@ -70,14 +70,20 @@ remains the distribution policy enforced by those jobs.
    `assembleLawnWithQuickstepExpressiveRelease`. These tasks fail when release signing is absent.
 3. Verify the APK signer, package name, version code, byte size, and SHA-256 digest.
    Compare the certificate against the prior delivered artifact, not just a successful signature check.
-4. Stage a new versioned GitHub release in https://github.com/denson9874/ExpressiveLauncher and retain
-   its APK, QA report, metadata and device results. QA uses prerelease tags `qa-vVERSION-CODE`.
+4. Stage a new versioned GitHub release in https://github.com/denson9874/ExpressiveLauncher with only
+   its signed APK as a downloadable release asset. Retain QA reports, metadata and device results
+   in the immutable local seal and Jenkins archives, and retain the stable branch evidence archive.
+   QA uses prerelease tags `qa-vVERSION-CODE`; stable uses normal release tags `vVERSION-CODE`.
    Do not overwrite older releases or conflicting assets.
 5. After verification, publish the requested channel's release and validate a complete public APK
    download. Advance only that channel's `latest.json` on the `updates` branch using blob-SHA conflict
    detection. Drafts are not advertised to installed clients.
 6. Install the prior signed build, open About, download the offered update, and confirm Android
    accepts the in-place upgrade without data loss.
+
+The APK-only policy applies to future release attachments, including stable seal and authorization
+JSON files. Release prose stays in the release body; updater `latest.json` manifests and retained
+verification evidence remain required. Existing release attachments are preserved.
 
 The updater accepts only HTTPS, a matching channel and package, a strictly newer version code, the
 declared byte size and SHA-256, and a signing lineage containing the installed certificate.

@@ -367,9 +367,9 @@ class PublishPolicyTest(unittest.TestCase):
             publisher.publish(self.directory, False, receipt)
 
         self.assertEqual(receipt["status"], "draft-staged-verified")
-        self.assertEqual(len(assets), 4)
+        self.assertEqual(set(assets), {self.apk.name})
         self.assertEqual(uploads[:2], [(self.apk.name, self.apk.read_bytes())] * 2)
-        self.assertEqual(len(uploads), 5)
+        self.assertEqual(len(uploads), 2)
         self.assertEqual(deletions, [{"id": 17, "name": self.apk.name, "state": "starter", "size": 0}])
 
     def test_placeholder_recovery_rejects_published_or_conflicting_release(self):
@@ -399,10 +399,14 @@ class PublishPolicyTest(unittest.TestCase):
 
     def test_placeholder_recovery_refuses_unexpected_artifact_name(self):
         github = publisher.GitHub()
-        with mock.patch.object(github, "api") as api:
-            with self.assertRaisesRegex(publisher.PublishError, "unexpected GitHub artifact name"):
-                github.remove_empty_upload_placeholder(23, self.metadata, "foreign.apk", 17)
-            api.assert_not_called()
+        names = ["foreign.apk"] + [self.apk.stem + suffix for suffix in
+                 ("-metadata.json", "-QA-report.md", "-qa-result.json",
+                  "-seal.json", "-publication-authorization.json")]
+        for name in names:
+            with self.subTest(name=name), mock.patch.object(github, "api") as api:
+                with self.assertRaisesRegex(publisher.PublishError, "unexpected GitHub artifact name"):
+                    github.remove_empty_upload_placeholder(23, self.metadata, name, 17)
+                api.assert_not_called()
 
     def test_placeholder_must_be_absent_after_delete_before_upload(self):
         github = publisher.GitHub()
@@ -534,8 +538,10 @@ class PublishPolicyTest(unittest.TestCase):
             return path.stat().st_size, publisher.file_hash(path)
         return github, state, public_digest
 
-    def test_default_staging_keeps_draft_and_never_writes_channel(self):
+    def test_default_staging_uploads_only_apk_and_retains_internal_evidence(self):
         github, state, _ = self.fake_publication()
+        _, evidence = publisher.load_artifacts(self.directory)
+        original = {path: path.read_bytes() for path in evidence.values()}
         receipt = {}
         with mock.patch.object(publisher, "GitHub", return_value=github), \
                 mock.patch.object(publisher, "public_feed", return_value=None), \
@@ -543,17 +549,17 @@ class PublishPolicyTest(unittest.TestCase):
             publisher.publish(self.directory, False, receipt)
         self.assertEqual(receipt["status"], "draft-staged-verified")
         self.assertTrue(receipt["draft"])
-        self.assertEqual(len(receipt["files"]), 4)
+        self.assertEqual(set(receipt["files"]), {self.apk.name})
+        self.assertEqual(receipt["releaseAssetPolicy"], "apk-only")
+        github.stage.assert_called_once_with(23, self.apk.name, self.apk.resolve())
+        self.assertEqual(original, {path: path.read_bytes() for path in original})
         github.publish_release.assert_not_called()
         github.update_feed.assert_not_called()
         download.assert_not_called()
 
-    def test_existing_conflict_is_rejected_before_any_placeholder_cleanup_or_upload(self):
+    def test_existing_apk_conflict_is_rejected_before_any_cleanup_or_upload(self):
         github, state, _ = self.fake_publication()
-        _, files = publisher.load_artifacts(self.directory)
-        state["assets"][self.apk.name] = {"id": 17, "name": self.apk.name, "state": "starter", "size": 0}
-        report_name = self.apk.stem + "-QA-report.md"
-        state["assets"][report_name] = self.asset(report_name, files[report_name])
+        state["assets"][self.apk.name] = self.asset()
         github.verify_file.side_effect = publisher.PublishError("Remote checksum conflict")
         with mock.patch.object(publisher, "GitHub", return_value=github), \
                 mock.patch.object(publisher, "public_feed", return_value=None):
@@ -586,7 +592,9 @@ class PublishPolicyTest(unittest.TestCase):
                 mock.patch.object(publisher, "public_feed", side_effect=lambda **_: state["feed"]), \
                 mock.patch.object(publisher, "public_download_digest", side_effect=download):
             publisher.publish(self.directory, True, receipt)
-        self.assertEqual(events, ["download"] * 4 + ["feed"])
+        self.assertEqual(events, ["download", "feed"])
+        self.assertEqual(set(state["assets"]), {self.apk.name})
+        self.assertEqual(set(receipt["files"]), {self.apk.name})
         self.assertEqual(receipt["status"], "released")
         self.assertEqual(receipt["provider"], "github")
         self.assertTrue(receipt["feedVerified"])
@@ -613,12 +621,41 @@ class PublishPolicyTest(unittest.TestCase):
             with self.assertRaisesRegex(publisher.PublishError, "HTTP 409"):
                 publisher.publish(self.directory, True, {})
             self.assertFalse(state["draft"])
-            self.assertEqual(state["uploads"], 4)
+            self.assertEqual(state["uploads"], 1)
             github.update_feed.side_effect = original_update
             receipt = {}
             publisher.publish(self.directory, True, receipt)
         self.assertEqual(receipt["status"], "released")
-        self.assertEqual(state["uploads"], 4)
+        self.assertEqual(state["uploads"], 1)
+
+    def test_retry_leaves_historical_report_attachments_untouched(self):
+        github, state, digest = self.fake_publication(draft=False)
+        _, files = publisher.load_artifacts(self.directory)
+        state["assets"] = {name: self.asset(name, path) for name, path in files.items()}
+        original = copy.deepcopy(state["assets"])
+        receipt = {}
+        with mock.patch.object(publisher, "GitHub", return_value=github), \
+                mock.patch.object(publisher, "public_feed", side_effect=lambda **_: state["feed"]), \
+                mock.patch.object(publisher, "public_download_digest", side_effect=digest):
+            publisher.publish(self.directory, True, receipt)
+        self.assertEqual(state["assets"], original)
+        self.assertEqual(state["uploads"], 0)
+        self.assertEqual(set(receipt["files"]), {self.apk.name})
+        github.stage.assert_called_once_with(23, self.apk.name, self.apk.resolve())
+        github.remove_empty_upload_placeholder.assert_not_called()
+
+    def test_apk_only_publication_still_requires_each_internal_report(self):
+        for name in ("metadata.json", "qa-result.json", "QA-report.md", "seal.json"):
+            with self.subTest(name=name), mock.patch.object(publisher, "GitHub") as github:
+                path = self.directory / name
+                original = path.read_bytes()
+                path.unlink()
+                try:
+                    with self.assertRaises((publisher.PublishError, OSError)):
+                        publisher.publish(self.directory, True, {})
+                    github.assert_not_called()
+                finally:
+                    path.write_bytes(original)
 
     def test_rollback_fails_before_release_or_asset_creation(self):
         newer = self.feed()
@@ -918,14 +955,15 @@ class StablePublishPolicyTest(unittest.TestCase):
             publisher.publish(self.directory, True, receipt, "release")
         constructor.assert_called_once_with("release")
         api.assert_called_once_with(github.root + "/releases/23")
-        self.assertEqual(verify.call_count, 8)
+        self.assertEqual(verify.call_count, 2)
         self.assertTrue(all(call.kwargs["channel"] == "release" for call in public.call_args_list))
         self.assertEqual(receipt["status"], "released")
         self.assertEqual(receipt["channel"], "release")
         self.assertEqual(receipt["feedUrl"], publisher.feed_url("release"))
         self.assertFalse(receipt["feedChanged"])
         self.assertTrue(receipt["feedVerified"])
-        self.assertEqual(len(receipt["files"]), 4)
+        self.assertEqual(set(receipt["files"]), {self.apk.name})
+        self.assertEqual(receipt["releaseAssetPolicy"], "apk-only")
         self.assertTrue(all(item["publicDownloadVerified"] for item in receipt["files"].values()))
 
 class UnifiedQaPublicationTests(unittest.TestCase):

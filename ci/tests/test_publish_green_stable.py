@@ -154,7 +154,7 @@ class GreenStablePublicationTest(unittest.TestCase):
                 self.publish(receipt)
         github.update_feed.assert_not_called()
         self.assertIsNone(state["feed"])
-        self.assertEqual(events.count("asset-verified"), 6)
+        self.assertEqual(events.count("asset-verified"), 1)
         self.assertEqual(receipt["status"], "publishing-stable-branch")
         self.assertNotIn("feedVerified", receipt)
 
@@ -167,7 +167,7 @@ class GreenStablePublicationTest(unittest.TestCase):
             self.assertEqual(metadata, self.metadata)
             self.assertEqual(files, self.files)
             self.assertEqual(authorization, self.authorization)
-            self.assertEqual(events.count("asset-verified"), 6)
+            self.assertEqual(events.count("asset-verified"), 1)
             events.append("branch-verified")
             return branch_receipt
 
@@ -182,10 +182,13 @@ class GreenStablePublicationTest(unittest.TestCase):
                          publisher.file_hash(self.authorization_path))
         self.assertEqual(receipt["status"], "released")
         self.assertTrue(receipt["feedVerified"])
-        self.assertEqual(set(receipt["files"]), set(self.files))
+        self.assertEqual(set(receipt["files"]), {self.apk.name})
+        self.assertEqual(set(state["assets"]), {self.apk.name})
+        self.assertEqual(receipt["releaseAssetPolicy"], "apk-only")
+        github.stage.assert_called_once_with(23, self.apk.name, self.apk)
         self.assertTrue(all(asset["publicDownloadVerified"] for asset in receipt["files"].values()))
 
-    def test_published_retry_reuses_original_seal_and_authorization_assets(self):
+    def test_published_retry_preserves_historical_evidence_attachments(self):
         github = publisher.GitHub("release")
         assets = {name: {**self.asset(name, path), "id": index}
                   for index, (name, path) in enumerate(self.files.items(), start=17)}
@@ -214,7 +217,7 @@ class GreenStablePublicationTest(unittest.TestCase):
             self.publish(receipt)
         self.assertEqual(api.call_args_list, [mock.call(github.root + "/releases/23")] * 2)
         self.assertEqual(original, {path: path.read_bytes() for path in original})
-        self.assertEqual(set(receipt["files"]), set(self.files))
+        self.assertEqual(set(receipt["files"]), {self.apk.name})
         self.assertFalse(receipt["feedChanged"])
 
     def test_staging_authorized_assets_does_not_publish_branch_or_feed(self):
@@ -226,7 +229,8 @@ class GreenStablePublicationTest(unittest.TestCase):
         github.update_feed.assert_not_called()
         github.publish_release.assert_not_called()
         self.assertEqual(events, [])
-        self.assertEqual(len(receipt["files"]), 6)
+        self.assertEqual(set(receipt["files"]), {self.apk.name})
+        github.stage.assert_called_once_with(23, self.apk.name, self.apk)
         self.assertEqual(receipt["status"], "draft-staged-verified")
 
 

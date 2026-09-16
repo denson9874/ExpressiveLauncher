@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Stage sealed bytes in GitHub Releases; publish the selected channel with --promote.
+"""Stage only the sealed APK in GitHub Releases; promote the selected channel.
+
+Reports, metadata, and authorization remain required retained evidence, not
+download attachments. The updater's JSON feed is maintained separately.
 
 The worker's existing GitHub CLI authentication stays outside the application and
 receipts. No interactive login, completed asset replacement/deletion, repository
@@ -42,6 +45,7 @@ CHANNELS = {
 FEED_FIELDS = ("schemaVersion", "channel", "packageName", "versionCode", "versionName",
                "apkUrl", "sha256", "sizeBytes", "releaseNotes")
 MAX_JSON_BYTES = 1024 * 1024
+RELEASE_ASSET_POLICY = "apk-only"
 
 
 class PublishError(Exception):
@@ -554,12 +558,7 @@ class GitHub:
         # placeholder; completed bytes and published releases are never deleted.
         require(positive_integer(release_id) and positive_integer(asset_id),
                 "Upload placeholder recovery requires positive release and asset IDs")
-        stem = Path(metadata["fileName"]).stem
-        allowed = {metadata["fileName"], f"{stem}-QA-report.md",
-                   f"{stem}-metadata.json", f"{stem}-qa-result.json"}
-        if self.channel == "release":
-            allowed.update({f"{stem}-seal.json", f"{stem}-publication-authorization.json"})
-        require(name in allowed,
+        require(name == metadata["fileName"],
                 "Refusing to remove an unexpected GitHub artifact name")
         release = self.api(f"{self.root}/releases/{release_id}")
         self.validate_release(release, metadata)
@@ -669,12 +668,15 @@ def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=Non
         require(authorization_path.is_file() and not authorization_path.is_symlink(),
                 "Publication authorization must be a regular file")
         authorization = read_json_bytes(authorization_path.read_bytes(), "publication authorization")
-    metadata, files = (load_artifacts(artifact_dir, channel, authorization)
-                       if authorization is not None else load_artifacts(artifact_dir, channel))
+    metadata, evidence_files = (load_artifacts(artifact_dir, channel, authorization)
+                                if authorization is not None else load_artifacts(artifact_dir, channel))
     if authorization is not None:
         stem = Path(metadata["fileName"]).stem
-        files[f"{stem}-seal.json"] = Path(artifact_dir) / "seal.json"
-        files[f"{stem}-publication-authorization.json"] = authorization_path
+        evidence_files[f"{stem}-seal.json"] = Path(artifact_dir) / "seal.json"
+        evidence_files[f"{stem}-publication-authorization.json"] = authorization_path
+    # Keep the full seal validation and stable evidence archive, but expose only
+    # the installer as a release download. Historical attachments are untouched.
+    files = {metadata["fileName"]: evidence_files[metadata["fileName"]]}
     tag = release_tag(metadata, channel)
     proposed = candidate_feed(metadata, download_url(tag, metadata["fileName"], channel), channel)
     validate_github_feed(proposed, channel)
@@ -682,7 +684,8 @@ def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=Non
                     "repository": GITHUB_REPOSITORY, "tag": tag, "feedUrl": feed_url(channel),
                     "sourceRevision": metadata["sourceRevision"],
                     "versionCode": metadata["versionCode"], "versionName": metadata["versionName"],
-                    "sha256": metadata["sha256"], "sizeBytes": metadata["sizeBytes"], "files": {}})
+                    "sha256": metadata["sha256"], "sizeBytes": metadata["sizeBytes"],
+                    "releaseAssetPolicy": RELEASE_ASSET_POLICY, "files": {}})
     if authorization is not None:
         receipt["publicationAuthorization"] = authorization
         receipt["publicationAuthorizationSha256"] = file_hash(authorization_path)
@@ -750,7 +753,7 @@ def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=Non
     if authorization is not None:
         from stable_branch import publish_stable_branch
         receipt["status"] = "publishing-stable-branch"
-        receipt["stableBranch"] = publish_stable_branch(github, metadata, files, authorization)
+        receipt["stableBranch"] = publish_stable_branch(github, metadata, evidence_files, authorization)
     receipt["status"] = "promoting-feed"
     changed = (github.update_feed(proposed, metadata=metadata)
                if channel == "release" or unified_qa(metadata) else github.update_feed(proposed))

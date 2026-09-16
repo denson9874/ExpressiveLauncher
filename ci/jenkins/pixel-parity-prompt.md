@@ -53,8 +53,12 @@ Only after Jenkins reports SUCCESS and a sealed QA candidate exists, submit its 
 The user authorized automatic publication of future passing QA builds to
 https://github.com/denson9874/ExpressiveLauncher so the app can notify users of available updates.
 Publish only after all Jenkins build, signing, upgrade and seal gates pass. The versioned GitHub
-QA prerelease and its assets must pass authenticated and anonymous byte/hash verification before
-advancing updates:qa-v2/latest.json. Keep stable releases and their production manifest unchanged.
+QA prerelease must attach only the exact signed APK, and that APK must pass authenticated and
+anonymous byte/hash verification before advancing updates:qa-v2/latest.json. Keep stable releases
+and their production manifest unchanged.
+Do not attach metadata JSON, device-result JSON or Markdown reports to future releases. Retain and
+validate all original evidence in the immutable seal and Jenkins archives; keep update-feed JSON
+and the release's authored body. Require releaseAssetPolicy=apk-only in new publication receipts.
 The stable and QA 2.x packages intentionally share their identity; their publication feeds stay
 separate. Never replace or delete old releases/assets, upload another APK to Drive,
 or publish a developer Debug APK. The GitHub CLI uses the worker's existing keyring login; do not

@@ -124,9 +124,13 @@ the GitHub provider; pre-migration candidates containing the old Drive publisher
 Create a new tested migration candidate instead of silently changing the publisher for old bytes.
 
 The publisher uses versioned `qa-vVERSION-CODE` release tags and marks QA releases as prereleases.
-It stages the exact sealed APK/report/metadata/device result, downloads each asset with authentication,
-and verifies bytes. Existing completed assets are accepted only when byte-identical; conflicting tags/assets
-fail without replacement or deletion. An empty failed-upload starter placeholder can be removed only
+Future QA and stable GitHub releases attach only the exact signed APK. Metadata JSON, device-result
+JSON and Markdown QA reports remain in the immutable local seal and Jenkins archives; they are
+validated before publication but are not release downloads. Stable branch evidence archival and
+the JSON update-channel manifests remain required. Release notes remain in the release body.
+The publisher stages the APK, downloads it with authentication and verifies its bytes. New receipts
+record `releaseAssetPolicy=apk-only`. Existing completed assets are accepted only when byte-identical;
+conflicting tags/assets fail without replacement or deletion. An empty failed-upload starter placeholder can be removed only
 from the matching candidate draft after rechecking its exact asset ID, name, zero size and source identity. Draft staging does not make an update available to users.
 
 With promotion, Jenkins publishes the prerelease, verifies a complete anonymous APK download, and

@@ -22,6 +22,9 @@ actual changes. Treat the changelog as part of completing a release.
   performance gains, test results, features or compatibility claims for a punchline.
 - Keep source revision, version code, APK integrity information and upstream attribution in a
   compact technical section. Preserve the publisher's exact hidden release-identity comment.
+- Future releases attach only the signed APK. Keep the changelog in the release body and its
+  authored Markdown file with the run evidence; do not attach Markdown or JSON reports. Describe
+  validation from the retained Jenkins evidence without directing users to nonexistent attachments.
 
 The completed [1.0.13 notes](releases/1.0.13.md) demonstrate the style. Future notes should be
 freshly written from that release's evidence, not produced by replacing its version number.
