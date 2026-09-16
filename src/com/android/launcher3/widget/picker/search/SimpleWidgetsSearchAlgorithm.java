@@ -20,6 +20,7 @@ import static com.android.launcher3.search.StringMatcherUtility.matches;
 
 import android.os.Handler;
 
+import com.android.launcher3.Utilities;
 import com.android.launcher3.model.WidgetItem;
 import com.android.launcher3.search.SearchAlgorithm;
 import com.android.launcher3.search.SearchCallback;
@@ -64,12 +65,13 @@ public final class SimpleWidgetsSearchAlgorithm implements SearchAlgorithm<Widge
      */
     public static ArrayList<WidgetsListBaseEntry> getFilteredWidgets(
             WidgetsSearchDataProvider dataProvider, String input) {
+        String query = Utilities.trim(input);
         ArrayList<WidgetsListBaseEntry> results = new ArrayList<>();
         dataProvider.getWidgets().stream()
                 .filter(entry -> entry instanceof WidgetsListHeaderEntry)
                 .forEach(headerEntry -> {
                     List<WidgetItem> matchedWidgetItems = filterWidgetItems(
-                            input, headerEntry.mPkgItem.title.toString(), headerEntry.mWidgets);
+                            query, headerEntry.mPkgItem.title.toString(), headerEntry.mWidgets);
                     if (matchedWidgetItems.size() > 0) {
                         results.add(WidgetsListHeaderEntry.createForSearch(headerEntry.mPkgItem,
                                 headerEntry.mTitleSectionName, matchedWidgetItems));

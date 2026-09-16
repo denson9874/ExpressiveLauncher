@@ -135,18 +135,49 @@ Focused tests, signed Jenkins validation, device navigation and publication resu
 in `artifacts/telegram-community-20260915` as they complete; publication is not established by
 this entry.
 
+## Keep widget results when search has surrounding spaces — 2026-09-16 (candidate 2.0.4)
+
+On the verified Beta 4 guest, Pixel Launcher keeps the Clock group and all five widgets visible
+for `clock ` and ` clock `. Published signed Expressive 2.0.3/code21 finds those widgets for
+`clock`, but a trailing or leading space instead produces **No widgets or shortcuts found**.
+An individual widget query such as ` digital ` also loses its matching results in Expressive.
+Both launchers retain a whitespace-only field and its clear control while showing no results.
+
+Widget matching now trims surrounding whitespace once using the launcher's existing utility,
+before matching app titles or individual widget labels. The displayed query, callback identity,
+clear control and search mode remain unchanged. Interior spaces keep their existing matching
+rules; no permissions, data schema, dependency or private Pixel API is introduced.
+
+Seven focused regressions exercise real result entries, the asynchronous callback and the real
+search controller. The unchanged implementation failed six assertions; all seven pass after the
+fix. Coverage includes padded app/item names, the existing utility's nonbreaking-space handling,
+interior spaces, blank input, raw callback text and clear behavior. Nonbreaking-space coverage is
+a utility regression, not a claim of directly observed Pixel behavior for that character.
+
+Fifteen developer checks passed on a separate Beta 4 guest: app-name and item-label searches,
+padded multiword names, unchanged interior-space/blank behavior, clear, adding a Digital Clock
+from a padded search, a verified cold restart with the widget retained, and search after restart.
+Scoped logs contained no fatal exception or launcher crash/ANR. Initial UI capture and menu
+opening needed readiness retries; no production workaround was added for those helper timings.
+
+Both version defaults advance once to 2.0.4/code22. This entry records candidate implementation;
+Jenkins full-suite, signed/minified upgrade, sealing, publication and live installer evidence are
+retained in `artifacts/pixel-parity-20260916` as they complete. The upgrade baseline is the verified
+published 2.0.3/code21 seal `qa-2.0.3-21-build-19`. No physical-device or spoken TalkBack check is
+claimed. Stable and legacy QA feeds remain separate.
+
 ## Reference environment
 
-- Reference date: 2026-09-14
+- Reference date: 2026-09-16
 - Latest public beta: Android 17 QPR2 Beta 4, released 2026-08-28; official release notes updated 2026-09-02
 - Guest build: `CP41.260814.003.B1` (`dev-keys`), Android SDK full version `37.2`, security patch `2026-08-05`
 - Guest fingerprint: `google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260814.003.B1/16166531:user/dev-keys`
 - System image: `system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a`, revision 4
-- AVD: `Expressive_Parity_Explore_20260914`, created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size. Separate owned `Expressive_Parity_Widgets_20260914` used for development checks on the same verified guest.
+- AVD: `Expressive_Parity_Explore_20260916`, created from the retained `Pixel_8_Pro_Android_17_QPR2_Beta4` hardware/image configuration; Pixel 8 Pro, ARM64, 16 KB page size. Separate owned `Expressive_Parity_Dev_20260916` used for development checks on the same verified guest. Both run in an isolated AVD directory under Library/Caches.
 - Android Emulator: 37.2.5.0, build 16079175
 - Pixel Launcher: `com.google.android.apps.nexuslauncher`, versionCode 907, versionName `17`
-- Rollback retained: the prior `Pixel_8_Pro_Android_17_QPR2_Beta3` and `Pixel_8_Pro` Beta 2 AVDs and images were not removed
-- Current evidence directory: `artifacts/pixel-parity-20260914-resumed`; prior September 14 investigation and earlier evidence remain retained (generated QA evidence, not committed)
+- Rollback retained: the two existing September 15 CI AVDs, the Beta 4 hardware template and installed image were preserved; this run did not remove or replace any previous environment.
+- Current evidence directory: `artifacts/pixel-parity-20260916`; previous investigation and release evidence remain retained (generated QA evidence, not committed)
 
 Official reference: [Android 17 QPR2 release notes](https://developer.android.com/about/versions/17/qpr2/release-notes)
 and [Google Play system-image repository](https://dl.google.com/android/repository/sys-img/google_apis_playstore/sys-img2-3.xml).
