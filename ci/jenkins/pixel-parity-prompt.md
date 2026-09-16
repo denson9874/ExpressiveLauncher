@@ -11,7 +11,24 @@ without identifying it. Preserve previous working AVDs/images. Do not copy propr
 depend on private Pixel APIs. If a newer reference cannot be booted reliably, make no product change.
 
 Read docs/PIXEL_PARITY.md, docs/DIRECT_DISTRIBUTION.md, docs/CI_PIPELINE.md, and
-docs/GITHUB_RELEASE_CHANGELOG.md. Select exactly one
+docs/GITHUB_RELEASE_CHANGELOG.md.
+
+Before selecting this run's improvement, use $expressive-xda-feedback by reading
+/Users/daryldenson/.codex/skills/expressive-xda-feedback/SKILL.md. Refresh the three XDA threads
+and the durable backlog at /Users/daryldenson/Library/Application Support/Expressive CI/feedback/xda.
+Prioritize eligible, feasible reported issues within this run's one-improvement budget; investigate
+before treating a report as a verified defect. Record coverage, source links, acceptance checks,
+and a proposed QA slot for every actionable item. Newly discovered Friday or Saturday feedback
+belongs to the following Monday QA cycle, even before Friday's run starts. Previously accepted
+work may remain eligible Friday. Use the actual open run only before source selection/sealing;
+carry missed, unready or overflow items forward with reasons. Keep actual versions unassigned
+until the normal candidate workflow assigns them; a new QA cycle does not imply a major bump.
+Preserve stable holds and the selected/sealed stable source. This intake reads XDA without posting
+replies or public promises. If reading fails, report incomplete coverage and retain the backlog;
+continue other authorized QA work when possible. After implementation/publication, update the
+backlog with exact commit, tests and delivery evidence without claiming planned work is shipped.
+
+Select exactly one
 valuable, feasible, evidence-backed gap. Explain the observed gap before editing, implement the
 smallest complete change, and add focused regression coverage. Preserve existing launcher features,
 accessibility, Android compatibility and user data. If no safe improvement can be fully validated,
