@@ -432,8 +432,8 @@ def main():
     parser.add_argument("--output-dir", required=True, type=Path, help="New directory; existing evidence is never replaced")
     parser.add_argument("--source-revision", required=True)
     parser.add_argument("--android-home", type=Path, default=Path(os.environ.get("ANDROID_HOME", str(Path.home() / "Library/Android/sdk"))))
-    parser.add_argument("--avd-template", default="Pixel_8_Pro_Android_17_QPR2_Beta4")
-    parser.add_argument("--expected-build", default="CP41.260814.003.B1")
+    parser.add_argument("--avd-template", default="Pixel_8_Pro_Android_17_QPR2_Beta5")
+    parser.add_argument("--expected-build", default="CP41.260828.004.A7")
     args = parser.parse_args()
     smoke = Smoke(args)
     def interrupted(signum, frame):

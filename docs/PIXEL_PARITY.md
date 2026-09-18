@@ -166,7 +166,60 @@ retained in `artifacts/pixel-parity-20260916` as they complete. The upgrade base
 published 2.0.3/code21 seal `qa-2.0.3-21-build-19`. No physical-device or spoken TalkBack check is
 claimed. Stable and legacy QA feeds remain separate.
 
+## Restore separate Advanced settings rows — 2026-09-18 (candidate 2.0.5)
+
+The [Pixel 8 Pro XDA report](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-material-3-expressive-pixel-8-pro-feedback.4801791/post-90740687)
+was accepted for investigation on September 16 as XDA-001. On the exact published signed
+2.0.4/code22 APK, expanding **Home settings → Advanced** and scrolling exposed only
+**Backup and restore**. The same defect reproduced at font scale 2.0 and display density 600.
+The existing Dock, Folders, Gestures and Backup rows were siblings directly inside
+`AnimatedVisibility`, so they occupied the same bounds and the final row covered the others.
+
+The Advanced content now uses one vertical `Column` with the existing segmented-row spacing.
+Its existing callbacks, conditional Quickstep row, selection and saved expansion state remain
+unchanged. The section summary now describes Dock, folders, gestures and backup. No new setting,
+permission, private API or data migration is introduced. Pixel Home and Home settings were directly
+inspected on the same Beta 5 guest; Pixel does not have this identical Advanced category. This is
+a reproduced community-reported Expressive navigation defect, not a claim of matching menu layouts.
+
+Three focused Compose instrumentation tests use the production Preferences activity, inspect
+unclipped row geometry, deliver actual touches to each of the four destinations, and check
+collapse/reopen plus activity recreation. All three failed against the original layout (identical
+Dock/Folders bounds and incorrect touch destination) and all three pass after the fix. The same
+three pass with 200% text and density 600. An initial test-fixture bounds accessor compile error
+was corrected before those red/green runs; it was not an application failure.
+
+Developer screenshots confirm distinct, scrollable rows at normal and enlarged settings. A verified
+empty-PID cold Home restart rendered normally; captured application logs contain no launcher fatal
+exception, native crash or ANR. Font scale 1.0 and physical density 480 were restored. This uses a
+separate Debug guest, built before version assignment; it is not signed-candidate delivery evidence.
+
+Both version defaults advance once to 2.0.5/code23 after these checks. CI now pins the verified Beta 5
+emulator build and template below; 18 existing smoke-QA regressions and 10 configuration/image
+agreement checks pass. Jenkins must complete full tests, signed/minified assembly, upgrade, seal and
+publication against this exact candidate. Evidence is retained in `artifacts/pixel-parity-20260918`
+and the run cache as it completes; this ledger entry alone does not claim a released update.
+The baseline is the verified published 2.0.4/code22 seal `qa-2.0.4-22-build-20`. New Friday XDA
+feedback is deferred to Monday September 21 with target versions unassigned. Stable remains held.
+No physical-device, spoken TalkBack or privileged Quickstep validation is claimed.
+
 ## Reference environment
+
+- Reference date: 2026-09-18
+- Latest public beta: Android 17 QPR2 Beta 5, released 2026-09-15; official release notes updated 2026-09-16
+- Guest build: `CP41.260828.004.A7` (`dev-keys`), Android SDK full version `37.2`, security patch `2026-08-05`
+- Guest fingerprint: `google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260828.004.A7/16296984:user/dev-keys`
+- System image: `system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a`, revision 5; official archive size and SHA-1 verified before extraction
+- Image is installed separately at `/Users/daryldenson/Library/Android/reference-images/android-17-qpr2-beta5-r5/arm64-v8a/`, preserving the installed revision 4 image
+- AVDs: `Expressive_Parity_Beta5_20260918` and `Expressive_Parity_Dev_Beta5_20260918`, separate owned Pixel 8 Pro ARM64 16 KB guests under Library/Caches; two independent reference cold boots passed
+- CI static template: `Pixel_8_Pro_Android_17_QPR2_Beta5`; expected guest is the actual emulator A7 build, distinct from the physical-device A8/A6 builds in the official notes
+- Android Emulator: 37.2.5.0, build 16079175
+- Pixel Launcher: `com.google.android.apps.nexuslauncher`, versionCode 907, versionName `17`
+- Rollback retained: prior AVDs, Beta 4 image and hardware template; 35 inventory entries and 10 complete image/config SHA-256 checks matched after preparation
+- Reference limitation: emulator UWB service aborts report missing `/dev/uwb0`; Pixel Home rendered after both cold boots, with no Java fatal exception. This does not establish UWB hardware functionality
+- Current evidence directory: `artifacts/pixel-parity-20260918`; generated QA evidence remains uncommitted
+
+### Prior reference — 2026-09-16
 
 - Reference date: 2026-09-16
 - Latest public beta: Android 17 QPR2 Beta 4, released 2026-08-28; official release notes updated 2026-09-02

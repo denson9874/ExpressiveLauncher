@@ -156,7 +156,7 @@
 
     <string name="advanced">Advanced</string>
     <string name="wallpaper_style_description" tools:ignore="MissingTranslation">Wallpaper, colors, themed icons, and app grid</string>
-    <string name="advanced_settings_description" tools:ignore="MissingTranslation">Dock, folders, gestures, backup, and diagnostics</string>
+    <string name="advanced_settings_description" tools:ignore="MissingTranslation">Dock, folders, gestures, and backup</string>
     <string name="wallpaper_picker_unavailable" tools:ignore="MissingTranslation">No wallpaper and style app is available</string>
 
     <!-- Draggable -->

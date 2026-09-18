@@ -30,7 +30,7 @@ def main():
         apks = list((source / 'build/outputs/apk/lawnWithQuickstepExpressive' / args.channel).glob('*.apk'))
         if len(apks) != 1: raise SystemExit('Expected exactly one APK for the selected channel')
         label = 'QA' if args.channel == 'qa' else 'Release'
-        name = f'ExpressiveLauncherL3-{args.version_name}-Android17-QPR2-Beta4-Jenkins-{label}-release-signed.apk'
+        name = f'ExpressiveLauncherL3-{args.version_name}-Android17-QPR2-Beta5-Jenkins-{label}-release-signed.apk'
         apk = output / name
         shutil.copyfile(apks[0], apk)
         command = ['python3', str(here / 'verify_qa.py'), '--apk', str(apk),

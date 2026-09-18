@@ -23,7 +23,7 @@ GitHub `stable` branch and stable update feed after the publisher rechecks their
 
 Jenkins is bound to loopback, requires authentication, and has zero controller executors. Its one
 local worker uses the existing SDK, durable signing identity, JDK 21 and verified Android 17 QPR2
-Beta 4 image. The Mac must remain awake and logged in. The controller and worker use the same macOS
+Beta 5 image. The Mac must remain awake and logged in. The controller and worker use the same macOS
 user, but separate processes and directories; only trusted recorded source is accepted.
 
 The GitHub CLI is installed at `/opt/homebrew/bin/gh`. The worker uses the authenticated macOS user's
@@ -90,8 +90,15 @@ minified Qa assembly. Package validation requires the exact expected version, QA
 non-debuggable output, verified signature and continuity with the previous certificate.
 A new isolated `Expressive_CI_*` emulator validates same-signer upgrade, retained preferences/HOME,
 warm/cold launch, drawer/search/date flows and clean launcher crash/ANR logs. Existing AVDs remain intact.
-The source-controlled expected guest remains `CP41.260814.003.B1`; update it deliberately after verifying
-any newer public QPR reference.
+The source-controlled template is `Pixel_8_Pro_Android_17_QPR2_Beta5`, with expected emulator build
+`CP41.260828.004.A7`, full SDK `37.2` and security patch `2026-08-05`. Google's revision 5 Play Store
+ARM64 16 KB image was checksum-verified and passed two independent cold boots with Pixel Launcher
+907/version 17. Its emulator build differs from the physical-device Beta 5 builds listed in the
+[official release notes](https://developer.android.com/about/versions/17/qpr2/release-notes).
+The template references the separate image under
+`/Users/daryldenson/Library/Android/reference-images/android-17-qpr2-beta5-r5/arm64-v8a/`;
+the retained Beta 4 image and AVDs remain unchanged. Update these pins deliberately after verifying
+any newer public QPR reference, before building a new candidate.
 
 A successful build seals `releases/qa-VERSION-CODE-build-NUMBER` with APK, metadata, report, unit
 results, mapping and device evidence. Jenkins also archives them. Prior releases are never overwritten.
