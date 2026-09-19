@@ -1,0 +1,34 @@
+pipeline {
+    agent { label 'expressive-macos-android' }
+    options { disableConcurrentBuilds(); timeout(time: 30, unit: 'MINUTES'); skipDefaultCheckout() }
+    parameters {
+        string(name: 'RELEASE_ID', defaultValue: '', description: 'Sealed candidate ID from a successful QA build')
+        booleanParam(name: 'PROMOTE_QA_FEED', defaultValue: false, description: 'Publish the verified GitHub QA prerelease and advance only its QA update manifest')
+        booleanParam(name: 'BRIDGE_LEGACY_QA_FEED', defaultValue: false, description: 'One-time migration: point the existing legacy QA manifest at this verified GitHub build')
+    }
+    environment {
+        SOURCE_REPOSITORY = '/path/to/ExpressiveLauncher'
+        EXPRESSIVE_CI_HOME = '/path/to/ExpressiveCI'
+        PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+    }
+    stages {
+        stage('Publish retained candidate') {
+            steps {
+                script {
+                    if (!(params.RELEASE_ID ==~ /qa-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-build-[0-9]+/)) { error('Invalid release ID') }
+                    if (params.BRIDGE_LEGACY_QA_FEED && !params.PROMOTE_QA_FEED) { error('Legacy migration requires GitHub promotion') }
+                }
+                sh '''python3 "$SOURCE_REPOSITORY/ci/pipeline.py" publish --release-id "$RELEASE_ID" --output "$WORKSPACE/publication-$BUILD_NUMBER.json"
+                '''
+            }
+        }
+        stage('Bridge legacy QA update checks') {
+            when { expression { params.BRIDGE_LEGACY_QA_FEED } }
+            steps {
+                sh '''python3 "$SOURCE_REPOSITORY/ci/pipeline.py" bridge-legacy-qa --release-id "$RELEASE_ID" --publication-receipt "$WORKSPACE/publication-$BUILD_NUMBER.json" --output "$WORKSPACE/legacy-bridge-$BUILD_NUMBER.json"
+                '''
+            }
+        }
+    }
+    post { always { archiveArtifacts artifacts: 'publication-*.json,legacy-bridge-*.json,legacy-bridge-*/**', allowEmptyArchive: true, fingerprint: true } }
+}

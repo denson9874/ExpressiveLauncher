@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Expressive Feed</string>
+    <string name="connect_permission_label">Connect to Expressive Feed</string>
+</resources>

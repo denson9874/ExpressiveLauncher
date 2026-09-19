@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A transparent 48dp END hit lane overlays All Apps without reserving grid width. -->
+    <dimen name="fastscroll_width">48dp</dimen>
+    <dimen name="fastscroll_end_margin">0dp</dimen>
+    <!-- Together with 1dp padding, these produce a 4dp idle and 6dp dragged thumb. -->
+    <dimen name="fastscroll_track_min_width">2dp</dimen>
+    <dimen name="fastscroll_track_max_width">4dp</dimen>
+    <dimen name="fastscroll_thumb_height">48dp</dimen>
+</resources>

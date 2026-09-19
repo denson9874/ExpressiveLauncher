@@ -1,0 +1,30 @@
+# Copyright 2026 Daryl Denson and Expressive Launcher contributors.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/denson9874/ExpressiveLauncher
+
+name: Attribution
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  attribution:
+    name: Attribution guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify notices and retained licenses
+        run: python3 ci/check_attribution.py
+      - name: Test attribution guard
+        run: python3 -m unittest discover -s ci/tests -p 'test_check_attribution.py' -v

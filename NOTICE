@@ -1,0 +1,18 @@
+Expressive Launcher
+https://github.com/denson9874/ExpressiveLauncher
+
+Expressive-specific contributions:
+Copyright 2026 Daryl Denson and Expressive Launcher contributors.
+This notice covers their copyrightable contributions, not ownership of
+the upstream projects or every resource in this repository.
+
+This project builds on AOSP Launcher3 and Lawnchair.
+Copyright (c) 2005-2008, The Android Open Source Project
+Copyright (c) 2024, Lawnchair
+
+Additional copyright and attribution notices remain in the corresponding
+source files and component notices. See docs/THIRD_PARTY_NOTICES.md and
+docs/SOURCE_PROVENANCE.md in the source repository identified above.
+
+This NOTICE provides attribution information and does not modify the
+applicable licenses or imply endorsement by the upstream projects.

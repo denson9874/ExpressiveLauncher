@@ -1,0 +1,65 @@
+pipeline {
+    agent { label 'expressive-macos-android' }
+    options { disableConcurrentBuilds(); timeout(time: 90, unit: 'MINUTES'); skipDefaultCheckout() }
+    parameters {
+        string(name: 'SOURCE_REVISION', defaultValue: '', description: 'Full recorded commit on codex/pixel-parity')
+        string(name: 'VERSION_NAME', defaultValue: '1.0.8', description: 'Expected QA version')
+        string(name: 'VERSION_CODE', defaultValue: '9', description: 'Expected monotonically increasing version code')
+        string(name: 'BASELINE_RELEASE_ID', defaultValue: '', description: 'Optional sealed QA baseline for initial GitHub channel bootstrap')
+    }
+    environment {
+        SOURCE_REPOSITORY = '/path/to/ExpressiveLauncher'
+        EXPRESSIVE_CI_HOME = '/path/to/ExpressiveCI'
+        ANDROID_HOME = '/path/to/android-sdk'
+        ANDROID_SDK_ROOT = '/path/to/android-sdk'
+        JAVA_HOME = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
+        EXPRESSIVE_KEYSTORE_PROPERTIES = '/path/to/ExpressiveLauncher/keystore.properties'
+        PATH = '/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+    }
+    stages {
+        stage('Prepare recorded source') {
+            steps {
+                script {
+                    if (!(params.SOURCE_REVISION ==~ /[0-9a-f]{40}/)) { error('A full source commit is required') }
+                    if (!(params.VERSION_NAME ==~ /[0-9]+\.[0-9]+\.[0-9]+/) || !(params.VERSION_CODE ==~ /[1-9][0-9]*/)) { error('Invalid version') }
+                    if (params.BASELINE_RELEASE_ID && !(params.BASELINE_RELEASE_ID ==~ /qa-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-build-[0-9]+/)) { error('Invalid baseline release ID') }
+                    env.RUN_WORKSPACE = "${env.WORKSPACE}/build-${env.BUILD_NUMBER}"
+                    env.RELEASE_ID = "qa-${params.VERSION_NAME}-${params.VERSION_CODE}-build-${env.BUILD_NUMBER}"
+                }
+                sh '''git -C "$SOURCE_REPOSITORY" show "$SOURCE_REVISION:ci/prepare_build.py" > "$WORKSPACE/prepare-$BUILD_NUMBER.py"
+                python3 "$WORKSPACE/prepare-$BUILD_NUMBER.py" --repository "$SOURCE_REPOSITORY" --revision "$SOURCE_REVISION" --workspace "$RUN_WORKSPACE" --baseline-release-id "$BASELINE_RELEASE_ID"'''
+            }
+        }
+        stage('Pipeline contract tests') {
+            steps { sh '''cd "$RUN_WORKSPACE/source"
+                python3 -m unittest discover -s ci/tests -v
+            ''' }
+        }
+        stage('Unit tests and signed QA build') {
+            steps { sh '''cd "$RUN_WORKSPACE/source"
+                ./gradlew --no-scan --no-parallel --console=plain testLawnWithQuickstepExpressiveDebugUnitTest assembleLawnWithQuickstepExpressiveQa
+            ''' }
+        }
+        stage('Verify package and signing continuity') {
+            steps { sh '''cd "$RUN_WORKSPACE/source"
+                python3 ci/pipeline.py stage --workspace "$RUN_WORKSPACE" --version-name "$VERSION_NAME" --version-code "$VERSION_CODE"
+            ''' }
+        }
+        stage('Isolated Android upgrade and smoke QA') {
+            steps { sh '''cd "$RUN_WORKSPACE/source"
+                python3 ci/pipeline.py smoke --workspace "$RUN_WORKSPACE" --source-revision "$SOURCE_REVISION"
+            ''' }
+        }
+        stage('Retain tested release candidate') {
+            steps { sh '''cd "$RUN_WORKSPACE/source"
+                python3 ci/finalize_qa.py --artifact-dir "$RUN_WORKSPACE/artifacts" --source-dir "$RUN_WORKSPACE/source" --release-dir "$EXPRESSIVE_CI_HOME/releases/$RELEASE_ID" --build-url "$BUILD_URL"
+            ''' }
+        }
+    }
+    post {
+        always {
+            junit testResults: "build-${env.BUILD_NUMBER}/source/build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest/TEST-*.xml", allowEmptyResults: true
+            archiveArtifacts artifacts: "build-${env.BUILD_NUMBER}/artifacts/**", allowEmptyArchive: true, fingerprint: true
+        }
+    }
+}

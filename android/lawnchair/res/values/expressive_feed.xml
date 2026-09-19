@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="expressive_feed_title">Google Discover</string>
+    <string name="expressive_feed_show">Show Google Discover</string>
+    <string name="expressive_feed_other_feeds">Other feeds</string>
+    <string name="expressive_feed_show_selected">Show selected feed</string>
+    <string name="expressive_feed_swipe_right">Swipe right from your first Home page to open Discover.</string>
+    <string name="expressive_feed_swipe_left">Swipe left from your first Home page to open Discover.</string>
+    <string name="expressive_feed_setup">Set up Google Discover</string>
+    <string name="expressive_feed_setup_description">Install the included background support to see Discover inside Expressive. There is no separate feed app to open.</string>
+    <string name="expressive_feed_update">Update Discover support</string>
+    <string name="expressive_feed_update_description">An updated background component is included with this version of Expressive.</string>
+    <string name="expressive_feed_preparing">Preparing Google Discover…</string>
+    <string name="expressive_feed_checking">Checking Google Discover…</string>
+    <string name="expressive_feed_google_install">Get the Google app</string>
+    <string name="expressive_feed_google_description">Discover is provided by the Google app. Install or enable it, then return here to finish setup.</string>
+    <string name="expressive_feed_google_enable">Enable the Google app</string>
+    <string name="expressive_feed_support_enable">Enable Discover support</string>
+    <string name="expressive_feed_support_disabled">The background support is disabled. Enable it in App info to use Discover.</string>
+    <string name="expressive_feed_support_attention">Review Discover support</string>
+    <string name="expressive_feed_support_incompatible">The installed support belongs to a different version of Expressive. Remove it in App info, then return here to set it up again.</string>
+    <string name="expressive_feed_support_unavailable">Discover support is installed but unavailable. Check that it is enabled in App info.</string>
+    <string name="expressive_feed_setup_unavailable">Discover setup is unavailable in this build.</string>
+    <string name="expressive_feed_retry">Try setup again</string>
+    <string name="expressive_feed_setup_failed">Google Discover could not be set up. Try again; your current Home settings are preserved.</string>
+    <string name="expressive_feed_permission_needed">Allow Expressive to install apps to finish Discover setup. You can try again when ready.</string>
+    <string name="expressive_feed_setup_cancelled">Setup was not completed. You can try again whenever you are ready.</string>
+</resources>

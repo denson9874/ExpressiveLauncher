@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compile-time fallbacks. Non-Expressive variants select their existing translated IDs. -->
+    <string name="expressive_managed_by_launcher" translatable="false">Managed by Expressive Launcher L3</string>
+    <string name="expressive_accessibility_service_description" translatable="false">Expressive Launcher L3 accessibility service</string>
+    <string name="expressive_debug_restart_launcher" translatable="false">Restart Expressive Launcher L3</string>
+    <string name="expressive_set_default_launcher_tip" translatable="false">Set Expressive Launcher L3 as your default Home app</string>
+    <string name="expressive_onboarding_open_settings_title" translatable="false">Set up Expressive Launcher L3</string>
+    <string name="expressive_onboarding_major_upgrade_title" translatable="false">Meet Expressive Launcher L3</string>
+    <string name="expressive_onboarding_welcome" translatable="false">Welcome to Expressive Launcher L3</string>
+    <string name="expressive_smartspace_widget_toggle_description" translatable="false">At a Glance can be added to Home with the Expressive Launcher L3 widget</string>
+    <string name="expressive_dt2s_admin_hint" translatable="false">Enable Expressive Launcher L3 as a device admin app to put the device to sleep.</string>
+    <string name="expressive_generic_a11y_hint" translatable="false">To %1$s, enable the Expressive Launcher L3 accessibility service.</string>
+    <string name="expressive_generic_a11y_disclaimer" translatable="false">Expressive Launcher L3 uses performGlobalAction only for the selected gesture action.</string>
+    <string name="expressive_bug_report" translatable="false">Expressive Launcher L3 bug report</string>
+    <string name="expressive_unfolded_grid_description" translatable="false">Expressive Launcher L3 pairs two pages to fill the larger display</string>
+    <string name="expressive_search_provider_description" translatable="false">Search results are provided by %1$s.</string>
+    <string name="expressive_quickswitch_warning" translatable="false">These settings are unavailable in this standard Home app</string>
+    <string name="expressive_prediction_mode" translatable="false">Expressive</string>
+    <string name="expressive_smartspace_mode" translatable="false">Expressive</string>
+    <string name="expressive_hotseat_mode" translatable="false">Expressive</string>
+</resources>
