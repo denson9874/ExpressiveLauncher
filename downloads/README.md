@@ -2,23 +2,24 @@
 
 [Browse every release](https://github.com/denson9874/ExpressiveLauncher/releases) for versioned APKs and verification files. QA builds are marked **Pre-release**. Keep the same channel when updating an existing installation.
 
-## Expressive Launcher 1.0.12 QA — version code 13
+## Expressive Launcher 2.0.8 Stable — version code 26
 
 | Download | Purpose |
 | --- | --- |
-| [Installable APK](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed.apk) | Signed QA app for Android 17 / API37 or newer. |
-| [QA report](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-QA-report.md) | Build and verification summary. |
-| [Package metadata](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-metadata.json) | Version, package, source identity, size, hash, and certificate. |
-| [Device test results](https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v1.0.12-13/ExpressiveLauncherL3-1.0.12-Android17-QPR2-Beta4-Jenkins-QA-release-signed-qa-result.json) | Isolated upgrade and smoke-check evidence. |
+| [Installable APK](https://github.com/denson9874/ExpressiveLauncher/releases/download/v2.0.8-26/ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk) | Signed Release app for Android 12 (API 31) through Android 17 (API 37). |
+| [Release notes](https://github.com/denson9874/ExpressiveLauncher/releases/tag/v2.0.8-26) | Full release notes, changes since 1.0.16, humor, and riddle. |
+| [Release report](https://github.com/denson9874/ExpressiveLauncher/releases/download/v2.0.8-26/ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-Release-report.md) | Build and verification summary. |
+| [Package metadata](https://github.com/denson9874/ExpressiveLauncher/releases/download/v2.0.8-26/ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-metadata.json) | Version, package, source identity, size, hash, and certificate. |
+| [Device test results](https://github.com/denson9874/ExpressiveLauncher/releases/download/v2.0.8-26/ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-release-result.json) | Isolated upgrade and smoke-check evidence. |
 
-APK size: **21,794,680 bytes**. SHA-256:
+APK size: **23,943,857 bytes**. SHA-256:
 
 ```text
-778bb1720151c4b486ddc5d400fb0b69bc2c725cd692f2d246cf17dc6ebf88a1
+f0368d2af067fd64eec9e688b813999d80e17d6e2ed16979d444671b56bff703
 ```
 
-These existing assets are retained unchanged. Future published QA offers are selected by the [QA manifest](https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa/latest.json), so use the Releases page or the app's updater to find newer builds.
+Stable updates are selected by the [Release manifest](https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json), while pre-release QA updates use the [QA manifest](https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json).
 
 ## Application source
 
-The full application source is on [`main`](https://github.com/denson9874/ExpressiveLauncher/tree/main). Use a recursive clone to include the pinned SystemUI dependency; [build instructions](../docs/BUILDING.md) explain the requirements. The historical `qa-v1.0.11-12` and `qa-v1.0.12-13` release tags predate application-source publication, so their automatically generated **Source code (zip/tar.gz)** files contain the earlier exports-only repository. Use `main` and its source provenance for this application snapshot. Original release tags and assets remain preserved.
+The full application source is on [`main`](https://github.com/denson9874/ExpressiveLauncher/tree/main). Use a recursive clone to include the pinned SystemUI dependency; [build instructions](../docs/BUILDING.md) explain the requirements.
