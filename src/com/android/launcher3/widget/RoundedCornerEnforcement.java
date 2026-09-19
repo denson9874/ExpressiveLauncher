@@ -39,7 +39,8 @@ import java.util.List;
  * Utilities to compute the enforced the use of rounded corners on App Widgets.
  */
 public class RoundedCornerEnforcement {
-    public static boolean sRoundedCornerEnabled;
+    public static boolean sRoundedCornerEnabled = true;
+    public static float sCustomCornerRadius = -1f;
 
     // This class is only a namespace and not meant to be instantiated.
     private RoundedCornerEnforcement() {
@@ -100,6 +101,12 @@ public class RoundedCornerEnforcement {
      * in the given context.
      */
     public static float computeEnforcedRadius(@NonNull Context context) {
+        if (!sRoundedCornerEnabled) {
+            return 0f;
+        }
+        if (sCustomCornerRadius >= 0f) {
+            return sCustomCornerRadius;
+        }
         Resources res = context.getResources();
         if (!Utilities.ATLEAST_S) {
             return res.getDimension(R.dimen.enforced_rounded_corner_max_radius);

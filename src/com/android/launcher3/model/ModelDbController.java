@@ -608,7 +608,7 @@ public class ModelDbController {
         values.put(LauncherSettings.Favorites.MODIFIED, System.currentTimeMillis());
     }
 
-    private void clearFlagEmptyDbCreated() {
+    public void clearFlagEmptyDbCreated() {
         mPrefs.removeSync(getEmptyDbCreatedKey());
     }
 
@@ -685,7 +685,7 @@ public class ModelDbController {
         return !isExpressiveProduct;
     }
 
-    private ConstantItem<Boolean> getEmptyDbCreatedKey() {
+    public ConstantItem<Boolean> getEmptyDbCreatedKey() {
         return getEmptyDbCreatedKey(mOpenHelper.getDatabaseName());
     }
 
@@ -695,7 +695,7 @@ public class ModelDbController {
      * given key. e.g. consider key="EMPTY_DATABASE_CREATED", dbName="minimal.db", the returning
      * string will be "EMPTY_DATABASE_CREATED@minimal.db".
      */
-    private ConstantItem<Boolean> getEmptyDbCreatedKey(String dbName) {
+    public static ConstantItem<Boolean> getEmptyDbCreatedKey(String dbName) {
         String key = TextUtils.equals(dbName, LauncherFiles.LAUNCHER_DB)
                 ? EMPTY_DATABASE_CREATED : EMPTY_DATABASE_CREATED + "@" + dbName;
         return LauncherPrefs.backedUpItem(key, false /* default value */, EncryptionType.ENCRYPTED);

@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
@@ -90,7 +91,9 @@ import app.lawnchair.ui.preferences.navigation.HomeScreen
 import app.lawnchair.ui.preferences.navigation.PreferenceRootRoute
 import app.lawnchair.ui.preferences.navigation.Quickstep
 import app.lawnchair.ui.preferences.navigation.Search
+import app.lawnchair.ui.preferences.navigation.SettingsSearch
 import app.lawnchair.ui.preferences.navigation.Smartspace
+import app.lawnchair.ui.preferences.navigation.WidgetPreferencesRoute
 import app.lawnchair.ui.util.addIf
 import app.lawnchair.util.isDefaultLauncher
 import app.lawnchair.util.productStringId
@@ -134,7 +137,13 @@ fun PreferencesDashboard(
         modifier = modifier,
         verticalArrangement = Arrangement.Top,
         backArrowVisible = false,
-        actions = { PreferencesOverflowMenu(currentRoute = currentRoute, onNavigate = onNavigate) },
+        actions = {
+            ClickableIcon(
+                imageVector = Icons.Rounded.Search,
+                onClick = { onNavigate(SettingsSearch) },
+            )
+            PreferencesOverflowMenu(currentRoute = currentRoute, onNavigate = onNavigate)
+        },
     ) {
         if (!BuildConfig.STANDARD_HOME_ONLY) {
             AnnouncementPreference()
@@ -176,6 +185,14 @@ fun PreferencesDashboard(
                 iconResource = R.drawable.ic_home_screen,
                 onNavigate = { onNavigate(HomeScreen) },
                 isSelected = currentRoute is HomeScreen,
+            )
+
+            PreferenceCategory(
+                label = stringResource(R.string.widget_settings_label),
+                description = stringResource(R.string.widget_settings_description),
+                iconResource = R.drawable.ic_widget,
+                onNavigate = { onNavigate(WidgetPreferencesRoute) },
+                isSelected = currentRoute is WidgetPreferencesRoute,
             )
 
             val isSmartspaceEnabled = prefs2.enableSmartspace.firstCached()

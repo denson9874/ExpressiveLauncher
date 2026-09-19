@@ -46,17 +46,24 @@ open class WidgetSizeHandler @Inject constructor(@ApplicationContext private val
         spanY: Int,
     ) {
         Executors.UI_HELPER_EXECUTOR.execute {
-            val widgetManager = AppWidgetManager.getInstance(context)
-            val sizeOptions = WidgetSizes.getWidgetSizeOptions(context, info.provider, spanX, spanY)
-            if (
-                sizeOptions.getWidgetSizeList() !=
-                    widgetManager.getAppWidgetOptions(widgetId).getWidgetSizeList()
-            )
-                widgetManager.updateAppWidgetOptions(widgetId, sizeOptions)
+            try {
+                val widgetManager = AppWidgetManager.getInstance(context) ?: return@execute
+                val sizeOptions = WidgetSizes.getWidgetSizeOptions(context, info.provider, spanX, spanY)
+                val currentOptions = widgetManager.getAppWidgetOptions(widgetId)
+                if (
+                    currentOptions != null &&
+                    sizeOptions.getWidgetSizeList() != currentOptions.getWidgetSizeList()
+                ) {
+                    widgetManager.updateAppWidgetOptions(widgetId, sizeOptions)
+                }
+            } catch (e: Exception) {
+                android.util.Log.w(TAG, "Failed to update widget options for widgetId=$widgetId", e)
+            }
         }
     }
 
     companion object {
+        private const val TAG = "WidgetSizeHandler"
 
         fun Bundle.getWidgetSizeList() = getParcelableArrayList<SizeF>(OPTION_APPWIDGET_SIZES)
     }

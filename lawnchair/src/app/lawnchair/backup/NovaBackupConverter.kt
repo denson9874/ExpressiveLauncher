@@ -12,6 +12,7 @@ import app.lawnchair.DeviceProfileOverrides
 import app.lawnchair.preferences.PreferenceManager
 import com.android.launcher3.GridType
 import com.android.launcher3.InvariantDeviceProfile
+import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherSettings.Favorites
 import com.android.launcher3.model.DatabaseHelper
 import com.android.launcher3.model.DeviceGridState
@@ -179,6 +180,11 @@ class NovaBackupConverter(
 
             val dbController = ModelDbController(context)
             RestoreDbTask.performRestore(context, dbController)
+            dbController.clearFlagEmptyDbCreated()
+            val targetDb = InvariantDeviceProfile.INSTANCE.get(context).dbFile
+            if (targetDb != null) {
+                LauncherPrefs.get(context).removeSync(ModelDbController.getEmptyDbCreatedKey(targetDb))
+            }
 
             pinImportedDeepShortcuts(importedDeepShortcuts)
         } finally {

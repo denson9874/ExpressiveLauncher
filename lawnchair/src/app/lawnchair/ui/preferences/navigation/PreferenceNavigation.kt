@@ -53,8 +53,10 @@ import app.lawnchair.ui.preferences.destinations.SearchPreferences
 import app.lawnchair.ui.preferences.destinations.SearchProviderPreferences
 import app.lawnchair.ui.preferences.destinations.SelectAppsForDrawerFolder
 import app.lawnchair.ui.preferences.destinations.SelectIconPreference
+import app.lawnchair.ui.preferences.destinations.SettingsSearchScreen
 import app.lawnchair.ui.preferences.destinations.ShapePreference
 import app.lawnchair.ui.preferences.destinations.SmartspacePreferences
+import app.lawnchair.ui.preferences.destinations.WidgetPreferences
 import com.android.launcher3.util.ComponentKey
 import soup.compose.material.motion.animation.materialSharedAxisXIn
 import soup.compose.material.motion.animation.materialSharedAxisXOut
@@ -238,6 +240,18 @@ fun PreferenceNavigation(
         composable<CreateBackup>(
             deepLinks = getDeepLink(CreateBackup),
         ) { CreateBackupScreen(viewModel()) }
+
+        composable<SettingsSearch>(
+            deepLinks = getDeepLink(SettingsSearch),
+        ) {
+            SettingsSearchScreen(
+                onNavigate = { navController.navigate(it) },
+            )
+        }
+
+        composable<WidgetPreferencesRoute>(
+            deepLinks = getDeepLink(WidgetPreferencesRoute),
+        ) { WidgetPreferences() }
 
         restoreBackupGraph()
         restoreNovaBackupGraph()

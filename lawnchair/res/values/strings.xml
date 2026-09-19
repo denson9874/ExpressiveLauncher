@@ -835,6 +835,10 @@
     <string name="vertical_padding_label">Vertical padding</string>
     <string name="top_padding_label">Top padding</string>
     <string name="widget_padding_label">Widget padding</string>
+    <string name="widget_settings_label">Widgets</string>
+    <string name="widget_settings_description">Padding, corner radius, and layout behavior</string>
+    <string name="widget_corner_radius_label">Widget corner radius</string>
+    <string name="widget_corner_radius_description">Adjust how rounded widget corners are</string>
 
     <string name="set_default_home_page">Set as default page</string>
     <string name="default_home_page_set">Default home page updated</string>

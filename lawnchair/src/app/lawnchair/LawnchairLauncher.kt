@@ -223,6 +223,10 @@ class LawnchairLauncher : QuickstepLauncher() {
         preferenceManager2.roundedWidgets.onEach(launchIn = lifecycleScope) {
             RoundedCornerEnforcement.sRoundedCornerEnabled = it
         }
+        preferenceManager2.widgetCornerRadius.onEach(launchIn = lifecycleScope) { radiusDp ->
+            val density = resources.displayMetrics.density
+            RoundedCornerEnforcement.sCustomCornerRadius = radiusDp * density
+        }
         val isWorkspaceDarkText = Themes.getAttrBoolean(this, R.attr.isWorkspaceDarkText)
         preferenceManager2.darkStatusBar.onEach(launchIn = lifecycleScope) { darkStatusBar ->
             systemUiController?.updateUiState(UI_STATE_BASE_WINDOW, isWorkspaceDarkText || darkStatusBar)

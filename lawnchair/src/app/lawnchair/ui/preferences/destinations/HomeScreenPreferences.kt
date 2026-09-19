@@ -240,11 +240,21 @@ fun HomeScreenPreferences(
                 )
             }
         }
+        val roundedWidgetsAdapter = prefs2.roundedWidgets.getAdapter()
         PreferenceGroup(heading = stringResource(id = R.string.widget_button_text)) {
             SwitchPreference(
-                adapter = prefs2.roundedWidgets.getAdapter(),
+                adapter = roundedWidgetsAdapter,
                 label = stringResource(id = R.string.force_rounded_widgets),
             )
+            ExpandAndShrink(visible = roundedWidgetsAdapter.state.value) {
+                SliderPreference(
+                    label = stringResource(id = R.string.widget_corner_radius_label),
+                    adapter = prefs2.widgetCornerRadius.getAdapter(),
+                    step = 2,
+                    valueRange = 0..40,
+                    showUnit = "dp",
+                )
+            }
             SwitchPreference(
                 adapter = prefs2.allowWidgetOverlap.getAdapter(),
                 label = stringResource(id = R.string.allow_widget_overlap),

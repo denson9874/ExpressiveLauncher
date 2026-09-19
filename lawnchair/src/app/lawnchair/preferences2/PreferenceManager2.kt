@@ -588,6 +588,12 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.reloadGrid() },
     )
 
+    val widgetCornerRadius = preference(
+        key = intPreferencesKey(name = "widget_corner_radius"),
+        defaultValue = 16,
+        onSet = { reloadHelper.reloadGrid() },
+    )
+
     val drawerPaddingTopFactor = preference(
         key = floatPreferencesKey(name = "drawer_padding_top"),
         defaultValue = resourceProvider.getFloat(R.dimen.config_default_drawer_padding_top),

@@ -64,63 +64,6 @@ SystemUI remains responsible for Overview and gesture navigation.
         tools:node="replace" />
 
     <uses-permission
-        android:name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.START_TASKS_FROM_RECENTS"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.REMOVE_TASKS"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.WRITE_SECURE_SETTINGS"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.MANAGE_ACTIVITY_TASKS"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.INTERNAL_SYSTEM_WINDOW"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.STATUS_BAR"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.STATUS_BAR_SERVICE"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.STOP_APP_SWITCHES"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.SET_ORIENTATION"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.READ_FRAME_BUFFER"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.MANAGE_ACCESSIBILITY"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.MONITOR_INPUT"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.ALLOW_SLIPPERY_TOUCHES"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.ACCESS_SHORTCUTS"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.SYSTEM_APPLICATION_OVERLAY"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.ACCESS_HIDDEN_PROFILES_FULL"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.MANAGE_KEY_GESTURES"
-        tools:node="remove" />
-    <uses-permission
         android:name="android.permission.INTERACT_ACROSS_USERS"
         tools:node="remove" />
     <uses-permission
@@ -242,19 +185,6 @@ SystemUI remains responsible for Overview and gesture navigation.
                 android:value="${applicationId}.grid_control" />
         </activity>
 
-        <service
-            android:name="com.android.quickstep.TouchInteractionService"
-            tools:node="remove" />
-
-        <activity
-            android:name="com.android.quickstep.RecentsActivity"
-            tools:node="remove" />
-        <activity
-            android:name="com.android.quickstep.interaction.GestureSandboxActivity"
-            tools:node="remove" />
-        <activity
-            android:name="com.android.quickstep.interaction.AllSetActivity"
-            tools:node="remove" />
         <!--
              Keep the result proxy even though this flavor is not a privileged Quickstep
              implementation. QuickstepLauncher routes AppWidget bind/configuration activities
@@ -268,17 +198,5 @@ SystemUI remains responsible for Overview and gesture navigation.
             android:launchMode="singleTask"
             android:theme="@style/ProxyActivityStarterTheme"
             tools:node="merge" />
-
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.overview.fileprovider"
-            tools:node="remove" />
-
-        <meta-data
-            android:name="xyz.paphonb.quickstepswitcher.minSdk"
-            tools:node="remove" />
-        <meta-data
-            android:name="xyz.paphonb.quickstepswitcher.maxSdk"
-            tools:node="remove" />
     </application>
 </manifest>

@@ -19,6 +19,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -46,6 +47,7 @@ public class TISBindHelper implements ServiceConnection {
 
     // Max backoff caps at 5 mins
     private static final long MAX_BACKOFF_MILLIS = 10 * 60 * 1000;
+    private static final int MAX_CONNECTION_ATTEMPTS = 5;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final Runnable mConnectionRunnable = this::internalBindToTIS;
@@ -62,10 +64,12 @@ public class TISBindHelper implements ServiceConnection {
     public TISBindHelper(Context context, Consumer<TISBinder> connectionCallback) {
         mContext = context;
         mConnectionCallback = connectionCallback;
-        // The standard-home flavor deliberately omits TouchInteractionService because Android only
-        // permits the privileged recents component to own it. Retrying a missing service forever
-        // produced log spam and periodic main-thread work in every Expressive Launcher session.
-        mBindingSupported = !BuildConfig.STANDARD_HOME_ONLY;
+        // The standard-home flavor only connects to TouchInteractionService if running as a
+        // privileged recents provider (e.g. via QuickSwitch in /system/priv-app). When running
+        // as an ordinary user app, it omits binding to avoid permission failures and log spam.
+        mBindingSupported = !BuildConfig.STANDARD_HOME_ONLY
+                || context.checkSelfPermission("android.permission.STATUS_BAR_SERVICE")
+                        == PackageManager.PERMISSION_GRANTED;
         if (mBindingSupported) {
             internalBindToTIS();
         }
@@ -157,6 +161,11 @@ public class TISBindHelper implements ServiceConnection {
                 this, 0);
         if (mTisServiceBound) {
             resetServiceBindRetryState();
+            return;
+        }
+
+        if (mConnectionAttempts >= MAX_CONNECTION_ATTEMPTS) {
+            Log.w(TAG, "TIS binding failed after " + mConnectionAttempts + " attempts; stopping retries");
             return;
         }
 

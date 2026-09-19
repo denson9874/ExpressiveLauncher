@@ -214,3 +214,13 @@ data class RestoreBackup(val base64Uri: String) : PreferenceRoute
 
 @Serializable
 data class RestoreNovaBackup(val base64Uri: String) : PreferenceRoute
+
+@Serializable
+data object SettingsSearch : PreferenceRootRoute, PreferenceDeepLink {
+    override val deepLink = "$URI/settings-search"
+}
+
+@Serializable
+data object WidgetPreferencesRoute : PreferenceRootRoute, PreferenceDeepLink {
+    override val deepLink = "$URI/widgets"
+}

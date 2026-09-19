@@ -154,10 +154,10 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse("dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("25")
+        .orElse("26")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("2.0.7")
+        .orElse("2.0.8")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("")
@@ -229,7 +229,7 @@ if (expressiveSigningValues.any { it != null && !it.toString().isBlank() } && !e
 }
 
 final def quickstepMinSdk = "29"
-final def quickstepMaxSdk = "36"
+final def quickstepMaxSdk = "37"
 
 android {
     namespace "com.android.launcher3"
