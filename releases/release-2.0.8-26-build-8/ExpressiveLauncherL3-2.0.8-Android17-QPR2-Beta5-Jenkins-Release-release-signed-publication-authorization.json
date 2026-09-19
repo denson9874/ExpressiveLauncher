@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "policy": "green-stable-v1",
+  "releaseId": "release-2.0.8-26-build-8",
+  "channel": "release",
+  "sourceRevision": "b56bd0e3c9b53a323f7daa489b2d71c812b34807",
+  "versionName": "2.0.8",
+  "versionCode": 26,
+  "sha256": "f0368d2af067fd64eec9e688b813999d80e17d6e2ed16979d444671b56bff703",
+  "metadataSha256": "3ea2639207ddf944e752a575ea007c4d512c424b3e4c525536bfc829b266c9e0",
+  "qaResultSha256": "1589e9156502b43e34d913342c13757f3c147ed85ab7e1acec042f298f6dd79e",
+  "reportSha256": "345e48e06668d2b18ff03985bc45576b7753fc948ccac521c4a0ae70137c9e84",
+  "sealSha256": "951f790730f77bd35f53ddf4a0da8f987b342d117450f93195a0d0abdbf5032a",
+  "jenkins": {
+    "job": "expressive-release-build",
+    "number": 8,
+    "url": "http://127.0.0.1:8091/job/expressive-release-build/8/",
+    "result": "SUCCESS",
+    "building": false,
+    "timestamp": 1789825930884,
+    "duration": 474767
+  },
+  "publisherSourceRevision": "b56bd0e3c9b53a323f7daa489b2d71c812b34807",
+  "originalValidationOnly": true,
+  "supersedesOriginalPublicationRestriction": true,
+  "userInstruction": "When stable builds are green, they need to be uploaded to the stable branch on gituhub"
+}

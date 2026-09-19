@@ -1,0 +1,55 @@
+{
+  "artifacts": {
+    "ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-QA-report.md": {
+      "gitBlobSha1": "fd2db23f4b06386c590a44f7921427b033b7305c",
+      "sha256": "345e48e06668d2b18ff03985bc45576b7753fc948ccac521c4a0ae70137c9e84",
+      "sizeBytes": 1505
+    },
+    "ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-metadata.json": {
+      "gitBlobSha1": "1dfe27bb9fe416607b23fbaf31d0d0e03e752b7e",
+      "sha256": "3ea2639207ddf944e752a575ea007c4d512c424b3e4c525536bfc829b266c9e0",
+      "sizeBytes": 2705
+    },
+    "ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-publication-authorization.json": {
+      "gitBlobSha1": "29ad2186bb09268569d61bc53df0e68708983981",
+      "sha256": "93925762771fce4a619a57fe41266d15450650d983edbeee281eb30339ab6715",
+      "sizeBytes": 1177
+    },
+    "ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-qa-result.json": {
+      "gitBlobSha1": "f35abf9624bb2a54288a6b67b6e6be21cb9fe062",
+      "sha256": "1589e9156502b43e34d913342c13757f3c147ed85ab7e1acec042f298f6dd79e",
+      "sizeBytes": 4811
+    },
+    "ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed-seal.json": {
+      "gitBlobSha1": "d200ad23ee3389ea9d529294f639113fa10adad7",
+      "sha256": "951f790730f77bd35f53ddf4a0da8f987b342d117450f93195a0d0abdbf5032a",
+      "sizeBytes": 451
+    },
+    "ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk": {
+      "gitBlobSha1": "42db08f8ba7bc5f948020be8e1ebb67324f71e12",
+      "sha256": "f0368d2af067fd64eec9e688b813999d80e17d6e2ed16979d444671b56bff703",
+      "sizeBytes": 23943857
+    }
+  },
+  "authorizationSha256": "630b9d1532f12c68730ceaa97bc6898c5ecf551deb463cd2edbc15c5bcb52c48",
+  "channel": "release",
+  "feed": {
+    "apkUrl": "https://github.com/denson9874/ExpressiveLauncher/releases/download/v2.0.8-26/ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk",
+    "channel": "release",
+    "packageName": "dev.launcher.expressive.l3",
+    "releaseNotes": "Expressive Launcher 2.0.8 Release build. The exact APK passed the retained automated and emulator QA gates.",
+    "schemaVersion": 1,
+    "sha256": "f0368d2af067fd64eec9e688b813999d80e17d6e2ed16979d444671b56bff703",
+    "sizeBytes": 23943857,
+    "versionCode": 26,
+    "versionName": "2.0.8"
+  },
+  "packageName": "dev.launcher.expressive.l3",
+  "releaseId": "release-2.0.8-26-build-8",
+  "schemaVersion": 1,
+  "sha256": "f0368d2af067fd64eec9e688b813999d80e17d6e2ed16979d444671b56bff703",
+  "sizeBytes": 23943857,
+  "sourceRevision": "b56bd0e3c9b53a323f7daa489b2d71c812b34807",
+  "versionCode": 26,
+  "versionName": "2.0.8"
+}

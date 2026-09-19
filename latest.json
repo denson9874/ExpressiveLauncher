@@ -1,11 +1,11 @@
 {
-  "apkUrl": "https://github.com/denson9874/ExpressiveLauncher/releases/download/v1.0.16-17/ExpressiveLauncherL3-1.0.16-Android17-QPR2-Beta4-Jenkins-Release-release-signed.apk",
+  "apkUrl": "https://github.com/denson9874/ExpressiveLauncher/releases/download/v2.0.8-26/ExpressiveLauncherL3-2.0.8-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk",
   "channel": "release",
   "packageName": "dev.launcher.expressive.l3",
-  "releaseNotes": "Expressive Launcher 1.0.16 Release build. The exact APK passed the retained automated and emulator QA gates.",
+  "releaseNotes": "Expressive Launcher 2.0.8 Release build. The exact APK passed the retained automated and emulator QA gates.",
   "schemaVersion": 1,
-  "sha256": "4b4126642c3e6d485781ce5043a048d071278f9c58211d9d091811df0a5b9399",
-  "sizeBytes": 21774868,
-  "versionCode": 17,
-  "versionName": "1.0.16"
+  "sha256": "f0368d2af067fd64eec9e688b813999d80e17d6e2ed16979d444671b56bff703",
+  "sizeBytes": 23943857,
+  "versionCode": 26,
+  "versionName": "2.0.8"
 }
