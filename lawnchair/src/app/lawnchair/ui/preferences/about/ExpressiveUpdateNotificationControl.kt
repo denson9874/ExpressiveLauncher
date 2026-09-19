@@ -2,6 +2,7 @@ package app.lawnchair.ui.preferences.about
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -79,9 +80,14 @@ internal fun ExpressiveUpdateNotificationControl(
         } else {
             Button(
                 onClick = {
-                    if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                        ExpressiveUpdateNotifications.openSettings(context)
+                    val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
                     } else {
+                        true
+                    }
+                    if (hasPermission) {
+                        ExpressiveUpdateNotifications.openSettings(context)
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     }
                 },

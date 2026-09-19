@@ -1185,7 +1185,11 @@ public class BubbleController implements ConfigurationChangeListener,
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
-        mContext.registerReceiver(mBroadcastReceiver, filter, Context.RECEIVER_EXPORTED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            mContext.registerReceiver(mBroadcastReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            mContext.registerReceiver(mBroadcastReceiver, filter);
+        }
     }
 
     private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -1227,8 +1231,12 @@ public class BubbleController implements ConfigurationChangeListener,
         IntentFilter shortcutFilter = new IntentFilter();
         shortcutFilter.addAction(BubbleShortcutHelper.ACTION_SHOW_BUBBLES);
         ProtoLog.d(WM_SHELL_BUBBLES, "register broadcast receive for bubbles shortcut");
-        mContext.registerReceiver(mShortcutBroadcastReceiver, shortcutFilter,
-                Context.RECEIVER_NOT_EXPORTED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            mContext.registerReceiver(mShortcutBroadcastReceiver, shortcutFilter,
+                    Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            mContext.registerReceiver(mShortcutBroadcastReceiver, shortcutFilter);
+        }
     }
 
     private final BroadcastReceiver mShortcutBroadcastReceiver = new BroadcastReceiver() {

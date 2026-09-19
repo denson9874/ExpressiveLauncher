@@ -29,7 +29,7 @@ allprojects {
                 }
             }
             defaultConfig {
-                minSdk = 37
+                minSdk = 31
                 targetSdk = 37
                 vectorDrawables.useSupportLibrary = true
             }
@@ -154,10 +154,10 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse("dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("23")
+        .orElse("24")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("2.0.5")
+        .orElse("2.0.6")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("")
@@ -377,7 +377,7 @@ android {
 
         withQuickstep {
             dimension "recents"
-            minSdk = 37
+            minSdk = 31
         }
 
         github {

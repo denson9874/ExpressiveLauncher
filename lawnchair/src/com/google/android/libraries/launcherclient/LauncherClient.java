@@ -20,6 +20,7 @@ import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import app.lawnchair.FeedBridge;
 import java.lang.ref.WeakReference;
@@ -140,7 +141,8 @@ public class LauncherClient {
         intentFilter.addDataScheme("package");
         // A feed companion can be installed, upgraded, or removed while Launcher remains alive.
         // Listen for each transition and let FeedBridge filter to relevant provider packages.
-        mActivity.registerReceiver(feedPackageListener, intentFilter, Context.RECEIVER_EXPORTED);
+        ContextCompat.registerReceiver(mActivity, feedPackageListener, intentFilter,
+                ContextCompat.RECEIVER_EXPORTED);
 
         if (apiVersion <= 0) {
             loadApiVersion(activity);

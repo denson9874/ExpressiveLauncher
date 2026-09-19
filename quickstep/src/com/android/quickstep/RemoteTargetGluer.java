@@ -31,6 +31,7 @@ import android.window.TransitionInfo;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.launcher3.Utilities;
 import com.android.launcher3.statehandlers.DesktopVisibilityController;
 import com.android.quickstep.util.AnimatorControllerWithResistance;
 import com.android.quickstep.util.TaskViewSimulator;
@@ -157,7 +158,9 @@ public class RemoteTargetGluer {
         // If both of these are null, we are in a 1-app or 1-app-plus-assistant case.
         if (mSplitBounds == null && targets.extras != null
                 && targets.extras.containsKey(KEY_EXTRA_SPLIT_BOUNDS)) {
-            mSplitBounds = targets.extras.getParcelable(KEY_EXTRA_SPLIT_BOUNDS, SplitBounds.class);
+            mSplitBounds = Utilities.ATLEAST_T
+                    ? targets.extras.getParcelable(KEY_EXTRA_SPLIT_BOUNDS, SplitBounds.class)
+                    : targets.extras.getParcelable(KEY_EXTRA_SPLIT_BOUNDS);
         }
 
         boolean containsSplitTargets = mSplitBounds != null;

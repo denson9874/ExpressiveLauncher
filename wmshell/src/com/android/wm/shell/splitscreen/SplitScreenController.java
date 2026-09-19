@@ -53,6 +53,7 @@ import android.content.Intent;
 import android.content.pm.LauncherApps;
 import android.content.pm.ShortcutInfo;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -803,7 +804,9 @@ public class SplitScreenController implements SplitDragPolicy.Starter,
             }
         }
         if (options2 != null) {
-            Intent widgetIntent = options2.getParcelable(KEY_EXTRA_WIDGET_INTENT, Intent.class);
+            Intent widgetIntent = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    ? options2.getParcelable(KEY_EXTRA_WIDGET_INTENT, Intent.class)
+                    : options2.getParcelable(KEY_EXTRA_WIDGET_INTENT);
             fillInIntent = resolveWidgetFillinIntent(widgetIntent, setSecondIntentMultipleTask);
         }
         mStageCoordinator.startIntentAndTask(pendingIntent, fillInIntent, options1, taskId,
@@ -850,7 +853,9 @@ public class SplitScreenController implements SplitDragPolicy.Starter,
             }
         }
         if (options2 != null) {
-            Intent widgetIntent = options2.getParcelable(KEY_EXTRA_WIDGET_INTENT, Intent.class);
+            Intent widgetIntent = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    ? options2.getParcelable(KEY_EXTRA_WIDGET_INTENT, Intent.class)
+                    : options2.getParcelable(KEY_EXTRA_WIDGET_INTENT);
             fillInIntent2 = resolveWidgetFillinIntent(widgetIntent, setSecondIntentMultipleTask);
         }
         mStageCoordinator.startIntents(pendingIntent1, fillInIntent1, shortcutInfo1,

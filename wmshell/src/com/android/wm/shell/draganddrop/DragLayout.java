@@ -50,6 +50,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Region;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.UserHandle;
 import android.view.DragEvent;
 import android.view.SurfaceControl;
@@ -680,19 +681,25 @@ public class DragLayout extends LinearLayout
 
     private void handleDropOnBubbleBar(Intent appData,
             DragToBubbleController dragToBubbleController) {
-        ShortcutInfo shortcutInfo = appData.getParcelableExtra(
-                DragAndDropConstants.EXTRA_SHORTCUT_INFO,
-                ShortcutInfo.class
-        );
+        ShortcutInfo shortcutInfo = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? appData.getParcelableExtra(
+                        DragAndDropConstants.EXTRA_SHORTCUT_INFO,
+                        ShortcutInfo.class)
+                : appData.getParcelableExtra(
+                        DragAndDropConstants.EXTRA_SHORTCUT_INFO);
         if (shortcutInfo != null) {
             dragToBubbleController.onItemDropped(shortcutInfo);
             return;
         }
-        UserHandle user = appData.getParcelableExtra(Intent.EXTRA_USER, UserHandle.class);
-        PendingIntent pendingIntent = appData.getParcelableExtra(
-                ClipDescription.EXTRA_PENDING_INTENT,
-                PendingIntent.class
-        );
+        UserHandle user = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? appData.getParcelableExtra(Intent.EXTRA_USER, UserHandle.class)
+                : appData.getParcelableExtra(Intent.EXTRA_USER);
+        PendingIntent pendingIntent = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? appData.getParcelableExtra(
+                        ClipDescription.EXTRA_PENDING_INTENT,
+                        PendingIntent.class)
+                : appData.getParcelableExtra(
+                        ClipDescription.EXTRA_PENDING_INTENT);
         if (pendingIntent != null && user != null) {
             dragToBubbleController.onItemDropped(pendingIntent, user);
         }

@@ -203,6 +203,41 @@ The baseline is the verified published 2.0.4/code22 seal `qa-2.0.4-22-build-20`.
 feedback is deferred to Monday September 21 with target versions unassigned. Stable remains held.
 No physical-device, spoken TalkBack or privileged Quickstep validation is claimed.
 
+## Lower minimum SDK requirement to 31 with full Android 12 backward compatibility — 2026-09-19 (candidate 2.0.6)
+
+The user requested lowering the application SDK version requirement from 37 (Android 17) to 31
+(Android 12) to allow devices running Android 12 through 16 to install and run Expressive Launcher,
+while guaranteeing that modern Android 17 behaviors are preserved and no crashes or regressions
+occur across supported API levels.
+
+`minSdk` is now set to 31 across all manifests and Gradle build configurations (`build.gradle`,
+`expressiveFeed/build.gradle`, `AndroidManifest.xml`, `quickstep/AndroidManifest-launcher.xml`, and
+`play/AndroidManifest.xml`). `compileSdk = 37` (minorApiLevel 1) and `targetSdk = 37` remain unchanged
+to retain compilation of ported Android 17 AOSP classes, preserve modern platform behaviors, and
+comply with Play Store distribution policies.
+
+Runtime compatibility gaps on API 31–32 guests were identified and remediated:
+1. `Launcher.java`: In `onBackPressed()`, guarded Android 14+ Predictive Back (`OnBackInvokedDispatcher`
+   and `BackEvent`) behind `Utilities.ATLEAST_U` and added the full pre-U legacy dispatch sequence
+   (`finishAutoCancelActionMode`, `mDragController.cancelDrag`, `topView.close(true)`,
+   `handler.onBackInvoked()`, and `onStateBack()`) to eliminate `NoClassDefFoundError` on Android 12/13.
+2. `LauncherClient.java`: Replaced direct 3-argument `registerReceiver` with
+   `ContextCompat.registerReceiver(..., ContextCompat.RECEIVER_EXPORTED)` to prevent `NoSuchMethodError`
+   on API 31.
+3. `ExpressiveUpdateNotifications.kt` & `ExpressiveUpdateNotificationControl.kt`: Guarded
+   `POST_NOTIFICATIONS` runtime permission checks and launch requests behind
+   `Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU`, correctly treating notifications as enabled
+   by default on API 31.
+4. Typed `Bundle.getParcelable(key, Class)` & `Intent.getParcelableExtra(key, Class)` calls in
+   `RemoteTargetGluer.java`, `BubbleBarController.java`, `SplitScreenController.java`, `DragLayout.java`,
+   and `PipDisplayTransferHandler.java`: Guarded behind `Utilities.ATLEAST_T` or
+   `Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU` with fallbacks to legacy single-argument
+   getters to eliminate `NoSuchMethodError` on API 31.
+5. `BubbleController.java`: Guarded `RECEIVER_NOT_EXPORTED` flags behind `Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU`.
+
+Both launcher and embedded feed defaults advance to candidate 2.0.6 / versionCode 24. This entry
+records candidate implementation; verification is recorded in `walkthrough.md`.
+
 ## Reference environment
 
 - Reference date: 2026-09-18

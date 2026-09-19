@@ -3,6 +3,7 @@ package app.lawnchair.ui.preferences.about
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
+import android.os.Build
 import android.app.PendingIntent
 import android.app.job.JobInfo
 import android.app.job.JobParameters
@@ -118,7 +119,12 @@ internal object ExpressiveUpdateNotifications {
 
     fun canNotify(context: Context): Boolean {
         val manager = context.getSystemService(android.app.NotificationManager::class.java)
-        return context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED &&
+        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        return hasPermission &&
             manager.areNotificationsEnabled() &&
             manager.getNotificationChannel(CHANNEL_ID)?.importance != android.app.NotificationManager.IMPORTANCE_NONE
     }

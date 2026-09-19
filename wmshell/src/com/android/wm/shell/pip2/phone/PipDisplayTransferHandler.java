@@ -23,6 +23,7 @@ import android.app.TaskInfo;
 import android.content.Context;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.ArrayMap;
 import android.view.SurfaceControl;
@@ -122,8 +123,10 @@ public class PipDisplayTransferHandler implements
                 }
 
                 mWaitingForDisplayTransfer = true;
-                mPipScheduler.scheduleMoveToDisplay(mTargetDisplayId,
-                        extra.getParcelable(PIP_DESTINATION_BOUNDS, Rect.class));
+                Rect destinationBounds = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        ? extra.getParcelable(PIP_DESTINATION_BOUNDS, Rect.class)
+                        : extra.getParcelable(PIP_DESTINATION_BOUNDS);
+                mPipScheduler.scheduleMoveToDisplay(mTargetDisplayId, destinationBounds);
                 break;
             case PipTransitionState.CHANGING_PIP_BOUNDS:
                 if (!mWaitingForDisplayTransfer) {

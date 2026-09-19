@@ -21,7 +21,7 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <uses-sdk android:targetSdkVersion="37" android:minSdkVersion="37"
+    <uses-sdk android:targetSdkVersion="37" android:minSdkVersion="31"
         tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk.client"/>
     <!--
     Manifest entries specific to Launcher3. This is merged with AndroidManifest-common.xml.

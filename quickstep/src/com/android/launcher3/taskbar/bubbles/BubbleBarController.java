@@ -37,6 +37,7 @@ import android.util.ArrayMap;
 import android.util.Log;
 import android.view.View;
 
+import com.android.launcher3.Utilities;
 import com.android.launcher3.taskbar.TaskbarSharedState;
 import com.android.launcher3.taskbar.bubbles.stashing.BubbleStashController;
 import com.android.launcher3.util.Executors.SimpleThreadFactory;
@@ -269,7 +270,9 @@ public class BubbleBarController extends IBubblesListener.Stub {
     @Override
     public void onBubbleStateChange(Bundle bundle) {
         bundle.setClassLoader(BubbleBarUpdate.class.getClassLoader());
-        BubbleBarUpdate update = bundle.getParcelable("update", BubbleBarUpdate.class);
+        BubbleBarUpdate update = Utilities.ATLEAST_T
+                ? bundle.getParcelable("update", BubbleBarUpdate.class)
+                : bundle.getParcelable("update");
         BubbleBarViewUpdate viewUpdate = new BubbleBarViewUpdate(update);
         if (update.addedBubble != null
                 || update.updatedBubble != null
