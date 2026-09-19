@@ -48,7 +48,16 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(CERT, verify.parse_signer(signing(colon_digest, label="Signer #1")))
 
     def test_multiple_signature_schemes_with_same_certificate(self):
-        output = signing() + f"V3 Signer: certificate SHA-256 digest: {CERT}\n"
+        output = (
+            "Verifies\n"
+            "Verified using v1 scheme (JAR signing): true\n"
+            "Verified using v2 scheme (APK Signature Scheme v2): true\n"
+            "Verified using v3 scheme (APK Signature Scheme v3): true\n"
+            "Number of signers: 1\n"
+            f"V1 Signer: certificate SHA-256 digest: {CERT}\n"
+            f"V2 Signer: certificate SHA-256 digest: {CERT}\n"
+            f"V3 Signer: certificate SHA-256 digest: {CERT}\n"
+        )
         self.assertEqual(CERT, verify.parse_signer(output))
 
     def test_multiple_signers_rejected_even_if_same_certificate(self):

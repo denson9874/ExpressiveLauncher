@@ -202,6 +202,15 @@ and the run cache as it completes; this ledger entry alone does not claim a rele
 The baseline is the verified published 2.0.4/code22 seal `qa-2.0.4-22-build-20`. New Friday XDA
 feedback is deferred to Monday September 21 with target versions unassigned. Stable remains held.
 No physical-device, spoken TalkBack or privileged Quickstep validation is claimed.
+## Restore v1 (JAR) and v3 signature schemes for Android 12 / ColorOS installation compatibility — 2026-09-19 (candidate 2.0.7)
+
+GitHub Issue [#15](https://github.com/denson9874/ExpressiveLauncher/issues/15) reported that installing candidate 2.0.6 on an Oppo CPH2043 (ColorOS / Android 12) failed with `INSTALL_PARSE_FAILED_NO_CERTIFICATES: Failed collecting certificates... SHA-512 digest of contents did not verify`, and package inspection tools reported `No signer certificate was available`.
+
+Root-cause analysis established that both `build.gradle` and `expressiveFeed/build.gradle` had `enableV1Signing false` configured, completely omitting the v1 JAR signature block (`META-INF/*.SF`, `META-INF/*.RSA`), while `enableV3Signing` was also not enabled. Certain Android OEM installers (especially ColorOS on Oppo/Realme, MIUI, EMUI) and session-based streaming package parsers fail certificate collection or digest verification when v1 signatures are absent.
+
+Both the launcher and companion feed signing configurations are updated to enable v1 (JAR signing), v2 (APK Signature Scheme v2), and v3 (APK Signature Scheme v3) while retaining the exact same release signing key and certificate (`c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2`). This ensures seamless package verification across stock Android, third-party APK installers, and OEM firmware versions.
+
+Both launcher and embedded feed defaults advance to candidate 2.0.7 / versionCode 25.
 
 ## Lower minimum SDK requirement to 31 with full Android 12 backward compatibility — 2026-09-19 (candidate 2.0.6)
 

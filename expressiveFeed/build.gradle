@@ -5,10 +5,10 @@ plugins {
 }
 
 final def feedVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("24")
+        .orElse("25")
         .get()
 final def feedVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("2.0.6")
+        .orElse("2.0.7")
         .get()
 final def feedVersionCode = feedVersionCodeText.isInteger()
         ? feedVersionCodeText.toInteger()
@@ -72,8 +72,9 @@ android {
                 keyPassword signingKeyPassword
                 storeFile rootProject.file(signingStoreFile)
                 storePassword signingStorePassword
-                enableV1Signing false
+                enableV1Signing true
                 enableV2Signing true
+                enableV3Signing true
             }
         }
     }

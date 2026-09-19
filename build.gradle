@@ -154,10 +154,10 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse("dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("24")
+        .orElse("25")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("2.0.6")
+        .orElse("2.0.7")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("")
@@ -312,8 +312,9 @@ android {
             keyPassword expressiveKeyPassword
             storeFile resolvedStoreFile
             storePassword expressiveStorePassword
-            enableV1Signing false
+            enableV1Signing true
             enableV2Signing true
+            enableV3Signing true
         }
     }
 
