@@ -5,7 +5,7 @@ plugins {
 }
 
 final def feedVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("26")
+        .orElse("27")
         .get()
 final def feedVersionName = providers.gradleProperty("expressiveVersionName")
         .orElse("2.0.8")

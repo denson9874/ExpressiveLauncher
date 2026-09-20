@@ -86,11 +86,21 @@ A draft or uploaded asset is not an update available to users.
 Every new published build must have a high-quality GitHub changelog following
 docs/GITHUB_RELEASE_CHANGELOG.md. Give it a catchy release-specific title, clear user-facing changes,
 short friendly jokes and an original riddle with a revealable answer, all grounded in the actual
-diff and verified QA evidence. After the successful Jenkins publication receipt, update only the
-matching release title/body using a retained Markdown file and gh release edit --notes-file.
+diff and verified QA evidence. In the V3 cycle, maintain the Free Core daily-driver functionality
+alongside the optional $4.99 Pro customization tier (accompanied by the standard developer support
+statement: "Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.").
+After the successful Jenkins publication receipt, update only the matching release title/body using
+a retained Markdown file and gh release edit --notes-file.
 Preserve the exact hidden source/hash/version identity comment and upstream attribution. Read back
 the complete title/body and verify release identity, assets and channel manifests are unchanged.
-Keep the draft and before/after evidence, and include the release/changelog link in the final report.
+Following verified publication, author and output a companion community announcement post for the three
+official XDA feedback threads:
+- Pixel 7 Pro: https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/
+- Pixel 8 Pro: https://xdaforums.com/t/app-qa-android-17-expressive-launcher-material-3-expressive-pixel-8-pro-feedback.4801791/
+- Pixel 11 Pro / Pro XL: https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/
+Each XDA announcement must feature the release theme, changes addressing community reports, the V3
+Free/Pro tooling support notice, the GitHub release APK download link, the release riddle, and a callout
+for tester feedback. Keep the draft and before/after evidence, and include the release/changelog and XDA announcement links in the final report.
 If this editorial step fails, report and retry it separately without rebuilding or bumping the version.
 
 If build, QA or publication fails, retain the candidate commit and all evidence. Diagnose the precise

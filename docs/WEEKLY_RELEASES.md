@@ -117,11 +117,21 @@ committed infrastructure and records its revision and file hashes separately fro
 sealed source revision. The authorization is retained under the CI home directory's
 `publication-authorizations/` so recovery attempts use identical public evidence.
 
-## Weekly changelog and outcomes
+## Weekly changelog, V3 Free/Pro architecture, and community outcomes
 
 After successful publication, the weekly automation authors a changelog under
 [the GitHub standard](GITHUB_RELEASE_CHANGELOG.md), covering changes since the prior stable release,
-with a catchy title, relevant humor and a revealable riddle. Preserve the `expressive-release`
-identity comment and exact assets/feed while editing prose. A held week reports its concrete reasons;
-a publication failure retains the candidate and receipts for a same-candidate retry.
+with a catchy title, relevant humor and a revealable riddle. For the V3 milestone shift, document the
+Free Core vs. $4.99 Pro customization architecture, accompanied by the standard developer support
+statement:
+> *“Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.”*
+
+Additionally, each published Stable release triggers official companion release announcements across the
+three community feedback threads:
+- [Pixel 7 Pro (Thread 4801789)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/)
+- [Pixel 8 Pro (Thread 4801791)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-material-3-expressive-pixel-8-pro-feedback.4801791/)
+- [Pixel 11 Pro / Pro XL (Thread 4801792)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/)
+
+Preserve the `expressive-release` identity comment and exact assets/feed while editing prose. A held week
+reports its concrete reasons; a publication failure retains the candidate and receipts for a same-candidate retry.
 A build pass alone is never a released update.

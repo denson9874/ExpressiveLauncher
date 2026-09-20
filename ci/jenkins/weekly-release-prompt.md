@@ -51,13 +51,25 @@ Never claim a staged or partial result is released.
 
 After publication, write a high-quality weekly GitHub changelog covering verified user-facing changes
 since the prior stable release. Give it a catchy title, friendly release-specific jokes and an original
-riddle with a revealable answer. For the first stable release, clearly introduce that milestone and
-distinguish existing functionality from this week's changes. Preserve the exact expressive-release
-identity comment and upstream attribution; edit only title/body through a retained Markdown file,
-read back the full result and verify unchanged assets/manifests. Follow docs/GITHUB_RELEASE_CHANGELOG.md.
+riddle with a revealable answer. For the first stable release or major revision shift (e.g. V3 initialization),
+clearly introduce that milestone, distinguish existing core functionality from new additions, and document
+the V3 Free Core vs. $4.99 Pro customization architecture (accompanied by the standard developer support
+statement: "Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.").
+Preserve the exact expressive-release identity comment and upstream attribution; edit only title/body
+through a retained Markdown file, read back the full result and verify unchanged assets/manifests.
+Follow docs/GITHUB_RELEASE_CHANGELOG.md.
 
-Retain the weekly gate, selected QA evidence, exact Jenkins links, stable seal/receipt and changelog.
-Report the week's QA coverage, selected commit/version, stable build/device results and release/APK/feed
-links. Distinguish initial installation from a prior-stable upgrade and automated ADB checks from a
-live updater/system-installer test. Do not migrate or clear a user's existing QA installation. Record
-the outcome and current run time in this automation's memory before completing the task.
+Following verified stable publication, author and output a companion community announcement post for
+the three official XDA feedback threads:
+- Pixel 7 Pro: https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/
+- Pixel 8 Pro: https://xdaforums.com/t/app-qa-android-17-expressive-launcher-material-3-expressive-pixel-8-pro-feedback.4801791/
+- Pixel 11 Pro / Pro XL: https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/
+Each XDA announcement must feature the milestone theme, user-visible changes, the V3 Free/Pro developer
+support statement, the direct GitHub stable release APK link, the release riddle, and an invitation for
+device-specific community feedback.
+
+Retain the weekly gate, selected QA evidence, exact Jenkins links, stable seal/receipt, changelog, and
+staged XDA announcements. Report the week's QA coverage, selected commit/version, stable build/device
+results and release/APK/feed/XDA links. Distinguish initial installation from a prior-stable upgrade and
+automated ADB checks from a live updater/system-installer test. Do not migrate or clear a user's existing
+QA installation. Record the outcome and current run time in this automation's memory before completing the task.

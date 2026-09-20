@@ -57,6 +57,17 @@ freshly written from that release's evidence, not produced by replacing its vers
    retain the draft and report the editorial failure separately from the APK publication result;
    retry the same release metadata without rebuilding, incrementing versions or replacing assets.
 
+7. **V3 Free vs. Pro & Developer Support Wording**: In all V3 release notes, clearly document the
+   Free Core vs. $4.99 Pro customization tier, including the standard developer support statement:
+   > *“Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.”*
+
+8. **XDA Community Announcements**: Following verified release publication, author and output a companion
+   announcement post tailored for the three authorized XDA feedback threads:
+   - [Pixel 7 Pro (Thread 4801789)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/)
+   - [Pixel 8 Pro (Thread 4801791)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-material-3-expressive-pixel-8-pro-feedback.4801791/)
+   - [Pixel 11 Pro / Pro XL (Thread 4801792)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/)
+   Format each post with release highlights, addressed user reports, the V3 Free/Pro support notice, direct GitHub APK links, the release riddle, and an invitation for device-specific feedback.
+
 The current publisher creates a generic body only when creating a release. Retries validate the
 identity comment and preserve an existing body, so authored notes survive delivery retries.
 Do not rerun a build solely to edit release prose. Keep original signed seals and their reports

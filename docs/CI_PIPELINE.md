@@ -175,6 +175,20 @@ installer handoff after publication. Also verify the installed migration build r
 up to date. Quiesced ADB smoke does not substitute for the live delivery flow; retain the Android
 foreground replacement limitation documented in DIRECT_DISTRIBUTION.md.
 
+## V3 Free vs. Pro Architecture & Community Announcements
+
+Starting with the V3 release cycle:
+- **Core Free Tier**: All core daily-driver launcher functions—including workspace grid, app drawer, dock, Google Discover feed companion, instant search, and system gestures—remain completely free and open forever.
+- **Pro Customization Tier ($4.99 Activation)**: Deep customization controls (custom widget corner radius/padding factor sliders, widget sizing/overlap overrides, third-party icon packs, custom fonts, and Keystore-backed hidden-app locks) are available under an optional $4.99 activation with an initial 14-day unrestricted trial.
+- **Tooling & Development Support Statement**: All V3 documentation, release changelogs, and in-app activation prompts must carry the developer support rationale:
+  > *“Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.”*
+- **XDA Community Announcements**:
+  Following verified GitHub publication of both QA builds and Stable releases, companion community announcements are authored and posted to the three official XDA feedback threads:
+  - [Pixel 7 Pro (Thread 4801789)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/)
+  - [Pixel 8 Pro (Thread 4801791)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-material-3-expressive-pixel-8-pro-feedback.4801791/)
+  - [Pixel 11 Pro / Pro XL (Thread 4801792)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/)
+  Each announcement highlights community feedback addressed in the build, links directly to the verified GitHub APK asset, includes the release riddle, and solicits device-specific feedback.
+
 ## Maintenance
 
 `ci/jenkins/control.py configure` loads reviewed Jenkinsfiles into the existing jobs. Preserve fields and
