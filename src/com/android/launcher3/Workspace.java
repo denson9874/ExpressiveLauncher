@@ -3924,6 +3924,13 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
     }
 
     /**
+     * Returns true if navigation should return to the default page when returning to the launcher.
+     */
+    public boolean shouldReturnToDefaultPage() {
+        return PreferenceCacheExtensionsKt.firstCached(mPreferenceManager2.getReturnToDefaultPage());
+    }
+
+    /**
      * Set the given view's pivot point to match the workspace's, so that it scales together. Since
      * both this view and workspace can move, transform the point manually instead of using
      * dragLayer.getDescendantCoordRelativeToSelf and related methods.

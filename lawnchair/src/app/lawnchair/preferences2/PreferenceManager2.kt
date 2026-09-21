@@ -387,6 +387,11 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = Workspace.DEFAULT_PAGE,
     )
 
+    val returnToDefaultPage = preference(
+        key = booleanPreferencesKey(name = "return_to_default_page"),
+        defaultValue = true,
+    )
+
     val legacyPopupOptionsMigrated = preference(
         key = booleanPreferencesKey(name = "legacy_popup_options_migrated"),
         defaultValue = false,

@@ -247,6 +247,14 @@ Runtime compatibility gaps on API 31–32 guests were identified and remediated:
 Both launcher and embedded feed defaults advance to candidate 2.0.6 / versionCode 24. This entry
 records candidate implementation; verification is recorded in `walkthrough.md`.
 
+## Resolve shortcut drag crash on Android 17 and add return-to-default-page navigation — 2026-09-21 (candidate 2.0.9)
+
+GitHub Issues [#18](https://github.com/denson9874/ExpressiveLauncher/issues/18) and [#23](https://github.com/denson9874/ExpressiveLauncher/issues/23) reported two launcher issues:
+1. **Shortcut drag crash (Issue #18)**: When pinning a shortcut from an external application (such as Markor), `AddItemActivity` crashed with `java.lang.SecurityException: Permission Denial: starting Intent ... with remoteTransition`. Android 14+ requires `CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS` for `RemoteTransition` options. Unprivileged third-party launchers do not hold this signature permission. `SystemApiWrapper.kt` and `ApiWrapper.java` now verify that `CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS` is granted before attaching `RemoteTransition`, cleanly falling back to standard fade-out custom animation options. In addition, `AddItemActivity.onLongClick` wraps `startActivity(homeIntent, options)` in a try-catch for `SecurityException` and falls back to plain `startActivity(homeIntent)`.
+2. **Return to default page (Issue #23)**: When returning to the launcher from an external application, the workspace remained on the last visited page rather than returning to the user's designated default page (e.g. center page). In addition, `QuickstepLauncher.java` had hardcoded `Workspace.DEFAULT_PAGE` (0) instead of querying `workspace.getDefaultPage()`. A new `returnToDefaultPage` preference was added to `PreferenceManager2` (enabled by default) and exposed as a switch in **Home settings → General**. `Launcher.java` respects this setting on `onNewIntent` and `onDeferredResumed()`, ensuring seamless navigation back to the designated default page.
+
+Both launcher and embedded feed defaults advance to candidate 2.0.9 / versionCode 28.
+
 ## Reference environment
 
 - Reference date: 2026-09-18

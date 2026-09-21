@@ -102,6 +102,11 @@ fun HomeScreenPreferences(
                 label = stringResource(id = R.string.infinite_scrolling_label),
                 description = stringResource(id = R.string.infinite_scrolling_description),
             )
+            SwitchPreference(
+                adapter = prefs2.returnToDefaultPage.getAdapter(),
+                label = stringResource(id = R.string.return_to_default_page),
+                description = stringResource(id = R.string.return_to_default_page_description),
+            )
         }
         PreferenceGroup(heading = stringResource(id = R.string.home_screen_actions)) {
             ClickablePreference(

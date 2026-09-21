@@ -21,6 +21,7 @@ import android.app.Person;
 import android.content.Context;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
+import android.content.pm.PackageManager;
 import android.content.pm.ShortcutInfo;
 import android.window.RemoteTransition;
 
@@ -66,12 +67,15 @@ public class ApiWrapper {
      */
     public static ActivityOptions createFadeOutAnimOptions(Context context) {
         try {
-            ActivityOptions options = ActivityOptions.makeBasic();
-            options.setRemoteTransition(new RemoteTransition(new FadeOutRemoteTransition()));
-            return options;
+            if (context.checkSelfPermission("android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS")
+                    == PackageManager.PERMISSION_GRANTED) {
+                ActivityOptions options = ActivityOptions.makeBasic();
+                options.setRemoteTransition(new RemoteTransition(new FadeOutRemoteTransition()));
+                return options;
+            }
         } catch (Throwable t) {
             // TODO Create our own custom closing animation
-            return ActivityOptions.makeCustomAnimation(context, 0, android.R.anim.fade_out);
         }
+        return ActivityOptions.makeCustomAnimation(context, 0, android.R.anim.fade_out);
     }
 }

@@ -26,6 +26,7 @@ import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 import static com.android.launcher3.widget.WidgetSections.NO_CATEGORY;
 
 import android.annotation.TargetApi;
+import android.app.ActivityOptions;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.ClipData;
@@ -43,6 +44,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.DragShadowBuilder;
@@ -94,6 +96,7 @@ public class AddItemActivity extends BaseActivity
         implements OnLongClickListener, OnTouchListener, AbstractSlideInView.OnCloseListener,
         WidgetCell.PreviewReadyListener {
 
+    private static final String TAG = "AddItemActivity";
     private static final int SHADOW_SIZE = 10;
 
     private static final int REQUEST_BIND_APPWIDGET = 11;
@@ -261,8 +264,20 @@ public class AddItemActivity extends BaseActivity
                         .setPackage(getPackageName())
                         .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         Launcher.ACTIVITY_TRACKER.registerCallback(listener, "AddItemActivity.onLongClick");
-        startActivity(homeIntent,
-                ApiWrapper.INSTANCE.get(this).createFadeOutAnimOptions().toBundle());
+        Bundle animBundle = null;
+        try {
+            ActivityOptions animOptions = ApiWrapper.INSTANCE.get(this).createFadeOutAnimOptions();
+            if (animOptions != null) {
+                animBundle = animOptions.toBundle();
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            startActivity(homeIntent, animBundle);
+        } catch (SecurityException e) {
+            Log.w(TAG, "Failed to start home intent with animation options, retrying without options", e);
+            startActivity(homeIntent);
+        }
         logCommand(LAUNCHER_ADD_EXTERNAL_ITEM_DRAGGED);
         mFinishOnPause = true;
         return false;

@@ -1063,6 +1063,14 @@ public class Launcher extends StatefulActivity<LauncherState>
         DiscoveryBounce.showForHomeIfNeeded(this);
         mAppWidgetHolder.setActivityResumed(true);
 
+        if (mWorkspace != null && !mWorkspace.isHandlingTouch() && isInState(NORMAL)
+                && AbstractFloatingView.getTopOpenView(this) == null
+                && mWorkspace.shouldReturnToDefaultPage()) {
+            if (mWorkspace.getNextPage() != mWorkspace.getDefaultPage()) {
+                mWorkspace.post(mWorkspace::moveToDefaultScreen);
+            }
+        }
+
         // Listen for IME changes to keep state up to date.
         if (ATLEAST_R) {
             getRootView().setWindowInsetsAnimationCallback(
@@ -1651,10 +1659,12 @@ public class Launcher extends StatefulActivity<LauncherState>
                     mAppsView.reset(isStarted() /* animate */);
                 }
 
-                if (shouldMoveToDefaultScreen && !mWorkspace.isHandlingTouch()) {
+                boolean shouldReturnToDefault = shouldMoveToDefaultScreen
+                        || (!alreadyOnHome && mWorkspace != null && mWorkspace.shouldReturnToDefaultPage());
+                if (shouldReturnToDefault && !mWorkspace.isHandlingTouch()) {
                     if (mWorkspace.getNextPage() != mWorkspace.getDefaultPage()) {
                         mWorkspace.post(mWorkspace::moveToDefaultScreen);
-                    } else {
+                    } else if (shouldMoveToDefaultScreen) {
                         handleHomeTap();
                     }
                 }

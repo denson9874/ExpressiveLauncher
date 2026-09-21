@@ -90,8 +90,14 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
 
     override fun createFadeOutAnimOptions(): ActivityOptions {
         return try {
-            ActivityOptions.makeBasic().apply {
-                remoteTransition = RemoteTransition(FadeOutRemoteTransition(), "FadeOut")
+            if (mContext.checkSelfPermission("android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS")
+                == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityOptions.makeBasic().apply {
+                    remoteTransition = RemoteTransition(FadeOutRemoteTransition(), "FadeOut")
+                }
+            } else {
+                super.createFadeOutAnimOptions()
             }
         } catch (t: Throwable) {
             super.createFadeOutAnimOptions()
