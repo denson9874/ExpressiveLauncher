@@ -5,7 +5,7 @@ and GitHub publication. Codex handles research, implementation, focused developm
 exploratory device validation and diagnosis. Failed publication preserves the exact tested candidate.
 
 The [weekly release workflow](WEEKLY_RELEASES.md) adds Saturday 3:00 a.m. Eastern stable builds
-when the Monday/Wednesday/Friday QA week is green. QA runs keep their existing schedule and channel.
+when the QA week is green. QA runs operate on a daily schedule.
 Stable uses separate `expressive-release-build` and `expressive-release-publish` jobs, with a live
 weekly gate before scheduled building. Successful sealed stable builds automatically publish to the
 GitHub `stable` branch and stable update feed after the publisher rechecks their evidence.
@@ -43,8 +43,8 @@ A candidate commit is a source record, not a release claim. Do not commit APKs, 
 
 The user started the **2.0 series** with the **2.0.0 / code 18** QA candidate on September 12, 2026,
 following published QA and stable 1.0.16 / code 17. The launcher and embedded feed companion use
-the same version defaults in `build.gradle` and `expressiveFeed/build.gradle`. Continue the existing
-Monday/Wednesday/Friday schedule with 2.0.1 / code 19, 2.0.2 / code 20, and so on as new candidates
+the same version defaults in `build.gradle` and `expressiveFeed/build.gradle`. Continue the
+daily schedule with 2.0.1 / code 19, 2.0.2 / code 20, and so on as new candidates
 are implemented; a no-op run does not bump either value. The major-version change never resets
 Android's monotonically increasing version code. A stable build keeps its selected QA source's
 version. GitHub publication retains the established tag formats: `qa-v2.0.0-18` for this QA candidate

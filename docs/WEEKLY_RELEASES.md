@@ -4,7 +4,7 @@ The user authorized this cadence on September 9, 2026. All times are **America/N
 
 | Day | Time | Action |
 | --- | --- | --- |
-| Monday, Wednesday, Friday | 3:00 a.m. | Existing focused Pixel-parity QA build and QA publication |
+| Daily (Monday – Sunday) | 3:00 a.m. | Focused Pixel-parity and issue-triage QA build and QA publication |
 | Saturday | 3:00 a.m. | Stable Release build and publication, only when the week's QA gate passes |
 
 On September 12, 2026, the user additionally authorized automatic publication of every green,

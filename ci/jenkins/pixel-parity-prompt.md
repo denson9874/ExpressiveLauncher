@@ -44,7 +44,7 @@ After the focused change and its local development checks are complete, incremen
 the patch version once. The user started the 2.0 series with the 2.0.0/code18 QA candidate on
 September 12, 2026. Continue from the recorded source version in both build.gradle and
 expressiveFeed/build.gradle: the next new candidate after 2.0.0/code18 is 2.0.1/code19, then
-2.0.2/code20. Keep the Monday/Wednesday/Friday 3:00 a.m. America/New_York schedule. Never reset
+2.0.2/code20. Keep the daily 3:00 a.m. America/New_York schedule. Never reset
 Android versionCode for a new major version or bump again when retrying the same candidate.
 Update the parity ledger, and commit only this run's source/tests/version/
 documentation on codex/pixel-parity with a message beginning `Pixel parity:`. This is a candidate
