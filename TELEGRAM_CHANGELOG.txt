@@ -1,20 +1,53 @@
-Lawnchair 15 Beta 3 is here!
+<b>Expressive Launcher QA 2.0.10 (29) — The Key to the Apps</b>
 
-As many of you know, the Android launcher landscape is changing rapidly over the past few months. To welcome users looking for a new, open-source home, this release now <b>supports importing backups from Nova Launcher</b>!
+Welcome to <b>Expressive Launcher QA 2.0.10</b>! This update delivers a dedicated, accessible <b>App Drawer Icon</b> option—making opening your full app library as effortless as a single tap, especially for users who prefer classic buttons over swipe gestures.
 
-What it imports
-• Home screen and dock grid layout
-• Widgets and folders
-• Selected icon pack
+───────────────────────
 
-How to use it
-1. Open Lawnchair Settings
-2. Tap the three dots (⋮) in the top right corner
-3. Select "Restore Nova backup" and choose your file
+<b>🚀 What's New & Fixed</b>
+• <b>App Drawer Icon Option & Direct Shortcut (<a href="https://github.com/denson9874/ExpressiveLauncher/issues/17">#17</a>)</b>:
+• Many users—particularly elderly individuals, those with fine-motor difficulties, or fans of classic launcher layouts—find vertical swipe gestures tiring or inconsistent.
+• Added a dedicated, 1-tap <b>App Drawer shortcut</b> (<code>AppDrawerShortcutActivity</code>) equipped with the iconic apps grid icon and seamless animation straight into All Apps.
+• Added convenient pinning toggles in <b>Settings > Home Screen > General</b> and <b>Settings > Dock > Icons</b> so you can place an App Drawer button onto your home screen or dock in seconds.
+• Refined launcher shortcut handling across cold and warm starts to guarantee instant, reliable activation every single time.
 
-<b>Note:</b> Other Nova features not mentioned (like app drawer categories and icon swipe gestures) are not yet supported and won't be imported. You may need to do a little manual tweaking after the import.
+───────────────────────
 
-While this is a major milestone for Lawnchair 15, our team is still working hard to improve and polish the Lawnchair 16 experience. Stay tuned for updates!
+<b>😄 Launcher Humor</b>
 
-<a href="https://opencollective.com/lawnchair">Donate on Open Collective</a> &bull;
-<a href="https://github.com/LawnchairLauncher/lawnchair/releases/tag/v15.0.0-beta3">View full changelog on GitHub</a>
+<blockquote><b>Q:</b> <i>Why did the app drawer icon refuse to practice swipe gestures?</i>  
+<b>A:</b> <i>Because it believed in straightforward, buttoned-up solutions!</i>  
+
+<i>Swiping up is good cardio for your thumb, but sometimes you just want a trusty button that gets straight to the point.</i></blockquote>
+
+───────────────────────
+
+<b>🧩 Release Riddle</b>
+
+Can you solve this edition's launcher riddle?
+
+<b>Riddle:</b>
+<blockquote><i>I have no drawers of wood or metal, yet I hold hundreds of tools, games, and memories.</i>  
+<i>Some reach me with a graceful swipe toward the sky; others now summon me with a single, trusty tap.</i>  
+<i>What am I?</i></blockquote>
+
+<tg-spoiler><b>The App Drawer!</b></tg-spoiler>
+
+───────────────────────
+
+<b>💎 Expressive Free vs. Pro</b>
+
+Expressive Launcher remains dedicated to offering a complete, top-tier daily driver experience in our <b>Free Core</b> edition, alongside powerful advanced personalizations in our optional <b>$4.99 Pro</b> tier.
+
+<blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
+
+───────────────────────
+
+<b>🛡️ Verification & Integrity</b>
+• <b>Automated Tests</b>: Passed 243 Gradle robolectric & unit tests and 266 CI pipeline contract tests.
+• <b>Device Smoke Tests</b>: Passed automated Android 17 emulator verification: guest identity, baseline install, same-signer upgrade, preference retention, cold/warm start, app drawer shortcut action, search handoff, and date synchronization.
+• <b>Source Revision</b>: <code>e0e6a5e54ef063f0ef8f73def59170de8c8913e5</code>
+• <b>Version</b>: <code>2.0.10</code> (VersionCode <code>29</code>)
+• <b>APK SHA-256</b>: <code>2aef8c2e960c12c6aa5823b5b5b440bb1b9c1529c2c2548e1ca04da7c781905f</code>
+
+<i>Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.</i>

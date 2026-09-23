@@ -188,6 +188,8 @@ Starting with the V3 release cycle:
   - [Pixel 8 Pro (Thread 4801791)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-material-3-expressive-pixel-8-pro-feedback.4801791/)
   - [Pixel 11 Pro / Pro XL (Thread 4801792)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/)
   Each announcement highlights community feedback addressed in the build, links directly to the verified GitHub APK asset, includes the release riddle, and solicits device-specific feedback.
+- **Telegram Channel Announcements**:
+  Release notes are also formatted and published to the official announcements channel ([@ExpressiveLauncher](https://t.me/ExpressiveLauncher)) on every release via `python3 scripts/post_telegram.py --notes-file <file> --apk <apk>`. Riddle answers are converted to native `<tg-spoiler>` tags, and the rendered text is preserved in `TELEGRAM_CHANGELOG.txt`.
 
 ## Maintenance
 

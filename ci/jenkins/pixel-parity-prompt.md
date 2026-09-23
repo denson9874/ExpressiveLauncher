@@ -101,6 +101,7 @@ official XDA feedback threads:
 Each XDA announcement must feature the release theme, changes addressing community reports, the V3
 Free/Pro tooling support notice, the GitHub release APK download link, the release riddle, and a callout
 for tester feedback. Keep the draft and before/after evidence, and include the release/changelog and XDA announcement links in the final report.
+Following publication, also format and post the release announcement to the official Telegram channel (@ExpressiveLauncher) using python3 scripts/post_telegram.py --notes-file <file> --apk <apk>, generating TELEGRAM_CHANGELOG.txt and transmitting via Telegram Bot API when configured.
 If this editorial step fails, report and retry it separately without rebuilding or bumping the version.
 
 If build, QA or publication fails, retain the candidate commit and all evidence. Diagnose the precise

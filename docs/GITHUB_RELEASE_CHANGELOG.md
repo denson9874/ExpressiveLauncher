@@ -68,7 +68,22 @@ freshly written from that release's evidence, not produced by replacing its vers
    - [Pixel 11 Pro / Pro XL (Thread 4801792)](https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/)
    Format each post with release highlights, addressed user reports, the V3 Free/Pro support notice, direct GitHub APK links, the release riddle, and an invitation for device-specific feedback.
 
+9. **Telegram Channel Announcements**: Following verified release publication, format and post the release
+   announcement to the official Telegram channel ([@ExpressiveLauncher](https://t.me/ExpressiveLauncher)) using
+   `scripts/post_telegram.py`.
+   - The Telegram announcement retains release highlights, launcher humor, the riddle formatted as a native
+     Telegram tap-to-reveal spoiler (`<tg-spoiler>`), the V3 Free vs. Pro support notice, and direct links to the
+     GitHub release and APK download.
+   - Run:
+     ```sh
+     python3 scripts/post_telegram.py --notes-file /path/to/release-notes.md --apk /path/to/signed.apk
+     ```
+   - Automatically utilizes `TELEGRAM_BOT_TOKEN` or `~/Library/Application Support/Expressive CI/config/telegram.json`.
+     If credentials are not yet configured, the script outputs the rendered HTML message and saves it to
+     `TELEGRAM_CHANGELOG.txt` so it is immediately copyable for broadcast.
+
 The current publisher creates a generic body only when creating a release. Retries validate the
 identity comment and preserve an existing body, so authored notes survive delivery retries.
 Do not rerun a build solely to edit release prose. Keep original signed seals and their reports
 immutable; later editorial evidence belongs beside the run artifacts.
+
