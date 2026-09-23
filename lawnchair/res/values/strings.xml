@@ -852,6 +852,8 @@
     <string name="edit_mode_page_strip_tip">Drag pages to reorder. Tap the home icon to set your default page.</string>
     <string name="return_to_default_page">Return to default page</string>
     <string name="return_to_default_page_description">Return to the default page when exiting apps or pressing Home</string>
+    <string name="add_app_drawer_icon">Add app drawer icon</string>
+    <string name="add_app_drawer_icon_description">Place an icon on the home screen to open the app drawer with a tap</string>
 
     <string name="popup_menu">Pop-up menu</string>
     <string name="popup_menu_items">Pop-up menu items</string>

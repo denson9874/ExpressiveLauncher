@@ -27,8 +27,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.lawnchair.gestures.ui.AppDrawerShortcutActivity
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
@@ -41,6 +43,7 @@ import app.lawnchair.ui.preferences.components.WallpaperPreview
 import app.lawnchair.ui.preferences.components.WithWallpaper
 import app.lawnchair.ui.preferences.components.clipToBottomPercentage
 import app.lawnchair.ui.preferences.components.colorpreference.ColorPreference
+import app.lawnchair.ui.preferences.components.controls.ClickablePreference
 import app.lawnchair.ui.preferences.components.controls.MainSwitchPreference
 import app.lawnchair.ui.preferences.components.controls.SliderPreference
 import app.lawnchair.ui.preferences.components.controls.SwitchPreference
@@ -58,6 +61,7 @@ import com.android.launcher3.R
 fun DockPreferences(modifier: Modifier = Modifier) {
     val prefs = preferenceManager()
     val prefs2 = preferenceManager2()
+    val context = LocalContext.current
 
     PreferenceLayout(
         label = stringResource(id = R.string.dock_label),
@@ -85,6 +89,13 @@ fun DockPreferences(modifier: Modifier = Modifier) {
                 SwitchPreference(
                     adapter = prefs2.enableLabelInDock.getAdapter(),
                     label = stringResource(id = R.string.show_labels),
+                )
+                ClickablePreference(
+                    label = stringResource(id = R.string.add_app_drawer_icon),
+                    subtitle = stringResource(id = R.string.add_app_drawer_icon_description),
+                    onClick = {
+                        AppDrawerShortcutActivity.pinAppDrawerShortcut(context)
+                    },
                 )
             }
         }

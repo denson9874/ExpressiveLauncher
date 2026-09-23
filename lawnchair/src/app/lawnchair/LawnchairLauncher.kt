@@ -256,9 +256,16 @@ class LawnchairLauncher : QuickstepLauncher() {
         lifecycleScope.launch(Dispatchers.IO) {
             AppDatabase.INSTANCE.get(this@LawnchairLauncher).checkpoint()
         }
+
+        handleShortcutIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent?) {
+        handleShortcutIntent(intent)
+        super.onNewIntent(intent)
+    }
+
+    private fun handleShortcutIntent(intent: Intent?) {
         if (intent != null && intent.action == LawnchairShortcutActivity.START_ACTION) {
             val handlerString = intent.getStringExtra(LawnchairShortcutActivity.EXTRA_HANDLER)
             val config = handlerString?.let { GestureHandlerConfig.fromString(it) }
@@ -266,8 +273,6 @@ class LawnchairLauncher : QuickstepLauncher() {
                 gestureController.handle(config)
             }
         }
-
-        super.onNewIntent(intent)
     }
 
     override fun collectStateHandlers(out: MutableList<StateHandler<LauncherState>>) {

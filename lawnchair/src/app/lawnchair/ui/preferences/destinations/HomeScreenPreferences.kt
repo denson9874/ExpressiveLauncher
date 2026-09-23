@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import app.lawnchair.LawnchairApp
+import app.lawnchair.gestures.ui.AppDrawerShortcutActivity
 import app.lawnchair.data.iconoverride.IconOverrideRepository
 import app.lawnchair.nexuslauncher.OverlayCallbackImpl
 import app.lawnchair.preferences.getAdapter
@@ -106,6 +107,13 @@ fun HomeScreenPreferences(
                 adapter = prefs2.returnToDefaultPage.getAdapter(),
                 label = stringResource(id = R.string.return_to_default_page),
                 description = stringResource(id = R.string.return_to_default_page_description),
+            )
+            ClickablePreference(
+                label = stringResource(id = R.string.add_app_drawer_icon),
+                subtitle = stringResource(id = R.string.add_app_drawer_icon_description),
+                onClick = {
+                    AppDrawerShortcutActivity.pinAppDrawerShortcut(context)
+                },
             )
         }
         PreferenceGroup(heading = stringResource(id = R.string.home_screen_actions)) {

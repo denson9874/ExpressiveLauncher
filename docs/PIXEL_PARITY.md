@@ -255,6 +255,15 @@ GitHub Issues [#18](https://github.com/denson9874/ExpressiveLauncher/issues/18) 
 
 Both launcher and embedded feed defaults advance to candidate 2.0.9 / versionCode 28.
 
+## Add App Drawer Icon option and direct shortcut support — 2026-09-23 (candidate 2.0.10)
+
+GitHub Issue [#17](https://github.com/denson9874/ExpressiveLauncher/issues/17) requested an accessible App Drawer icon option for users who cannot easily perform swipe-up gestures.
+1. **Dedicated App Drawer Shortcut Activity**: Created `AppDrawerShortcutActivity`, exported with `android.intent.action.CREATE_SHORTCUT` and `android.intent.action.MAIN`. This allows 1-tap shortcut creation with the native `ic_apps` icon and direct launch handling that animates into All Apps.
+2. **One-Tap Home Screen & Dock Pinning**: Added accessible "Add app drawer icon" options in **Settings > Home Screen > General** and **Settings > Dock > Icons** that invoke `AppDrawerShortcutActivity.pinAppDrawerShortcut(context)` to instantly place an App Drawer button onto the workspace or dock.
+3. **Lifecycle-Resilient Launch Handling**: Updated `LawnchairLauncher.kt` to handle `START_ACTION` (`openAppDrawer`) in both `onCreate()` and `onNewIntent()`, ensuring consistent execution across cold and warm starts.
+
+Both launcher and embedded feed defaults advance to candidate 2.0.10 / versionCode 29.
+
 ## Reference environment
 
 - Reference date: 2026-09-18

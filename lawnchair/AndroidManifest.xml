@@ -96,6 +96,22 @@
         </activity>
 
         <activity
+            android:label="@string/app_drawer_label"
+            android:icon="@drawable/ic_apps"
+            android:name="app.lawnchair.gestures.ui.AppDrawerShortcutActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Lawnchair">
+            <intent-filter>
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name="app.lawnchair.gestures.ui.RunHandlerActivity"
             android:exported="true"
             android:theme="@style/Theme.Lawnchair">
