@@ -41,8 +41,10 @@ Expressive Launcher remains dedicated to offering a complete, top-tier daily dri
 ───────────────────────
 
 <b>🛡️ Verification & Integrity</b>
-• <b>Automated Tests</b>: Passed Gradle robolectric & unit tests and 271 CI pipeline contract tests.
+• <b>Automated Tests</b>: Passed 251 Gradle robolectric & unit tests and 271 CI pipeline contract tests.
 • <b>Device Smoke Tests</b>: Passed Android 17 verification: guest identity, baseline install, same-signer upgrade, preference retention, cold/warm start, shortcut customization popup, and safe software canvas rendering.
+• <b>Source Revision</b>: <code>cbcb573b5c387c02cccfaee603293fb98998a7a3</code>
 • <b>Version</b>: <code>2.0.12</code> (VersionCode <code>31</code>)
+• <b>APK SHA-256</b>: <code>8be51e03307e48acfd190c15e54097d227d2a97e5712b2411526d65ac4057bae</code>
 
 <i>Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.</i>
