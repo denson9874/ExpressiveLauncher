@@ -31,8 +31,11 @@ import com.android.launcher3.icons.cache.CachingLogic
 import com.android.launcher3.shortcuts.ShortcutKey
 import com.android.launcher3.util.ApiWrapper
 import com.android.launcher3.util.ApplicationInfoWrapper
+import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.util.Themes
+import app.lawnchair.data.iconoverride.IconOverrideRepository
+import app.lawnchair.icons.iconpack.IconPackProvider
 
 /** Wrapper over ShortcutInfo to provide extra information related to ShortcutInfo */
 class CacheableShortcutInfo(val shortcutInfo: ShortcutInfo, val appInfo: ApplicationInfoWrapper) {
@@ -102,29 +105,51 @@ object CacheableShortcutCachingLogic : CachingLogic<CacheableShortcutInfo> {
 
     override fun getApplicationInfo(info: CacheableShortcutInfo) = info.appInfo.getInfo()
 
-    override fun loadIcon(context: Context, cache: BaseIconCache, info: CacheableShortcutInfo) =
+    override fun loadIcon(context: Context, cache: BaseIconCache, info: CacheableShortcutInfo): BitmapInfo =
         LauncherIcons.obtain(context).use { li ->
-            CacheableShortcutInfo.getIcon(
-                    context,
-                    info.shortcutInfo,
-                    LauncherAppState.getIDP(context).fillResIconDpi,
-                )
-                ?.let { d ->
-                    li.createBadgedIconBitmap(
-                        d,
-                        IconOptions()
-                            .setExtractedColor(Themes.getColorAccent(context))
-                            .setSourceHint(
-                                getSourceHint(info, cache)
-                                    .copy(
-                                        isFileDrawable =
-                                            ApiWrapper.INSTANCE[context].isFileDrawable(
-                                                info.shortcutInfo
-                                            )
-                                    )
-                            ),
+            val user = getUser(info)
+            val componentName = getComponent(info)
+            val key = ComponentKey(componentName, user)
+            val override = try {
+                IconOverrideRepository.INSTANCE.get(context).overridesMap[key]
+            } catch (t: Throwable) {
+                null
+            }
+            val drawable: Drawable? = if (override != null) {
+                try {
+                    val iconPackProvider = IconPackProvider.INSTANCE.get(context)
+                    iconPackProvider.getDrawable(
+                        override.toIconEntry(),
+                        LauncherAppState.getIDP(context).fillResIconDpi,
+                        user,
                     )
-                } ?: BitmapInfo.LOW_RES_INFO
+                } catch (t: Throwable) {
+                    null
+                }
+            } else {
+                null
+            } ?: CacheableShortcutInfo.getIcon(
+                context,
+                info.shortcutInfo,
+                LauncherAppState.getIDP(context).fillResIconDpi,
+            )
+
+            drawable?.let { d ->
+                li.createBadgedIconBitmap(
+                    d,
+                    IconOptions()
+                        .setExtractedColor(Themes.getColorAccent(context))
+                        .setSourceHint(
+                            getSourceHint(info, cache)
+                                .copy(
+                                    isFileDrawable =
+                                        ApiWrapper.INSTANCE[context].isFileDrawable(
+                                            info.shortcutInfo
+                                        )
+                                )
+                        ),
+                )
+            } ?: BitmapInfo.LOW_RES_INFO
         }
 
     override fun getFreshnessIdentifier(

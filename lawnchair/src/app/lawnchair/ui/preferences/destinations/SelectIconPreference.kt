@@ -1,9 +1,11 @@
 package app.lawnchair.ui.preferences.destinations
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.util.Log
+import app.lawnchair.preferences.PreferenceManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -39,7 +41,7 @@ fun SelectIconPreference(componentKey: ComponentKey) {
     val context = LocalContext.current
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
     val label = remember(componentKey) {
-        resolveAppLabel(context.requireSystemService(), componentKey)
+        resolveAppLabel(context, context.requireSystemService(), componentKey)
     }
     val iconPacks by LocalPreferenceInteractor.current.iconPacks.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
@@ -117,7 +119,19 @@ fun SelectIconPreference(componentKey: ComponentKey) {
  * [LauncherApps.resolveActivity] can return null or throw for non-current users; fall back to
  * [LauncherApps.getActivityList] and finally the activity class name.
  */
-private fun resolveAppLabel(launcherApps: LauncherApps, componentKey: ComponentKey): String {
+private fun resolveAppLabel(
+    context: Context,
+    launcherApps: LauncherApps,
+    componentKey: ComponentKey,
+): String {
+    try {
+        val customTitle = PreferenceManager.getInstance(context).customAppName[componentKey]
+        if (!customTitle.isNullOrEmpty()) {
+            return customTitle
+        }
+    } catch (t: Throwable) {
+        // Fallback to launcherApps
+    }
     val componentName = componentKey.componentName
     val user = componentKey.user
     try {

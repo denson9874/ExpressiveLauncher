@@ -434,6 +434,13 @@ constructor(
         }
     }
 
+    fun updateAndBindShortcutItem(item: WorkspaceItemInfo) {
+        enqueueModelUpdateTask { taskController, _, _ ->
+            taskController.getModelWriter().updateItemInDatabase(item)
+            taskController.bindUpdatedWorkspaceItems(listOf(item))
+        }
+    }
+
     fun refreshAndBindWidgetsAndShortcuts(packageUser: PackageUserKey?) {
         enqueueModelUpdateTask { taskController, dataModel, _ ->
             dataModel.widgetsModel.update(packageUser)

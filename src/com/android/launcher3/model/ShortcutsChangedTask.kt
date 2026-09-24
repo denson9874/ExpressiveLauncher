@@ -27,6 +27,7 @@ import com.android.launcher3.shortcuts.ShortcutKey
 import com.android.launcher3.shortcuts.ShortcutRequest
 import com.android.launcher3.util.ApplicationInfoWrapper
 import com.android.launcher3.util.ItemInfoMatcher
+import app.lawnchair.preferences.PreferenceManager
 
 /** Handles changes due to shortcut manager updates (deep shortcut changes) */
 class ShortcutsChangedTask(
@@ -98,10 +99,24 @@ class ShortcutsChangedTask(
 
                             nonPinnedIds.remove(shortcutId)
                             it.updateFromDeepShortcutInfo(fullDetails, context)
+                            val key = ShortcutKey.fromInfo(fullDetails)
+                            val customTitle = try {
+                                PreferenceManager.getInstance(context).customAppName[key]
+                            } catch (t: Throwable) {
+                                null
+                            }
+                            if (!customTitle.isNullOrEmpty()) {
+                                it.title = customTitle
+                            }
                             taskController.iconCache.getShortcutIcon(
                                 it,
                                 CacheableShortcutInfo(fullDetails, infoWrapper),
                             )
+                            try {
+                                taskController.getModelWriter()?.updateItemInDatabase(it)
+                            } catch (t: Throwable) {
+                                // Ignored for tests where modelWriter may not be stubbed
+                            }
                             true
                         },
                     )

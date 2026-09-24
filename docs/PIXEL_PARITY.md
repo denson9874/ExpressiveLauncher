@@ -264,6 +264,15 @@ GitHub Issue [#17](https://github.com/denson9874/ExpressiveLauncher/issues/17) r
 
 Both launcher and embedded feed defaults advance to candidate 2.0.10 / versionCode 29.
 
+## Add custom icon and label editing for pinned and legacy shortcuts — 2026-09-23 (candidate 2.0.11)
+
+GitHub Issue [#19](https://github.com/denson9874/ExpressiveLauncher/issues/19) requested the ability to change shortcut icons and labels on the home screen to custom icon pack icons or custom labels.
+1. **Shortcut Customization Dialog**: Added `CustomizeShortcut` popup action for pinned deep shortcuts (`ITEM_TYPE_DEEP_SHORTCUT`) and legacy shortcuts (`ITEM_TYPE_SHORTCUT`), presenting the Compose `CustomizeShortcutDialog` to edit labels and select custom icons from any installed icon pack.
+2. **Persistent Icon and Title Overrides**: Custom shortcut icons are tracked via `IconOverrideRepository` using shortcut component keys and rendered in `CacheableShortcutCachingLogic`. Custom titles are persisted in `PreferenceManager.customAppName` and SQLite DB, properly restored on launcher startup in `WorkspaceItemProcessor` and updated dynamically in `ShortcutsChangedTask`.
+3. **Workspace Model Sync**: Implemented `LauncherModel.updateAndBindShortcutItem` to synchronously write updated shortcut labels to SQLite and rebind the modified workspace items to the live home screen.
+
+Both launcher and embedded feed defaults advance to candidate 2.0.11 / versionCode 30.
+
 ## Reference environment
 
 - Reference date: 2026-09-18

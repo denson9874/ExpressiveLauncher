@@ -43,6 +43,7 @@ import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.IconRequestInfo
+import app.lawnchair.preferences.PreferenceManager
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.ItemInfoWithIcon
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
@@ -371,6 +372,14 @@ class WorkspaceItemProcessor(
                         return
                     }
                     info = WorkspaceItemInfo(pinnedShortcut, context)
+                    val customTitle = try {
+                        PreferenceManager.getInstance(context).customAppName[key]
+                    } catch (t: Throwable) {
+                        null
+                    }
+                    if (!customTitle.isNullOrEmpty()) {
+                        info.title = customTitle
+                    }
                     // If the pinned deep shortcut is no longer published,
                     // use the last saved icon instead of the default.
                     val csi = CacheableShortcutInfo(pinnedShortcut, appInfoWrapper)

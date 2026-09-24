@@ -13,6 +13,8 @@ import android.content.pm.SuspendDialogInfo
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.UserHandle
 import android.util.Log
@@ -22,13 +24,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.override.CustomizeAppDialog
+import app.lawnchair.override.CustomizeShortcutDialog
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.ui.preferences.PreferenceActivity
 import app.lawnchair.ui.preferences.navigation.AppDrawerAppListToFolder
 import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.AbstractFloatingView
+import com.android.launcher3.BubbleTextView
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
+import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
+import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_TASK
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -38,7 +44,10 @@ import com.android.launcher3.icons.LauncherIcons
 import com.android.launcher3.logging.StatsLogManager
 import com.android.launcher3.model.data.AppInfo as ModelAppInfo
 import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.popup.SystemShortcut
+import com.android.launcher3.shortcuts.ShortcutKey
+import com.android.launcher3.shortcuts.ShortcutRequest
 import com.android.launcher3.util.ApplicationInfoWrapper
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.PackageManagerHelper
@@ -90,10 +99,16 @@ class LawnchairShortcut {
         val CUSTOMIZE =
             SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo, originalView ->
                 val prefs2 = PreferenceManager2.getInstance(activity)
-                if (prefs2.lockHomeScreen.firstCached()) {
+                if (prefs2.lockHomeScreen.firstCached(prefs2)) {
                     null
-                } else {
+                } else if (itemInfo is ModelAppInfo || itemInfo.itemType == ITEM_TYPE_APPLICATION) {
                     getAppInfo(activity, itemInfo)?.let { Customize(activity, it, itemInfo, originalView) }
+                } else if (itemInfo is WorkspaceItemInfo &&
+                    (itemInfo.itemType == ITEM_TYPE_DEEP_SHORTCUT || itemInfo.itemType == ITEM_TYPE_SHORTCUT)
+                ) {
+                    CustomizeShortcut(activity, itemInfo, originalView)
+                } else {
+                    null
                 }
             }
 
@@ -107,7 +122,7 @@ class LawnchairShortcut {
         val UNINSTALL =
             SystemShortcut.Factory { activity: ActivityContext, itemInfo: ItemInfo, view: View ->
                 val prefs2 = PreferenceManager2.INSTANCE.get(activity.asContext())
-                if (prefs2.lockHomeScreen.firstCached()) {
+                if (prefs2.lockHomeScreen.firstCached(prefs2)) {
                     return@Factory null
                 }
                 if (itemInfo.targetComponent == null) {
@@ -203,6 +218,63 @@ class LawnchairShortcut {
             } else {
                 Toast.makeText(launcher, R.string.activity_not_found, Toast.LENGTH_SHORT).show()
                 AbstractFloatingView.closeAllOpenViews(launcher)
+            }
+        }
+    }
+
+    class CustomizeShortcut(
+        private val launcher: LawnchairLauncher,
+        private val shortcutItem: WorkspaceItemInfo,
+        originalView: View,
+    ) : SystemShortcut<LawnchairLauncher>(
+        R.drawable.ic_edit,
+        R.string.action_customize,
+        launcher,
+        shortcutItem,
+        originalView,
+    ) {
+        override fun onClick(v: View) {
+            val icon: Drawable = (mOriginalView as? BubbleTextView)?.icon
+                ?: (shortcutItem.bitmap?.icon?.let { BitmapDrawable(launcher.resources, it) })
+                ?: launcher.packageManager.defaultActivityIcon
+
+            val componentKey: ComponentKey
+            val defaultTitle: String
+
+            if (shortcutItem.itemType == ITEM_TYPE_DEEP_SHORTCUT) {
+                val sk = ShortcutKey.fromItemInfo(shortcutItem)
+                val sis = try {
+                    sk?.buildRequest(launcher)?.query(ShortcutRequest.ALL)
+                } catch (t: Throwable) {
+                    null
+                }
+                val si = sis?.firstOrNull()
+                defaultTitle = si?.let { it.shortLabel ?: it.longLabel }?.toString()
+                    ?: shortcutItem.title?.toString()
+                    ?: ""
+                componentKey = sk ?: ComponentKey(
+                    ComponentName(shortcutItem.targetPackage ?: launcher.packageName, "shortcut_${shortcutItem.id}"),
+                    shortcutItem.user,
+                )
+            } else {
+                defaultTitle = shortcutItem.title?.toString() ?: ""
+                componentKey = ComponentKey(
+                    ComponentName(shortcutItem.targetPackage ?: launcher.packageName, "shortcut_${shortcutItem.id}"),
+                    shortcutItem.user,
+                )
+            }
+
+            AbstractFloatingView.closeAllOpenViews(launcher)
+            ComposeBottomSheet.show(
+                context = launcher,
+                contentPaddings = PaddingValues(bottom = 64.dp),
+            ) {
+                CustomizeShortcutDialog(
+                    icon = icon,
+                    defaultTitle = defaultTitle,
+                    componentKey = componentKey,
+                    shortcutItem = shortcutItem,
+                ) { close(true) }
             }
         }
     }

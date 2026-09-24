@@ -41,6 +41,26 @@ class ShortcutUtilTest {
     }
 
     @Test
+    fun `supportsShortcuts returns true if the item is a deep shortcut`() {
+        val itemInfo = WorkspaceItemInfo().apply {
+            itemType = com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
+            container = com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
+        }
+        val result = ShortcutUtil.supportsShortcuts(itemInfo)
+        assertEquals(true, result)
+    }
+
+    @Test
+    fun `supportsShortcuts returns true if the item is a legacy shortcut`() {
+        val itemInfo = WorkspaceItemInfo().apply {
+            itemType = com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT
+            container = com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
+        }
+        val result = ShortcutUtil.supportsShortcuts(itemInfo)
+        assertEquals(true, result)
+    }
+
+    @Test
     fun `supportsDeepShortcuts returns true if the app is active and an app and widgets are enabled`() {
         // Setup
         val itemInfo = WorkspaceItemInfo()
