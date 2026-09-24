@@ -1,23 +1,36 @@
-<b>Expressive Launcher QA 2.0.12 (31) — Hardware Bitmap Software Safety Hotfix</b>
+<b>🚀 Expressive Launcher 3.0.0 (32) — Welcome to Version 3!</b>
 
-Welcome to <b>Expressive Launcher QA 2.0.12</b>! This hotfix resolves a critical software rendering crash encountered on physical Android 17 devices when opening the icon customization dialog for themed and cached icons.
+A heartfelt <b>thank you</b> to everyone in our community! Your extensive testing, insightful feedback, and detailed bug reports throughout our release cycle have helped shape Expressive Launcher into the smoothest, most reliable daily-driver Pixel experience available.
 
 ───────────────────────
 
-<b>🚀 What's New & Fixed</b>
-• <b>Software Rendering Crash Resolution</b>:
-• Addressed an uncaught <code>IllegalArgumentException: Software rendering doesn't support hardware bitmaps</code> on physical Android 17 devices (Pixel 11 Pro XL) when opening <code>CustomizeDialog</code>.
-• Jetpack Compose's <code>rememberDrawablePainter</code> renders icons onto an internal software canvas. Upstream themed icons and GPU-allocated bitmaps with <code>Bitmap.Config.HARDWARE</code> triggered Android framework's strict software canvas rejection.
-• Implemented <code>ensureSoftwareRendering()</code> to safely inspect and convert hardware bitmaps within <code>AdaptiveIconDrawable</code>, <code>InsetDrawable</code>, <code>DrawableWrapper</code>, <code>BitmapDrawable</code>, and <code>FastBitmapDrawable</code> to software-compatible <code>ARGB_8888</code> copies before drawing.
-• Prevents crashes when customizing app icons or pinned shortcuts on home screen.
+<b>✨ Welcome to Version 3: The Next Chapter</b>
+
+To ensure ongoing, independent development and long-term sustainability, Version 3 introduces our refined tier architecture:
+
+• <b>Free Core (Free Forever &amp; Supported)</b>:
+Choosing to remain on Free Core continues to receive regular updates, security patches, bug fixes, and 100% rock-solid Pixel Launcher parity with full Google Discover feed support. Free will always be maintained, privacy-first, and completely ad-free.
+
+• <b>Expressive Pro (Deep Customization)</b>:
+In-depth personalization features are now exclusive to Expressive Pro to support ongoing development:
+  • <b>Workspace Grid Customization</b>: Custom column and row sliders, expanded foldable layouts, and dock icon counts.
+  • <b>App Drawer Folders &amp; Tabs</b>: Custom drawer folders, category tabs, and drag-and-drop reordering.
+  • <b>Custom Icon Shapes</b>: Custom corner radius editor with individual corner sculpting.
+  • <b>Google &amp; Variable Fonts</b>: Curated Google Sans Flex variable font and extensive typography picker.
+  • <b>Per-App Icon Overrides</b>: Independent icon pack selection for individual apps.
+
+───────────────────────
+
+<b>🎁 Supporting Development &amp; Offline Keys</b>
+If you want to continue supporting development, please update to V3 and consider activating Expressive Pro!
+
+For our active beta testers, contributors, and community giveaway winners, <b>100% offline cryptographic license keys</b> (ECDSA P-256) are available to unlock all Pro features with zero server pings, zero tracking, and instant one-tap deep link activation (<code>expressive://pro/activate?key=...</code>).
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
-<blockquote><b>Q:</b> <i>Why did the hardware bitmap refuse to attend the software party?</i>  
-<b>A:</b> <i>Because it didn't want to get painted into a corner without its GPU!</i>  
-
-<i>Thankfully, Expressive translates every pixel into the right format so the party never crashes.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the launcher invite all the app folders to the VIP lounge?</i>  
+<b>A:</b> <i>Because they finally organized their life and earned their Pro badge!</i></blockquote>
 
 ───────────────────────
 
@@ -25,26 +38,17 @@ Welcome to <b>Expressive Launcher QA 2.0.12</b>! This hotfix resolves a critical
 Can you solve this edition's launcher riddle?
 
 <b>Riddle:</b>
-<blockquote><i>Forged in silicon and accelerated on the GPU, I am fast and efficient when the screen is in view.</i>  
-<i>Yet touch me with a software brush and I will break the frame—unless a safe converter whispers my true name.</i>  
-<i>What am I?</i></blockquote>
+<blockquote><i>Forged in cryptography and verified strictly offline, I check every corner, grid slider, and typographical line. No network can trace me, no server is pinged to see, yet one touch from me sets all your custom features free. What am I?</i></blockquote>
 
-<tg-spoiler><b>A Hardware Bitmap!</b></tg-spoiler>
+<tg-spoiler><b>An Expressive Pro License Key!</b></tg-spoiler>
 
 ───────────────────────
 
-<b>💎 Expressive Free vs. Pro</b>
-Expressive Launcher remains dedicated to offering a complete, top-tier daily driver experience in our <b>Free Core</b> edition, alongside powerful advanced personalizations in our optional <b>$4.99 Pro</b> tier.
+<b>🛡️ Verification &amp; Integrity</b>
+• <b>Automated Test Suite</b>: Passed 259 Gradle unit tests, 279 CI contract tests, and 8 offline cryptographic tests.
+• <b>Android 17 Smoke Tests</b>: Passed live upgrade continuity, guest identity, cold/warm start, drawer swipe, and local search.
+• <b>Version</b>: <code>3.0.0</code> (VersionCode <code>32</code>)
+• <b>Source Revision</b>: <code>eace9190468b8b21364fe686a7b45095d56370a7</code>
+• <b>APK SHA-256</b>: <code>c8d574d92b7bc3773eed07456364ac02aae1afe966e469a626acd7e5b0dc2a61</code>
 
-<blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
-
-───────────────────────
-
-<b>🛡️ Verification & Integrity</b>
-• <b>Automated Tests</b>: Passed 251 Gradle robolectric & unit tests and 271 CI pipeline contract tests.
-• <b>Device Smoke Tests</b>: Passed Android 17 verification: guest identity, baseline install, same-signer upgrade, preference retention, cold/warm start, shortcut customization popup, and safe software canvas rendering.
-• <b>Source Revision</b>: <code>cbcb573b5c387c02cccfaee603293fb98998a7a3</code>
-• <b>Version</b>: <code>2.0.12</code> (VersionCode <code>31</code>)
-• <b>APK SHA-256</b>: <code>8be51e03307e48acfd190c15e54097d227d2a97e5712b2411526d65ac4057bae</code>
-
-<i>Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.</i>
+<i>Derived from Lawnchair and AOSP Launcher3; see repository licenses and upstream notices.</i>
