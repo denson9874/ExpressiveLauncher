@@ -1,7 +1,13 @@
 package app.lawnchair.override
 
 import android.app.Activity
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.DrawableWrapper
+import android.graphics.drawable.InsetDrawable
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -51,10 +57,84 @@ import app.lawnchair.util.navigationBarsOrDisplayCutoutPadding
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
+import com.android.launcher3.Utilities
+import com.android.launcher3.icons.BitmapInfo
+import com.android.launcher3.icons.FastBitmapDrawable
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.util.ComponentKey
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
+
+fun Drawable.ensureSoftwareRendering(context: Context): Drawable {
+    if (this is BitmapDrawable) {
+        val bmp = this.bitmap
+        if (bmp != null && bmp.config == Bitmap.Config.HARDWARE) {
+            val swBmp = bmp.copy(Bitmap.Config.ARGB_8888, false)
+            if (swBmp != null) {
+                return BitmapDrawable(context.resources, swBmp).apply {
+                    bounds = this@ensureSoftwareRendering.bounds
+                    colorFilter = this@ensureSoftwareRendering.colorFilter
+                    alpha = this@ensureSoftwareRendering.alpha
+                }
+            }
+        }
+        return this
+    }
+    if (this is FastBitmapDrawable) {
+        val bmp = this.bitmapInfo.icon
+        if (bmp.config == Bitmap.Config.HARDWARE) {
+            val swBmp = bmp.copy(Bitmap.Config.ARGB_8888, false)
+            if (swBmp != null) {
+                return FastBitmapDrawable(BitmapInfo.of(swBmp, this.bitmapInfo.color)).apply {
+                    bounds = this@ensureSoftwareRendering.bounds
+                    colorFilter = this@ensureSoftwareRendering.colorFilter
+                    alpha = this@ensureSoftwareRendering.alpha
+                }
+            }
+        }
+        return this
+    }
+    if (this is InsetDrawable) {
+        val inner = this.drawable
+        if (inner != null) {
+            val swInner = inner.ensureSoftwareRendering(context)
+            if (swInner !== inner) {
+                return InsetDrawable(swInner, AdaptiveIconDrawable.getExtraInsetFraction() / 2).apply {
+                    bounds = this@ensureSoftwareRendering.bounds
+                    colorFilter = this@ensureSoftwareRendering.colorFilter
+                    alpha = this@ensureSoftwareRendering.alpha
+                }
+            }
+        }
+        return this
+    }
+    if (this is DrawableWrapper) {
+        val inner = this.drawable
+        if (inner != null) {
+            val swInner = inner.ensureSoftwareRendering(context)
+            if (swInner !== inner) {
+                this.drawable = swInner
+            }
+        }
+        return this
+    }
+    if (this is AdaptiveIconDrawable) {
+        val fg = this.foreground?.ensureSoftwareRendering(context)
+        val bg = this.background?.ensureSoftwareRendering(context)
+        val mono = if (Utilities.ATLEAST_T) this.monochrome?.ensureSoftwareRendering(context) else null
+        if (fg !== this.foreground || bg !== this.background || (Utilities.ATLEAST_T && mono !== this.monochrome)) {
+            return if (Utilities.ATLEAST_T && mono != null) {
+                AdaptiveIconDrawable(bg, fg, mono)
+            } else {
+                AdaptiveIconDrawable(bg, fg)
+            }.apply {
+                bounds = this@ensureSoftwareRendering.bounds
+            }
+        }
+        return this
+    }
+    return this
+}
 
 @Composable
 fun CustomizeDialog(
@@ -66,12 +146,14 @@ fun CustomizeDialog(
     modifier: Modifier = Modifier,
     content: (@Composable () -> Unit)? = null,
 ) {
+    val context = LocalContext.current
+    val safeIcon = remember(icon) { icon.ensureSoftwareRendering(context) }
     Column(
         modifier = modifier
             .navigationBarsOrDisplayCutoutPadding()
             .fillMaxWidth(),
     ) {
-        val iconPainter = rememberDrawablePainter(drawable = icon)
+        val iconPainter = rememberDrawablePainter(drawable = safeIcon)
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)

@@ -273,6 +273,14 @@ GitHub Issue [#19](https://github.com/denson9874/ExpressiveLauncher/issues/19) r
 
 Both launcher and embedded feed defaults advance to candidate 2.0.11 / versionCode 30.
 
+## Guard software rendering against hardware icon bitmaps — 2026-09-23 (candidate 2.0.12)
+
+A physical Pixel 11 Pro XL (Android 17 / SDK 37) reported `IllegalArgumentException: Software rendering doesn't support hardware bitmaps` in `AdaptiveIconDrawable.draw(AdaptiveIconDrawable.java:409)` within `CustomizeDialog` when rendering themed or cached icons with hardware bitmaps.
+1. **Software Rendering Safety for Drawables**: Implemented `Drawable.ensureSoftwareRendering(context)` in `CustomizeDialog.kt` to recursively inspect drawables (`AdaptiveIconDrawable`, `InsetDrawable`, `DrawableWrapper`, `BitmapDrawable`, and `FastBitmapDrawable`) and convert any underlying `HARDWARE` config bitmaps to software-safe `ARGB_8888` copies before Jetpack Compose `rememberDrawablePainter` draws into software canvases.
+2. **Automated Unit Verification**: Added unit test coverage in `ShortcutCustomizationPolicyTest.kt` verifying that `ensureSoftwareRendering` and themed adaptive icon layers render safely onto software canvases without throwing.
+
+Both launcher and embedded feed defaults advance to candidate 2.0.12 / versionCode 31.
+
 ## Reference environment
 
 - Reference date: 2026-09-18

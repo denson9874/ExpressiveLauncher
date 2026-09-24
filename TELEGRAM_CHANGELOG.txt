@@ -1,42 +1,39 @@
-<b>Expressive Launcher QA 2.0.10 (29) — The Key to the Apps</b>
+<b>Expressive Launcher QA 2.0.12 (31) — Hardware Bitmap Software Safety Hotfix</b>
 
-Welcome to <b>Expressive Launcher QA 2.0.10</b>! This update delivers a dedicated, accessible <b>App Drawer Icon</b> option—making opening your full app library as effortless as a single tap, especially for users who prefer classic buttons over swipe gestures.
+Welcome to <b>Expressive Launcher QA 2.0.12</b>! This hotfix resolves a critical software rendering crash encountered on physical Android 17 devices when opening the icon customization dialog for themed and cached icons.
 
 ───────────────────────
 
 <b>🚀 What's New & Fixed</b>
-• <b>App Drawer Icon Option & Direct Shortcut (<a href="https://github.com/denson9874/ExpressiveLauncher/issues/17">#17</a>)</b>:
-• Many users—particularly elderly individuals, those with fine-motor difficulties, or fans of classic launcher layouts—find vertical swipe gestures tiring or inconsistent.
-• Added a dedicated, 1-tap <b>App Drawer shortcut</b> (<code>AppDrawerShortcutActivity</code>) equipped with the iconic apps grid icon and seamless animation straight into All Apps.
-• Added convenient pinning toggles in <b>Settings > Home Screen > General</b> and <b>Settings > Dock > Icons</b> so you can place an App Drawer button onto your home screen or dock in seconds.
-• Refined launcher shortcut handling across cold and warm starts to guarantee instant, reliable activation every single time.
+• <b>Software Rendering Crash Resolution</b>:
+• Addressed an uncaught <code>IllegalArgumentException: Software rendering doesn't support hardware bitmaps</code> on physical Android 17 devices (Pixel 11 Pro XL) when opening <code>CustomizeDialog</code>.
+• Jetpack Compose's <code>rememberDrawablePainter</code> renders icons onto an internal software canvas. Upstream themed icons and GPU-allocated bitmaps with <code>Bitmap.Config.HARDWARE</code> triggered Android framework's strict software canvas rejection.
+• Implemented <code>ensureSoftwareRendering()</code> to safely inspect and convert hardware bitmaps within <code>AdaptiveIconDrawable</code>, <code>InsetDrawable</code>, <code>DrawableWrapper</code>, <code>BitmapDrawable</code>, and <code>FastBitmapDrawable</code> to software-compatible <code>ARGB_8888</code> copies before drawing.
+• Prevents crashes when customizing app icons or pinned shortcuts on home screen.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
+<blockquote><b>Q:</b> <i>Why did the hardware bitmap refuse to attend the software party?</i>  
+<b>A:</b> <i>Because it didn't want to get painted into a corner without its GPU!</i>  
 
-<blockquote><b>Q:</b> <i>Why did the app drawer icon refuse to practice swipe gestures?</i>  
-<b>A:</b> <i>Because it believed in straightforward, buttoned-up solutions!</i>  
-
-<i>Swiping up is good cardio for your thumb, but sometimes you just want a trusty button that gets straight to the point.</i></blockquote>
+<i>Thankfully, Expressive translates every pixel into the right format so the party never crashes.</i></blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
-
 Can you solve this edition's launcher riddle?
 
 <b>Riddle:</b>
-<blockquote><i>I have no drawers of wood or metal, yet I hold hundreds of tools, games, and memories.</i>  
-<i>Some reach me with a graceful swipe toward the sky; others now summon me with a single, trusty tap.</i>  
+<blockquote><i>Forged in silicon and accelerated on the GPU, I am fast and efficient when the screen is in view.</i>  
+<i>Yet touch me with a software brush and I will break the frame—unless a safe converter whispers my true name.</i>  
 <i>What am I?</i></blockquote>
 
-<tg-spoiler><b>The App Drawer!</b></tg-spoiler>
+<tg-spoiler><b>A Hardware Bitmap!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>💎 Expressive Free vs. Pro</b>
-
 Expressive Launcher remains dedicated to offering a complete, top-tier daily driver experience in our <b>Free Core</b> edition, alongside powerful advanced personalizations in our optional <b>$4.99 Pro</b> tier.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
@@ -44,10 +41,8 @@ Expressive Launcher remains dedicated to offering a complete, top-tier daily dri
 ───────────────────────
 
 <b>🛡️ Verification & Integrity</b>
-• <b>Automated Tests</b>: Passed 243 Gradle robolectric & unit tests and 266 CI pipeline contract tests.
-• <b>Device Smoke Tests</b>: Passed automated Android 17 emulator verification: guest identity, baseline install, same-signer upgrade, preference retention, cold/warm start, app drawer shortcut action, search handoff, and date synchronization.
-• <b>Source Revision</b>: <code>e0e6a5e54ef063f0ef8f73def59170de8c8913e5</code>
-• <b>Version</b>: <code>2.0.10</code> (VersionCode <code>29</code>)
-• <b>APK SHA-256</b>: <code>2aef8c2e960c12c6aa5823b5b5b440bb1b9c1529c2c2548e1ca04da7c781905f</code>
+• <b>Automated Tests</b>: Passed Gradle robolectric & unit tests and 271 CI pipeline contract tests.
+• <b>Device Smoke Tests</b>: Passed Android 17 verification: guest identity, baseline install, same-signer upgrade, preference retention, cold/warm start, shortcut customization popup, and safe software canvas rendering.
+• <b>Version</b>: <code>2.0.12</code> (VersionCode <code>31</code>)
 
 <i>Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.</i>
