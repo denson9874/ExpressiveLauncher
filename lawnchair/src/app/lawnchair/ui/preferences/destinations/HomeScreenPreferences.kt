@@ -99,18 +99,16 @@ fun HomeScreenPreferences(
             ProGate(
                 lockedTitle = stringResource(id = R.string.gestures_label),
             ) {
-                Column {
-                    GestureHandlerPreference(
-                        adapter = prefs2.doubleTapGestureHandler.getAdapter(),
-                        label = stringResource(id = R.string.gesture_double_tap),
-                    )
-                    SwitchPreference(
-                        prefs.infiniteScrolling.getAdapter(),
-                        label = stringResource(id = R.string.infinite_scrolling_label),
-                        description = stringResource(id = R.string.infinite_scrolling_description),
-                    )
-                }
+                GestureHandlerPreference(
+                    adapter = prefs2.doubleTapGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_double_tap),
+                )
             }
+            SwitchPreference(
+                prefs.infiniteScrolling.getAdapter(),
+                label = stringResource(id = R.string.infinite_scrolling_label),
+                description = stringResource(id = R.string.infinite_scrolling_description),
+            )
             SwitchPreference(
                 adapter = prefs2.returnToDefaultPage.getAdapter(),
                 label = stringResource(id = R.string.return_to_default_page),
