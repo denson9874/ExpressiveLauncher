@@ -1,23 +1,25 @@
-<b>🚀 Expressive Launcher 3.0.0 (32) — Welcome to Version 3!</b>
+<b>🚀 Expressive Launcher 3.0.1 (33) — Complete Customization Pro Gating & Parity</b>
 
-A heartfelt <b>thank you</b> to everyone in our community! Your extensive testing, insightful feedback, and detailed bug reports throughout our release cycle have helped shape Expressive Launcher into the smoothest, most reliable daily-driver Pixel experience available.
+A heartfelt <b>thank you</b> to everyone in our community! Your extensive testing, insightful feedback, and detailed bug reports have helped shape Expressive Launcher into the smoothest, most reliable daily-driver Pixel experience available.
 
 ───────────────────────
 
-<b>✨ Welcome to Version 3: The Next Chapter</b>
+<b>✨ Version 3: The Next Chapter</b>
 
 To ensure ongoing, independent development and long-term sustainability, Version 3 introduces our refined tier architecture:
 
 • <b>Free Core (Free Forever &amp; Supported)</b>:
 Choosing to remain on Free Core continues to receive regular updates, security patches, bug fixes, and 100% rock-solid Pixel Launcher parity with full Google Discover feed support. Free will always be maintained, privacy-first, and completely ad-free.
 
-• <b>Expressive Pro (Deep Customization)</b>:
-In-depth personalization features are now exclusive to Expressive Pro to support ongoing development:
-  • <b>Workspace Grid Customization</b>: Custom column and row sliders, expanded foldable layouts, and dock icon counts.
-  • <b>App Drawer Folders &amp; Tabs</b>: Custom drawer folders, category tabs, and drag-and-drop reordering.
-  • <b>Custom Icon Shapes</b>: Custom corner radius editor with individual corner sculpting.
-  • <b>Google &amp; Variable Fonts</b>: Curated Google Sans Flex variable font and extensive typography picker.
-  • <b>Per-App Icon Overrides</b>: Independent icon pack selection for individual apps.
+• <b>Expressive Pro (All Customization Features Gated)</b>:
+All personalization and customization features across the entire launcher are now exclusive to Expressive Pro to support ongoing development:
+  • <b>Workspace Grid &amp; Padding</b>: Custom column, row, and padding sliders, foldable layouts, and dock icon counts.
+  • <b>App Drawer Layout &amp; Folders</b>: Custom drawer folders, category tabs, and drag-and-drop reordering.
+  • <b>Dock, Gestures &amp; Folders</b>: Full dock styling, folder customization, and custom gesture mapping.
+  • <b>Icon Packs &amp; Custom Shapes</b>: Per-app icon overrides, custom icon pack selection, and shape editor with individual corner sculpting.
+  • <b>Typography &amp; Fonts</b>: Curated Google Sans Flex variable font and extensive typography picker.
+  • <b>Hidden Apps &amp; Popup Menus</b>: App hiding management and custom launcher popup menu editor.
+  • <b>Smartspacer &amp; Search Providers</b>: Enhanced Smartspacer integration and custom dock search bar providers.
 
 ───────────────────────
 
@@ -47,8 +49,6 @@ Can you solve this edition's launcher riddle?
 <b>🛡️ Verification &amp; Integrity</b>
 • <b>Automated Test Suite</b>: Passed 259 Gradle unit tests, 279 CI contract tests, and 8 offline cryptographic tests.
 • <b>Android 17 Smoke Tests</b>: Passed live upgrade continuity, guest identity, cold/warm start, drawer swipe, and local search.
-• <b>Version</b>: <code>3.0.0</code> (VersionCode <code>32</code>)
-• <b>Source Revision</b>: <code>eace9190468b8b21364fe686a7b45095d56370a7</code>
-• <b>APK SHA-256</b>: <code>c8d574d92b7bc3773eed07456364ac02aae1afe966e469a626acd7e5b0dc2a61</code>
+• <b>Version</b>: <code>3.0.1</code> (VersionCode <code>33</code>)
 
 <i>Derived from Lawnchair and AOSP Launcher3; see repository licenses and upstream notices.</i>
