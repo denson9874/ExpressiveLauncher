@@ -94,6 +94,7 @@ import app.lawnchair.ui.preferences.navigation.Search
 import app.lawnchair.ui.preferences.navigation.SettingsSearch
 import app.lawnchair.ui.preferences.navigation.Smartspace
 import app.lawnchair.ui.preferences.navigation.WidgetPreferencesRoute
+import app.lawnchair.ui.preferences.pro.ProBannerPreference
 import app.lawnchair.ui.util.addIf
 import app.lawnchair.util.isDefaultLauncher
 import app.lawnchair.util.productStringId
@@ -159,6 +160,11 @@ fun PreferencesDashboard(
 
         if (!context.isDefaultLauncher()) {
             PreferencesSetDefaultLauncherWarning()
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (BuildConfig.IS_EXPRESSIVE_PRODUCT) {
+            ProBannerPreference()
             Spacer(modifier = Modifier.height(8.dp))
         }
 

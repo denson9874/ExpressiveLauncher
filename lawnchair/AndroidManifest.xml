@@ -81,6 +81,13 @@
 
                 <data android:scheme="lawnchair" android:host="settings" android:pathPrefix="/" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="expressive" android:host="pro" android:pathPrefix="/activate" />
+            </intent-filter>
         </activity>
 
         <activity

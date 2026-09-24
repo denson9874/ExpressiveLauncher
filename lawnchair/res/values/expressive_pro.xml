@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="expressive_pro_title">Expressive Pro</string>
+    <string name="expressive_pro_status_active">Active</string>
+    <string name="expressive_pro_active_desc">Pro unlocked for %1$s (%2$s)</string>
+    <string name="expressive_pro_free_desc">Enter an offline tester or giveaway license key to unlock Pro features.</string>
+    <string name="expressive_pro_redeem_title">Redeem Pro License</string>
+    <string name="expressive_pro_redeem_desc">Enter your cryptographic license key below. Verification works 100% offline with zero network requests.</string>
+    <string name="expressive_pro_key_label">License Key</string>
+    <string name="expressive_pro_key_hint">EXPR-PRO-XXXX-XXXX-…</string>
+    <string name="expressive_pro_paste_clipboard">Paste</string>
+    <string name="expressive_pro_activate_button">Activate</string>
+    <string name="expressive_pro_deactivate_button">Deactivate</string>
+    <string name="expressive_pro_deactivate_confirm">Deactivate your Pro license and revert to Free Core?</string>
+    <string name="expressive_pro_activated_success">Welcome to Expressive Pro!</string>
+    <string name="expressive_pro_activated_success_desc">License verified offline for %1$s. All Pro features are now unlocked.</string>
+    <string name="expressive_pro_license_details">License Details</string>
+    <string name="expressive_pro_recipient">Licensed to: %1$s</string>
+    <string name="expressive_pro_tier">Tier: %1$s</string>
+    <string name="expressive_pro_expires">Expiration: %1$s</string>
+    <string name="expressive_pro_lifetime">Lifetime (Never expires)</string>
+    <string name="expressive_pro_close">Close</string>
+    <string name="expressive_pro_badge">PRO</string>
+    <string name="expressive_pro_locked_message">This feature requires Expressive Pro. Tap to enter your tester or giveaway key.</string>
+</resources>
