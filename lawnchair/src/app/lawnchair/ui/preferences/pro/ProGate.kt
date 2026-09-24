@@ -38,6 +38,10 @@ import com.android.launcher3.R
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.google.android.msdl.data.model.MSDLToken
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.ListItemDefaults
+import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
+
 /**
  * Returns true if the user is currently verified as an Expressive Pro user.
  */
@@ -53,16 +57,17 @@ fun ProBadge(
     modifier: Modifier = Modifier,
 ) {
     Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
+            .height(20.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(horizontal = 8.dp),
     ) {
         Text(
             text = stringResource(R.string.expressive_pro_badge),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
 }
@@ -96,18 +101,17 @@ fun ProGate(
         val context = LocalContext.current
         val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
 
-        Surface(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        PreferenceGroup(
+            modifier = modifier,
         ) {
             PreferenceTemplate(
                 modifier = Modifier.clickable {
                     mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
                     showRedeemDialog = true
                 },
+                colors = ListItemDefaults.segmentedColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                ),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -122,23 +126,20 @@ fun ProGate(
                 description = {
                     Text(
                         text = lockedDescription ?: stringResource(R.string.expressive_pro_locked_customization),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     )
                 },
                 startWidget = {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        modifier = Modifier.size(32.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Lock,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                 },

@@ -48,6 +48,11 @@ import com.android.launcher3.R
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.google.android.msdl.data.model.MSDLToken
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import app.lawnchair.ui.preferences.pro.ProBadge
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PreferenceCategory(
@@ -57,6 +62,7 @@ fun PreferenceCategory(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     description: String? = null,
+    showProBadge: Boolean = false,
     endWidget: (@Composable () -> Unit)? = null,
 ) {
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
@@ -86,10 +92,16 @@ fun PreferenceCategory(
     )
     PreferenceTemplate(
         title = {
-            Text(
-                text = label,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = label,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                )
+                if (showProBadge) {
+                    Spacer(Modifier.width(8.dp))
+                    ProBadge()
+                }
+            }
         },
         modifier = modifier
             .background(

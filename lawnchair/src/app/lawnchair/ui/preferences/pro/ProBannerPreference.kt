@@ -37,6 +37,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.lawnchair.pro.proManager
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.ListItemDefaults
+import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import com.android.launcher3.R
 import com.android.launcher3.util.MSDLPlayerWrapper
@@ -56,19 +59,18 @@ fun ProBannerPreference(
     var showRedeemDialog by remember { mutableStateOf(initialKeyToRedeem.isNotBlank()) }
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = MaterialTheme.shapes.large,
-        color = if (isPro) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-        else MaterialTheme.colorScheme.surfaceVariant,
+    PreferenceGroup(
+        modifier = modifier,
     ) {
         PreferenceTemplate(
             modifier = Modifier.clickable {
                 mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
                 showRedeemDialog = true
             },
+            colors = ListItemDefaults.segmentedColors(
+                containerColor = if (isPro) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                else MaterialTheme.colorScheme.surfaceContainer,
+            ),
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -77,23 +79,23 @@ fun ProBannerPreference(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(
-                                if (isPro) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                    if (isPro) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(20.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(horizontal = 8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.expressive_pro_status_active).uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onPrimary,
                             )
-                            .padding(horizontal = 7.dp, vertical = 2.dp),
-                    ) {
-                        Text(
-                            text = if (isPro) stringResource(R.string.expressive_pro_status_active).uppercase()
-                            else stringResource(R.string.expressive_pro_badge),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isPro) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        }
+                    } else {
+                        ProBadge()
                     }
                 }
             },
@@ -108,20 +110,14 @@ fun ProBannerPreference(
                     } else {
                         stringResource(R.string.expressive_pro_free_desc)
                     },
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             startWidget = {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isPro) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            else MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
-                        ),
+                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         imageVector = if (isPro) Icons.Rounded.Verified else Icons.Rounded.Star,
