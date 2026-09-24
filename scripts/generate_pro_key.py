@@ -21,12 +21,14 @@ TYPE_TESTER = 1
 TYPE_GIVEAWAY = 2
 TYPE_VIP = 3
 TYPE_DEV = 4
+TYPE_CAKEY = 5
 
 TYPE_NAMES = {
     TYPE_TESTER: "TESTER",
     TYPE_GIVEAWAY: "GIVEAWAY",
     TYPE_VIP: "VIP",
     TYPE_DEV: "DEV",
+    TYPE_CAKEY: "CAKEY",
 }
 
 TYPE_MAP = {
@@ -34,6 +36,7 @@ TYPE_MAP = {
     "GIVEAWAY": TYPE_GIVEAWAY,
     "VIP": TYPE_VIP,
     "DEV": TYPE_DEV,
+    "CAKEY": TYPE_CAKEY,
 }
 
 DEFAULT_KEY_DIR = Path.home() / ".config/expressive"
@@ -314,14 +317,14 @@ def main():
     p_create.add_argument("--recipient", help="Recipient name, handle, or ID")
     p_create.add_argument("--device", help="Device ID (e.g. DEV-A1B2-C3D4) to bind this license to")
     p_create.add_argument("--account", help="Account email (e.g. user@example.com) to bind this license to")
-    p_create.add_argument("--type", choices=["TESTER", "GIVEAWAY", "VIP", "DEV"], default="TESTER")
+    p_create.add_argument("--type", choices=["TESTER", "GIVEAWAY", "VIP", "DEV", "CAKEY"], default="TESTER")
     p_create.add_argument("--expires", default="never", help="Duration (e.g. 30d, 90d, 1y) or 'never'")
     p_create.add_argument("--private-key", type=Path, default=DEFAULT_PRIVATE_KEY_PATH)
 
     # batch
     p_batch = subparsers.add_parser("batch", help="Batch generate multiple giveaway / tester keys")
     p_batch.add_argument("--count", type=int, default=10, help="Number of keys to generate")
-    p_batch.add_argument("--type", choices=["TESTER", "GIVEAWAY", "VIP", "DEV"], default="GIVEAWAY")
+    p_batch.add_argument("--type", choices=["TESTER", "GIVEAWAY", "VIP", "DEV", "CAKEY"], default="GIVEAWAY")
     p_batch.add_argument("--prefix", default="giveaway-", help="Recipient label prefix")
     p_batch.add_argument("--expires", default="never", help="Duration (e.g. 30d, 1y) or 'never'")
     p_batch.add_argument("--output", type=Path, help="Optional output text file path")

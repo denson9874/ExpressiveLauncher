@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +56,7 @@ fun ProBannerPreference(
     val proManager = proManager()
     val isPro by proManager.isPro.collectAsState()
     val details by proManager.licenseDetails.collectAsState()
+    val isCakey = details?.isCakey == true
 
     var showRedeemDialog by remember { mutableStateOf(initialKeyToRedeem.isNotBlank()) }
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
@@ -68,18 +70,37 @@ fun ProBannerPreference(
                 showRedeemDialog = true
             },
             colors = ListItemDefaults.segmentedColors(
-                containerColor = if (isPro) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                else MaterialTheme.colorScheme.surfaceContainer,
+                containerColor = when {
+                    isCakey -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    isPro -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    else -> MaterialTheme.colorScheme.surfaceContainer
+                },
             ),
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(R.string.expressive_pro_title),
+                        text = if (isCakey) stringResource(R.string.cakey_edition_title)
+                        else stringResource(R.string.expressive_pro_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(Modifier.width(8.dp))
-                    if (isPro) {
+                    if (isCakey) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(20.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.tertiary)
+                                .padding(horizontal = 8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.cakey_edition_badge),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onTertiary,
+                            )
+                        }
+                    } else if (isPro) {
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
@@ -101,14 +122,14 @@ fun ProBannerPreference(
             },
             description = {
                 Text(
-                    text = if (isPro && details != null) {
-                        stringResource(
+                    text = when {
+                        isCakey -> stringResource(R.string.cakey_edition_banner_desc)
+                        isPro && details != null -> stringResource(
                             R.string.expressive_pro_active_desc,
                             details!!.recipient,
                             details!!.type.displayName,
                         )
-                    } else {
-                        stringResource(R.string.expressive_pro_free_desc)
+                        else -> stringResource(R.string.expressive_pro_free_desc)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -120,8 +141,16 @@ fun ProBannerPreference(
                     modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
-                        imageVector = if (isPro) Icons.Rounded.Verified else Icons.Rounded.Star,
-                        tint = if (isPro) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        imageVector = when {
+                            isCakey -> Icons.Rounded.Favorite
+                            isPro -> Icons.Rounded.Verified
+                            else -> Icons.Rounded.Star
+                        },
+                        tint = when {
+                            isCakey -> MaterialTheme.colorScheme.tertiary
+                            isPro -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
                     )

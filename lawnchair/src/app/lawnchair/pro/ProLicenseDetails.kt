@@ -4,7 +4,8 @@ enum class LicenseType(val id: Int, val displayName: String) {
     TESTER(1, "Tester Edition"),
     GIVEAWAY(2, "Giveaway VIP"),
     VIP(3, "Lifetime Backer"),
-    DEV(4, "Internal Dev");
+    DEV(4, "Internal Dev"),
+    CAKEY(5, "Cakey Edition");
 
     companion object {
         fun fromId(id: Int): LicenseType = values().firstOrNull { it.id == id } ?: TESTER
@@ -27,4 +28,6 @@ data class ProLicenseDetails(
 
     val isAccountBound: Boolean get() = recipient.startsWith("account:", ignoreCase = true)
     val boundAccountEmail: String? get() = if (isAccountBound) recipient.substringAfter("account:").trim() else null
+
+    val isCakey: Boolean get() = type == LicenseType.CAKEY || recipient.contains("Cakey", ignoreCase = true)
 }

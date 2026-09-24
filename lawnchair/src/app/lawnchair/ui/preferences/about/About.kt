@@ -54,9 +54,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import app.lawnchair.pro.rememberIsCakey
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lawnchair.preferences.PreferenceManager
@@ -81,6 +83,7 @@ fun About(
     viewModel: AboutViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isCakey = rememberIsCakey()
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val applicationIcon = remember(context) {
@@ -243,6 +246,16 @@ fun About(
                             },
                         ),
                     )
+                    if (isCakey) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.cakey_about_subtitle),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
             item {

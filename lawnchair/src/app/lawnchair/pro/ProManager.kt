@@ -10,12 +10,18 @@ import kotlinx.coroutines.flow.asStateFlow
 
 import com.android.launcher3.R
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+
 class ProManager(private val context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _isPro = MutableStateFlow(false)
     val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
+
+    private val _isCakey = MutableStateFlow(false)
+    val isCakey: StateFlow<Boolean> = _isCakey.asStateFlow()
 
     private val _licenseDetails = MutableStateFlow<ProLicenseDetails?>(null)
     val licenseDetails: StateFlow<ProLicenseDetails?> = _licenseDetails.asStateFlow()
@@ -34,6 +40,7 @@ class ProManager(private val context: Context) {
         val savedKey = prefs.getString(KEY_LICENSE_CODE, null)
         if (savedKey.isNullOrBlank()) {
             _isPro.value = false
+            _isCakey.value = false
             _licenseDetails.value = null
             return
         }
@@ -46,9 +53,11 @@ class ProManager(private val context: Context) {
             lastError = null
             _isPro.value = true
             _licenseDetails.value = details
+            _isCakey.value = details.isCakey
         }.onFailure {
             lastError = it
             _isPro.value = false
+            _isCakey.value = false
             _licenseDetails.value = null
         }
     }
@@ -62,6 +71,7 @@ class ProManager(private val context: Context) {
             prefs.edit().putString(KEY_LICENSE_CODE, details.rawKeyCode).commit()
             _isPro.value = true
             _licenseDetails.value = details
+            _isCakey.value = details.isCakey
             details
         }.onFailure {
             lastError = it
@@ -94,6 +104,7 @@ class ProManager(private val context: Context) {
     fun deactivate() {
         prefs.edit().remove(KEY_LICENSE_CODE).commit()
         _isPro.value = false
+        _isCakey.value = false
         _licenseDetails.value = null
     }
 
@@ -114,3 +125,10 @@ class ProManager(private val context: Context) {
 
 @Composable
 fun proManager(): ProManager = ProManager.INSTANCE.get(LocalContext.current)
+
+@Composable
+fun rememberIsCakey(): Boolean {
+    val proManager = proManager()
+    val isCakey by proManager.isCakey.collectAsState()
+    return isCakey
+}

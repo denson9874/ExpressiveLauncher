@@ -11,6 +11,8 @@ import android.widget.TextView
 import androidx.core.text.layoutDirection
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
+import app.lawnchair.pro.CakeyGreetings
+import app.lawnchair.pro.ProManager
 import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import app.lawnchair.smartspace.model.hasIntent
@@ -74,6 +76,9 @@ class BcSmartspaceCard @JvmOverloads constructor(
             setTitle(title, contentDescription, hasTitle != hasSubtitle)
             if (!hasTitle || !hasSubtitle) {
                 subtitle = null
+            }
+            if (subtitle.isNullOrEmpty() && ProManager.INSTANCE.get(context).isCakey.value) {
+                subtitle = CakeyGreetings.getGreeting(context)
             }
             setSubtitle(subtitle, headerAction.contentDescription)
             updateIconTint()
