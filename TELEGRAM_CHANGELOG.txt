@@ -1,38 +1,31 @@
-<b>🚀 Expressive Launcher 3.0.1 (33) — Complete Customization Pro Gating & Parity</b>
+<b>🚀 Expressive Launcher 3.0.2 (34) — Automated Donation Activation & UI Polish</b>
 
-A heartfelt <b>thank you</b> to everyone in our community! Your extensive testing, insightful feedback, and detailed bug reports have helped shape Expressive Launcher into the smoothest, most reliable daily-driver Pixel experience available.
-
-───────────────────────
-
-<b>✨ Version 3: The Next Chapter</b>
-
-To ensure ongoing, independent development and long-term sustainability, Version 3 introduces our refined tier architecture:
-
-• <b>Free Core (Free Forever &amp; Supported)</b>:
-Choosing to remain on Free Core continues to receive regular updates, security patches, bug fixes, and 100% rock-solid Pixel Launcher parity with full Google Discover feed support. Free will always be maintained, privacy-first, and completely ad-free.
-
-• <b>Expressive Pro (All Customization Features Gated)</b>:
-All personalization and customization features across the entire launcher are now exclusive to Expressive Pro to support ongoing development:
-  • <b>Workspace Grid &amp; Padding</b>: Custom column, row, and padding sliders, foldable layouts, and dock icon counts.
-  • <b>App Drawer Layout &amp; Folders</b>: Custom drawer folders, category tabs, and drag-and-drop reordering.
-  • <b>Dock, Gestures &amp; Folders</b>: Full dock styling, folder customization, and custom gesture mapping.
-  • <b>Icon Packs &amp; Custom Shapes</b>: Per-app icon overrides, custom icon pack selection, and shape editor with individual corner sculpting.
-  • <b>Typography &amp; Fonts</b>: Curated Google Sans Flex variable font and extensive typography picker.
-  • <b>Hidden Apps &amp; Popup Menus</b>: App hiding management and custom launcher popup menu editor.
-  • <b>Smartspacer &amp; Search Providers</b>: Enhanced Smartspacer integration and custom dock search bar providers.
+A heartfelt <b>thank you</b> to everyone in our community! Your feedback and testing continue to push Expressive Launcher forward as the smoothest, most customizable daily-driver Pixel experience available.
 
 ───────────────────────
 
-<b>🎁 Supporting Development &amp; Offline Keys</b>
-If you want to continue supporting development, please update to V3 and consider activating Expressive Pro!
+<b>✨ What's New in Version 3.0.2</b>
 
-For our active beta testers, contributors, and community giveaway winners, <b>100% offline cryptographic license keys</b> (ECDSA P-256) are available to unlock all Pro features with zero server pings, zero tracking, and instant one-tap deep link activation (<code>expressive://pro/activate?key=...</code>).
+• <b>Automated Donation &amp; In-App Activation ($4.99)</b>:
+  You can now support ongoing independent development directly from within the launcher preferences! 
+  • Supports 1-tap contribution via PayPal.
+  • Your privacy-preserving installation Device ID is linked automatically.
+  • Tap <b>"Check Activation Status"</b> to instantly verify and unlock Expressive Pro on your device—no manual key copy-pasting required!
+  • Includes manual transaction ID verification fallback if needed.
+
+• <b>Polished Settings &amp; Pro UI</b>:
+  • <b>Standardized Pro Banner</b>: The Pro status card in Settings now uses standard preference group styling, matching list item margins, rounded corners, and vertical rhythm perfectly.
+  • <b>Normalized Pro Badges</b>: Pro badges across Dock, Folders, and Gestures now use a standardized 20dp height and align inline directly beside category titles, keeping list rows and trailing edges completely uniform.
+
+• <b>Free Core &amp; Parity Maintained</b>:
+  • Free Core remains supported, ad-free, and privacy-respecting forever with 100% Google Discover feed parity.
+  • All community tester, VIP, and giveaway offline keys remain 100% active and supported!
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
-<blockquote><b>Q:</b> <i>Why did the launcher invite all the app folders to the VIP lounge?</i>  
-<b>A:</b> <i>Because they finally organized their life and earned their Pro badge!</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the developer teach the launcher how to accept donations?</i>  
+<b>A:</b> <i>Because it needed some change to keep its widgets from freezing!</i></blockquote>
 
 ───────────────────────
 
@@ -40,17 +33,15 @@ For our active beta testers, contributors, and community giveaway winners, <b>10
 Can you solve this edition's launcher riddle?
 
 <b>Riddle:</b>
-<blockquote><i>Forged in cryptography and verified strictly offline, I check every corner, grid slider, and typographical line. No network can trace me, no server is pinged to see, yet one touch from me sets all your custom features free. What am I?</i></blockquote>
+<blockquote><i>I have no name, no email to claim, and no intrusive tracker in my frame. Born on your device in Crockford code, I unlock the gates on your launcher's road. What am I?</i></blockquote>
 
-<tg-spoiler><b>An Expressive Pro License Key!</b></tg-spoiler>
+<tg-spoiler><b>An Expressive Device ID!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Integrity</b>
-• <b>Automated Test Suite</b>: Passed 259 Gradle unit tests, 279 CI contract tests, and 8 offline cryptographic tests.
+• <b>Automated Test Suite</b>: Passed 260+ Gradle unit tests, 279 CI contract tests, and offline device-binding test suites.
 • <b>Android 17 Smoke Tests</b>: Passed live upgrade continuity, guest identity, cold/warm start, drawer swipe, and local search.
-• <b>Version</b>: <code>3.0.1</code> (VersionCode <code>33</code>)
-• <b>Source Revision</b>: <code>5904810dc3fd64ee8062c4582131370bfb8b7d20</code>
-• <b>APK SHA-256</b>: <code>32fa6314c36c9b5df5fd28791d0714a3be7025935860da46b3fa5ade0983be54</code>
+• <b>Version</b>: <code>3.0.2</code> (VersionCode <code>34</code>)
 
 <i>Derived from Lawnchair and AOSP Launcher3; see repository licenses and upstream notices.</i>

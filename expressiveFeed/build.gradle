@@ -5,10 +5,10 @@ plugins {
 }
 
 final def feedVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("33")
+        .orElse("34")
         .get()
 final def feedVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("3.0.1")
+        .orElse("3.0.2")
         .get()
 final def feedVersionCode = feedVersionCodeText.isInteger()
         ? feedVersionCodeText.toInteger()
