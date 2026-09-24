@@ -50,5 +50,7 @@ Can you solve this edition's launcher riddle?
 • <b>Automated Test Suite</b>: Passed 259 Gradle unit tests, 279 CI contract tests, and 8 offline cryptographic tests.
 • <b>Android 17 Smoke Tests</b>: Passed live upgrade continuity, guest identity, cold/warm start, drawer swipe, and local search.
 • <b>Version</b>: <code>3.0.1</code> (VersionCode <code>33</code>)
+• <b>Source Revision</b>: <code>5904810dc3fd64ee8062c4582131370bfb8b7d20</code>
+• <b>APK SHA-256</b>: <code>32fa6314c36c9b5df5fd28791d0714a3be7025935860da46b3fa5ade0983be54</code>
 
 <i>Derived from Lawnchair and AOSP Launcher3; see repository licenses and upstream notices.</i>
