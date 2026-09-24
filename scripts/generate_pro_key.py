@@ -280,10 +280,19 @@ def verify_and_inspect_key(key_str: str, public_key_path: Path) -> dict:
         else datetime.datetime.fromtimestamp(expires_at, tz=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
+    is_device_bound = recipient.lower().startswith("device:")
+    bound_device_id = recipient[len("device:"):].strip() if is_device_bound else None
+    is_account_bound = recipient.lower().startswith("account:")
+    bound_account_email = recipient[len("account:"):].strip() if is_account_bound else None
+
     return {
         "valid": True,
         "type": TYPE_NAMES.get(license_type, f"UNKNOWN({license_type})"),
         "recipient": recipient,
+        "deviceBound": is_device_bound,
+        "boundDeviceId": bound_device_id,
+        "accountBound": is_account_bound,
+        "boundAccount": bound_account_email,
         "issuedAt": issued_dt,
         "expiresAt": expires_dt,
         "isExpired": is_expired,
@@ -302,7 +311,9 @@ def main():
 
     # create
     p_create = subparsers.add_parser("create", help="Create a signed license key")
-    p_create.add_argument("--recipient", required=True, help="Recipient name, handle, or ID")
+    p_create.add_argument("--recipient", help="Recipient name, handle, or ID")
+    p_create.add_argument("--device", help="Device ID (e.g. DEV-A1B2-C3D4) to bind this license to")
+    p_create.add_argument("--account", help="Account email (e.g. user@example.com) to bind this license to")
     p_create.add_argument("--type", choices=["TESTER", "GIVEAWAY", "VIP", "DEV"], default="TESTER")
     p_create.add_argument("--expires", default="never", help="Duration (e.g. 30d, 90d, 1y) or 'never'")
     p_create.add_argument("--private-key", type=Path, default=DEFAULT_PRIVATE_KEY_PATH)
@@ -336,11 +347,27 @@ def main():
         if not args.private_key.is_file():
             print(f"Error: Master private key not found at {args.private_key}. Run 'init' first.", file=sys.stderr)
             sys.exit(1)
+        if args.device:
+            recipient = f"device:{args.device.strip().upper()}"
+        elif args.account:
+            recipient = f"account:{args.account.strip().lower()}"
+        elif args.recipient:
+            recipient = args.recipient.strip()
+        else:
+            print("Error: Must specify --recipient, --device, or --account", file=sys.stderr)
+            sys.exit(1)
+
         expires_at = parse_expiration(args.expires)
         l_type = TYPE_MAP[args.type]
-        key, deep_link = build_and_sign_key(args.private_key, args.recipient, l_type, expires_at)
+        key, deep_link = build_and_sign_key(args.private_key, recipient, l_type, expires_at)
         print("\n=== Expressive Pro License Key Created ===")
-        print(f"Recipient : {args.recipient}")
+        print(f"Recipient : {recipient}")
+        if args.device:
+            print(f"Binding   : Device ({args.device.strip().upper()})")
+        elif args.account:
+            print(f"Binding   : Account ({args.account.strip().lower()})")
+        else:
+            print("Binding   : Universal (Offline)")
         print(f"Type      : {args.type}")
         print(f"Expires   : {args.expires} ({'Lifetime' if expires_at == 0 else datetime.datetime.fromtimestamp(expires_at, tz=datetime.timezone.utc)})")
         print(f"\nLicense Key:\n{key}")

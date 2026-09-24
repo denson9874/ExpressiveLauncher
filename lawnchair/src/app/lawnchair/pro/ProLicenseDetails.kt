@@ -21,4 +21,10 @@ data class ProLicenseDetails(
 ) {
     val isLifetime: Boolean get() = expiresAt == 0L
     val isExpired: Boolean get() = expiresAt > 0L && (System.currentTimeMillis() / 1000L) > expiresAt
+
+    val isDeviceBound: Boolean get() = recipient.startsWith("device:", ignoreCase = true)
+    val boundDeviceId: String? get() = if (isDeviceBound) recipient.substringAfter("device:").trim() else null
+
+    val isAccountBound: Boolean get() = recipient.startsWith("account:", ignoreCase = true)
+    val boundAccountEmail: String? get() = if (isAccountBound) recipient.substringAfter("account:").trim() else null
 }

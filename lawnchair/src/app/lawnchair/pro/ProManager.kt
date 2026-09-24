@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+import com.android.launcher3.R
+
 class ProManager(private val context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -26,7 +28,7 @@ class ProManager(private val context: Context) {
         private set
 
     /**
-     * Re-verify saved license key against public key and expiration clock.
+     * Re-verify saved license key against public key, expiration clock, and device identity.
      */
     fun refreshState() {
         val savedKey = prefs.getString(KEY_LICENSE_CODE, null)
@@ -36,7 +38,10 @@ class ProManager(private val context: Context) {
             return
         }
 
-        val result = ProLicenseVerifier.verify(savedKey)
+        val result = ProLicenseVerifier.verify(savedKey).mapCatching { details ->
+            verifyDeviceBinding(details).getOrThrow()
+            details
+        }
         result.onSuccess { details ->
             lastError = null
             _isPro.value = true
@@ -52,13 +57,35 @@ class ProManager(private val context: Context) {
      * Validate and activate a new license key string.
      */
     fun activate(rawKey: String): Result<ProLicenseDetails> {
-        val result = ProLicenseVerifier.verify(rawKey)
-        result.onSuccess { details ->
+        val result = ProLicenseVerifier.verify(rawKey).mapCatching { details ->
+            verifyDeviceBinding(details).getOrThrow()
             prefs.edit().putString(KEY_LICENSE_CODE, details.rawKeyCode).commit()
             _isPro.value = true
             _licenseDetails.value = details
+            details
+        }.onFailure {
+            lastError = it
         }
         return result
+    }
+
+    private fun verifyDeviceBinding(details: ProLicenseDetails): Result<Unit> {
+        if (details.isDeviceBound) {
+            val currentDeviceId = ProDeviceId.get(context)
+            val bound = details.boundDeviceId
+            if (!bound.equals(currentDeviceId, ignoreCase = true)) {
+                return Result.failure(
+                    IllegalStateException(
+                        context.getString(
+                            R.string.expressive_pro_device_mismatch,
+                            bound ?: "unknown",
+                            currentDeviceId,
+                        ),
+                    ),
+                )
+            }
+        }
+        return Result.success(Unit)
     }
 
     /**

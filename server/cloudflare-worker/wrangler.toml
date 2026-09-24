@@ -1,0 +1,13 @@
+name = "expressive-pro-activation"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+# Cloudflare KV namespace for storing activated device and transaction licenses
+kv_namespaces = [
+  { binding = "EXPRESSIVE_PRO_KV", id = "EXPRESSIVE_PRO_LICENSES_KV_ID", preview_id = "EXPRESSIVE_PRO_LICENSES_PREVIEW_KV_ID" }
+]
+
+# Sensitive secrets (Set with `wrangler secret put <NAME>`):
+# - PRO_PRIVATE_KEY_PEM: Master ECDSA P-256 private key (from ~/.config/expressive/pro_master_private.pem)
+# - PAYPAL_CLIENT_ID: Optional PayPal REST API client ID
+# - PAYPAL_CLIENT_SECRET: Optional PayPal REST API client secret

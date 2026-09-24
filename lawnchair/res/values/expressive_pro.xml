@@ -25,4 +25,19 @@
     <string name="expressive_v3_transition_banner_title">Welcome to Expressive V3</string>
     <string name="expressive_v3_transition_banner_desc">We appreciate your feedback and testing! Free Core continues receiving updates, while customization features are now Pro exclusive.</string>
     <string name="expressive_pro_locked_customization">Customization is exclusive to Expressive Pro to support development. Tap to unlock.</string>
+    <string name="expressive_pro_device_mismatch">This license key is tied to another device (%1$s). Your device ID is %2$s.</string>
+    <string name="expressive_pro_tab_donate">Donate &amp; Unlock</string>
+    <string name="expressive_pro_tab_offline">Offline Key</string>
+    <string name="expressive_pro_device_id_label">Your Device ID</string>
+    <string name="expressive_pro_device_id_copied">Device ID copied</string>
+    <string name="expressive_pro_donation_instructions">Support development with a one-time $4.99 contribution. Your device ID is linked automatically to generate an offline license for this device.</string>
+    <string name="expressive_pro_pay_button">Donate $4.99 via PayPal</string>
+    <string name="expressive_pro_check_status">Check Activation Status</string>
+    <string name="expressive_pro_checking_status">Checking payment status…</string>
+    <string name="expressive_pro_verify_transaction">Already contributed? Enter Transaction ID</string>
+    <string name="expressive_pro_transaction_id_label">PayPal Transaction ID</string>
+    <string name="expressive_pro_transaction_id_hint">From PayPal email receipt (e.g. 9RB3TYYQ6FWE2)</string>
+    <string name="expressive_pro_verify_button">Verify &amp; Unlock</string>
+    <string name="expressive_pro_verifying">Verifying with PayPal…</string>
+    <string name="expressive_pro_payment_not_found">No completed $4.99 contribution found yet for this device ID (%1$s). If you just paid, please wait a moment and try again.</string>
 </resources>
