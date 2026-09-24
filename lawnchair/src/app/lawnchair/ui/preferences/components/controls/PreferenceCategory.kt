@@ -57,6 +57,7 @@ fun PreferenceCategory(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     description: String? = null,
+    endWidget: (@Composable () -> Unit)? = null,
 ) {
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
     val interactionSource = remember { MutableInteractionSource() }
@@ -114,6 +115,7 @@ fun PreferenceCategory(
                 )
             }
         },
+        endWidget = endWidget,
         onClick = {
             mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
             onNavigate()

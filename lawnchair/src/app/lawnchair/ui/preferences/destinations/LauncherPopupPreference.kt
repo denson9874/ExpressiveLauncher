@@ -46,6 +46,7 @@ import app.lawnchair.ui.preferences.components.reorderable.ReorderableDragHandle
 import app.lawnchair.ui.preferences.components.reorderable.ReorderablePreferenceGroup
 import app.lawnchair.ui.preferences.components.reorderable.ReorderableSwitchPreference
 import app.lawnchair.ui.preferences.navigation.HomeScreenPopupEditor
+import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.ui.theme.isSelectedThemeDark
 import com.android.launcher3.R
 
@@ -80,48 +81,52 @@ fun LauncherPopupPreference(
         isExpandedScreen = true,
         modifier = modifier,
     ) {
-        Column {
-            PreferenceGroupHeading(stringResource(R.string.preview_label))
-            LauncherPopupPreview(optionsList)
-        }
-
-        ReorderablePreferenceGroup(
-            label = stringResource(R.string.popup_menu_items),
-            items = optionsList,
-            defaultList = LauncherOptionsPopup.DEFAULT_ORDER,
-            onOrderChange = {
-                optionsList = it
-                optionsPref.onChange(it.toOptionOrderString())
-            },
-        ) { item, index, _ ->
-            val metadata = LauncherOptionsPopup.getMetadataForOption(item.identifier)
-
-            val enabled = when (item.identifier) {
-                "edit_mode", "widgets" -> (!isHomeScreenLocked)
-                "home_settings" -> false
-                else -> true
+        ProGate(
+            lockedTitle = stringResource(R.string.popup_menu),
+        ) {
+            Column {
+                PreferenceGroupHeading(stringResource(R.string.preview_label))
+                LauncherPopupPreview(optionsList)
             }
 
-            val interactionSource = remember { MutableInteractionSource() }
+            ReorderablePreferenceGroup(
+                label = stringResource(R.string.popup_menu_items),
+                items = optionsList,
+                defaultList = LauncherOptionsPopup.DEFAULT_ORDER,
+                onOrderChange = {
+                    optionsList = it
+                    optionsPref.onChange(it.toOptionOrderString())
+                },
+            ) { item, index, _ ->
+                val metadata = LauncherOptionsPopup.getMetadataForOption(item.identifier)
 
-            ReorderableSwitchPreference(
-                label = stringResource(metadata.label),
-                description = if (!enabled && item.identifier != "home_settings") stringResource(R.string.home_screen_locked) else null,
-                checked = if (!enabled && item.identifier != "home_settings") false else item.isEnabled,
-                onCheckedChange = {
-                    optionsList[index].isEnabled = it
-                    optionsPref.onChange(optionsList.toOptionOrderString())
-                },
-                dragHandle = {
-                    ReorderableDragHandle(
-                        scope = this,
-                        interactionSource = if (!metadata.isCarousel) interactionSource else remember { MutableInteractionSource() },
-                        isDraggable = !metadata.isCarousel,
-                    )
-                },
-                enabled = enabled,
-                interactionSource = interactionSource,
-            )
+                val enabled = when (item.identifier) {
+                    "edit_mode", "widgets" -> (!isHomeScreenLocked)
+                    "home_settings" -> false
+                    else -> true
+                }
+
+                val interactionSource = remember { MutableInteractionSource() }
+
+                ReorderableSwitchPreference(
+                    label = stringResource(metadata.label),
+                    description = if (!enabled && item.identifier != "home_settings") stringResource(R.string.home_screen_locked) else null,
+                    checked = if (!enabled && item.identifier != "home_settings") false else item.isEnabled,
+                    onCheckedChange = {
+                        optionsList[index].isEnabled = it
+                        optionsPref.onChange(optionsList.toOptionOrderString())
+                    },
+                    dragHandle = {
+                        ReorderableDragHandle(
+                            scope = this,
+                            interactionSource = if (!metadata.isCarousel) interactionSource else remember { MutableInteractionSource() },
+                            isDraggable = !metadata.isCarousel,
+                        )
+                    },
+                    enabled = enabled,
+                    interactionSource = interactionSource,
+                )
+            }
         }
     }
 }

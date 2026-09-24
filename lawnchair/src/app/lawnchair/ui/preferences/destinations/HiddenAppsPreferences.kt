@@ -46,6 +46,7 @@ import app.lawnchair.ui.preferences.components.layout.preferenceGroupItems
 import app.lawnchair.util.App
 import app.lawnchair.util.appComparator
 import app.lawnchair.util.appsState
+import app.lawnchair.ui.preferences.pro.ProGate
 import com.android.launcher3.R
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.google.android.msdl.data.model.MSDLToken
@@ -81,46 +82,50 @@ fun HiddenAppsPreferences(
         },
         modifier = modifier,
         isExpandedScreen = LocalIsExpandedScreen.current,
-    ) {
-        Crossfade(targetState = apps.isNotEmpty(), label = "") { present ->
-            if (present) {
-                PreferenceLazyColumn(it, state = state) {
-                    val toggleHiddenApp = { app: App ->
-                        val key = app.key.toString()
-                        val newSet = apps.asSequence()
-                            .filter { hiddenApps.contains(it.key.toString()) }
-                            .map { it.key.toString() }
-                            .toMutableSet()
-                        val isHidden = !hiddenApps.contains(key)
-                        if (isHidden) newSet.add(key) else newSet.remove(key)
-                        adapter.onChange(newSet)
-                    }
-                    preferenceGroupItems(
-                        items = apps,
-                        isFirstChild = true,
-                    ) { _, app ->
-                        AppItem(
-                            app = app,
-                            onClick = {
-                                mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
-                                toggleHiddenApp(app)
-                            },
-                        ) {
-                            Checkbox(
-                                checked = hiddenApps.contains(app.key.toString()),
-                                onCheckedChange = null,
-                            )
+    ) { innerPadding ->
+        ProGate(
+            lockedTitle = stringResource(id = R.string.hidden_apps_label),
+        ) {
+            Crossfade(targetState = apps.isNotEmpty(), label = "") { present ->
+                if (present) {
+                    PreferenceLazyColumn(innerPadding, state = state) {
+                        val toggleHiddenApp = { app: App ->
+                            val key = app.key.toString()
+                            val newSet = apps.asSequence()
+                                .filter { hiddenApps.contains(it.key.toString()) }
+                                .map { it.key.toString() }
+                                .toMutableSet()
+                            val isHidden = !hiddenApps.contains(key)
+                            if (isHidden) newSet.add(key) else newSet.remove(key)
+                            adapter.onChange(newSet)
+                        }
+                        preferenceGroupItems(
+                            items = apps,
+                            isFirstChild = true,
+                        ) { _, app ->
+                            AppItem(
+                                app = app,
+                                onClick = {
+                                    mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+                                    toggleHiddenApp(app)
+                                },
+                            ) {
+                                Checkbox(
+                                    checked = hiddenApps.contains(app.key.toString()),
+                                    onCheckedChange = null,
+                                )
+                            }
                         }
                     }
-                }
-            } else {
-                PreferenceLazyColumn(it, enabled = false) {
-                    preferenceGroupItems(
-                        count = 20,
-                        isFirstChild = true,
-                    ) {
-                        AppItemPlaceholder {
-                            Spacer(Modifier.width(24.dp))
+                } else {
+                    PreferenceLazyColumn(innerPadding, enabled = false) {
+                        preferenceGroupItems(
+                            count = 20,
+                            isFirstChild = true,
+                        ) {
+                            AppItemPlaceholder {
+                                Spacer(Modifier.width(24.dp))
+                            }
                         }
                     }
                 }

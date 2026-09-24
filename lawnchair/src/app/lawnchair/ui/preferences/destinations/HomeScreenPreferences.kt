@@ -18,6 +18,7 @@ package app.lawnchair.ui.preferences.destinations
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -25,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.LawnchairApp
 import app.lawnchair.gestures.ui.AppDrawerShortcutActivity
 import app.lawnchair.data.iconoverride.IconOverrideRepository
@@ -94,15 +96,21 @@ fun HomeScreenPreferences(
                     enabled = lockHomeScreenAdapter.state.value.not(),
                 )
             }
-            GestureHandlerPreference(
-                adapter = prefs2.doubleTapGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_double_tap),
-            )
-            SwitchPreference(
-                prefs.infiniteScrolling.getAdapter(),
-                label = stringResource(id = R.string.infinite_scrolling_label),
-                description = stringResource(id = R.string.infinite_scrolling_description),
-            )
+            ProGate(
+                lockedTitle = stringResource(id = R.string.gestures_label),
+            ) {
+                Column {
+                    GestureHandlerPreference(
+                        adapter = prefs2.doubleTapGestureHandler.getAdapter(),
+                        label = stringResource(id = R.string.gesture_double_tap),
+                    )
+                    SwitchPreference(
+                        prefs.infiniteScrolling.getAdapter(),
+                        label = stringResource(id = R.string.infinite_scrolling_label),
+                        description = stringResource(id = R.string.infinite_scrolling_description),
+                    )
+                }
+            }
             SwitchPreference(
                 adapter = prefs2.returnToDefaultPage.getAdapter(),
                 label = stringResource(id = R.string.return_to_default_page),
@@ -144,12 +152,16 @@ fun HomeScreenPreferences(
                 }
             }
         }
-        PreferenceGroup(heading = stringResource(R.string.style)) {
-            HomeScreenTextColorPreference()
-            OverlayHandlerPreference(
-                adapter = prefs2.closingAppOverlay.getAdapter(),
-                label = stringResource(id = R.string.app_closing_animation),
-            )
+        ProGate(
+            lockedTitle = stringResource(R.string.style),
+        ) {
+            PreferenceGroup(heading = stringResource(R.string.style)) {
+                HomeScreenTextColorPreference()
+                OverlayHandlerPreference(
+                    adapter = prefs2.closingAppOverlay.getAdapter(),
+                    label = stringResource(id = R.string.app_closing_animation),
+                )
+            }
         }
         PreferenceGroup(heading = stringResource(id = R.string.wallpaper)) {
             SwitchPreference(
@@ -157,11 +169,15 @@ fun HomeScreenPreferences(
                 label = stringResource(id = R.string.wallpaper_scrolling_label),
             )
             ExpandAndShrink(visible = Utilities.ATLEAST_R) {
-                SwitchPreference(
-                    prefs2.wallpaperDepthEffect.getAdapter(),
-                    label = stringResource(id = R.string.wallpaper_depth_effect_label),
-                    description = stringResource(id = R.string.wallpaper_depth_effect_description),
-                )
+                ProGate(
+                    lockedTitle = stringResource(id = R.string.wallpaper_depth_effect_label),
+                ) {
+                    SwitchPreference(
+                        prefs2.wallpaperDepthEffect.getAdapter(),
+                        label = stringResource(id = R.string.wallpaper_depth_effect_label),
+                        description = stringResource(id = R.string.wallpaper_depth_effect_description),
+                    )
+                }
             }
             SwitchPreference(
                 adapter = prefs2.showTopShadow.getAdapter(),
@@ -170,34 +186,42 @@ fun HomeScreenPreferences(
         }
         val columns by prefs.workspaceColumns.getAdapter()
         val rows by prefs.workspaceRows.getAdapter()
-        PreferenceGroup(heading = stringResource(id = R.string.layout)) {
-            NavigationActionPreference(
-                label = stringResource(id = R.string.home_screen_grid),
-                destination = HomeScreenGrid,
-                subtitle = stringResource(id = R.string.x_by_y, columns, rows),
-            )
-            SliderPreference(
-                label = stringResource(id = R.string.horizontal_padding_label),
-                adapter = prefs2.workspacePaddingHorizontalFactor.getAdapter(),
-                step = 0.05f,
-                valueRange = 0F..2F,
-                showAsPercentage = true,
-            )
-            SliderPreference(
-                label = stringResource(id = R.string.vertical_padding_label),
-                adapter = prefs2.workspacePaddingVerticalFactor.getAdapter(),
-                step = 0.05f,
-                valueRange = 0F..2F,
-                showAsPercentage = true,
-            )
-            SwitchPreference(
-                adapter = lockHomeScreenAdapter,
-                label = stringResource(id = R.string.home_screen_lock),
-                description = stringResource(id = R.string.home_screen_lock_description),
-            )
+        ProGate(
+            lockedTitle = stringResource(id = R.string.layout),
+        ) {
+            PreferenceGroup(heading = stringResource(id = R.string.layout)) {
+                NavigationActionPreference(
+                    label = stringResource(id = R.string.home_screen_grid),
+                    destination = HomeScreenGrid,
+                    subtitle = stringResource(id = R.string.x_by_y, columns, rows),
+                )
+                SliderPreference(
+                    label = stringResource(id = R.string.horizontal_padding_label),
+                    adapter = prefs2.workspacePaddingHorizontalFactor.getAdapter(),
+                    step = 0.05f,
+                    valueRange = 0F..2F,
+                    showAsPercentage = true,
+                )
+                SliderPreference(
+                    label = stringResource(id = R.string.vertical_padding_label),
+                    adapter = prefs2.workspacePaddingVerticalFactor.getAdapter(),
+                    step = 0.05f,
+                    valueRange = 0F..2F,
+                    showAsPercentage = true,
+                )
+                SwitchPreference(
+                    adapter = lockHomeScreenAdapter,
+                    label = stringResource(id = R.string.home_screen_lock),
+                    description = stringResource(id = R.string.home_screen_lock_description),
+                )
+            }
         }
-        PreferenceGroup(heading = stringResource(id = R.string.popup_menu)) {
-            LauncherPopupPreferenceItem()
+        ProGate(
+            lockedTitle = stringResource(id = R.string.popup_menu),
+        ) {
+            PreferenceGroup(heading = stringResource(id = R.string.popup_menu)) {
+                LauncherPopupPreferenceItem()
+            }
         }
         val showStatusBarAdapter = prefs2.showStatusBar.getAdapter()
         PreferenceGroup(heading = stringResource(id = R.string.status_bar_label)) {
@@ -206,40 +230,50 @@ fun HomeScreenPreferences(
                 label = stringResource(id = R.string.show_status_bar),
             )
             ExpandAndShrink(visible = showStatusBarAdapter.state.value) {
-                SwitchPreference(
-                    adapter = prefs2.darkStatusBar.getAdapter(),
-                    label = stringResource(id = R.string.dark_status_bar_label),
-                )
-            }
-            ExpandAndShrink(visible = showStatusBarAdapter.state.value && LawnchairApp.isRecentsEnabled) {
-                SwitchPreference(
-                    adapter = prefs2.statusBarClock.getAdapter(),
-                    label = stringResource(id = R.string.status_bar_clock_label),
-                    description = stringResource(id = R.string.status_bar_clock_description),
-                )
+                ProGate(
+                    lockedTitle = stringResource(id = R.string.status_bar_label),
+                ) {
+                    Column {
+                        SwitchPreference(
+                            adapter = prefs2.darkStatusBar.getAdapter(),
+                            label = stringResource(id = R.string.dark_status_bar_label),
+                        )
+                        if (LawnchairApp.isRecentsEnabled) {
+                            SwitchPreference(
+                                adapter = prefs2.statusBarClock.getAdapter(),
+                                label = stringResource(id = R.string.status_bar_clock_label),
+                                description = stringResource(id = R.string.status_bar_clock_description),
+                            )
+                        }
+                    }
+                }
             }
         }
         val homeScreenLabelsAdapter = prefs2.showIconLabelsOnHomeScreen.getAdapter()
-        PreferenceGroup(heading = stringResource(id = R.string.icons)) {
-            SliderPreference(
-                label = stringResource(id = R.string.icon_sizes),
-                adapter = prefs2.homeIconSizeFactor.getAdapter(),
-                step = 0.1f,
-                valueRange = 0.5F..1.5F,
-                showAsPercentage = true,
-            )
-            SwitchPreference(
-                adapter = homeScreenLabelsAdapter,
-                label = stringResource(id = R.string.show_labels),
-            )
-            ExpandAndShrink(visible = homeScreenLabelsAdapter.state.value) {
+        ProGate(
+            lockedTitle = stringResource(id = R.string.icons),
+        ) {
+            PreferenceGroup(heading = stringResource(id = R.string.icons)) {
                 SliderPreference(
-                    label = stringResource(id = R.string.label_size),
-                    adapter = prefs2.homeIconLabelSizeFactor.getAdapter(),
+                    label = stringResource(id = R.string.icon_sizes),
+                    adapter = prefs2.homeIconSizeFactor.getAdapter(),
                     step = 0.1f,
                     valueRange = 0.5F..1.5F,
                     showAsPercentage = true,
                 )
+                SwitchPreference(
+                    adapter = homeScreenLabelsAdapter,
+                    label = stringResource(id = R.string.show_labels),
+                )
+                ExpandAndShrink(visible = homeScreenLabelsAdapter.state.value) {
+                    SliderPreference(
+                        label = stringResource(id = R.string.label_size),
+                        adapter = prefs2.homeIconLabelSizeFactor.getAdapter(),
+                        step = 0.1f,
+                        valueRange = 0.5F..1.5F,
+                        showAsPercentage = true,
+                    )
+                }
             }
         }
         val overrideRepo = IconOverrideRepository.INSTANCE.get(LocalContext.current)

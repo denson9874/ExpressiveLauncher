@@ -32,6 +32,7 @@ import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.navigation.GeneralIconShape
+import app.lawnchair.ui.preferences.pro.ProGate
 import com.android.launcher3.R
 
 @Composable
@@ -43,10 +44,13 @@ fun FolderPreferences(
         backArrowVisible = !LocalIsExpandedScreen.current,
         modifier = modifier,
     ) {
-        val context = LocalContext.current
-        val prefs = preferenceManager()
-        val prefs2 = preferenceManager2()
-        val folderIconShapeAdapter = prefs2.folderShape.getAdapter()
+        ProGate(
+            lockedTitle = stringResource(id = R.string.folders_label),
+        ) {
+            val context = LocalContext.current
+            val prefs = preferenceManager()
+            val prefs2 = preferenceManager2()
+            val folderIconShapeAdapter = prefs2.folderShape.getAdapter()
         val folderIconShapeSubtitle = iconShapeEntries(context)
             .firstOrNull { it.value == folderIconShapeAdapter.state.value }
             ?.label?.invoke()
@@ -108,4 +112,5 @@ fun FolderPreferences(
             }
         }
     }
+}
 }

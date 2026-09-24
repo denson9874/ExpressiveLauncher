@@ -48,6 +48,25 @@ fun rememberIsPro(): Boolean {
     return isPro
 }
 
+@Composable
+fun ProBadge(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.expressive_pro_badge),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimary,
+        )
+    }
+}
+
 /**
  * Declarative feature gate that displays [content] when Pro is active,
  * or [lockedContent] / a standard Pro lock placeholder when inactive.
@@ -97,24 +116,12 @@ fun ProGate(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.expressive_pro_badge),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        }
+                        ProBadge()
                     }
                 },
                 description = {
                     Text(
-                        text = lockedDescription ?: stringResource(R.string.expressive_pro_locked_message),
+                        text = lockedDescription ?: stringResource(R.string.expressive_pro_locked_customization),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     )

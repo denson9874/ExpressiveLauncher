@@ -75,6 +75,7 @@ import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.NestedScrollStretch
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
+import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.ui.theme.preferenceGroupColor
 import app.lawnchair.util.Constants
 import app.lawnchair.util.getThemedIconPacksInstalled
@@ -166,106 +167,110 @@ fun IconPackPreferences(
                 }
             }
         }
-        Column {
-            val pagerState = rememberPagerState(
-                initialPage = 0,
-                pageCount = { 2 },
-            )
-
-            val scope = rememberCoroutineScope()
-            val scrollToPage =
-                { page: Int -> scope.launch { pagerState.animateScrollToPage(page) } }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
-                modifier = Modifier.padding(horizontal = 16.dp),
-            ) {
-                Chip(
-                    label = stringResource(id = R.string.icon_pack),
-                    onClick = {
-                        mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
-                        scrollToPage(0)
-                    },
-                    currentOffset = pagerState.currentPage + pagerState.currentPageOffsetFraction,
-                    page = 0,
+        ProGate(
+            lockedTitle = stringResource(id = R.string.icon_style_label),
+        ) {
+            Column {
+                val pagerState = rememberPagerState(
+                    initialPage = 0,
+                    pageCount = { 2 },
                 )
-                Chip(
-                    label = stringResource(id = R.string.themed_icon_pack),
-                    onClick = {
-                        mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
-                        scrollToPage(1)
-                    },
-                    currentOffset = pagerState.currentPage + pagerState.currentPageOffsetFraction,
-                    page = 1,
-                )
-            }
 
-            Spacer(Modifier.height(16.dp))
+                val scope = rememberCoroutineScope()
+                val scrollToPage =
+                    { page: Int -> scope.launch { pagerState.animateScrollToPage(page) } }
 
-            HorizontalPager(
-                state = pagerState,
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.animateContentSize(),
-            ) { page ->
-                Column {
-                    when (page) {
-                        0 -> {
-                            IconPackGrid(
-                                adapter = iconPackAdapter,
-                                false,
-                            )
-                        }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    Chip(
+                        label = stringResource(id = R.string.icon_pack),
+                        onClick = {
+                            mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+                            scrollToPage(0)
+                        },
+                        currentOffset = pagerState.currentPage + pagerState.currentPageOffsetFraction,
+                        page = 0,
+                    )
+                    Chip(
+                        label = stringResource(id = R.string.themed_icon_pack),
+                        onClick = {
+                            mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+                            scrollToPage(1)
+                        },
+                        currentOffset = pagerState.currentPage + pagerState.currentPageOffsetFraction,
+                        page = 1,
+                    )
+                }
 
-                        1 -> {
-                            val packageManager = context.packageManager
+                Spacer(Modifier.height(16.dp))
 
-                            val themedIconsAvailable = packageManager
-                                .getThemedIconPacksInstalled(LocalContext.current)
-                                .any { packageManager.isPackageInstalled(it) } ||
-                                packageManager
-                                    .isPackageInstalled(Constants.LAWNICONS_PACKAGE_NAME)
-
-                            if (themedIconsAvailable && themedIconsAdapter.state.value) {
+                HorizontalPager(
+                    state = pagerState,
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.animateContentSize(),
+                ) { page ->
+                    Column {
+                        when (page) {
+                            0 -> {
                                 IconPackGrid(
-                                    adapter = themedIconPackAdapter,
-                                    true,
+                                    adapter = iconPackAdapter,
+                                    false,
                                 )
                             }
-                            PreferenceGroup {
-                                ListPreference(
-                                    enabled = themedIconsAvailable,
-                                    label = stringResource(id = R.string.themed_icon_title),
-                                    entries = ThemedIconsState.entries.map {
-                                        ListPreferenceEntry(
-                                            value = it,
-                                            label = { stringResource(id = it.labelResourceId) },
-                                        )
-                                    },
-                                    value = ThemedIconsState.getForSettings(
-                                        themedIcons = themedIconsAdapter.state.value,
-                                        drawerThemedIcons = drawerThemedIconsEnabled,
-                                    ),
-                                    onValueChange = {
-                                        themedIconsAdapter.onChange(newValue = it.themedIcons)
-                                        drawerThemedIconsAdapter.onChange(newValue = it.drawerThemedIcons)
 
-                                        iconPackAdapter.onChange(newValue = iconPackAdapter.state.value)
-                                        themedIconPackAdapter.onChange(newValue = themedIconPackAdapter.state.value)
-                                    },
-                                    description = if (themedIconsAvailable.not()) {
-                                        stringResource(id = R.string.lawnicons_not_installed_description)
-                                    } else {
-                                        null
-                                    },
-                                )
-                                ExpandAndShrink(
-                                    visible = themedIconsAdapter.state.value,
-                                ) {
-                                    SwitchPreference(
-                                        label = stringResource(id = R.string.force_monochrome_label),
-                                        description = stringResource(id = R.string.force_monochrome_description),
-                                        adapter = forceMonochromeAdapter,
+                            1 -> {
+                                val packageManager = context.packageManager
+
+                                val themedIconsAvailable = packageManager
+                                    .getThemedIconPacksInstalled(LocalContext.current)
+                                    .any { packageManager.isPackageInstalled(it) } ||
+                                    packageManager
+                                        .isPackageInstalled(Constants.LAWNICONS_PACKAGE_NAME)
+
+                                if (themedIconsAvailable && themedIconsAdapter.state.value) {
+                                    IconPackGrid(
+                                        adapter = themedIconPackAdapter,
+                                        true,
                                     )
+                                }
+                                PreferenceGroup {
+                                    ListPreference(
+                                        enabled = themedIconsAvailable,
+                                        label = stringResource(id = R.string.themed_icon_title),
+                                        entries = ThemedIconsState.entries.map {
+                                            ListPreferenceEntry(
+                                                value = it,
+                                                label = { stringResource(id = it.labelResourceId) },
+                                            )
+                                        },
+                                        value = ThemedIconsState.getForSettings(
+                                            themedIcons = themedIconsAdapter.state.value,
+                                            drawerThemedIcons = drawerThemedIconsEnabled,
+                                        ),
+                                        onValueChange = {
+                                            themedIconsAdapter.onChange(newValue = it.themedIcons)
+                                            drawerThemedIconsAdapter.onChange(newValue = it.drawerThemedIcons)
+
+                                            iconPackAdapter.onChange(newValue = iconPackAdapter.state.value)
+                                            themedIconPackAdapter.onChange(newValue = themedIconPackAdapter.state.value)
+                                        },
+                                        description = if (themedIconsAvailable.not()) {
+                                            stringResource(id = R.string.lawnicons_not_installed_description)
+                                        } else {
+                                            null
+                                        },
+                                    )
+                                    ExpandAndShrink(
+                                        visible = themedIconsAdapter.state.value,
+                                    ) {
+                                        SwitchPreference(
+                                            label = stringResource(id = R.string.force_monochrome_label),
+                                            description = stringResource(id = R.string.force_monochrome_description),
+                                            adapter = forceMonochromeAdapter,
+                                        )
+                                    }
                                 }
                             }
                         }

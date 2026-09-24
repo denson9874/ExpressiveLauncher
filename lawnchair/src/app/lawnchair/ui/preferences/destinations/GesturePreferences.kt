@@ -11,6 +11,7 @@ import app.lawnchair.ui.preferences.components.GestureHandlerPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreference
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
+import app.lawnchair.ui.preferences.pro.ProGate
 import com.android.launcher3.R
 
 @Composable
@@ -23,42 +24,46 @@ fun GesturePreferences(
         backArrowVisible = !LocalIsExpandedScreen.current,
         modifier = modifier,
     ) {
-        PreferenceGroup {
-            GestureHandlerPreference(
-                adapter = prefs.doubleTapGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_double_tap),
-            )
-            GestureHandlerPreference(
-                adapter = prefs.swipeUpGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_swipe_up),
-            )
-            GestureHandlerPreference(
-                adapter = prefs.swipeDownGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_swipe_down),
-            )
-            GestureHandlerPreference(
-                adapter = prefs.twoFingerSwipeUpGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_two_finger_swipe_up),
-            )
-            GestureHandlerPreference(
-                adapter = prefs.twoFingerSwipeDownGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_two_finger_swipe_down),
-            )
-            GestureHandlerPreference(
-                adapter = prefs.homePressGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_home_tap),
-            )
-            GestureHandlerPreference(
-                adapter = prefs.backPressGestureHandler.getAdapter(),
-                label = stringResource(id = R.string.gesture_back_tap),
-            )
-        }
-        PreferenceGroup(heading = stringResource(id = R.string.sleep_mode_label)) {
-            ListPreference(
-                adapter = prefs.sleepMode.getAdapter(),
-                entries = SleepMode.entries(),
-                label = stringResource(id = R.string.sleep_mode_label),
-            )
+        ProGate(
+            lockedTitle = stringResource(id = R.string.gestures_label),
+        ) {
+            PreferenceGroup {
+                GestureHandlerPreference(
+                    adapter = prefs.doubleTapGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_double_tap),
+                )
+                GestureHandlerPreference(
+                    adapter = prefs.swipeUpGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_swipe_up),
+                )
+                GestureHandlerPreference(
+                    adapter = prefs.swipeDownGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_swipe_down),
+                )
+                GestureHandlerPreference(
+                    adapter = prefs.twoFingerSwipeUpGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_two_finger_swipe_up),
+                )
+                GestureHandlerPreference(
+                    adapter = prefs.twoFingerSwipeDownGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_two_finger_swipe_down),
+                )
+                GestureHandlerPreference(
+                    adapter = prefs.homePressGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_home_tap),
+                )
+                GestureHandlerPreference(
+                    adapter = prefs.backPressGestureHandler.getAdapter(),
+                    label = stringResource(id = R.string.gesture_back_tap),
+                )
+            }
+            PreferenceGroup(heading = stringResource(id = R.string.sleep_mode_label)) {
+                ListPreference(
+                    adapter = prefs.sleepMode.getAdapter(),
+                    entries = SleepMode.entries(),
+                    label = stringResource(id = R.string.sleep_mode_label),
+                )
+            }
         }
     }
 }

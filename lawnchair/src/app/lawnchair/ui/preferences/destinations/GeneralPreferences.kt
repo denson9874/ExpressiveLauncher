@@ -16,6 +16,7 @@
 
 package app.lawnchair.ui.preferences.destinations
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
@@ -114,75 +116,83 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
             )
         }
         ExpandAndShrink(visible = prefs2.enableFontSelection.asState().value) {
-            PreferenceGroup(heading = stringResource(id = R.string.font_label)) {
-                FontPreference(
-                    fontPref = prefs.fontWorkspace,
-                    label = stringResource(R.string.fontWorkspace),
-                )
-                FontPreference(
-                    fontPref = prefs.fontHeading,
-                    label = stringResource(R.string.fontHeading),
-                )
-                FontPreference(
-                    fontPref = prefs.fontHeadingMedium,
-                    label = stringResource(R.string.fontHeadingMedium),
-                )
-                FontPreference(
-                    fontPref = prefs.fontBody,
-                    label = stringResource(R.string.fontBody),
-                )
-                FontPreference(
-                    fontPref = prefs.fontBodyMedium,
-                    label = stringResource(R.string.fontBodyMedium),
-                )
+            ProGate(
+                lockedTitle = stringResource(id = R.string.font_label),
+            ) {
+                PreferenceGroup(heading = stringResource(id = R.string.font_label)) {
+                    FontPreference(
+                        fontPref = prefs.fontWorkspace,
+                        label = stringResource(R.string.fontWorkspace),
+                    )
+                    FontPreference(
+                        fontPref = prefs.fontHeading,
+                        label = stringResource(R.string.fontHeading),
+                    )
+                    FontPreference(
+                        fontPref = prefs.fontHeadingMedium,
+                        label = stringResource(R.string.fontHeadingMedium),
+                    )
+                    FontPreference(
+                        fontPref = prefs.fontBody,
+                        label = stringResource(R.string.fontBody),
+                    )
+                    FontPreference(
+                        fontPref = prefs.fontBodyMedium,
+                        label = stringResource(R.string.fontBodyMedium),
+                    )
+                }
             }
         }
         val wrapAdaptiveIcons = prefs.wrapAdaptiveIcons.getAdapter()
         val transparentIconBackground = prefs.transparentIconBackground.getAdapter()
 
-        PreferenceGroup(
-            modifier = Modifier,
-            heading = stringResource(id = R.string.icons),
-            description = stringResource(id = (R.string.adaptive_icon_background_description)),
-            showDescription = wrapAdaptiveIcons.state.value,
+        ProGate(
+            lockedTitle = stringResource(id = R.string.icons),
         ) {
-            NavigationActionPreference(
-                label = stringResource(id = R.string.icon_style_label),
-                destination = GeneralIconPack,
-                subtitle = iconStyleSubtitle,
-            )
-            ExpandAndShrink(visible = themedIconsEnabled) {
+            PreferenceGroup(
+                modifier = Modifier,
+                heading = stringResource(id = R.string.icons),
+                description = stringResource(id = (R.string.adaptive_icon_background_description)),
+                showDescription = wrapAdaptiveIcons.state.value,
+            ) {
+                NavigationActionPreference(
+                    label = stringResource(id = R.string.icon_style_label),
+                    destination = GeneralIconPack,
+                    subtitle = iconStyleSubtitle,
+                )
+                ExpandAndShrink(visible = themedIconsEnabled) {
+                    SwitchPreference(
+                        adapter = transparentIconBackground,
+                        label = stringResource(id = R.string.transparent_background_icons_label),
+                        description = stringResource(id = R.string.transparent_background_icons_description),
+                    )
+                }
+                NavigationActionPreference(
+                    label = stringResource(id = R.string.icon_shape_label),
+                    destination = GeneralIconShape(ShapeRoute.APP_SHAPE),
+                    subtitle = iconShapeSubtitle,
+                    endWidget = {
+                        IconShapePreview(iconShape = iconShapeAdapter.state.value)
+                    },
+                )
                 SwitchPreference(
-                    adapter = transparentIconBackground,
-                    label = stringResource(id = R.string.transparent_background_icons_label),
-                    description = stringResource(id = R.string.transparent_background_icons_description),
+                    adapter = wrapAdaptiveIcons,
+                    label = stringResource(id = R.string.auto_adaptive_icons_label),
+                    description = stringResource(id = R.string.auto_adaptive_icons_description),
                 )
-            }
-            NavigationActionPreference(
-                label = stringResource(id = R.string.icon_shape_label),
-                destination = GeneralIconShape(ShapeRoute.APP_SHAPE),
-                subtitle = iconShapeSubtitle,
-                endWidget = {
-                    IconShapePreview(iconShape = iconShapeAdapter.state.value)
-                },
-            )
-            SwitchPreference(
-                adapter = wrapAdaptiveIcons,
-                label = stringResource(id = R.string.auto_adaptive_icons_label),
-                description = stringResource(id = R.string.auto_adaptive_icons_description),
-            )
-            SwitchPreference(
-                adapter = prefs.shadowBGIcons.getAdapter(),
-                label = stringResource(id = R.string.shadow_bg_icons_label),
-            )
-            ExpandAndShrink(visible = wrapAdaptiveIcons.state.value && !transparentIconBackground.state.value) {
-                SliderPreference(
-                    label = stringResource(id = R.string.background_lightness_label),
-                    adapter = prefs.coloredBackgroundLightness.getAdapter(),
-                    valueRange = 0F..1F,
-                    step = 0.1f,
-                    showAsPercentage = true,
+                SwitchPreference(
+                    adapter = prefs.shadowBGIcons.getAdapter(),
+                    label = stringResource(id = R.string.shadow_bg_icons_label),
                 )
+                ExpandAndShrink(visible = wrapAdaptiveIcons.state.value && !transparentIconBackground.state.value) {
+                    SliderPreference(
+                        label = stringResource(id = R.string.background_lightness_label),
+                        adapter = prefs.coloredBackgroundLightness.getAdapter(),
+                        valueRange = 0F..1F,
+                        step = 0.1f,
+                        showAsPercentage = true,
+                    )
+                }
             }
         }
 
@@ -192,9 +202,15 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
 
         PreferenceGroup(heading = stringResource(id = R.string.colors)) {
             ThemePreference()
-            ColorPreference(preference = prefs2.accentColor)
-            ExpandAndShrink(visible = showColorStyle) {
-                ColorStylePreference(prefs2.colorStyle.getAdapter())
+            ProGate(
+                lockedTitle = stringResource(id = R.string.accent_color),
+            ) {
+                Column {
+                    ColorPreference(preference = prefs2.accentColor)
+                    ExpandAndShrink(visible = showColorStyle) {
+                        ColorStylePreference(prefs2.colorStyle.getAdapter())
+                    }
+                }
             }
         }
 
@@ -208,23 +224,27 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
         PreferenceGroup(heading = stringResource(id = R.string.notification_dots)) {
             NotificationDotsPreference(enabled = notificationEnabled, serviceEnabled = serviceEnabled)
             val canDisplayNotificationDot = notificationEnabled && serviceEnabled
-            ExpandAndShrink(visible = canDisplayNotificationDot) {
-                ColorPreference(preference = prefs2.notificationDotColor)
-            }
-            ExpandAndShrink(visible = canDisplayNotificationDot) {
-                SwitchPreference(
-                    adapter = showNotificationCountAdapter,
-                    label = stringResource(id = R.string.show_notification_count),
-                )
-            }
-            ExpandAndShrink(visible = canDisplayNotificationDot && showNotificationCount) {
-                ColorPreference(preference = prefs2.notificationDotTextColor)
-            }
-            ExpandAndShrink(visible = canDisplayNotificationDot && showNotificationCount) {
-                NotificationDotColorContrastWarnings(
-                    dotColor = dotColor,
-                    dotTextColor = dotTextColor,
-                )
+            if (canDisplayNotificationDot) {
+                ProGate(
+                    lockedTitle = stringResource(id = R.string.notification_dots),
+                ) {
+                    Column {
+                        ColorPreference(preference = prefs2.notificationDotColor)
+                        SwitchPreference(
+                            adapter = showNotificationCountAdapter,
+                            label = stringResource(id = R.string.show_notification_count),
+                        )
+                        ExpandAndShrink(visible = showNotificationCount) {
+                            ColorPreference(preference = prefs2.notificationDotTextColor)
+                        }
+                        ExpandAndShrink(visible = showNotificationCount) {
+                            NotificationDotColorContrastWarnings(
+                                dotColor = dotColor,
+                                dotTextColor = dotTextColor,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
