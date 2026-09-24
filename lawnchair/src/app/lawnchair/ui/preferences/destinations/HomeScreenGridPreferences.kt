@@ -43,6 +43,7 @@ import app.lawnchair.ui.preferences.components.controls.SliderPreference
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.util.productStringId
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.R
@@ -142,115 +143,125 @@ fun HomeScreenGridPreferences(
                         .weight(1f)
                         .heightIn(min = settingsMinHeight),
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(controlsScrollState),
+                    ProGate(
+                        modifier = Modifier.padding(top = 16.dp),
+                        lockedTitle = stringResource(id = R.string.home_screen_grid),
+                        lockedDescription = stringResource(R.string.expressive_pro_locked_customization),
                     ) {
-                        if (isFoldable) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                maxItemsInEachRow = if (isExpandedScreen) Int.MAX_VALUE else 1,
-                            ) {
-                                PreferenceGroup(heading = stringResource(id = R.string.when_folded_label)) {
-                                    SliderPreference(
-                                        label = stringResource(id = R.string.columns),
-                                        adapter = columns.asPreferenceAdapter(),
-                                        step = 1,
-                                        valueRange = 3..maxGridSize,
-                                    )
-                                    SliderPreference(
-                                        label = stringResource(id = R.string.rows),
-                                        adapter = rows.asPreferenceAdapter(),
-                                        step = 1,
-                                        valueRange = 3..maxGridSize,
-                                    )
-                                    SliderPreference(
-                                        label = stringResource(id = R.string.dock_icons),
-                                        adapter = hotseatColumns.asPreferenceAdapter(),
-                                        step = 1,
-                                        valueRange = 3..maxGridSize,
-                                    )
-                                }
-
-                                PreferenceGroup(
-                                    heading = stringResource(id = R.string.when_unfolded_label),
-                                ) {
-                                    SliderPreference(
-                                        label = stringResource(id = R.string.dock_icons),
-                                        adapter = hotseatColumnsUnfolded.asPreferenceAdapter(),
-                                        step = 1,
-                                        valueRange = hotseatColumns.intValue..maxGridSize,
-                                    )
-                                    FakeExpandedGridPreference(
-                                        columns = columns.intValue * 2,
-                                        rows = rows.intValue,
-                                        description = stringResource(
-                                            productStringId(
-                                                R.string.unfolded_grid_description,
-                                                R.string.expressive_unfolded_grid_description,
-                                            ),
-                                        ),
-                                    )
-                                }
-                            }
-                        } else {
-                            PreferenceGroup {
-                                SliderPreference(
-                                    label = stringResource(id = R.string.columns),
-                                    adapter = columns.asPreferenceAdapter(),
-                                    step = 1,
-                                    valueRange = 3..maxGridSize,
-                                )
-                                SliderPreference(
-                                    label = stringResource(id = R.string.rows),
-                                    adapter = rows.asPreferenceAdapter(),
-                                    step = 1,
-                                    valueRange = 3..maxGridSize,
-                                )
-                                SliderPreference(
-                                    label = stringResource(id = R.string.dock_icons),
-                                    adapter = hotseatColumns.asPreferenceAdapter(),
-                                    step = 1,
-                                    valueRange = 3..maxGridSize,
-                                )
-                            }
-                        }
-                    }
-
-                    val navController = LocalNavController.current
-                    val context = LocalContext.current
-                    val applyOverrides = {
-                        prefs.batchEdit {
-                            columnsAdapter.onChange(columns.intValue)
-                            rowsAdapter.onChange(rows.intValue)
-                            hotseatColumnsAdapter.onChange(hotseatColumns.intValue)
-                            hotseatColumnsUnfoldedAdapter.onChange(hotseatColumnsUnfolded.intValue)
-                        }
-                        InvariantDeviceProfile.INSTANCE.get(context).onPreferencesChanged(context)
-                        navController.popBackStack()
-                    }
-
-                    val isChanged = columns.intValue != originalColumns ||
-                        rows.intValue != originalRows ||
-                        hotseatColumns.intValue != originalHotseatColumns ||
-                        hotseatColumnsUnfolded.intValue != originalHotseatColumnsUnfolded
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                            .padding(horizontal = 16.dp),
-                    ) {
-                        Button(
-                            onClick = { applyOverrides() },
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .fillMaxWidth(),
-                            enabled = isChanged,
-                            shapes = ButtonDefaults.shapes(),
+                        Column(
+                            modifier = Modifier.fillMaxHeight(),
                         ) {
-                            Text(text = stringResource(id = R.string.action_apply))
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .verticalScroll(controlsScrollState),
+                            ) {
+                                if (isFoldable) {
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        maxItemsInEachRow = if (isExpandedScreen) Int.MAX_VALUE else 1,
+                                    ) {
+                                        PreferenceGroup(heading = stringResource(id = R.string.when_folded_label)) {
+                                            SliderPreference(
+                                                label = stringResource(id = R.string.columns),
+                                                adapter = columns.asPreferenceAdapter(),
+                                                step = 1,
+                                                valueRange = 3..maxGridSize,
+                                            )
+                                            SliderPreference(
+                                                label = stringResource(id = R.string.rows),
+                                                adapter = rows.asPreferenceAdapter(),
+                                                step = 1,
+                                                valueRange = 3..maxGridSize,
+                                            )
+                                            SliderPreference(
+                                                label = stringResource(id = R.string.dock_icons),
+                                                adapter = hotseatColumns.asPreferenceAdapter(),
+                                                step = 1,
+                                                valueRange = 3..maxGridSize,
+                                            )
+                                        }
+
+                                        PreferenceGroup(
+                                            heading = stringResource(id = R.string.when_unfolded_label),
+                                        ) {
+                                            SliderPreference(
+                                                label = stringResource(id = R.string.dock_icons),
+                                                adapter = hotseatColumnsUnfolded.asPreferenceAdapter(),
+                                                step = 1,
+                                                valueRange = hotseatColumns.intValue..maxGridSize,
+                                            )
+                                            FakeExpandedGridPreference(
+                                                columns = columns.intValue * 2,
+                                                rows = rows.intValue,
+                                                description = stringResource(
+                                                    productStringId(
+                                                        R.string.unfolded_grid_description,
+                                                        R.string.expressive_unfolded_grid_description,
+                                                    ),
+                                                ),
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    PreferenceGroup {
+                                        SliderPreference(
+                                            label = stringResource(id = R.string.columns),
+                                            adapter = columns.asPreferenceAdapter(),
+                                            step = 1,
+                                            valueRange = 3..maxGridSize,
+                                        )
+                                        SliderPreference(
+                                            label = stringResource(id = R.string.rows),
+                                            adapter = rows.asPreferenceAdapter(),
+                                            step = 1,
+                                            valueRange = 3..maxGridSize,
+                                        )
+                                        SliderPreference(
+                                            label = stringResource(id = R.string.dock_icons),
+                                            adapter = hotseatColumns.asPreferenceAdapter(),
+                                            step = 1,
+                                            valueRange = 3..maxGridSize,
+                                        )
+                                    }
+                                }
+                            }
+
+                            val navController = LocalNavController.current
+                            val context = LocalContext.current
+                            val applyOverrides = {
+                                prefs.batchEdit {
+                                    columnsAdapter.onChange(columns.intValue)
+                                    rowsAdapter.onChange(rows.intValue)
+                                    hotseatColumnsAdapter.onChange(hotseatColumns.intValue)
+                                    hotseatColumnsUnfoldedAdapter.onChange(hotseatColumnsUnfolded.intValue)
+                                }
+                                InvariantDeviceProfile.INSTANCE.get(context).onPreferencesChanged(context)
+                                navController.popBackStack()
+                            }
+
+                            val isChanged = columns.intValue != originalColumns ||
+                                rows.intValue != originalRows ||
+                                hotseatColumns.intValue != originalHotseatColumns ||
+                                hotseatColumnsUnfolded.intValue != originalHotseatColumnsUnfolded
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                                    .padding(horizontal = 16.dp),
+                            ) {
+                                Button(
+                                    onClick = { applyOverrides() },
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .fillMaxWidth(),
+                                    enabled = isChanged,
+                                    shapes = ButtonDefaults.shapes(),
+                                ) {
+                                    Text(text = stringResource(id = R.string.action_apply))
+                                }
+                            }
                         }
                     }
                 }

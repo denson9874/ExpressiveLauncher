@@ -52,6 +52,7 @@ import app.lawnchair.ui.preferences.components.reorderable.ReorderableDragHandle
 import app.lawnchair.ui.preferences.components.reorderable.ReorderablePreferenceGroup
 import app.lawnchair.ui.preferences.navigation.AppDrawerAppListToFolder
 import app.lawnchair.ui.preferences.navigation.AppDrawerFolder
+import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.ui.util.bottomSheetHandler
 import com.android.launcher3.R
 import com.android.launcher3.util.MSDLPlayerWrapper
@@ -133,85 +134,90 @@ fun AppDrawerFoldersPreference(
             label = stringResource(id = R.string.app_drawer_folder),
             backArrowVisible = true,
         ) {
-            PreferenceGroup(
-                heading = stringResource(R.string.settings),
+            ProGate(
+                lockedTitle = stringResource(id = R.string.app_drawer_folder),
+                lockedDescription = stringResource(R.string.expressive_pro_locked_customization),
             ) {
-                SwitchPreference(
-                    adapter = prefs.folderApps.getAdapter(),
-                    label = stringResource(id = R.string.apps_in_folder_label),
-                    description = stringResource(id = R.string.apps_in_folder_description),
-                )
-            }
-            PreferenceGroup(heading = stringResource(R.string.folders_label)) {
-                PreferenceTemplate(
-                    title = {
-                        Text(
-                            text = stringResource(R.string.add_folder),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    startWidget = {
-                        Icon(Icons.Rounded.Add, contentDescription = null)
-                    },
-                    onClick = {
-                        mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
-                        bottomSheetHandler.show {
-                            FolderEditSheet(
-                                folderId = 0,
-                                initialTitle = stringResource(R.string.my_folder_label),
-                                itemCount = 0,
-                                onRename = { _, title -> onCreateFolder(title) },
-                                onNavigate = {},
-                                onDismiss = {
-                                    bottomSheetHandler.hide()
-                                },
-                                hideAppPicker = true,
+                PreferenceGroup(
+                    heading = stringResource(R.string.settings),
+                ) {
+                    SwitchPreference(
+                        adapter = prefs.folderApps.getAdapter(),
+                        label = stringResource(id = R.string.apps_in_folder_label),
+                        description = stringResource(id = R.string.apps_in_folder_description),
+                    )
+                }
+                PreferenceGroup(heading = stringResource(R.string.folders_label)) {
+                    PreferenceTemplate(
+                        title = {
+                            Text(
+                                text = stringResource(R.string.add_folder),
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
-                        }
+                        },
+                        startWidget = {
+                            Icon(Icons.Rounded.Add, contentDescription = null)
+                        },
+                        onClick = {
+                            mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+                            bottomSheetHandler.show {
+                                FolderEditSheet(
+                                    folderId = 0,
+                                    initialTitle = stringResource(R.string.my_folder_label),
+                                    itemCount = 0,
+                                    onRename = { _, title -> onCreateFolder(title) },
+                                    onNavigate = {},
+                                    onDismiss = {
+                                        bottomSheetHandler.hide()
+                                    },
+                                    hideAppPicker = true,
+                                )
+                            }
+                        },
+                    )
+                }
+                ReorderablePreferenceGroup(
+                    label = null,
+                    items = sortedDisplayList,
+                    defaultList = sortedDisplayList,
+                    onOrderChange = { updatedFolders ->
+                        onOrderChange(updatedFolders.map { it.id })
                     },
-                )
-            }
-            ReorderablePreferenceGroup(
-                label = null,
-                items = sortedDisplayList,
-                defaultList = sortedDisplayList,
-                onOrderChange = { updatedFolders ->
-                    onOrderChange(updatedFolders.map { it.id })
-                },
-            ) { folderEntry, _, _ ->
-                val interactionSource = remember { MutableInteractionSource() }
-                FolderItem(
-                    folderEntry = folderEntry,
-                    onItemClick = {
-                        mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
-                        bottomSheetHandler.show {
-                            FolderEditSheet(
-                                folderId = folderEntry.id,
-                                initialTitle = folderEntry.title,
-                                itemCount = folderEntry.itemComponentKeys.size,
-                                onRename = onRenameFolder,
-                                onNavigate = {
-                                    onEditFolderItems(it)
-                                    bottomSheetHandler.hide()
-                                },
-                                onDismiss = {
-                                    bottomSheetHandler.hide()
-                                },
+                ) { folderEntry, _, _ ->
+                    val interactionSource = remember { MutableInteractionSource() }
+                    FolderItem(
+                        folderEntry = folderEntry,
+                        onItemClick = {
+                            mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+                            bottomSheetHandler.show {
+                                FolderEditSheet(
+                                    folderId = folderEntry.id,
+                                    initialTitle = folderEntry.title,
+                                    itemCount = folderEntry.itemComponentKeys.size,
+                                    onRename = onRenameFolder,
+                                    onNavigate = {
+                                        onEditFolderItems(it)
+                                        bottomSheetHandler.hide()
+                                    },
+                                    onDismiss = {
+                                        bottomSheetHandler.hide()
+                                    },
+                                )
+                            }
+                        },
+                        onItemDelete = { folderToDelete ->
+                            mMSDLPlayerWrapper.playToken(MSDLToken.SUCCESS)
+                            onDeleteFolder(folderToDelete)
+                        },
+                        dragIndicator = {
+                            ReorderableDragHandle(
+                                interactionSource = interactionSource,
+                                scope = this,
                             )
-                        }
-                    },
-                    onItemDelete = { folderToDelete ->
-                        mMSDLPlayerWrapper.playToken(MSDLToken.SUCCESS)
-                        onDeleteFolder(folderToDelete)
-                    },
-                    dragIndicator = {
-                        ReorderableDragHandle(
-                            interactionSource = interactionSource,
-                            scope = this,
-                        )
-                    },
-                    interactionSource = interactionSource,
-                )
+                        },
+                        interactionSource = interactionSource,
+                    )
+                }
             }
         }
     }

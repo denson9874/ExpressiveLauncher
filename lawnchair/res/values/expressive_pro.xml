@@ -3,9 +3,9 @@
     <string name="expressive_pro_title">Expressive Pro</string>
     <string name="expressive_pro_status_active">Active</string>
     <string name="expressive_pro_active_desc">Pro unlocked for %1$s (%2$s)</string>
-    <string name="expressive_pro_free_desc">Enter an offline tester or giveaway license key to unlock Pro features.</string>
+    <string name="expressive_pro_free_desc">Thank you for testing! Free Core continues to receive updates. Customization features are Pro exclusive.</string>
     <string name="expressive_pro_redeem_title">Redeem Pro License</string>
-    <string name="expressive_pro_redeem_desc">Enter your cryptographic license key below. Verification works 100% offline with zero network requests.</string>
+    <string name="expressive_pro_redeem_desc">We appreciate your feedback and testing! To continue supporting development, please update to V3 and consider activating Expressive Pro. Choosing to remain free will still get updates, but customization features are Pro only. Verification works 100% offline with zero network requests.</string>
     <string name="expressive_pro_key_label">License Key</string>
     <string name="expressive_pro_key_hint">EXPR-PRO-XXXX-XXXX-…</string>
     <string name="expressive_pro_paste_clipboard">Paste</string>
@@ -22,4 +22,7 @@
     <string name="expressive_pro_close">Close</string>
     <string name="expressive_pro_badge">PRO</string>
     <string name="expressive_pro_locked_message">This feature requires Expressive Pro. Tap to enter your tester or giveaway key.</string>
+    <string name="expressive_v3_transition_banner_title">Welcome to Expressive V3</string>
+    <string name="expressive_v3_transition_banner_desc">We appreciate your feedback and testing! Free Core continues receiving updates, while customization features are now Pro exclusive.</string>
+    <string name="expressive_pro_locked_customization">Customization is exclusive to Expressive Pro to support development. Tap to unlock.</string>
 </resources>
