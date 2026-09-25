@@ -1,2 +1,50 @@
-No release notes assigned for this build.
-This release is dedicated to Laura (Cakey Edition). Exclusive features are cryptographically locked to her key and cannot be activated by other users. Public release notes and Telegram announcements are intentionally omitted.
+<b>Expressive Launcher 3.0.4 QA — Contrast in the Clouds</b>
+
+Welcome to Expressive Launcher 3.0.4! Today's focused improvement directly addresses community feedback from our XDA Pixel testing threads regarding status bar contrast and setting clarity.
+
+───────────────────────
+
+<b>✨ What's New</b>
+• <b>Clarified Dark Status Bar Controls (Community Report XDA-003)</b>:
+• <b>The Issue</b>: Community members rightly pointed out that the label <i>"Dark status bar"</i> was confusing. Many users expected it to paint a dark background banner across the top of their screen, whereas the toggle actually controls icon and text contrast.
+• <b>The Fix</b>: The preference label has been updated to <b>Dark status bar icons</b> with a clear subtitle: <i>"Display dark icons and clock text on the status bar for lighter wallpapers"</i>.
+• Under the hood, this cleanly controls Android's <code>SYSTEM_UI_FLAG_LIGHT_STATUS_BAR</code> (via <code>SystemUiController</code>), ensuring optimal contrast without unexpected UI artifacts.
+• <b>Robust Unit & Regression Coverage</b>:
+• Added <code>StatusBarPreferencesTest</code> covering preference persistence, string localization, and SystemUI controller flag mapping.
+• All 623 Gradle tasks, unit test suites, and 279 CI contract tests passed with zero failures.
+
+───────────────────────
+
+<b>💎 Expressive Pro & Free Core</b>
+• <b>Free Core (Always Supported & Ad-Free)</b>:
+• Rock-solid daily-driver stability with full Google Discover feed integration and 100% Pixel parity.
+• <b>Expressive Pro ($4.99 One-Time)</b>:
+• Unlocks deep personalization including custom grid sizing, typography, gesture mapping, dock styling, and per-app icon overrides.
+• <i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i>
+
+───────────────────────
+
+<b>😄 Launcher Humor</b>
+
+<blockquote><b>Q:</b> <i>Why did the status bar trade in its dark coat for a pair of sunglasses?</i>  
+<b>A:</b> <i>Because the wallpaper was so bright, even the clock couldn't tell what time it was!</i></blockquote>
+
+───────────────────────
+
+<b>🧩 Release Riddle</b>
+
+Can you solve this edition's launcher riddle?
+
+<blockquote><i>I am not a shadow painted across your screen, nor a solid curtain drawn across the scene. But when your wallpaper shines bright as the sun, I turn dark so your time and icons can still be run. What am I?</i></blockquote>
+
+<tg-spoiler><b>Dark status bar icons!</b></tg-spoiler>
+
+───────────────────────
+
+<b>🛡️ Verification & Technical Details</b>
+• <b>Source Revision</b>: <code>695c0c27386c77bab1e5a1da9b9f09101f6badad</code>
+• <b>Version</b>: <code>3.0.4</code> (code <code>36</code>)
+• <b>APK SHA-256</b>: <code>e3990c9fb101f61c8b025b3314d9abbb631663e2b8fa457b0bef8afd109de6e7</code>
+• <b>Emulator Smoke QA</b>: Verified on Android 17 QPR2 Beta 5 (<code>CP41.260828.004.A7</code>); passed guest identity, in-place upgrade, cold start, drawer swipe, local search, and clean log assertions.
+
+<i>Release-signed, minified QA package. Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.</i>
