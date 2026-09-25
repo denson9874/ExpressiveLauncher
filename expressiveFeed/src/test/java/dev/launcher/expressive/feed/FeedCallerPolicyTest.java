@@ -17,6 +17,22 @@ public final class FeedCallerPolicyTest {
     }
 
     @Test
+    public void playLauncher_sameSignature_isAllowed() {
+        assertThat(FeedCallerPolicy.isAllowedCaller(
+                new String[] {FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE},
+                PackageManager.SIGNATURE_MATCH,
+                FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE)).isTrue();
+    }
+
+    @Test
+    public void playLauncher_playSignatureMismatch_isStillAllowed() {
+        assertThat(FeedCallerPolicy.isAllowedCaller(
+                new String[] {FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE},
+                PackageManager.SIGNATURE_NO_MATCH,
+                FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE)).isTrue();
+    }
+
+    @Test
     public void debugLauncher_sameSignature_isAllowed() {
         assertThat(FeedCallerPolicy.isAllowedCaller(
                 new String[] {FeedCallerPolicy.DEBUG_LAUNCHER_PACKAGE},

@@ -1,127 +1,176 @@
-# Google Play release runbook
+# Google Play Release Runbook
 
-This runbook applies only to `lawnWithQuickstepExpressiveRelease`. It does not publish the
-upstream Lawnchair `play` flavor.
+This runbook applies to releasing **Expressive Launcher L3** (`lawnWithQuickstepExpressiveRelease`) to the **Google Play Store** under verified Google Developer **Daryl Denson** (Play Console Developer ID: `5547708187557586870`).
 
-## 1. Lock the permanent product identity
+---
 
-Before creating the app in Play Console, choose the final application ID. The current default is
-`dev.launcher.expressive.l3`. Google Play does not allow an application ID to be changed after the
-first artifact is uploaded.
+## 1. Verified Developer and Product Identity
 
-This package has already been installed on a certified test device with an Android debug
-certificate. Under Android developer verification, Play Console may treat it as an existing
-package and request proof using that known private key. The cleanest production path is to choose
-a new, brand-owned application ID before the first Play upload. If the current ID is retained,
-keep the existing debug keystore until package-name registration is complete; do not use that key
-to sign production bundles.
+- **Developer Name:** Daryl Denson
+- **Play Console Developer ID:** `5547708187557586870`
+- **Developer Contact:** `daryldenson0405@gmail.com`
+- **Application ID:** `com.denson9874.Expressive_Launcher_L3`
+- **App Name:** Expressive Launcher L3
+- **Current Version Code:** `37`
+- **Current Version Name:** `3.0.5`
+- **Target SDK:** 37 (Android 17)
+- **Minimum SDK:** 31 (Android 12)
 
-Set the selected ID on every release build:
+---
 
+## 2. Developer Signature and Upload Key
+
+The release key is configured with the verified Google Play Developer signature:
+
+- **Keystore Path:** `/Users/daryldenson/Documents/Expressive Launcher Signing/expressive-developer-release.jks`
+- **Offline Credential Backup:** `/Users/daryldenson/Documents/Expressive Launcher Signing/developer-credentials.properties`
+- **Local Gradle Configuration:** `keystore.properties` (ignored by Git)
+- **Key Alias:** `expressive-developer-release`
+- **Key Algorithm:** 4096-bit RSA with SHA256withRSA
+- **Distinguished Name (DNAME):**  
+  `CN=Daryl Denson, OU=5547708187557586870, O=Expressive Launcher, C=US`
+- **Certificate Validity:** Fri Sep 25, 2026 through Tue Feb 10, 2054 (10,000 days)
+- **Certificate Fingerprints:**
+  - **SHA-256:** `2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7`
+  - **SHA-1:** `E8:25:C2:BE:19:85:30:ED:EA:1E:B2:10:F3:46:9D:06:0B:81:0F:1E`
+
+### Public Certificate Export
+
+The public certificate is exported in RFC PEM format at:
+- `upload_certificate.pem` (repository root, ignored by Git)
+- `/Users/daryldenson/Documents/Expressive Launcher Signing/developer_certificate.pem`
+
+If Google Play Console prompts you to register an upload certificate during Play App Signing setup, upload this `.pem` file.
+
+To regenerate or re-export the certificate at any time:
 ```sh
--PexpressiveApplicationId=your.permanent.application.id
+./scripts/configure-play-developer-signing.sh
 ```
 
-## 2. Create and protect the upload key
+---
 
-Use Play App Signing and keep a separate private upload key. Generate it once with Android Studio
-(`Build` > `Generate Signed Bundle / APK` > `Create new`) or `keytool`, then back it up in a secure
-password manager or encrypted vault. Never commit the keystore or its passwords.
+## 3. Privacy Policy and Data Safety
 
-Copy `keystore.properties.example` to the ignored `keystore.properties` file and fill all four
-values, or provide these environment variables:
+- **Public Privacy Policy URL:** `https://denson9874.github.io/ExpressiveLauncher/privacy`
+- **Source Documents:**
+  - `play/privacy-policy.md` (Markdown format)
+  - `play/privacy-policy.html` and `docs/privacy.html` (Standalone HTML for web hosting)
+  - `docs/PRIVACY_POLICY.md` (Repository documentation)
+- **Data Safety Worksheet:**
+  - Refer to `play/data-safety.md` for exact, field-by-field answers for the Play Console Data Safety questionnaire.
 
-- `EXPRESSIVE_UPLOAD_STORE_FILE`
-- `EXPRESSIVE_UPLOAD_STORE_PASSWORD`
-- `EXPRESSIVE_UPLOAD_KEY_ALIAS`
-- `EXPRESSIVE_UPLOAD_KEY_PASSWORD`
+---
 
-Export the public upload certificate for Play Console without exposing the private key:
+## 4. Building the Signed Play Release Bundle
+
+To build the release bundle compliant with Google Play Store policies:
 
 ```sh
-keytool -export -rfc \
-  -keystore /absolute/path/to/expressive-upload.jks \
-  -alias expressive-upload \
-  -file upload_certificate.pem
+./gradlew bundleLawnWithQuickstepExpressiveRelease -PtargetPlayStore=true
 ```
 
-`upload_certificate.pem` is ignored by this repository, even though the public certificate is safe
-to share.
-
-## 3. Publish the privacy policy
-
-Customize `play/privacy-policy-template.md`, obtain appropriate legal review, and publish it as a
-public, non-editable HTTPS web page. The page must identify the developer shown in the store
-listing and include a working privacy contact. The release URL is compiled into Settings > About,
-so the same URL is visible both in the app and Play Console.
-
-## 4. Build the signed bundle
-
-Choose a `versionCode` that has never been uploaded for this application ID. It must increase for
-every Play release.
-
+Optional overrides:
 ```sh
 ./gradlew bundleLawnWithQuickstepExpressiveRelease \
-  -PexpressiveApplicationId=your.permanent.application.id \
-  -PexpressiveVersionCode=1 \
-  -PexpressiveVersionName=1.0.0 \
-  -PexpressivePrivacyPolicyUrl=https://example.com/expressive-launcher/privacy
+  -PtargetPlayStore=true \
+  -PexpressiveApplicationId=com.denson9874.Expressive_Launcher_L3 \
+  -PexpressiveVersionCode=37 \
+  -PexpressiveVersionName=3.0.5 \
+  -PexpressivePrivacyPolicyUrl=https://denson9874.github.io/ExpressiveLauncher/privacy
 ```
 
-The build refuses to create the Play bundle if signing is missing, the privacy URL is not HTTPS,
-the inherited Lawnchair privacy policy is used, or the version name contains `Dev`.
+### Generated Artifacts
+- **Play Release Bundle (AAB):**  
+  `build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab`
+- **R8 Deobfuscation Mapping:**  
+  `build/outputs/mapping/lawnWithQuickstepExpressiveRelease/mapping.txt` (also packaged directly inside the bundle's `BUNDLE-METADATA`)
+- **Resource Shrinking Report:**  
+  `build/outputs/mapping/lawnWithQuickstepExpressiveRelease/resources.txt`
 
-Upload these artifacts from `build/outputs`:
+---
 
-- `bundle/lawnWithQuickstepExpressiveRelease/*.aab`: Play Console release artifact
-- `mapping/lawnWithQuickstepExpressiveRelease/mapping.txt`: R8 deobfuscation mapping
+## 5. Automated Google Play Publishing via API
 
-Keep both artifacts for every release. The GitHub workflow
-`.github/workflows/build_expressive_play_bundle.yml` performs the same guarded build and archives
-them. Configure these repository secrets before using it:
+Expressive Launcher supports automated Google Play publishing directly through the Google Play Developer API using Gradle.
 
-- `EXPRESSIVE_UPLOAD_KEYSTORE_BASE64`
-- `EXPRESSIVE_UPLOAD_STORE_PASSWORD`
-- `EXPRESSIVE_UPLOAD_KEY_ALIAS`
-- `EXPRESSIVE_UPLOAD_KEY_PASSWORD`
+### Publishing Command
+To build and publish the release bundle in one command:
 
-## 5. Complete Play Console setup
+```sh
+./gradlew publishExpressivePlayRelease -PtargetPlayStore=true
+```
 
-Create an app (default language English US, app, free unless a paid launch is intended), enroll in
-Play App Signing, and start with Internal testing. Complete every App content declaration before
-submitting for review:
+Aliases supported:
+```sh
+./gradlew publishReleaseBundle -PtargetPlayStore=true
+./gradlew publishLawnWithQuickstepExpressiveReleaseBundle -PtargetPlayStore=true
+```
 
-- Privacy policy and Data safety, using `play/data-safety.md` as the engineering worksheet
-- Ads declaration: no ads, if the shipping configuration remains ad-free
-- App access: all core screens are accessible without an account
-- Target audience and content rating questionnaire
-- `QUERY_ALL_PACKAGES`: core launcher functionality requires enumerating installed launchable apps
-- Accessibility service: optional gesture actions only; it subscribes to no accessibility events
-- Foreground service and notification declarations for user-initiated crash-report upload
-- Contact and media permissions: optional search/customization features, accurately disclosed
+### Selecting Release Track
+By default, the task deploys to the `internal` testing track. You can specify a different track (e.g. `alpha`, `beta`, `production`):
+```sh
+./gradlew publishExpressivePlayRelease -PtargetPlayStore=true -PplayTrack=alpha
+```
 
-The current target is API 37, above the August 31, 2026 Play requirement of API 36. The minimum is
-also API 37, intentionally limiting availability to Android 17 devices.
+### Automated Flow
+1. Automatically verifies Play Store manifest safety, privacy policy, and developer signature requirements.
+2. Builds and signs the release `.aab` bundle with R8 optimization.
+3. Automatically backs up the signed `.aab` to `/Users/daryldenson/Documents/Expressive Launcher Signing/`.
+4. Authenticates with Google Cloud via Service Account JSON (`play-service-account.json`).
+5. Initiates a Google Play Developer API edit session.
+6. Performs resumable upload of the `.aab` bundle.
+7. Sets release notes from `play/listing/en-US/changelogs/<versionCode>.txt`.
+8. Assigns the bundle to the target track and commits the edit to Play Console.
 
-Use only `play/listing/en-US` for the initial Expressive listing. The inherited
-`fastlane/metadata/android` translations describe upstream Lawnchair and must not be uploaded for
-this product until they are rewritten and reviewed.
+---
 
-## 6. Release sequence
+## 6. Google Play Console Setup Step-by-Step
 
-Before uploading a production candidate, run the release-readiness commands in
-`docs/PLAY_RELEASE_READINESS.md`. The August 25, 2026 audit built and validated the bundle and
-passed all focused tests, but full release lint still reports inherited errors. Those errors are
-not baselined or suppressed and remain a production gate.
+### A. Create the App
+1. Log into [Google Play Console](https://play.google.com/console) with Developer ID `5547708187557586870`.
+2. Click **Create app**:
+   - **App name:** `Expressive Launcher L3`
+   - **Default language:** English (United States) - `en-US`
+   - **App or game:** App
+   - **Free or paid:** Free (or select Paid if applicable)
+3. Accept the declarations and click **Create app**.
 
-1. Upload the AAB to Internal testing and resolve automated pre-launch, policy, and bundle checks.
-2. Install from Google Play on the Android 17 test device; verify Home-role selection, first-run
-   layout, widget bind/configure, folders, search, icon packs, Smartspacer fallback, rotation,
-   process recreation, and upgrade retention.
-3. Promote the same tested build to Closed testing.
-4. For personal developer accounts created after November 13, 2023, keep at least 12 testers opted
-   in continuously for 14 days, then apply for production access.
-5. Stage production rollout and monitor Android vitals before increasing availability.
+### B. App Integrity & Play App Signing
+In the current Google Play Console UI (as seen on your screen):
+1. Notice the prompt: *"App Integrity settings have moved"*.
+2. Click the blue button **Go to Protected with Play →** (or click **Protected with Play** in the left sidebar, 4th item from the top).
+3. Under **Play App Signing**:
+   - If opting for Google-managed key: Google Play manages your key, and you can register your upload key using `upload_certificate.pem` or by uploading your signed bundle.
+   - If setting your upload certificate manually, upload [`upload_certificate.pem`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/upload_certificate.pem).
+   - Verify that your registered certificate SHA-256 fingerprint matches:  
+     `2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7`.
 
-Do not enable automatic production publishing until package registration, listing ownership,
-privacy review, and the first closed test are complete.
+### C. Upload Release Artifact to Testing Track
+1. In the left sidebar, under **Test and release**, click **Testing** (expand the dropdown) → click **Internal testing**.
+2. Click **Create new release** in the top right.
+3. In the App bundles section, upload:  
+   [`build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab)
+   *(Play Console will automatically register your upload key from the bundle signature if not previously registered!)*
+4. Copy the release notes from [`play/listing/en-US/changelogs/36.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/changelogs/36.txt).
+5. Click **Next**, review the bundle, and save.
+
+### D. Store Listing & Graphics
+In the left sidebar, navigate to **Grow users > Store presence > Main store listing**:
+- **App title:** `Expressive Launcher L3` (from [`play/listing/en-US/title.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/title.txt))
+- **Short description:** From [`play/listing/en-US/short_description.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/short_description.txt)
+- **Full description:** From [`play/listing/en-US/full_description.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/full_description.txt)
+- **App icon:** Upload [`play/listing/en-US/graphics/icon.png`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/graphics/icon.png) (512x512 PNG)
+- **Feature graphic:** Upload [`play/listing/en-US/graphics/featureGraphic.png`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/graphics/featureGraphic.png) (1024x500 PNG)
+- **Phone screenshots:** Upload `01-home.jpg` and `02-settings.jpg` from [`play/listing/en-US/graphics/phoneScreenshots/`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/graphics/phoneScreenshots/)
+
+### E. App Content & Policy Declarations
+Scroll down the left sidebar to **Policy and programs** (or **App content**):
+1. **Privacy Policy:** Enter `https://denson9874.github.io/ExpressiveLauncher/privacy`.
+2. **App Access:** Select "All functionality is available without special access".
+3. **Ads:** Select "No, my app does not contain ads".
+4. **Content Rating (IARC):** Complete questionnaire (Utilities category, no violence, no location sharing → Rated Everyone / PEGI 3).
+5. **Target Audience:** Select 18 and over (or 13+).
+6. **Data Safety:** Complete using [`play/data-safety.md`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/data-safety.md).
+7. **Permission Declarations:**
+   - **`QUERY_ALL_PACKAGES`:** State: *"Expressive Launcher is a replacement Android Home application. It must query all installed launchable applications to populate the Home screen, All Apps drawer, and app search."*
+   - **Accessibility Service:** State: *"Expressive Launcher uses Android AccessibilityService API exclusively for optional user-configured gesture shortcuts (such as double-tap to lock screen or open notifications). It subscribes to no accessibility events and reads no user content."*

@@ -148,19 +148,25 @@ final def releaseName = "Development 5.1"
 final def versionDisplayName = "${version}.${isReleaseBuild ? releaseName : devReleaseName}"
 final def majorVersion = versionDisplayName.split("\\.")[0]
 
+final def targetPlayStore = providers.gradleProperty("targetPlayStore")
+        .orElse(providers.gradleProperty("playStore").orElse("false"))
+        .get()
+        .toBoolean()
+
 // The direct-distribution identity is intentionally explicit. Android accepts an in-place update
 // only when the application ID and signing lineage match the installed build.
+// Google Play Store distribution uses the registered console application ID com.denson9874.Expressive_Launcher_L3.
 final def expressiveApplicationId = providers.gradleProperty("expressiveApplicationId")
-        .orElse("dev.launcher.expressive.l3")
+        .orElse(targetPlayStore ? "com.denson9874.Expressive_Launcher_L3" : "dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("36")
+        .orElse("38")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("3.0.4")
+        .orElse("3.0.6")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
-        .orElse("")
+        .orElse("https://denson9874.github.io/ExpressiveLauncher/privacy")
         .get()
 final def expressiveQaUpdateManifestUrl = providers.gradleProperty("expressiveQaUpdateManifestUrl")
         .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json")
@@ -255,6 +261,7 @@ android {
         // Those builds use the user-selected SAF folder instead.
         buildConfigField "boolean", "CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS", "false"
         buildConfigField "String", "PRIVACY_POLICY_URL", '"https://lawnchair.app/privacy_policy"'
+        buildConfigField "boolean", "TARGET_PLAY_STORE", "false"
         resValue("string", "derived_app_name", "Lawnchair")
 
         manifestPlaceholders.quickstepMinSdk = quickstepMinSdk
@@ -417,12 +424,12 @@ android {
             buildConfigField "String", "MAJOR_VERSION", "\"${expressiveVersionName}\""
             buildConfigField "boolean", "STANDARD_HOME_ONLY", "true"
             buildConfigField "boolean", "IS_EXPRESSIVE_PRODUCT", "true"
-            // Expressive is distributed through GitHub; Android still requires the user's explicit
-            // all-files special-access grant before file search or wallpaper effects can use it.
-            buildConfigField "boolean", "CAN_REQUEST_MANAGE_ALL_FILES_ACCESS", "true"
-            buildConfigField "String", "EXPRESSIVE_QA_UPDATE_MANIFEST_URL", "\"${expressiveQaUpdateManifestUrl}\""
-            buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", "\"${expressiveReleaseUpdateManifestUrl}\""
+            // Play-distributed builds use Storage Access Framework; direct GitHub builds allow managing all files.
+            buildConfigField "boolean", "CAN_REQUEST_MANAGE_ALL_FILES_ACCESS", "${!targetPlayStore}"
+            buildConfigField "String", "EXPRESSIVE_QA_UPDATE_MANIFEST_URL", "\"${targetPlayStore ? '' : expressiveQaUpdateManifestUrl}\""
+            buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", "\"${targetPlayStore ? '' : expressiveReleaseUpdateManifestUrl}\""
             buildConfigField "String", "PRIVACY_POLICY_URL", "\"${expressivePrivacyPolicyUrl}\""
+            buildConfigField "boolean", "TARGET_PLAY_STORE", "${targetPlayStore}"
             resValue("string", "derived_app_name", "Expressive Launcher L3")
         }
 
@@ -497,7 +504,9 @@ android {
         }
 
         lawnWithQuickstepExpressive {
-            manifest.srcFile "expressive/AndroidManifest-launcher.xml"
+            manifest.srcFile targetPlayStore
+                    ? "expressive/AndroidManifest-launcher-play.xml"
+                    : "expressive/AndroidManifest-launcher.xml"
             // Combined source sets outrank the Lawnchair app flavor. Product branding and
             // standard-Home dimensions therefore survive resource merging for this variant.
             res.srcDirs = ["expressive/res"]
@@ -536,7 +545,78 @@ def verifyExpressivePlayRelease = tasks.register("verifyExpressivePlayRelease") 
         if (expressiveVersionName.toLowerCase(java.util.Locale.ROOT).contains("dev")) {
             throw new GradleException("expressiveVersionName must be a user-facing release version, not a development label")
         }
+        if (!targetPlayStore) {
+            throw new GradleException(
+                    "Google Play release bundles require -PtargetPlayStore=true to enforce " +
+                            "Google Play storage and package installation policies.",
+            )
+        }
     }
+}
+
+def playTrackProperty = providers.gradleProperty("playTrack").orElse("internal")
+
+def publishExpressivePlayRelease = tasks.register("publishExpressivePlayRelease", Exec) {
+    group = "publishing"
+    description = "Builds and publishes the Expressive Launcher release bundle to Google Play Store via Developer API."
+    dependsOn "bundleLawnWithQuickstepExpressiveRelease", "verifyExpressivePlayRelease"
+
+    def playTrack = playTrackProperty.get()
+    def changelogPath = file("play/listing/en-US/changelogs/${expressiveVersionCodeText}.txt").absolutePath
+    def aabLayoutFile = layout.buildDirectory.file(
+            "outputs/bundle/lawnWithQuickstepExpressiveRelease/" +
+                    "expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab"
+    )
+    def signingDirPath = "/Users/daryldenson/Documents/Expressive Launcher Signing"
+    def appId = expressiveApplicationId
+    def verName = expressiveVersionName
+    def verCode = expressiveVersionCodeText
+
+    commandLine(
+            "python3",
+            "scripts/publish_play_bundle.py",
+            "--package-name", appId,
+            "--track", playTrack,
+            "--bundle", aabLayoutFile.get().asFile.absolutePath,
+            "--changelog", changelogPath,
+            "--version-name", verName,
+    )
+
+    doFirst {
+        def targetAab = aabLayoutFile.get().asFile
+        if (!targetAab.exists()) {
+            throw new GradleException("Release bundle not found at ${targetAab.absolutePath}")
+        }
+
+        // Copy to signing folder for archiving
+        def signingDir = new File(signingDirPath)
+        if (signingDir.exists()) {
+            def vTarget = new File(signingDir, "com.denson9874.Expressive_Launcher_L3-v${verCode}.aab")
+            def genericTarget = new File(signingDir, "com.denson9874.Expressive_Launcher_L3.aab")
+            java.nio.file.Files.copy(
+                    targetAab.toPath(),
+                    vTarget.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+            )
+            java.nio.file.Files.copy(
+                    targetAab.toPath(),
+                    genericTarget.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+            )
+        }
+    }
+}
+
+tasks.register("publishReleaseBundle") {
+    group = "publishing"
+    description = "Publishes the release AAB bundle to Google Play."
+    dependsOn publishExpressivePlayRelease
+}
+
+tasks.register("publishLawnWithQuickstepExpressiveReleaseBundle") {
+    group = "publishing"
+    description = "Publishes the Expressive release AAB bundle to Google Play."
+    dependsOn publishExpressivePlayRelease
 }
 
 def verifyExpressiveDirectSigning = tasks.register("verifyExpressiveDirectSigning") {
@@ -599,9 +679,10 @@ def verifyStoragePermissionManifests = tasks.register("verifyStoragePermissionMa
             }
             def manifestText = manifestFile.getText("UTF-8")
             def declaresAllFiles = manifestText.contains("android:name=\"${allFilesPermission}\"")
-            if (declaresAllFiles != (channel != "play")) {
+            def isPlayChannel = channel == "play" || (targetPlayStore && (channel == "expressiveRelease" || channel == "expressiveQa"))
+            if (declaresAllFiles != (!isPlayChannel)) {
                 throw new GradleException(
-                        "${channel} manifest ${channel == 'play' ? 'must not' : 'must'} declare ${allFilesPermission}",
+                        "${channel} manifest ${isPlayChannel ? 'must not' : 'must'} declare ${allFilesPermission}",
                 )
             }
             forbiddenPermissions.each { permission ->
@@ -610,6 +691,9 @@ def verifyStoragePermissionManifests = tasks.register("verifyStoragePermissionMa
                             "${channel} release manifest must not declare ${permission}",
                     )
                 }
+            }
+            if (isPlayChannel && manifestText.contains("android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\"")) {
+                throw new GradleException("${channel} Play release manifest must not declare REQUEST_INSTALL_PACKAGES")
             }
             if (!manifestText.contains("android.intent.category.HOME")) {
                 throw new GradleException("${channel} release manifest no longer exposes a Home activity")

@@ -14,7 +14,7 @@ on:
       application_id:
         description: Permanent Play package ID
         required: true
-        default: dev.launcher.expressive.l3
+        default: com.denson9874.Expressive_Launcher_L3
         type: string
       privacy_policy_url:
         description: Public HTTPS privacy policy for Expressive Launcher L3
@@ -59,6 +59,7 @@ jobs:
           --no-parallel
           assembleLawnWithQuickstepExpressiveRelease
           bundleLawnWithQuickstepExpressiveRelease
+          -PtargetPlayStore=true
           -PexpressiveApplicationId='${{ inputs.application_id }}'
           -PexpressiveVersionCode='${{ inputs.version_code }}'
           -PexpressiveVersionName='${{ inputs.version_name }}'

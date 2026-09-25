@@ -166,11 +166,11 @@ fun ExpressiveFeedPreferences() {
         }
     }
     PreferenceGroup(heading = stringResource(R.string.expressive_feed_title)) {
-        if (kind == Kind.READY || kind == Kind.UPDATE_AVAILABLE) {
+        if (kind == Kind.READY || kind == Kind.UPDATE_AVAILABLE || (effectiveProvider != null && effectiveProvider != FeedBridge.GOOGLE_APP_PACKAGE)) {
             SwitchPreference(
-                checked = enabled.state.value && effectiveProvider == FeedBridge.FIRST_PARTY_FEED_PACKAGE,
+                checked = enabled.state.value && (effectiveProvider == FeedBridge.FIRST_PARTY_FEED_PACKAGE || effectiveProvider == provider.state.value),
                 onCheckedChange = {
-                    if (it) provider.onChange(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
+                    if (it && effectiveProvider == FeedBridge.FIRST_PARTY_FEED_PACKAGE) provider.onChange(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
                     enabled.onChange(it)
                 },
                 label = stringResource(R.string.expressive_feed_show),
@@ -185,16 +185,47 @@ fun ExpressiveFeedPreferences() {
         }
         when (kind) {
             null -> FeedSetupAction(R.string.expressive_feed_checking, enabled = false)
-            Kind.HELPER_MISSING, Kind.UPDATE_AVAILABLE -> FeedSetupAction(
-                title = if (busy) R.string.expressive_feed_preparing else if (kind == Kind.UPDATE_AVAILABLE) {
-                    R.string.expressive_feed_update
+            Kind.HELPER_MISSING, Kind.UPDATE_AVAILABLE -> {
+                if (com.android.launcher3.BuildConfig.TARGET_PLAY_STORE || !ExpressiveFeedSetup.canRequestPackageInstalls(context)) {
+                    FeedSetupAction(
+                        title = R.string.expressive_feed_companion_download,
+                        description = R.string.expressive_feed_companion_download_desc,
+                        enabled = true,
+                        onClick = {
+                            val releaseUrl = context.getString(R.string.expressive_feed_companion_url)
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)))
+                            } catch (e: Exception) {
+                                Log.w("ExpressiveFeedSetup", "Unable to open companion release URL", e)
+                            }
+                        },
+                    )
+                    FeedSetupAction(
+                        title = R.string.expressive_feed_smartspacer_play,
+                        description = R.string.expressive_feed_smartspacer_play_desc,
+                        enabled = true,
+                        onClick = {
+                            val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.kieronquinn.app.smartspacer"))
+                            try {
+                                context.startActivity(marketIntent)
+                            } catch (_: Exception) {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.kieronquinn.app.smartspacer")))
+                            }
+                        },
+                    )
                 } else {
-                    R.string.expressive_feed_setup
-                },
-                description = if (kind == Kind.UPDATE_AVAILABLE) R.string.expressive_feed_update_description else R.string.expressive_feed_setup_description,
-                enabled = !busy,
-                onClick = beginSetup,
-            )
+                    FeedSetupAction(
+                        title = if (busy) R.string.expressive_feed_preparing else if (kind == Kind.UPDATE_AVAILABLE) {
+                            R.string.expressive_feed_update
+                        } else {
+                            R.string.expressive_feed_setup
+                        },
+                        description = if (kind == Kind.UPDATE_AVAILABLE) R.string.expressive_feed_update_description else R.string.expressive_feed_setup_description,
+                        enabled = !busy,
+                        onClick = beginSetup,
+                    )
+                }
+            }
             Kind.GOOGLE_MISSING -> FeedSetupAction(
                 R.string.expressive_feed_google_install,
                 R.string.expressive_feed_google_description,

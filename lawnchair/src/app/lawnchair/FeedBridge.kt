@@ -155,11 +155,35 @@ class FeedBridge(private val context: Context) {
 
     private inner class SameSignatureBridgeInfo(packageName: String) : BridgeInfo(packageName, 0) {
         override fun isSigned(): Boolean {
-            // The first-party bridge is privileged by a signature permission. Enforce the same
-            // trust boundary before binding so a package-name squatter cannot impersonate it.
-            return context.packageManager.checkSignatures(context.packageName, packageName) ==
-                PackageManager.SIGNATURE_MATCH
+            // Direct distribution builds share the exact same signer.
+            if (context.packageManager.checkSignatures(context.packageName, packageName) ==
+                PackageManager.SIGNATURE_MATCH) {
+                return true
+            }
+            // For Google Play-distributed builds where the launcher was re-signed by Play App Signing,
+            // verify that the companion is signed by the verified Expressive Developer certificate.
+            return isDarylDensonSigned(packageName)
         }
+    }
+
+    private fun isDarylDensonSigned(packageName: String): Boolean {
+        return runCatching {
+            val info = if (Utilities.ATLEAST_P) {
+                context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            } else {
+                context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+            }
+            val signers = if (Utilities.ATLEAST_P) {
+                info.signingInfo?.apkContentsSigners
+            } else {
+                info.signatures
+            } ?: return false
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            signers.any {
+                val hex = digest.digest(it.toByteArray()).joinToString("") { b -> "%02x".format(b) }
+                hex.equals(EXPRESSIVE_DEVELOPER_KEY_SHA256, ignoreCase = true)
+            }
+        }.getOrDefault(false)
     }
 
     private inner class CustomBridgeInfo(packageName: String) : BridgeInfo(packageName, 0) {
@@ -220,6 +244,8 @@ class FeedBridge(private val context: Context) {
         const val FIRST_PARTY_FEED_PACKAGE = "dev.launcher.expressive.feed"
         const val FIRST_PARTY_CONNECT_PERMISSION =
             "dev.launcher.expressive.feed.permission.CONNECT"
+        const val EXPRESSIVE_DEVELOPER_KEY_SHA256 =
+            "2aa9f1bf3dbd2d5bd27ad7516f1caf1b8a18e15f6d59858a37282784bba2cba7"
 
         private val expressiveIncompatibleProviders = setOf(
             "app.lawnchair.lawnfeed",

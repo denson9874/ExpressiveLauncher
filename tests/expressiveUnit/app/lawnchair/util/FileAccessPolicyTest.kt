@@ -32,7 +32,7 @@ class FileAccessPolicyTest {
 
     @Test
     fun expressiveWallpaperAccess_requiresAnActualSpecialAccessGrant() {
-        assertThat(BuildConfig.CAN_REQUEST_MANAGE_ALL_FILES_ACCESS).isTrue()
+        assertThat(BuildConfig.CAN_REQUEST_MANAGE_ALL_FILES_ACCESS).isEqualTo(!BuildConfig.TARGET_PLAY_STORE)
         assertThat(BuildConfig.CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS).isFalse()
         for (granted in listOf(false, true)) {
             val state = resolveAllFilesAccessState(
@@ -42,7 +42,12 @@ class FileAccessPolicyTest {
                 hasSelectedTreeAccess = false,
                 hasLegacyReadPermission = false,
             )
-            assertThat(state).isEqualTo(if (granted) FileAccessState.Full else FileAccessState.Denied)
+            val expected = if (granted && BuildConfig.CAN_REQUEST_MANAGE_ALL_FILES_ACCESS) {
+                FileAccessState.Full
+            } else {
+                FileAccessState.Denied
+            }
+            assertThat(state).isEqualTo(expected)
         }
     }
 

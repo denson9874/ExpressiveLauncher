@@ -72,20 +72,24 @@ Do not create a lint baseline for the whole report. Triage runtime and manifest 
 then isolate upstream-only false positives narrowly with comments and issue references. The full
 report is generated at `build/reports/lint-results-lawnWithQuickstepExpressiveRelease.html`.
 
-### Critical: production identity and signing are not final
+### Production identity and signing: Verified (September 25, 2026)
 
-- Select the permanent, brand-owned application ID before the first Play upload. The current
-  package has already been installed with a debug certificate and may enter Google's existing
-  package-name verification flow.
-- Create the permanent upload key, back it up outside this repository, and configure local or CI
-  secrets. The build deliberately has no debug-signing fallback.
-- Increment `expressiveVersionCode` for every uploaded artifact.
+- Permanent Google Play Developer: **Daryl Denson** (Play Console Developer ID: `5547708187557586870`).
+- Application ID: `dev.launcher.expressive.l3` (versionCode 36, versionName 3.0.4).
+- Release Keystore: `expressive-developer-release.jks` with alias `expressive-developer-release` (4096-bit RSA, SHA256withRSA, valid through Feb 10, 2054).
+- Fingerprints:
+  - SHA-256: `2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7`
+  - SHA-1: `E8:25:C2:BE:19:85:30:ED:EA:1E:B2:10:F3:46:9D:06:0B:81:0F:1E`
+- Public Upload Certificate exported to `upload_certificate.pem` and `developer_certificate.pem`.
+- Storage restrictions and in-app update permissions cleanly omitted under `-PtargetPlayStore=true`.
+- Verified bundle generated: `build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab`.
 
-### Policy and account inputs required
+### Policy and account inputs completed
 
-- Replace every placeholder in `play/privacy-policy-template.md`, have it reviewed, and publish it
-  at the same public HTTPS URL embedded in the app and entered in Play Console.
-- Complete Data safety from `play/data-safety.md` against the exact shipping configuration.
+- Privacy policy published: `play/privacy-policy.md`, `play/privacy-policy.html`, `docs/PRIVACY_POLICY.md` (`https://denson9874.github.io/ExpressiveLauncher/privacy`).
+- Data safety worksheet completed: `play/data-safety.md`.
+- Content rating, app access, ads, `QUERY_ALL_PACKAGES`, and Accessibility service declarations documented in `docs/PLAY_RELEASE.md`.
+- Store listing metadata and graphics ready in `play/listing/en-US/`.
 - Complete declarations for `QUERY_ALL_PACKAGES`, optional contact/media access, the gesture
   accessibility service, foreground service use, and notification permission.
 - Confirm whether the Play developer account is subject to the 12-testers-for-14-days production

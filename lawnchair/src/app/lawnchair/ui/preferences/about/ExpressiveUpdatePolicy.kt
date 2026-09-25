@@ -8,6 +8,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 internal const val EXPRESSIVE_UPDATE_SCHEMA_VERSION = 1
 internal const val EXPRESSIVE_UPDATE_PACKAGE_NAME = "dev.launcher.expressive.l3"
+internal const val EXPRESSIVE_PLAY_PACKAGE_NAME = "com.denson9874.Expressive_Launcher_L3"
 
 @Serializable
 internal data class ExpressiveUpdateManifest(
@@ -109,7 +110,8 @@ internal fun evaluateExpressiveUpdate(
     val rejection = when {
         manifest.schemaVersion != EXPRESSIVE_UPDATE_SCHEMA_VERSION -> ExpressiveUpdateRejection.UNSUPPORTED_SCHEMA
         manifest.channel != config.channel.wireName -> ExpressiveUpdateRejection.WRONG_CHANNEL
-        manifest.packageName != EXPRESSIVE_UPDATE_PACKAGE_NAME ||
+        (manifest.packageName != EXPRESSIVE_UPDATE_PACKAGE_NAME &&
+            manifest.packageName != EXPRESSIVE_PLAY_PACKAGE_NAME) ||
             manifest.packageName != currentPackageName -> ExpressiveUpdateRejection.WRONG_PACKAGE
         manifest.versionCode < 1L || manifest.versionName.isBlank() -> ExpressiveUpdateRejection.INVALID_VERSION
         !manifest.apkUrl.isSecureHttpsUrl() -> ExpressiveUpdateRejection.INVALID_APK_URL

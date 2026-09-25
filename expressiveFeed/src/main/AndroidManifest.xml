@@ -24,8 +24,7 @@
         <service
             android:name=".ExpressiveFeedBridgeService"
             android:enabled="true"
-            android:exported="true"
-            android:permission="dev.launcher.expressive.feed.permission.CONNECT">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.android.launcher3.WINDOW_OVERLAY" />
                 <data android:scheme="app" />

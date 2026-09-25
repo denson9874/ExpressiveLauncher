@@ -1,0 +1,36 @@
+default_platform(:android)
+
+platform :android do
+  desc "Deploy signed AAB to Google Play Internal Testing track"
+  lane :deploy_internal do
+    upload_to_play_store(
+      track: 'internal',
+      aab: '/Users/daryldenson/Documents/Expressive Launcher Signing/com.denson9874.Expressive_Launcher_L3.aab',
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Deploy signed AAB to Google Play Closed Testing (Alpha) track"
+  lane :deploy_closed do
+    upload_to_play_store(
+      track: 'alpha',
+      aab: '/Users/daryldenson/Documents/Expressive Launcher Signing/com.denson9874.Expressive_Launcher_L3.aab',
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Deploy signed AAB to Google Play Production track"
+  lane :deploy_production do
+    upload_to_play_store(
+      track: 'production',
+      aab: '/Users/daryldenson/Documents/Expressive Launcher Signing/com.denson9874.Expressive_Launcher_L3.aab',
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end
