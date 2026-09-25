@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Expressive Launcher L3</title>
+  <style>
+    :root {
+      --bg: #0f141c;
+      --card-bg: #1a202c;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --border: #334155;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --accent: #0284c7;
+        --border: #e2e8f0;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px 16px;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 36px 32px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 1.85rem;
+      margin-top: 0;
+      color: var(--accent);
+    }
+    h2 {
+      font-size: 1.3rem;
+      margin-top: 28px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin-top: 18px;
+    }
+    p, li {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    code {
+      background: var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+    }
+    .contact-box {
+      background: var(--bg);
+      padding: 16px 20px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent);
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy for Expressive Launcher L3</h1>
+    <div class="meta">
+      <strong>Effective Date:</strong> September 25, 2026<br>
+      <strong>Developer:</strong> Daryl Denson (Google Play Developer ID: 5547708187557586870)<br>
+      <strong>Contact Email:</strong> <a href="mailto:daryldenson0405@gmail.com">daryldenson0405@gmail.com</a>
+    </div>
+
+    <p>Daryl Denson ("we", "us", or "our") provides Expressive Launcher L3, an independent Android Home application. This Privacy Policy explains how Expressive Launcher L3 handles user data and outlines our commitment to privacy.</p>
+
+    <h2>1. Information Handled by the Application</h2>
+    <p>Expressive Launcher L3 operates primarily as an on-device application. All core launcher preferences, Home screen layouts, folders, hidden application lists, icon customizations, and widget configurations are stored locally on your device in private application storage.</p>
+    <p>Eligible app settings and layouts may be backed up to your personal Google Drive account via the standard Android Backup Service, governed by your device and Google account settings.</p>
+
+    <h3>Permissions and On-Device Access</h3>
+    <p>Expressive Launcher L3 requests and uses the following permissions only when required to provide features you explicitly choose:</p>
+    <ul>
+      <li><strong>Installed Applications (<code>QUERY_ALL_PACKAGES</code>)</strong>: Expressive Launcher L3 enumerates installed applications on your device to display your Home screen shortcuts, All Apps drawer, and app search results. This data is processed strictly on-device in real time and is never transmitted or sold.</li>
+      <li><strong>Contacts (<code>READ_CONTACTS</code>)</strong>: If you grant this optional permission, the launcher searches matching contact names directly on your device when you type queries into launcher search. Contact details remain on your device and are never sent to external servers.</li>
+      <li><strong>Storage and Files (Storage Access Framework)</strong>: If you choose to enable local file search or custom wallpaper features, the app uses Android's secure Storage Access Framework (SAF) to let you select specific folders. The app reads only files inside the user-selected folder.</li>
+      <li><strong>Usage Statistics (<code>PACKAGE_USAGE_STATS</code>)</strong>: If granted in Android system settings, on-device usage access is used solely by Android's AppPredictor engine to rank recently or frequently used apps in your app predictions.</li>
+      <li><strong>Smartspacer Integration</strong>: If you have the independently developed Smartspacer app installed and enable integration, glanceable targets are exchanged locally on your device via Android IPC to display At a Glance information on the Home screen.</li>
+      <li><strong>Accessibility Service (<code>AccessibilityService</code>)</strong>: If you explicitly enable gesture shortcuts (such as double-tap to lock screen or swipe down for notifications), the launcher uses Android's AccessibilityService API exclusively to invoke system global actions. The service subscribes to no accessibility events, does not monitor screen contents, and collects no data.</li>
+      <li><strong>Notifications (<code>POST_NOTIFICATIONS</code>)</strong>: Used to display launcher-related notices if enabled.</li>
+    </ul>
+
+    <h2>2. Network Usage and Third-Party Services</h2>
+    <p>Expressive Launcher L3 does not require an account, does not include advertising SDKs, does not include tracking or telemetry SDKs, and does not sell personal information.</p>
+    <p>Optional features may make network requests:</p>
+    <ul>
+      <li><strong>Web Search</strong>: When you type a query and choose to search the web, your query is sent directly to your selected search provider (such as Google Search or DuckDuckGo) via browser intent or direct API. Requests are handled under the respective provider's privacy policy.</li>
+      <li><strong>Google Fonts</strong>: When you select an online font in appearance settings, font files are downloaded directly from Google Fonts over HTTPS.</li>
+      <li><strong>User-Initiated Crash Reporting</strong>: If a crash occurs and you explicitly tap "Upload Crash Report", an anonymized diagnostic report is uploaded to a diagnostic paste service over encrypted HTTPS. No automated background crash uploading takes place without user action.</li>
+    </ul>
+
+    <h2>3. Data Retention and Deletion</h2>
+    <p>All launcher configuration and preferences remain on your device until you clear application storage in Android Settings (<strong>Settings &rarr; Apps &rarr; Expressive Launcher &rarr; Storage &amp; cache &rarr; Clear storage</strong>) or uninstall the application from your device.</p>
+    <p>Because we do not store your personal information on remote servers, uninstalling the app or clearing local data completely removes all your local data.</p>
+
+    <h2>4. Security</h2>
+    <p>Expressive Launcher L3 relies on Android platform sandbox protections, uses encrypted HTTPS transport for all network requests, and excludes unnecessary legacy storage and privileged platform permissions.</p>
+
+    <h2>5. Children's Privacy</h2>
+    <p>Expressive Launcher L3 is a general audience utility application intended for users of all ages. We do not knowingly collect personal identifiable information from children under 13 years of age.</p>
+
+    <h2>6. Changes to This Privacy Policy</h2>
+    <p>We may update this Privacy Policy from time to time. Any updates will be published on this page with a revised effective date.</p>
+
+    <h2>7. Contact</h2>
+    <div class="contact-box">
+      <strong>Daryl Denson</strong><br>
+      Google Play Console Developer ID: 5547708187557586870<br>
+      Email: <a href="mailto:daryldenson0405@gmail.com">daryldenson0405@gmail.com</a><br>
+      Project Repository: <a href="https://github.com/denson9874/ExpressiveLauncher">github.com/denson9874/ExpressiveLauncher</a>
+    </div>
+  </div>
+</body>
+</html>
