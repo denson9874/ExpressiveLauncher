@@ -281,6 +281,16 @@ A physical Pixel 11 Pro XL (Android 17 / SDK 37) reported `IllegalArgumentExcept
 
 Both launcher and embedded feed defaults advance to candidate 2.0.12 / versionCode 31.
 
+## Clarify Dark status bar setting label and contrast behavior — 2026-09-25 (candidate 3.0.4)
+
+Community feedback on XDA (XDA-003) noted ambiguity in the **Home settings → Status bar → Dark status bar** preference toggle. The previous label implied painting a solid dark status bar background across the screen, whereas the setting toggles Android's `SYSTEM_UI_FLAG_LIGHT_STATUS_BAR` (via `SystemUiController`), rendering dark icons and clock text for contrast on light wallpapers.
+
+1. **Clarified Setting Label & Added Description**: Updated `dark_status_bar_label` to **Dark status bar icons** and added `dark_status_bar_description` explaining: *Display dark icons and clock text on the status bar for lighter wallpapers*.
+2. **Preference Binding**: Bound the new description in `HomeScreenPreferences.kt` within the status bar preferences group.
+3. **Automated Unit Verification**: Added `StatusBarPreferencesTest.kt` verifying the localized string contracts, preference persistence, and `SystemUiController` UI flag mapping (`SYSTEM_UI_FLAG_LIGHT_STATUS_BAR`).
+
+Both launcher and embedded feed defaults advance to candidate 3.0.4 / versionCode 36.
+
 ## Reference environment
 
 - Reference date: 2026-09-18

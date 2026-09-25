@@ -235,6 +235,7 @@ fun HomeScreenPreferences(
                         SwitchPreference(
                             adapter = prefs2.darkStatusBar.getAdapter(),
                             label = stringResource(id = R.string.dark_status_bar_label),
+                            description = stringResource(id = R.string.dark_status_bar_description),
                         )
                         if (LawnchairApp.isRecentsEnabled) {
                             SwitchPreference(
