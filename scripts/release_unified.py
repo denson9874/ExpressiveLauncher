@@ -56,7 +56,24 @@ def run_cmd(cmd: list[str], timeout: int = 600) -> subprocess.CompletedProcess:
     return result
 
 
-def wait_for_jenkins_job(job: str, expected_number: int | None = None, max_wait_seconds: int = 900) -> dict:
+def get_latest_jenkins_build_number(job: str) -> int:
+    status_cmd = [sys.executable, str(CONTROL_SCRIPT), "status", "--job", job]
+    proc = subprocess.run(status_cmd, cwd=ROOT, capture_output=True, text=True)
+    if proc.returncode == 0 and proc.stdout.strip():
+        try:
+            data = json.loads(proc.stdout)
+            return int(data.get("number", 0))
+        except Exception:
+            return 0
+    return 0
+
+
+def wait_for_jenkins_job(
+    job: str,
+    expected_number: int | None = None,
+    min_build_number: int | None = None,
+    max_wait_seconds: int = 900,
+) -> dict:
     start_time = time.time()
     last_status = None
     build_number = expected_number
@@ -65,7 +82,7 @@ def wait_for_jenkins_job(job: str, expected_number: int | None = None, max_wait_
         status_cmd = [sys.executable, str(CONTROL_SCRIPT), "status", "--job", job]
         if build_number is not None:
             status_cmd.extend(["--number", str(build_number)])
-        
+
         proc = subprocess.run(status_cmd, cwd=ROOT, capture_output=True, text=True)
         if proc.returncode == 0 and proc.stdout.strip():
             try:
@@ -75,6 +92,9 @@ def wait_for_jenkins_job(job: str, expected_number: int | None = None, max_wait_
                 result = data.get("result")
 
                 if build_number is None and curr_num is not None:
+                    if min_build_number is not None and curr_num < min_build_number:
+                        time.sleep(3)
+                        continue
                     build_number = curr_num
 
                 if result != last_status or building:
@@ -87,7 +107,7 @@ def wait_for_jenkins_job(job: str, expected_number: int | None = None, max_wait_
                     raise RuntimeError(f"Jenkins job {job} #{build_number} finished with non-success result: {result}")
             except json.JSONDecodeError:
                 pass
-        time.sleep(10)
+        time.sleep(5)
 
     raise TimeoutError(f"Timed out waiting for Jenkins {job} job to complete after {max_wait_seconds}s")
 
@@ -192,6 +212,7 @@ def main():
     # -------------------------------------------------------------
     if not args.skip_jenkins:
         print("\n>>> STAGE 1: Jenkins Build Job (QA Signed APK & Smoke Tests)...")
+        prev_build_num = get_latest_jenkins_build_number("build")
         trigger_cmd = [
             sys.executable, str(CONTROL_SCRIPT), "run",
             "--job", "build",
@@ -200,13 +221,14 @@ def main():
             "--version-code", version_code,
         ]
         run_cmd(trigger_cmd)
-        time.sleep(5)
-        build_data = wait_for_jenkins_job("build")
+        time.sleep(3)
+        build_data = wait_for_jenkins_job("build", min_build_number=prev_build_num + 1)
         build_number = build_data["number"]
         release_id = f"qa-{version_name}-{version_code}-build-{build_number}"
         print(f"\n[SUCCESS] Jenkins build #{build_number} succeeded! Release ID: {release_id}")
 
         print("\n>>> STAGE 2: Jenkins Publish Job (GitHub Releases & Feed Promotion)...")
+        prev_pub_num = get_latest_jenkins_build_number("publish")
         publish_cmd = [
             sys.executable, str(CONTROL_SCRIPT), "run",
             "--job", "publish",
@@ -214,8 +236,8 @@ def main():
             "--promote",
         ]
         run_cmd(publish_cmd)
-        time.sleep(5)
-        wait_for_jenkins_job("publish")
+        time.sleep(3)
+        wait_for_jenkins_job("publish", min_build_number=prev_pub_num + 1)
         print(f"\n[SUCCESS] Published to GitHub Releases and promoted in-app update feed!")
 
     # -------------------------------------------------------------
