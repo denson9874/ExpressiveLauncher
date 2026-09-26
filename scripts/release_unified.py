@@ -148,6 +148,7 @@ def main():
     parser.add_argument("--skip-xda", action="store_true", help="Skip XDA BBCode formatting")
     parser.add_argument("--telegram-token", default="", help="Telegram bot token override")
     parser.add_argument("--telegram-channel", default="", help="Telegram channel override")
+    parser.add_argument("--force", action="store_true", help="Bypass minimum 3-improvement threshold warning")
     args = parser.parse_args()
 
     if args.major or args.bump:
@@ -166,6 +167,12 @@ def main():
     changelog_path = ROOT / f"play/listing/en-US/changelogs/{version_code}.txt"
     if not changelog_path.exists():
         raise FileNotFoundError(f"Missing changelog at {changelog_path}")
+
+    cl_text = changelog_path.read_text(encoding="utf-8")
+    cl_items = [l for l in cl_text.splitlines() if l.strip().startswith(("-", "*", "•")) or re.match(r"^\d+\.", l.strip())]
+    if len(cl_items) < 3:
+        print(f"\n[POLICY NOTICE] Release changelog contains {len(cl_items)} improvement item(s).")
+        print("[POLICY NOTICE] Standard release scope requires at least 3 improvements per build (small fixes must be paired with substantive improvements).")
 
     notes_file = None
     if not args.skip_telegram or not args.skip_xda:
