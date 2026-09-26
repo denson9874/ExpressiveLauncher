@@ -140,6 +140,8 @@ def main():
     parser.add_argument("--revision", help="Commit hash to release. Defaults to HEAD")
     parser.add_argument("--play-tracks", default="alpha,internal", help="Comma-separated Google Play tracks (default: 'alpha,internal')")
     parser.add_argument("--notes-file", help="Path to markdown release notes file (default: docs/release_notes/<version>_announcement.md)")
+    parser.add_argument("--bump", choices=["auto", "patch", "minor", "major"], help="Bump version in build.gradle before running release (auto rolls over at x.y.9 -> x.(y+1).0)")
+    parser.add_argument("--major", action="store_true", help="Bump major version ((MAJOR+1).0.0) before running release")
     parser.add_argument("--skip-jenkins", action="store_true", help="Skip Jenkins build & GitHub publication")
     parser.add_argument("--skip-play", action="store_true", help="Skip Google Play Store bundle build & publication")
     parser.add_argument("--skip-telegram", action="store_true", help="Skip Telegram announcement formatting/posting")
@@ -147,6 +149,14 @@ def main():
     parser.add_argument("--telegram-token", default="", help="Telegram bot token override")
     parser.add_argument("--telegram-channel", default="", help="Telegram channel override")
     args = parser.parse_args()
+
+    if args.major or args.bump:
+        b_type = "major" if args.major else args.bump
+        if str(ROOT / "scripts") not in sys.path:
+            sys.path.insert(0, str(ROOT / "scripts"))
+        from bump_version import bump_version
+        _, _, bumped_name, bumped_code = bump_version(bump_type=b_type)
+        print(f"[INFO] Successfully bumped version to {bumped_name} (Build {bumped_code})")
 
     default_name, default_code = get_version_info()
     version_name = args.version_name or default_name
