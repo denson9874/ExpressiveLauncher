@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <permission
-        android:name="dev.launcher.expressive.feed.permission.CONNECT"
-        android:label="@string/connect_permission_label"
-        android:protectionLevel="signature" />
-
     <queries>
         <package android:name="com.google.android.googlequicksearchbox" />
         <intent>

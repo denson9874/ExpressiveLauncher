@@ -1,0 +1,5 @@
+Version 3.0.7 (Build 39)
+• Fixed Google Discover integration with official Expressive Feed Companion.
+• Direct companion download from official GitHub landing page.
+• Resolved package signature validation for seamless companion binding.
+• Stability and performance improvements.

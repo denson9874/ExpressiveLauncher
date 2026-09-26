@@ -245,7 +245,7 @@ class FeedBridge(private val context: Context) {
         const val FIRST_PARTY_CONNECT_PERMISSION =
             "dev.launcher.expressive.feed.permission.CONNECT"
         const val EXPRESSIVE_DEVELOPER_KEY_SHA256 =
-            "2aa9f1bf3dbd2d5bd27ad7516f1caf1b8a18e15f6d59858a37282784bba2cba7"
+            "2aa9f1bf3dbd2d5bd27ad7516f1caf1b8a18e15f6d59858a37282784bb2acba7"
 
         private val expressiveIncompatibleProviders = setOf(
             "app.lawnchair.lawnfeed",
