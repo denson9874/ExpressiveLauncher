@@ -1,0 +1,5 @@
+Version 3.0.8 (Build 40)
+• Seamless Google Discover support with Expressive Feed Companion.
+• Fixed companion signature authorization for Google Play releases.
+• Refined feed setup in Home Settings.
+• Performance and stability enhancements.

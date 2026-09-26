@@ -162,28 +162,8 @@ class FeedBridge(private val context: Context) {
             }
             // For Google Play-distributed builds where the launcher was re-signed by Play App Signing,
             // verify that the companion is signed by the verified Expressive Developer certificate.
-            return isDarylDensonSigned(packageName)
+            return isDarylDensonSigned(context, packageName)
         }
-    }
-
-    private fun isDarylDensonSigned(packageName: String): Boolean {
-        return runCatching {
-            val info = if (Utilities.ATLEAST_P) {
-                context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-            } else {
-                context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-            }
-            val signers = if (Utilities.ATLEAST_P) {
-                info.signingInfo?.apkContentsSigners
-            } else {
-                info.signatures
-            } ?: return false
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            signers.any {
-                val hex = digest.digest(it.toByteArray()).joinToString("") { b -> "%02x".format(b) }
-                hex.equals(EXPRESSIVE_DEVELOPER_KEY_SHA256, ignoreCase = true)
-            }
-        }.getOrDefault(false)
     }
 
     private inner class CustomBridgeInfo(packageName: String) : BridgeInfo(packageName, 0) {
@@ -290,6 +270,27 @@ class FeedBridge(private val context: Context) {
 
         @JvmStatic
         fun useBridge(context: Context) = getInstance(context).resolveConnection()?.useBridge == true
+
+        @JvmStatic
+        fun isDarylDensonSigned(context: Context, packageName: String): Boolean {
+            return runCatching {
+                val info = if (Utilities.ATLEAST_P) {
+                    context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                } else {
+                    context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+                }
+                val signers = if (Utilities.ATLEAST_P) {
+                    info.signingInfo?.apkContentsSigners
+                } else {
+                    info.signatures
+                } ?: return false
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                signers.any {
+                    val hex = digest.digest(it.toByteArray()).joinToString("") { b -> "%02x".format(b) }
+                    hex.equals(EXPRESSIVE_DEVELOPER_KEY_SHA256, ignoreCase = true)
+                }
+            }.getOrDefault(false)
+        }
     }
 
     init {

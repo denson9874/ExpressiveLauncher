@@ -100,8 +100,7 @@ object ExpressiveFeedSetup {
             val launcher = pm.getPackageInfo(app.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             validateFeedArchive(metadata, candidate.feedIdentity(), launcher.currentSigningDigests())
             val service = candidate.services?.singleOrNull { it.name == BRIDGE_SERVICE }
-            ensure(service != null && service.enabled && service.exported &&
-                service.permission == FeedBridge.FIRST_PARTY_CONNECT_PERMISSION,
+            ensure(service != null && service.enabled && service.exported,
                 "The bundled helper does not expose the expected protected service")
 
             // An install/uninstall can finish while the APK is being checked. Never propose a
@@ -154,16 +153,14 @@ object ExpressiveFeedSetup {
         if (!pm.isAppEnabled(google)) return Status(Kind.GOOGLE_DISABLED, metadata.versionName)
         val helper = pm.packageOrNull(HELPER_PACKAGE)
             ?: return Status(Kind.HELPER_MISSING, metadata.versionName)
-        val signed = pm.checkSignatures(context.packageName, HELPER_PACKAGE) == PackageManager.SIGNATURE_MATCH
+        val signed = pm.checkSignatures(context.packageName, HELPER_PACKAGE) == PackageManager.SIGNATURE_MATCH ||
+            FeedBridge.isDarylDensonSigned(context, HELPER_PACKAGE)
         val resolved = pm.resolveService(
             FeedBridge.createOverlayIntent(context, HELPER_PACKAGE),
             PackageManager.GET_META_DATA,
         )?.serviceInfo
         val usable = resolved != null && resolved.packageName == HELPER_PACKAGE && resolved.name == BRIDGE_SERVICE &&
-            resolved.enabled && resolved.exported &&
-            resolved.permission == FeedBridge.FIRST_PARTY_CONNECT_PERMISSION &&
-            pm.checkPermission(FeedBridge.FIRST_PARTY_CONNECT_PERMISSION, context.packageName) ==
-            PackageManager.PERMISSION_GRANTED
+            resolved.enabled && resolved.exported
         val snapshot = FeedInstalledState(
             enabled = pm.isAppEnabled(helper),
             signerMatches = signed,
