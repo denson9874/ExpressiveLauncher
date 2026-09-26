@@ -1,31 +1,34 @@
-<b>Expressive Launcher 3.0.8 — Discovery Unleashed</b>
+<b>Expressive Launcher 3.0.9 — Pro Activation & Licensing Polish</b>
 
-Welcome to Expressive Launcher 3.0.8 (Build 40)! Today's milestone release brings automated Google Play publishing, our official dedicated Expressive Feed Companion, and a permanent resolution to package installer conflicts for seamless Google Discover integration.
+Welcome to Expressive Launcher 3.0.9 (Build 41)! This release delivers crucial enhancements to the Expressive Pro activation experience, introducing smart transaction validation, an offline support fallback flow, and 1-tap assistance for supporters.
 
 ───────────────────────
 
 <b>✨ What's New & Fixed</b>
-• <b>Google Play Store Rollout</b>: Fully configured and published via automated Google Play Developer API pipelines (<code>com.denson9874.Expressive_Launcher_L3</code>, Version Code 40).
-• <b>Dedicated Expressive Feed Companion</b>: Under Google Play policies, store-distributed launchers cannot bundle private AIDL overlay services directly. We have introduced the official standalone companion app (<code>dev.launcher.expressive.feed</code>), lightweight and battery-friendly, bridging Google Discover to your home screen.
-• <b>Android Package Conflict Resolved</b>: Fixed a critical Android security error (<code>INSTALL_FAILED_DUPLICATE_PERMISSION</code>) that previously caused the package installer to display <i>"App not installed"</i>. The companion APK now installs cleanly on all Android 12 through Android 17 devices.
-• <b>Play Store Cryptographic Signature Verification</b>: Updated <code>FeedBridge</code> and <code>ExpressiveFeedSetup</code> with verified developer key hash (<code>2aa9f1bf3dbd2d5bd27ad7516f1caf1b8a18e15f6d59858a37282784bb2acba7</code>), eliminating the <i>"belongs to a different version"</i> warning and enabling the <b>Show Google Discover</b> toggle directly in Home Settings.
-• <b>Streamlined Companion Release</b>: Cleaned up release assets on GitHub to eliminate confusion. There is now a single official file (<code>ExpressiveFeed.apk</code>) with an instant direct download and setup guide available on our <a href="https://denson9874.github.io/ExpressiveLauncher/feed/">GitHub Pages Feed Portal</a>.
+• <b>Resilient Pro License Activation</b>: Resolved connection errors when verifying PayPal donations. Online verification timeouts and server maintenance states now gracefully fall back to our instant offline licensing path.
+• <b>1-Tap Email Support for Offline Keys</b>: If automated online verification is temporarily unavailable, the Redeem Pro dialog now provides a 1-tap <b>"Email Support for Pro Key"</b> button that pre-populates your Device ID and Transaction ID directly to <code>daryldenson0405@gmail.com</code> for immediate key issuance.
+• <b>Quick Copy Details Action</b>: Added a 1-tap <b>"Copy Details"</b> button so users can instantly copy their Device ID and transaction information to the clipboard for sharing on XDA, Telegram, or email.
+• <b>Smart Input Detection & Safety Guards</b>:
+  • <b>Donation Button ID Detection</b>: Detects if a user inadvertently enters the hosted PayPal button ID (<code>9RB3TYYQ6FWE2</code>) and provides clear instructions on where to find their 17-character PayPal receipt ID.
+  • <b>License Key Auto-Redemption</b>: If an offline license key (<code>EXPR-PRO-...</code>) is pasted into the transaction verification field, the launcher automatically recognizes it and activates your Pro license immediately.
+• <b>Corrected Placeholder Hint</b>: Updated the transaction field hint to specify the 17-character format from PayPal receipts (e.g. <code>5Y6345678A1234567</code>), eliminating confusion with donation link IDs.
+• <b>Always-Visible Support Card</b>: The <i>Donate & Unlock</i> tab now features a dedicated support card ensuring paying supporters always have a clear, immediate way to reach developer assistance.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
 • <b>Free Core (Always Supported & Ad-Free)</b>:
-• Rock-solid daily-driver stability with full Google Discover feed integration and 100% Pixel parity.
+• Clean, fluid Android 17 Pixel experience with 100% Pixel parity, private space support, and Google Discover feed integration via Expressive Feed Companion.
 • <b>Expressive Pro ($4.99 One-Time)</b>:
 • Unlocks deep personalization including custom grid sizing, typography, gesture mapping, dock styling, and per-app icon overrides.
-• <i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i>
+• <i>Expressive Pro is a one-time $4.99 contribution. Every dollar directly funds automated CI/CD servers, Android 17 test devices, cryptographic signing pipelines, and continuous active development.</i>
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the Google Discover feed apply for a companion pass?</i>  
-<b>A:</b> <i>Because it couldn't swipe right into the launcher without a verified developer match!</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the license key feel completely relaxed during server maintenance?</i>  
+<b>A:</b> <i>Because ECDSA P-256 math works 100% offline — no servers required!</i></blockquote>
 
 ───────────────────────
 
@@ -33,23 +36,19 @@ Welcome to Expressive Launcher 3.0.8 (Build 40)! Today's milestone release bring
 
 Can you solve this edition's launcher riddle?
 
-<blockquote><i>I stand just beyond your primary screen, keeping stories and news ready to be seen. You cannot bundle me directly through the Store, but with a companion bridge I open the door. A single swipe to the right brings my pages in flight. What am I?</i></blockquote>
+<blockquote><i>I need no WiFi, no towers, no cloud. With pure mathematics I stand tall and proud. Bound to your device or signed by the host, a single valid string unlocks all you love most. What am I?</i></blockquote>
 
-<tg-spoiler><b>Google Discover Feed!</b></tg-spoiler>
+<tg-spoiler><b>An Offline Expressive Pro License Key!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Source Revision</b>: <code>c8e4c272514</code>
-• <b>Launcher Version</b>: <code>3.0.8</code> (Build <code>40</code>)
+• <b>Launcher Version</b>: <code>3.0.9</code> (Build <code>41</code>)
 • <b>Package ID</b>: <code>com.denson9874.Expressive_Launcher_L3</code>
-• <b>Bundle SHA-256</b>: <code>4e79522f18a5240387376539d81e4060ca9a5de219a81c9c92e5302f65e213d7</code>
-• <b>Companion Package</b>: <code>dev.launcher.expressive.feed</code>
-• <b>Companion SHA-256</b>: <code>11796b89d3f2ff7011e4a6b2fb2246a893dd19708eadb501443da9f176613fff</code>
 • <b>Developer Certificate SHA-256</b>: <code>2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7</code>
 
 🔗 <b>Links & Downloads</b>:
+• <b>Play Store Internal Testing</b>: <a href="https://play.google.com/apps/internaltest/4700941727845829659">Google Play Opt-In</a>
 • <b>Companion Landing Page</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/feed/">https://denson9874.github.io/ExpressiveLauncher/feed/</a>
 • <b>Direct Companion APK</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/ExpressiveFeed.apk">Download ExpressiveFeed.apk</a>
-• <b>GitHub Release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/feed-companion-v37">Expressive Feed Companion v37</a>
 • <b>Community & Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>

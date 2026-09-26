@@ -36,7 +36,15 @@
     <string name="expressive_pro_checking_status">Checking payment status…</string>
     <string name="expressive_pro_verify_transaction">Already contributed? Enter Transaction ID</string>
     <string name="expressive_pro_transaction_id_label">PayPal Transaction ID</string>
-    <string name="expressive_pro_transaction_id_hint">From PayPal email receipt (e.g. 9RB3TYYQ6FWE2)</string>
+    <string name="expressive_pro_transaction_id_hint">From PayPal receipt (17-char ID, e.g. 5Y6345678A1234567)</string>
+    <string name="expressive_pro_button_id_warning">\"%1$s\" is the PayPal donation button ID, not your personal transaction ID. Please check your PayPal confirmation email for your 17-character Transaction ID (e.g. 5Y6345678A1234567), or tap below to email support with your Device ID.</string>
+    <string name="expressive_pro_server_unreachable_title">Online Verification Unavailable</string>
+    <string name="expressive_pro_server_unreachable_desc">The online activation service is currently undergoing maintenance. Don\'t worry — your contribution is safe! Tap below to email your details and receive your instant offline Pro license key.</string>
+    <string name="expressive_pro_email_support_button">Email Support for Pro Key</string>
+    <string name="expressive_pro_copy_support_info">Copy Details</string>
+    <string name="expressive_pro_support_footer">Contributed already or having trouble? Email daryldenson0405@gmail.com with your Device ID &amp; receipt for instant activation.</string>
+    <string name="expressive_pro_support_copied">Device and transaction details copied to clipboard.</string>
+    <string name="expressive_pro_key_detected_desc">Pro license key detected! Attempting offline activation…</string>
     <string name="expressive_pro_verify_button">Verify &amp; Unlock</string>
     <string name="expressive_pro_verifying">Verifying with PayPal…</string>
     <string name="expressive_pro_payment_not_found">No completed $4.99 contribution found yet for this device ID (%1$s). If you just paid, please wait a moment and try again.</string>

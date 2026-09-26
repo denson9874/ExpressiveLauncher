@@ -1,5 +1,6 @@
 package app.lawnchair.ui.preferences.pro
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -28,9 +29,11 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Support
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -107,6 +111,7 @@ fun RedeemProDialog(
     var transactionIdInput by remember { mutableStateOf("") }
     var isVerifyingTransaction by remember { mutableStateOf(false) }
     var showCakeyCelebration by remember { mutableStateOf(false) }
+    var showSupportCard by remember { mutableStateOf(false) }
 
     val clipboardManager = LocalClipboardManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -209,6 +214,7 @@ fun RedeemProDialog(
                             selectedTab = 0
                             errorMessage = null
                             statusMessage = null
+                            showSupportCard = false
                         },
                         text = { Text(stringResource(R.string.expressive_pro_tab_donate)) },
                         icon = { Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(18.dp)) },
@@ -219,6 +225,7 @@ fun RedeemProDialog(
                             selectedTab = 1
                             errorMessage = null
                             statusMessage = null
+                            showSupportCard = false
                         },
                         text = { Text(stringResource(R.string.expressive_pro_tab_offline)) },
                         icon = { Icon(Icons.Rounded.Key, contentDescription = null, modifier = Modifier.size(18.dp)) },
@@ -312,6 +319,7 @@ fun RedeemProDialog(
                                 isCheckingStatus = true
                                 statusMessage = null
                                 errorMessage = null
+                                showSupportCard = false
                                 try {
                                     val service = ProActivationService.create()
                                     val response = service.checkLicense(deviceId)
@@ -319,6 +327,7 @@ fun RedeemProDialog(
                                         val actRes = proManager.activate(response.key)
                                         if (actRes.isFailure) {
                                             errorMessage = actRes.exceptionOrNull()?.message ?: "Activation failed"
+                                            showSupportCard = true
                                         } else if (actRes.getOrNull()?.isCakey == true) {
                                             showCakeyCelebration = true
                                         }
@@ -327,10 +336,11 @@ fun RedeemProDialog(
                                             R.string.expressive_pro_payment_not_found,
                                             deviceId,
                                         )
+                                        showSupportCard = true
                                     }
                                 } catch (e: Exception) {
-                                    statusMessage = e.localizedMessage
-                                        ?: "Unable to reach activation service. Please check your network connection."
+                                    errorMessage = context.getString(R.string.expressive_pro_server_unreachable_desc)
+                                    showSupportCard = true
                                 } finally {
                                     isCheckingStatus = false
                                 }
@@ -376,6 +386,7 @@ fun RedeemProDialog(
                                     transactionIdInput = it
                                     errorMessage = null
                                     statusMessage = null
+                                    showSupportCard = false
                                 },
                                 label = { Text(stringResource(R.string.expressive_pro_transaction_id_label)) },
                                 placeholder = { Text(stringResource(R.string.expressive_pro_transaction_id_hint)) },
@@ -392,10 +403,36 @@ fun RedeemProDialog(
                                         isVerifyingTransaction = true
                                         errorMessage = null
                                         statusMessage = null
+                                        showSupportCard = false
                                         try {
+                                            val input = transactionIdInput.trim()
+
+                                            // 1. If user entered a license key instead of a transaction ID
+                                            if (input.startsWith("EXPR-PRO-", ignoreCase = true) ||
+                                                input.startsWith("EXPR-", ignoreCase = true)
+                                            ) {
+                                                val actRes = proManager.activate(input)
+                                                if (actRes.isFailure) {
+                                                    errorMessage = actRes.exceptionOrNull()?.message ?: "Activation failed"
+                                                } else {
+                                                    keyInput = input
+                                                    if (actRes.getOrNull()?.isCakey == true) {
+                                                        showCakeyCelebration = true
+                                                    }
+                                                }
+                                                return@launch
+                                            }
+
+                                            // 2. If user entered the PayPal hosted button ID
+                                            if (input.equals("9RB3TYYQ6FWE2", ignoreCase = true)) {
+                                                errorMessage = context.getString(R.string.expressive_pro_button_id_warning, input)
+                                                showSupportCard = true
+                                                return@launch
+                                            }
+
                                             val service = ProActivationService.create()
                                             val req = VerifyDonationRequest(
-                                                transactionId = transactionIdInput.trim(),
+                                                transactionId = input,
                                                 deviceId = deviceId,
                                             )
                                             val response = service.verifyDonation(req)
@@ -403,14 +440,18 @@ fun RedeemProDialog(
                                                 val actRes = proManager.activate(response.key)
                                                 if (actRes.isFailure) {
                                                     errorMessage = actRes.exceptionOrNull()?.message ?: "Activation failed"
+                                                    showSupportCard = true
                                                 } else if (actRes.getOrNull()?.isCakey == true) {
                                                     showCakeyCelebration = true
                                                 }
                                             } else {
-                                                errorMessage = response.message ?: "Transaction ID not verified"
+                                                errorMessage = response.message
+                                                    ?: context.getString(R.string.expressive_pro_payment_not_found, deviceId)
+                                                showSupportCard = true
                                             }
                                         } catch (e: Exception) {
-                                            errorMessage = e.localizedMessage ?: "Verification error"
+                                            errorMessage = context.getString(R.string.expressive_pro_server_unreachable_desc)
+                                            showSupportCard = true
                                         } finally {
                                             isVerifyingTransaction = false
                                         }
@@ -426,6 +467,80 @@ fun RedeemProDialog(
                                     Text(stringResource(R.string.expressive_pro_verifying))
                                 } else {
                                     Text(stringResource(R.string.expressive_pro_verify_button))
+                                }
+                            }
+                        }
+                    }
+
+                    // Always-visible Support & Manual Activation Card on Tab 0
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Support,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Support & Manual Key Issuance",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = stringResource(R.string.expressive_pro_support_footer),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Button(
+                                    onClick = {
+                                        launchSupportEmail(context, deviceId, transactionIdInput)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shapes = ButtonDefaults.shapes(),
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Feedback,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        stringResource(R.string.expressive_pro_email_support_button),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        copySupportDetails(clipboardManager, context, deviceId, transactionIdInput)
+                                    },
+                                    shapes = ButtonDefaults.shapes(),
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.ContentCopy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        stringResource(R.string.expressive_pro_copy_support_info),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
                                 }
                             }
                         }
@@ -521,22 +636,64 @@ fun RedeemProDialog(
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
                         ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Error,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                Text(
-                                    text = error,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Error,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        text = error,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                                if (showSupportCard) {
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                launchSupportEmail(context, deviceId, transactionIdInput)
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            shapes = ButtonDefaults.shapes(),
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Feedback,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                stringResource(R.string.expressive_pro_email_support_button),
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
+                                        }
+                                        OutlinedButton(
+                                            onClick = {
+                                                copySupportDetails(clipboardManager, context, deviceId, transactionIdInput)
+                                            },
+                                            shapes = ButtonDefaults.shapes(),
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.ContentCopy,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                stringResource(R.string.expressive_pro_copy_support_info),
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -552,15 +709,58 @@ fun RedeemProDialog(
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
                         ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = status,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = status,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                if (showSupportCard && selectedTab == 0) {
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                launchSupportEmail(context, deviceId, transactionIdInput)
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            shapes = ButtonDefaults.shapes(),
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Feedback,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                stringResource(R.string.expressive_pro_email_support_button),
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
+                                        }
+                                        OutlinedButton(
+                                            onClick = {
+                                                copySupportDetails(clipboardManager, context, deviceId, transactionIdInput)
+                                            },
+                                            shapes = ButtonDefaults.shapes(),
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.ContentCopy,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                stringResource(R.string.expressive_pro_copy_support_info),
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -734,4 +934,56 @@ private fun formatTimestamp(seconds: Long): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     sdf.timeZone = TimeZone.getDefault()
     return sdf.format(Date(seconds * 1000L))
+}
+
+private fun launchSupportEmail(
+    context: Context,
+    deviceId: String,
+    transactionId: String,
+) {
+    val cleanTx = transactionId.trim().ifEmpty { "N/A" }
+    val subject = Uri.encode("Expressive Pro Activation - $deviceId")
+    val body = Uri.encode(
+        "Hi Daryl,\n\n" +
+            "I contributed $4.99 via PayPal for Expressive Pro. Here are my details to receive my offline license key:\n\n" +
+            "Device ID: $deviceId\n" +
+            "PayPal Transaction ID: $cleanTx\n\n" +
+            "Thank you!",
+    )
+    val mailtoUri = Uri.parse("mailto:daryldenson0405@gmail.com?subject=$subject&body=$body")
+    val intent = Intent(Intent.ACTION_SENDTO, mailtoUri)
+    try {
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "message/rfc822"
+            putExtra(Intent.EXTRA_EMAIL, arrayOf("daryldenson0405@gmail.com"))
+            putExtra(Intent.EXTRA_SUBJECT, "Expressive Pro Activation - $deviceId")
+            putExtra(
+                Intent.EXTRA_TEXT,
+                "Hi Daryl,\n\nI contributed $4.99 via PayPal for Expressive Pro. Here are my details:\n\nDevice ID: $deviceId\nPayPal Transaction ID: $cleanTx\n\nThank you!",
+            )
+        }
+        try {
+            context.startActivity(Intent.createChooser(fallbackIntent, "Send Email"))
+        } catch (_: Exception) {
+            Toast.makeText(context, "Please email daryldenson0405@gmail.com with your Device ID.", Toast.LENGTH_LONG).show()
+        }
+    }
+}
+
+private fun copySupportDetails(
+    clipboardManager: ClipboardManager,
+    context: Context,
+    deviceId: String,
+    transactionId: String,
+) {
+    val cleanTx = transactionId.trim().ifEmpty { "N/A" }
+    val details = "Expressive Pro Support\nDevice ID: $deviceId\nPayPal Transaction ID: $cleanTx\nSupport Email: daryldenson0405@gmail.com"
+    clipboardManager.setText(AnnotatedString(details))
+    Toast.makeText(
+        context,
+        context.getString(R.string.expressive_pro_support_copied),
+        Toast.LENGTH_SHORT,
+    ).show()
 }

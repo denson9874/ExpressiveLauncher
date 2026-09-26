@@ -1,0 +1,5 @@
+Version 3.0.9 (Build 41)
+• Resolved PayPal donation verification error with offline key fallback.
+• Added 1-tap support email with device details for instant license issuance.
+• Added smart detection for PayPal donation button IDs and license keys.
+• Performance and stability enhancements.
