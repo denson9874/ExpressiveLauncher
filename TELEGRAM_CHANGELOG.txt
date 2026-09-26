@@ -1,18 +1,22 @@
-<b>Expressive Launcher 3.0.9 — Seamless Pro Activation & Polished Licensing</b>
+<b>Expressive Launcher 3.1.0 — Smart Recent Apps & Drawer Header Controls</b>
 
-Welcome to Expressive Launcher 3.0.9 (Build 41)! This release delivers crucial enhancements to the Expressive Pro activation experience, introducing smart transaction validation, an offline support fallback flow, and 1-tap assistance for supporters.
+Welcome to Expressive Launcher 3.1.0 (Build 42)! This release introduces our user-requested smart recently-installed apps ranking in the drawer suggestions row, independent controls for drawer search and suggestion headers, and refined prediction row layout stability.
 
 ───────────────────────
 
-<b>✨ What's New & Fixed</b>
-• <b>Resilient Pro License Activation</b>: Resolved connection errors when verifying PayPal donations. Online verification timeouts and server maintenance states now gracefully fall back to our instant offline licensing path.
-• <b>1-Tap Email Support for Offline Keys</b>: If automated online verification is temporarily unavailable, the Redeem Pro dialog now provides a 1-tap <b>"Email Support for Pro Key"</b> button that pre-populates your Device ID and Transaction ID directly to <code>daryldenson0405@gmail.com</code> for immediate key issuance.
-• <b>Quick Copy Details Action</b>: Added a 1-tap <b>"Copy Details"</b> button so users can instantly copy their Device ID and transaction information to the clipboard for sharing on XDA, Telegram, or email.
-• <b>Smart Input Detection & Safety Guards</b>:
-• <b>Donation Button ID Detection</b>: Detects if a user inadvertently enters the hosted PayPal button ID (<code>9RB3TYYQ6FWE2</code>) and provides clear instructions on where to find their 17-character PayPal receipt ID.
-• <b>License Key Auto-Redemption</b>: If an offline license key (<code>EXPR-PRO-...</code>) is pasted into the transaction verification field, the launcher automatically recognizes it and activates your Pro license immediately.
-• <b>Corrected Placeholder Hint</b>: Updated the transaction field hint to specify the 17-character format from PayPal receipts (e.g. <code>5Y6345678A1234567</code>), eliminating confusion with donation link IDs.
-• <b>Always-Visible Support Card</b>: The <i>Donate & Unlock</i> tab now features a dedicated support card ensuring paying supporters always have a clear, immediate way to reach developer assistance.
+<b>✨ What's New & Improved</b>
+
+1. <b>Recently Installed Apps Prioritization (Closes #21)</b>:
+• Added smart installation-order ranking into the app drawer prediction engine. Freshly installed or updated applications can now automatically bubble to the top of your drawer suggestions row so you can launch new apps instantly without searching.
+• Configurable directly from <b>Settings > App Drawer > Suggestions</b> and <b>Settings > App Drawer > Search</b>.
+
+2. <b>Independent Drawer Search & Suggestions Controls</b>:
+• De-coupled the drawer search bar and the top suggestions row. You can now enable or disable drawer suggestions independently of the drawer search bar, giving you complete granular control over your app drawer layout.
+• Added direct preference switches in both <b>App Drawer</b> settings and <b>Search</b> settings.
+
+3. <b>Prediction Row Stability & Android 17 Private Space Parity</b>:
+• Guarded prediction row layout updates (<code>mParent.onHeightUpdated()</code>) to prevent null-pointer race conditions during early drawer initialization or theme changes.
+• Reinforced Private Space profile visibility boundaries to ensure secure apps never leak into prediction surfaces when Private Space is locked.
 
 ───────────────────────
 
@@ -27,8 +31,8 @@ Welcome to Expressive Launcher 3.0.9 (Build 41)! This release delivers crucial e
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the license key feel completely relaxed during server maintenance?</i>  
-<b>A:</b> <i>Because ECDSA P-256 math works 100% offline — no servers required!</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the freshly installed app jump straight to the front of the line?</i>  
+<b>A:</b> <i>Because Expressive Launcher knew you didn't want to play hide-and-seek in a drawer of 200 apps!</i></blockquote>
 
 ───────────────────────
 
@@ -36,18 +40,19 @@ Welcome to Expressive Launcher 3.0.9 (Build 41)! This release delivers crucial e
 
 Can you solve this edition's launcher riddle?
 
-<blockquote><i>I need no WiFi, no towers, no cloud. With pure mathematics I stand tall and proud. Bound to your device or signed by the host, a single valid string unlocks all you love most. What am I?</i></blockquote>
+<blockquote><i>Just downloaded, fresh from the store, I used to hide down on the drawer floor. Now with one toggle, smart and neat, I'm waiting for you right at your seat. What am I?</i></blockquote>
 
-<tg-spoiler><b>An Offline Expressive Pro License Key!</b></tg-spoiler>
+<tg-spoiler><b>A Recently Installed App in the Suggestions Row!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>3.0.9</code> (Build <code>41</code>)
+• <b>Launcher Version</b>: <code>3.1.0</code> (Build <code>42</code>)
 • <b>Package ID</b>: <code>com.denson9874.Expressive_Launcher_L3</code>
 • <b>Developer Certificate SHA-256</b>: <code>2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7</code>
 
 🔗 <b>Links & Downloads</b>:
+• <b>Google Play Internal Testing</b>: <a href="https://play.google.com/apps/internaltest/4700941727845829659">https://play.google.com/apps/internaltest/4700941727845829659</a>
 • <b>Companion Landing Page</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/feed/">https://denson9874.github.io/ExpressiveLauncher/feed/</a>
 • <b>Direct Companion APK</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/ExpressiveFeed.apk">Download ExpressiveFeed.apk</a>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
