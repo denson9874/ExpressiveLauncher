@@ -187,11 +187,19 @@ if (expressiveVersionCode < 1 || expressiveVersionCode > 2_100_000_000) {
 
 // Release credentials may come from an ignored local file or CI environment variables. Never
 // fall back to the Android debug certificate: every direct update must retain the same signer.
+// For Google Play bundles (targetPlayStore=true), use the registered Play developer credentials
+// if present, preventing signing collisions with the direct QA distribution keystore.
+final def defaultSigningDir = new File("/Users/daryldenson/Documents/Expressive Launcher Signing")
+final def playKeystorePropertiesFile = new File(defaultSigningDir, "developer-credentials.properties")
+final def defaultKeystorePropertiesFile = (targetPlayStore && playKeystorePropertiesFile.exists())
+        ? playKeystorePropertiesFile
+        : rootProject.file("keystore.properties")
+
 final def expressiveKeystoreProperties = new Properties()
 final def expressiveKeystorePropertiesPath = System.getenv("EXPRESSIVE_KEYSTORE_PROPERTIES")
 final def expressiveKeystorePropertiesFile = expressiveKeystorePropertiesPath
         ? rootProject.file(expressiveKeystorePropertiesPath)
-        : rootProject.file("keystore.properties")
+        : defaultKeystorePropertiesFile
 if (expressiveKeystorePropertiesFile.exists()) {
     expressiveKeystorePropertiesFile.withInputStream { expressiveKeystoreProperties.load(it) }
 }
@@ -554,7 +562,7 @@ def verifyExpressivePlayRelease = tasks.register("verifyExpressivePlayRelease") 
     }
 }
 
-def playTrackProperty = providers.gradleProperty("playTrack").orElse("internal")
+def playTrackProperty = providers.gradleProperty("playTrack").orElse("alpha")
 
 def publishExpressivePlayRelease = tasks.register("publishExpressivePlayRelease", Exec) {
     group = "publishing"

@@ -185,18 +185,36 @@ def publish(package_name: str, key_path: str, bundle_path: str, track: str, chan
             ],
         }
 
-        # 4. Assign Track
-        print(f"Assigning bundle {version_code} to track '{track}'...")
-        track_url = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package_name}/edits/{edit_id}/tracks/{track}"
-        track_req = urllib.request.Request(
-            track_url,
-            data=json.dumps(release_payload).encode("utf-8"),
-            headers=headers,
-            method="PUT",
-        )
-        with urllib.request.urlopen(track_req) as resp:
-            track_res = json.loads(resp.read().decode("utf-8"))
-            print(f"Track updated successfully: {track_res.get('track')}")
+        # 4. Assign Track(s)
+        tracks = [t.strip() for t in track.split(",") if t.strip()]
+        for target_track in tracks:
+            print(f"Assigning bundle {version_code} to track '{target_track}'...")
+            track_payload = {
+                "track": target_track,
+                "releases": [
+                    {
+                        "name": release_name,
+                        "versionCodes": [version_code],
+                        "status": "completed",
+                        "releaseNotes": [
+                            {
+                                "language": "en-US",
+                                "text": changelog_text,
+                            }
+                        ],
+                    }
+                ],
+            }
+            track_url = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package_name}/edits/{edit_id}/tracks/{target_track}"
+            track_req = urllib.request.Request(
+                track_url,
+                data=json.dumps(track_payload).encode("utf-8"),
+                headers=headers,
+                method="PUT",
+            )
+            with urllib.request.urlopen(track_req) as resp:
+                track_res = json.loads(resp.read().decode("utf-8"))
+                print(f"Track '{target_track}' updated successfully: {track_res.get('track')}")
 
         # 5. Commit Edit
         print(f"Committing edit {edit_id} to Google Play...")
@@ -206,7 +224,7 @@ def publish(package_name: str, key_path: str, bundle_path: str, track: str, chan
             commit_res = json.loads(resp.read().decode("utf-8"))
             print(f"Edit committed successfully! Status: {commit_res}")
 
-        print(f"\nSUCCESS: Published {package_name} v{version_code} to Google Play track '{track}'!")
+        print(f"\nSUCCESS: Published {package_name} v{version_code} to Google Play track(s) '{track}'!")
 
     except Exception as e:
         print(f"Rolling back/discarding edit {edit_id} due to error: {e}")
@@ -238,7 +256,7 @@ def main():
     parser = argparse.ArgumentParser(description="Publish AAB bundle to Google Play Store via Developer API")
     parser.add_argument("--key-file", default=find_default_key_file(), help="Path to Google Cloud Service Account JSON key")
     parser.add_argument("--package-name", default="com.denson9874.Expressive_Launcher_L3", help="Package ID on Play Store")
-    parser.add_argument("--track", default="internal", help="Google Play track (internal, alpha, beta, production)")
+    parser.add_argument("--track", default="alpha", help="Google Play track (alpha [Closed Beta], internal, beta, production, or comma-separated list)")
     parser.add_argument("--bundle", required=True, help="Path to signed .aab bundle")
     parser.add_argument("--changelog", default="", help="Path to release notes file")
     parser.add_argument("--version-name", default="", help="User-facing version name")
