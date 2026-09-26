@@ -467,6 +467,12 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.recreate() },
     )
 
+    val prioritizeRecentlyInstalledApps = preference(
+        key = booleanPreferencesKey(name = "prioritize_recently_installed_apps"),
+        defaultValue = true,
+        onSet = { reloadHelper.recreate() },
+    )
+
     val enableFontSelection = preference(
         key = booleanPreferencesKey(name = "enable_font_selection"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_enable_font_selection),

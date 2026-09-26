@@ -147,7 +147,12 @@ class LawnchairAppPredictor(private val context: Context) : StatsLogCompatManage
         val hotseatRanked = hotseatStore.getRanked()
         val allAppsRanked = allAppsStore.getRanked()
         val fallbackRanked = predictionEngine.getFallbackRanked()
-        val allAppsCandidateRanked = predictionEngine.mergeRanked(allAppsRanked, hotseatRanked, fallbackRanked)
+        val allAppsCandidateRanked = if (predictionEngine.shouldPrioritizeRecentlyInstalled()) {
+            val recentlyInstalled = predictionEngine.getRecentlyInstalledRanked()
+            predictionEngine.mergeRanked(recentlyInstalled, allAppsRanked, hotseatRanked, fallbackRanked)
+        } else {
+            predictionEngine.mergeRanked(allAppsRanked, hotseatRanked, fallbackRanked)
+        }
         val hotseatCandidateRanked = predictionEngine.mergeRanked(hotseatRanked, allAppsRanked, fallbackRanked)
         val widgetCandidateRanked = predictionEngine.mergeRanked(hotseatRanked, allAppsRanked, fallbackRanked)
         val currentDismissedApps = dismissedApps.toSet()

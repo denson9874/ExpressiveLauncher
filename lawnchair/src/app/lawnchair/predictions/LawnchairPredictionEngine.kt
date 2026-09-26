@@ -129,15 +129,47 @@ class LawnchairPredictionEngine(
         return targets
     }
 
+    fun shouldPrioritizeRecentlyInstalled(): Boolean =
+        prefs2.prioritizeRecentlyInstalledApps.firstCached()
+
+    fun getRecentlyInstalledRanked(limit: Int = 10): List<String> {
+        val pm = context.packageManager
+        val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return emptyList()
+        val appFilter = AppFilter(context)
+        return userProfilesInPredictionOrder()
+            .asSequence()
+            .filter(::isPredictionUserVisible)
+            .flatMap { user ->
+                getActivityListSafely(launcherApps, null, user).asSequence()
+            }
+            .filter { activityInfo -> appFilter.shouldShowApp(activityInfo.componentName) }
+            .mapNotNull { activityInfo ->
+                try {
+                    val pkgInfo = pm.getPackageInfo(activityInfo.componentName.packageName, 0)
+                    val installTime = maxOf(pkgInfo.firstInstallTime, pkgInfo.lastUpdateTime)
+                    Triple(toStoreKey(activityInfo.componentName, activityInfo.user), installTime, activityInfo.componentName.packageName)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            .distinctBy { it.first }
+            .sortedByDescending { it.second }
+            .take(limit)
+            .map { it.first }
+            .toList()
+    }
+
     /**
-     * Returns a fallback ranking by merging weighted usage stats (if enabled and permitted) with a
-     * randomised activity list.
+     * Returns a fallback ranking by merging weighted usage stats (if enabled and permitted),
+     * recently installed apps, and a randomised activity list.
      */
     fun getFallbackRanked(): List<String> {
         val usageStatsRanked =
             if (shouldUseWeightedUsageStats()) getUsageStatsRanked() else emptyList()
+        val recentlyInstalledRanked =
+            if (shouldPrioritizeRecentlyInstalled()) getRecentlyInstalledRanked() else emptyList()
         val randomRanked = getRandomRanked()
-        return mergeRanked(usageStatsRanked, randomRanked)
+        return mergeRanked(recentlyInstalledRanked, usageStatsRanked, randomRanked)
     }
 
     /**

@@ -101,17 +101,30 @@ private fun AppPredictionsFeature(
         dismissedPredictionAppsCount,
     )
 
+    val showSuggestedAppsAdapter = prefs2.showSuggestedAppsInDrawer.getAdapter()
+    val prioritizeRecentlyInstalledAdapter = prefs2.prioritizeRecentlyInstalledApps.getAdapter()
     val canUseAppPrediction = Utilities.ATLEAST_Q
 
     PreferenceGroup(
         heading = stringResource(R.string.app_predictions_label),
     ) {
+        SwitchPreference(
+            adapter = showSuggestedAppsAdapter,
+            label = stringResource(R.string.show_suggested_apps_in_drawer),
+            description = stringResource(R.string.show_suggested_apps_in_drawer_description),
+        )
+        SwitchPreference(
+            adapter = prioritizeRecentlyInstalledAdapter,
+            label = stringResource(R.string.prioritize_recently_installed_apps),
+            description = stringResource(R.string.prioritize_recently_installed_apps_description),
+            enabled = showSuggestedAppsAdapter.state.value,
+        )
         ListPreference(
             adapter = predictionModeAdapter,
             entries = predictionModeEntries,
             label = stringResource(R.string.prediction_mode_label),
             description = if (canUseAppPrediction) null else stringResource(R.string.app_predictions_disable_reason_pre_q_description),
-            enabled = canUseAppPrediction,
+            enabled = canUseAppPrediction && showSuggestedAppsAdapter.state.value,
         )
         when (predictionModeAdapter.state.value) {
             SystemPredictor -> SystemSuggestionsPreference()

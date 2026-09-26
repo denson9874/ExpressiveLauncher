@@ -98,6 +98,11 @@ fun AppDrawerPreferences(
                 )
             }
             SearchBarPreference(SearchRoute.DRAWER_SEARCH, showLabel = false)
+            SwitchPreference(
+                adapter = prefs2.showSuggestedAppsInDrawer.getAdapter(),
+                label = stringResource(R.string.show_suggested_apps_in_drawer),
+                description = stringResource(R.string.show_suggested_apps_in_drawer_description),
+            )
             NavigationActionPreference(
                 label = stringResource(R.string.suggestion_pref_screen_title),
                 destination = Predictions,

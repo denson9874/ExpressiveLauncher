@@ -62,6 +62,17 @@ fun DrawerSearchPreference(
                 description = stringResource(R.string.allapps_match_qsb_style_description),
                 adapter = prefs2.matchHotseatQsbStyle.getAdapter(),
             )
+            SwitchPreference(
+                adapter = prefs2.showSuggestedAppsInDrawer.getAdapter(),
+                label = stringResource(R.string.show_suggested_apps_in_drawer),
+                description = stringResource(R.string.show_suggested_apps_in_drawer_description),
+            )
+            SwitchPreference(
+                adapter = prefs2.prioritizeRecentlyInstalledApps.getAdapter(),
+                label = stringResource(R.string.prioritize_recently_installed_apps),
+                description = stringResource(R.string.prioritize_recently_installed_apps_description),
+                enabled = prefs2.showSuggestedAppsInDrawer.getAdapter().state.value,
+            )
         }
 
         val searchAlgorithm = preferenceManager2().searchAlgorithm.getAdapter().state.value

@@ -351,6 +351,11 @@
 
     <string name="prediction_system_settings">Manage system suggestions</string>
 
+    <string name="show_suggested_apps_in_drawer">Show suggestions in drawer</string>
+    <string name="show_suggested_apps_in_drawer_description">Show predicted or recently installed apps at the top of the app drawer</string>
+    <string name="prioritize_recently_installed_apps">Prioritize recently installed apps</string>
+    <string name="prioritize_recently_installed_apps_description">Show newly installed and updated applications first in the app drawer suggestion row</string>
+
     <string name="missing_usage_access_label">Usage access needed</string>
     <string name="missing_usage_access_desc">To improve app suggestions, turn on usage access for <xliff:g id="name" example="Lawnchair">%1$s</xliff:g></string>
 

@@ -1,0 +1,3 @@
+• Recently Installed Apps: Optional prioritization of freshly installed apps in drawer suggestions (#21).
+• Drawer Customization: Independent toggle switches for drawer suggestions and search bar.
+• Stability & Parity: Null-safe prediction row height adjustments and enhanced Android 17 Private Space isolation.

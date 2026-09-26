@@ -275,7 +275,9 @@ public class PredictionRowView<T extends Context & ActivityContext>
             mPredictionsEnabled = predictionsEnabled;
             updateVisibility();
         }
-        mParent.onHeightUpdated();
+        if (mParent != null) {
+            mParent.onHeightUpdated();
+        }
     }
 
     @Override
