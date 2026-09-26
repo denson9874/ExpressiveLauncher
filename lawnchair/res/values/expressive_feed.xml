@@ -27,7 +27,7 @@
     <string name="expressive_feed_setup_cancelled">Setup was not completed. You can try again whenever you are ready.</string>
     <string name="expressive_feed_companion_download">Download Expressive Feed Companion</string>
     <string name="expressive_feed_companion_download_desc">Install the standalone companion APK from GitHub to enable Google Discover.</string>
-    <string name="expressive_feed_companion_url" translatable="false">https://github.com/denson9874/ExpressiveLauncher/releases/tag/feed-companion-v37</string>
+    <string name="expressive_feed_companion_url" translatable="false">https://denson9874.github.io/ExpressiveLauncher/feed/</string>
     <string name="expressive_feed_smartspacer_play">Get Smartspacer on Google Play</string>
     <string name="expressive_feed_smartspacer_play_desc">Alternative At a Glance and feed provider available directly on Google Play.</string>
 </resources>
