@@ -96,6 +96,24 @@ def bump_version(
     BUILD_GRADLE.write_text(content, encoding="utf-8")
     print(f"Updated build.gradle: {current_name} (Build {current_code}) -> {next_name} (Build {next_code})")
 
+    feed_gradle = ROOT / "expressiveFeed/build.gradle"
+    if feed_gradle.exists():
+        feed_content = feed_gradle.read_text(encoding="utf-8")
+        feed_content, _ = re.subn(
+            r'expressiveVersionCode(?:Text)?[\s\S]*?\.orElse\("[0-9]+"\)',
+            replace_code,
+            feed_content,
+            count=1,
+        )
+        feed_content, _ = re.subn(
+            r'expressiveVersionName[\s\S]*?\.orElse\("[0-9]+\.[0-9]+\.[0-9]+"\)',
+            replace_name,
+            feed_content,
+            count=1,
+        )
+        feed_gradle.write_text(feed_content, encoding="utf-8")
+        print(f"Updated expressiveFeed/build.gradle: {current_name} (Build {current_code}) -> {next_name} (Build {next_code})")
+
     # Prepare Google Play changelog file
     changelog_path = ROOT / f"play/listing/en-US/changelogs/{next_code}.txt"
     if not changelog_path.exists():

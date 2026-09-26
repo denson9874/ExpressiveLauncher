@@ -226,6 +226,8 @@ def main():
         bundle_cmd = [
             "./gradlew", "bundleLawnWithQuickstepExpressiveRelease",
             "-PtargetPlayStore=true",
+            f"-PexpressiveVersionName={version_name}",
+            f"-PexpressiveVersionCode={version_code}",
         ]
         run_cmd(bundle_cmd, timeout=900)
 
