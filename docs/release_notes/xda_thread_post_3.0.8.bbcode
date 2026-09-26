@@ -1,0 +1,63 @@
+[CENTER][SIZE=6][B]Expressive Launcher 3.0.8 (Build 40) — Discovery Unleashed[/B][/SIZE]
+[SIZE=4][I]Google Play Store Rollout, Dedicated Feed Companion & Google Discover Integration[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Hey everyone!
+
+We are excited to share a major milestone update for [B]Expressive Launcher[/B]! With [B]Version 3.0.8 (Build 40)[/B], the launcher is now rolling out through the Google Play Store, alongside our new official standalone [B]Expressive Feed Companion[/B] app for seamless, native Google Discover integration.
+
+[SIZE=5][B]✨ What's New in 3.0.8 (Build 40)[/B][/SIZE]
+[LIST]
+[*][B]Google Play Store Distribution:[/B] Expressive Launcher is now officially automated and deployed to Google Play ([ICODE]com.denson9874.Expressive_Launcher_L3[/ICODE], Build 40).
+[*][B]Dedicated Expressive Feed Companion:[/B] Because Google Play policies do not permit launchers published on the Play Store to bundle private AIDL overlay services directly, we created a lightweight, battery-friendly companion application ([ICODE]dev.launcher.expressive.feed[/ICODE]) that bridges the Google App Discover feed to Expressive Launcher.
+[*][B]Resolved Package Installer Collision (INSTALL_FAILED_DUPLICATE_PERMISSION):[/B] Fixed an issue where Android's package installer displayed [I]"App not installed"[/I] due to a signature permission clash between Google Play App Signing and sideloaded certificates. The companion now installs effortlessly across all Android 12 through Android 17 devices.
+[*][B]Cryptographic Developer Signature Bridge:[/B] Updated the launcher's verification engine to recognize our verified Google Developer key ([ICODE]2aa9f1bf3dbd2d5bd27ad7516f1caf1b8a18e15f6d59858a37282784bb2acba7[/ICODE]). This eliminates the [I]"belongs to a different version"[/I] prompt and enables the [B]Show Google Discover[/B] toggle directly in Home Settings.
+[*][B]Simplified GitHub Release:[/B] Cleaned up the release assets so there is now only a single official file ([ICODE]ExpressiveFeed.apk[/ICODE]), plus an instant web portal for direct downloads.
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=5][B]📲 How to Set Up Google Discover[/B][/SIZE]
+[LIST=1]
+[*][B]Install Expressive Launcher:[/B] Update to Version 3.0.8 (Build 40) via the Google Play Store (Internal Testing track).
+[*][B]Download the Companion:[/B] Grab [B]ExpressiveFeed.apk[/B] from our [URL="https://denson9874.github.io/ExpressiveLauncher/feed/"]GitHub Pages Portal[/URL] or [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/feed-companion-v37"]GitHub Releases[/URL].
+[*][B]Install the APK:[/B] Tap the download notification to install it on your device.
+[*][B]Enable in Settings:[/B] Long-press your home screen &gt; [B]Home Settings[/B] &gt; [B]Google Discover[/B].
+[*][B]Enjoy:[/B] Switch on [B]Show Google Discover[/B], return to your home screen, and swipe right!
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Security, Hashes & Verification[/B][/SIZE]
+All builds are verified and signed with our official developer signature:
+[LIST]
+[*][B]Developer:[/B] Daryl Denson (Google Play Developer ID: [ICODE]5547708187557586870[/ICODE])
+[*][B]Developer Certificate SHA-256:[/B]
+[CODE]2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7[/CODE]
+[*][B]Launcher Package:[/B] [ICODE]com.denson9874.Expressive_Launcher_L3[/ICODE] (Version 3.0.8 / Code 40)
+[*][B]Launcher Bundle SHA-256:[/B]
+[CODE]4e79522f18a5240387376539d81e4060ca9a5de219a81c9c92e5302f65e213d7[/CODE]
+[*][B]Companion Package:[/B] [ICODE]dev.launcher.expressive.feed[/ICODE] (Code 40)
+[*][B]Companion APK SHA-256:[/B]
+[CODE]11796b89d3f2ff7011e4a6b2fb2246a893dd19708eadb501443da9f176613fff[/CODE]
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct Companion APK Download:[/B] [URL="https://denson9874.github.io/ExpressiveLauncher/ExpressiveFeed.apk"]Download ExpressiveFeed.apk[/URL]
+[*][B]Companion Web Portal:[/B] [URL="https://denson9874.github.io/ExpressiveLauncher/feed/"]https://denson9874.github.io/ExpressiveLauncher/feed/[/URL]
+[*][B]GitHub Release:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/feed-companion-v37"]Expressive Feed Companion v37[/URL]
+[*][B]GitHub Repository:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL] | [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
+
+[SPOILER="Release Humor & Riddle"][B]Humor:[/B]
+[I]Q: Why did the Google Discover feed apply for a companion pass?
+A: Because it couldn't swipe right into the launcher without a verified developer match![/I]
+
+[B]Riddle:[/B]
+[I]I stand just beyond your primary screen, keeping stories and news ready to be seen. You cannot bundle me directly through the Store, but with a companion bridge I open the door. A single swipe to the right brings my pages in flight. What am I?[/I]
+[B]Answer:[/B] Google Discover Feed![/SPOILER]

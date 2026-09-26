@@ -1,17 +1,15 @@
-<b>Expressive Launcher 3.0.4 QA — Contrast in the Clouds</b>
+<b>Expressive Launcher 3.0.8 — Discovery Unleashed</b>
 
-Welcome to Expressive Launcher 3.0.4! Today's focused improvement directly addresses community feedback from our XDA Pixel testing threads regarding status bar contrast and setting clarity.
+Welcome to Expressive Launcher 3.0.8 (Build 40)! Today's milestone release brings automated Google Play publishing, our official dedicated Expressive Feed Companion, and a permanent resolution to package installer conflicts for seamless Google Discover integration.
 
 ───────────────────────
 
-<b>✨ What's New</b>
-• <b>Clarified Dark Status Bar Controls (Community Report XDA-003)</b>:
-• <b>The Issue</b>: Community members rightly pointed out that the label <i>"Dark status bar"</i> was confusing. Many users expected it to paint a dark background banner across the top of their screen, whereas the toggle actually controls icon and text contrast.
-• <b>The Fix</b>: The preference label has been updated to <b>Dark status bar icons</b> with a clear subtitle: <i>"Display dark icons and clock text on the status bar for lighter wallpapers"</i>.
-• Under the hood, this cleanly controls Android's <code>SYSTEM_UI_FLAG_LIGHT_STATUS_BAR</code> (via <code>SystemUiController</code>), ensuring optimal contrast without unexpected UI artifacts.
-• <b>Robust Unit & Regression Coverage</b>:
-• Added <code>StatusBarPreferencesTest</code> covering preference persistence, string localization, and SystemUI controller flag mapping.
-• All 623 Gradle tasks, unit test suites, and 279 CI contract tests passed with zero failures.
+<b>✨ What's New & Fixed</b>
+• <b>Google Play Store Rollout</b>: Fully configured and published via automated Google Play Developer API pipelines (<code>com.denson9874.Expressive_Launcher_L3</code>, Version Code 40).
+• <b>Dedicated Expressive Feed Companion</b>: Under Google Play policies, store-distributed launchers cannot bundle private AIDL overlay services directly. We have introduced the official standalone companion app (<code>dev.launcher.expressive.feed</code>), lightweight and battery-friendly, bridging Google Discover to your home screen.
+• <b>Android Package Conflict Resolved</b>: Fixed a critical Android security error (<code>INSTALL_FAILED_DUPLICATE_PERMISSION</code>) that previously caused the package installer to display <i>"App not installed"</i>. The companion APK now installs cleanly on all Android 12 through Android 17 devices.
+• <b>Play Store Cryptographic Signature Verification</b>: Updated <code>FeedBridge</code> and <code>ExpressiveFeedSetup</code> with verified developer key hash (<code>2aa9f1bf3dbd2d5bd27ad7516f1caf1b8a18e15f6d59858a37282784bb2acba7</code>), eliminating the <i>"belongs to a different version"</i> warning and enabling the <b>Show Google Discover</b> toggle directly in Home Settings.
+• <b>Streamlined Companion Release</b>: Cleaned up release assets on GitHub to eliminate confusion. There is now a single official file (<code>ExpressiveFeed.apk</code>) with an instant direct download and setup guide available on our <a href="https://denson9874.github.io/ExpressiveLauncher/feed/">GitHub Pages Feed Portal</a>.
 
 ───────────────────────
 
@@ -26,8 +24,8 @@ Welcome to Expressive Launcher 3.0.4! Today's focused improvement directly addre
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the status bar trade in its dark coat for a pair of sunglasses?</i>  
-<b>A:</b> <i>Because the wallpaper was so bright, even the clock couldn't tell what time it was!</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the Google Discover feed apply for a companion pass?</i>  
+<b>A:</b> <i>Because it couldn't swipe right into the launcher without a verified developer match!</i></blockquote>
 
 ───────────────────────
 
@@ -35,16 +33,23 @@ Welcome to Expressive Launcher 3.0.4! Today's focused improvement directly addre
 
 Can you solve this edition's launcher riddle?
 
-<blockquote><i>I am not a shadow painted across your screen, nor a solid curtain drawn across the scene. But when your wallpaper shines bright as the sun, I turn dark so your time and icons can still be run. What am I?</i></blockquote>
+<blockquote><i>I stand just beyond your primary screen, keeping stories and news ready to be seen. You cannot bundle me directly through the Store, but with a companion bridge I open the door. A single swipe to the right brings my pages in flight. What am I?</i></blockquote>
 
-<tg-spoiler><b>Dark status bar icons!</b></tg-spoiler>
+<tg-spoiler><b>Google Discover Feed!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Source Revision</b>: <code>695c0c27386c77bab1e5a1da9b9f09101f6badad</code>
-• <b>Version</b>: <code>3.0.4</code> (code <code>36</code>)
-• <b>APK SHA-256</b>: <code>e3990c9fb101f61c8b025b3314d9abbb631663e2b8fa457b0bef8afd109de6e7</code>
-• <b>Emulator Smoke QA</b>: Verified on Android 17 QPR2 Beta 5 (<code>CP41.260828.004.A7</code>); passed guest identity, in-place upgrade, cold start, drawer swipe, local search, and clean log assertions.
+• <b>Source Revision</b>: <code>c8e4c272514</code>
+• <b>Launcher Version</b>: <code>3.0.8</code> (Build <code>40</code>)
+• <b>Package ID</b>: <code>com.denson9874.Expressive_Launcher_L3</code>
+• <b>Bundle SHA-256</b>: <code>4e79522f18a5240387376539d81e4060ca9a5de219a81c9c92e5302f65e213d7</code>
+• <b>Companion Package</b>: <code>dev.launcher.expressive.feed</code>
+• <b>Companion SHA-256</b>: <code>11796b89d3f2ff7011e4a6b2fb2246a893dd19708eadb501443da9f176613fff</code>
+• <b>Developer Certificate SHA-256</b>: <code>2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7</code>
 
-<i>Release-signed, minified QA package. Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.</i>
+🔗 <b>Links & Downloads</b>:
+• <b>Companion Landing Page</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/feed/">https://denson9874.github.io/ExpressiveLauncher/feed/</a>
+• <b>Direct Companion APK</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/ExpressiveFeed.apk">Download ExpressiveFeed.apk</a>
+• <b>GitHub Release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/feed-companion-v37">Expressive Feed Companion v37</a>
+• <b>Community & Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
