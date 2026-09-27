@@ -137,21 +137,36 @@ public class PipInputConsumer {
             return;
         }
         final InputChannel inputChannel = new InputChannel();
+        boolean success = false;
         try {
             // TODO(b/113087003): Support Picture-in-picture in multi-display.
-            mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
+            destroyInputConsumerSafely();
             mWindowManager.createInputConsumer(mToken, mName, DEFAULT_DISPLAY, inputChannel);
-        } catch (RemoteException e) {
+            success = true;
+        } catch (RemoteException | LinkageError | RuntimeException e) {
             ProtoLog.e(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
                     "%s: Failed to create input consumer, %s", TAG, e);
         }
-        mMainExecutor.execute(() -> {
-            mInputEventReceiver = new InputEventReceiver(inputChannel,
-                Looper.myLooper(), Choreographer.getInstance());
-            if (mRegistrationListener != null) {
-                mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
-            }
-        });
+        if (success) {
+            mMainExecutor.execute(() -> {
+                mInputEventReceiver = new InputEventReceiver(inputChannel,
+                    Looper.myLooper(), Choreographer.getInstance());
+                if (mRegistrationListener != null) {
+                    mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
+                }
+            });
+        } else {
+            inputChannel.dispose();
+        }
+    }
+
+    private void destroyInputConsumerSafely() {
+        try {
+            mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
+        } catch (RemoteException | LinkageError | RuntimeException e) {
+            ProtoLog.e(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
+                    "%s: Failed to destroy input consumer, %s", TAG, e);
+        }
     }
 
     /**
@@ -161,13 +176,7 @@ public class PipInputConsumer {
         if (mInputEventReceiver == null) {
             return;
         }
-        try {
-            // TODO(b/113087003): Support Picture-in-picture in multi-display.
-            mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
-        } catch (RemoteException e) {
-            ProtoLog.e(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
-                    "%s: Failed to destroy input consumer, %s", TAG, e);
-        }
+        destroyInputConsumerSafely();
         mInputEventReceiver.dispose();
         mInputEventReceiver = null;
         mMainExecutor.execute(() -> {

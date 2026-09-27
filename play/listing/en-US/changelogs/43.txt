@@ -1,0 +1,3 @@
+• Quickstep Android 17 Fix: Resolved createInputConsumer NoSuchMethodError when using QuickSwitch on Pixel 9 Pro / Android 17 (#24).
+• 24/7 Pro Activation Backend: Switched to global serverless edge worker for instant automated PayPal license validation.
+• Stability & Multi-Window: Guarded RecentsView against null-pointer race conditions during desktop mode and gesture navigation.

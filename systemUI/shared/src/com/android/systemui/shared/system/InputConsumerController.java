@@ -138,17 +138,31 @@ public class InputConsumerController {
     public void registerInputConsumer() {
         if (mInputEventReceiver == null) {
             final InputChannel inputChannel = new InputChannel();
+            boolean success = false;
             try {
-                mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
+                destroyInputConsumerSafely();
                 mWindowManager.createInputConsumer(mToken, mName, DEFAULT_DISPLAY, inputChannel);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failed to create input consumer", e);
+                success = true;
+            } catch (RemoteException | LinkageError | RuntimeException e) {
+                Log.e(TAG, "Failed to create input consumer: " + mName, e);
             }
-            mInputEventReceiver = new InputEventReceiver(inputChannel, Looper.myLooper(),
-                    Choreographer.getInstance());
-            if (mRegistrationListener != null) {
-                mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
+            if (success) {
+                mInputEventReceiver = new InputEventReceiver(inputChannel, Looper.myLooper(),
+                        Choreographer.getInstance());
+                if (mRegistrationListener != null) {
+                    mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
+                }
+            } else {
+                inputChannel.dispose();
             }
+        }
+    }
+
+    private void destroyInputConsumerSafely() {
+        try {
+            mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
+        } catch (RemoteException | LinkageError | RuntimeException e) {
+            Log.e(TAG, "Failed to destroy input consumer: " + mName, e);
         }
     }
 
@@ -157,11 +171,7 @@ public class InputConsumerController {
      */
     public void unregisterInputConsumer() {
         if (mInputEventReceiver != null) {
-            try {
-                mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failed to destroy input consumer", e);
-            }
+            destroyInputConsumerSafely();
             mInputEventReceiver.dispose();
             mInputEventReceiver = null;
             if (mRegistrationListener != null) {

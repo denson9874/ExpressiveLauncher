@@ -1,0 +1,86 @@
+[CENTER][SIZE=6][B]Expressive Launcher 3.1.1 — Quickstep Android 17 Fix & 24/7 Activation Cloud[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Welcome to Expressive Launcher 3.1.1 (Build 43)! This release delivers critical compatibility updates for Android 17 Quickstep gestures, connects to our live 24/7 serverless activation cloud backend, and hardens recents gesture transitions.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+1. [B]Android 17 Quickstep & QuickSwitch Support (Closes #24)[/B]:
+[LIST]
+[*]Resolved a fatal [ICODE]NoSuchMethodError[/ICODE] ([ICODE]createInputConsumer[/ICODE]) in [ICODE]InputConsumerController.java[/ICODE], [ICODE]TouchInteractionService.java[/ICODE], and [ICODE]PipInputConsumer.java[/ICODE] when enabling Quickstep recents via QuickSwitch on Pixel 9 Pro and Android 17 devices.
+[*]Replaced fragile platform interface assumptions with safe, multi-platform linkage guards ([ICODE]LinkageError | RemoteException | RuntimeException[/ICODE]) and safe input channel lifecycles.
+
+[/LIST]
+2. [B]24/7 Serverless Pro Activation Backend[/B]:
+[LIST]
+[*]Deployed and synchronized our live global edge worker backend on Cloudflare Workers ([ICODE]https://expressive-pro-activation.daryldenson-apps.workers.dev/[/ICODE]).
+[*]Seamlessly verifies PayPal contributions in real time with high-speed key-value storage. Tapping [B]"Check Payment Status"[/B] now retrieves and activates your Pro license in under 2 seconds worldwide—completely independent of local developer machines.
+
+[/LIST]
+3. [B]Multi-Window & Desktop Transition Stability[/B]:
+[LIST]
+[*]Added null-safety guards in [ICODE]AbsSwipeUpHandler.java[/ICODE] for [ICODE]mRecentsView[/ICODE] during desktop windowing and swipe-up transitions.
+[*]Prevents race conditions during rapid gesture cancellation or navigation mode switches.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]💎 Expressive Pro & Free Core[/B][/SIZE]
+
+[LIST]
+[*][B]Free Core (Always Supported & Ad-Free)[/B]:
+[*]Clean, fluid Android 17 Pixel experience with 100% Pixel parity, private space support, and Google Discover feed integration via Expressive Feed Companion.
+[*][B]Expressive Pro ($4.99 One-Time)[/B]:
+[*]Unlocks deep personalization including custom grid sizing, typography, gesture mapping, dock styling, and per-app icon overrides.
+[*][I]Expressive Pro is a one-time $4.99 contribution. Every dollar directly funds automated CI/CD servers, Android 17 test devices, cryptographic signing pipelines, and continuous active development.[/I]
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+> [B]Q:[/B] [I]Why did the input consumer refuse to crash on Android 17?[/I]  
+> [B]A:[/B] [I]Because we gave it an unbreakable safety net that catches linkage errors before they can touch the ground![/I]
+
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+Can you solve this edition's launcher riddle?
+
+> [I]I swipe, I glide, I switch tasks with speed. On Android 17 I found just what I need. No missing method shall halt my flight, I keep your gestures smooth day and night. What am I?[/I]
+
+[SPOILER="Tap to reveal answer"]<b>The Quickstep Gesture Input Controller!</b>[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]3.1.1[/ICODE] (Build [ICODE]43[/ICODE])
+[*][B]Package ID[/B]: [ICODE]com.denson9874.Expressive_Launcher_L3[/ICODE]
+[*][B]Developer Certificate SHA-256[/B]: [ICODE]2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]Google Play Internal Testing[/B]: [URL="https://play.google.com/apps/internaltest/4700941727845829659"]https://play.google.com/apps/internaltest/4700941727845829659[/URL]
+[*][B]Companion Landing Page[/B]: [URL="https://denson9874.github.io/ExpressiveLauncher/feed/"]https://denson9874.github.io/ExpressiveLauncher/feed/[/URL]
+[*][B]Direct Companion APK[/B]: [URL="https://denson9874.github.io/ExpressiveLauncher/ExpressiveFeed.apk"]Download ExpressiveFeed.apk[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Google Play Closed Alpha / Internal Track:[/B] [URL="https://play.google.com/apps/internaltest/4700941727845829659"]Play Store Opt-In Link[/URL]
+[*][B]GitHub Releases & APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.1-43"]GitHub Release qa-v3.1.1-43[/URL]
+[*][B]Companion Feed Landing Page:[/B] [URL="https://denson9874.github.io/ExpressiveLauncher/feed/"]https://denson9874.github.io/ExpressiveLauncher/feed/[/URL]
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]

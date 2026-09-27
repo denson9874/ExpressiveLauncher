@@ -2426,7 +2426,7 @@ public abstract class AbsSwipeUpHandler<
                     mRecentsAnimationController, mRecentsAnimationTargets);
         });
 
-        if (DesktopModeStatus.canEnterDesktopMode(mContext)
+        if (mRecentsView != null && DesktopModeStatus.canEnterDesktopMode(mContext)
                 && !(false
                         && DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_QUICK_SWITCH.isTrue())) {
             if (mRecentsView.getNextPageTaskView() instanceof DesktopTaskView

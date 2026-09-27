@@ -138,23 +138,40 @@ public class PipInputConsumer {
             return;
         }
         final InputChannel inputChannel = new InputChannel();
+        boolean success = false;
         try {
             final int displayId = mPipDisplayLayoutState.getDisplayId();
             ProtoLog.d(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
                     "%s: Creating input consumer on displayID: %d", TAG, displayId);
-            mWindowManager.destroyInputConsumer(mToken, displayId);
+            destroyInputConsumerSafely(displayId);
             mWindowManager.createInputConsumer(mToken, mName, displayId, inputChannel);
-        } catch (RemoteException e) {
+            success = true;
+        } catch (RemoteException | LinkageError | RuntimeException e) {
             ProtoLog.e(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
                     "%s: Failed to create input consumer, %s", TAG, e);
         }
-        mMainExecutor.execute(() -> {
-            mInputEventReceiver = new InputEventReceiver(inputChannel,
-                Looper.myLooper(), Choreographer.getInstance());
-            if (mRegistrationListener != null) {
-                mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
-            }
-        });
+        if (success) {
+            mMainExecutor.execute(() -> {
+                mInputEventReceiver = new InputEventReceiver(inputChannel,
+                    Looper.myLooper(), Choreographer.getInstance());
+                if (mRegistrationListener != null) {
+                    mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
+                }
+            });
+        } else {
+            inputChannel.dispose();
+        }
+    }
+
+    private void destroyInputConsumerSafely(int displayId) {
+        try {
+            ProtoLog.d(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
+                    "%s: Destroying input consumer on displayID: %d", TAG, displayId);
+            mWindowManager.destroyInputConsumer(mToken, displayId);
+        } catch (RemoteException | LinkageError | RuntimeException e) {
+            ProtoLog.e(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
+                    "%s: Failed to destroy input consumer, %s", TAG, e);
+        }
     }
 
     /**
@@ -164,15 +181,8 @@ public class PipInputConsumer {
         if (mInputEventReceiver == null) {
             return;
         }
-        try {
-            final int displayId = mPipDisplayLayoutState.getDisplayId();
-            ProtoLog.d(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
-                    "%s: Destroying input consumer on displayID: %d", TAG, displayId);
-            mWindowManager.destroyInputConsumer(mToken, displayId);
-        } catch (RemoteException e) {
-            ProtoLog.e(ShellProtoLogGroup.WM_SHELL_PICTURE_IN_PICTURE,
-                    "%s: Failed to destroy input consumer, %s", TAG, e);
-        }
+        final int displayId = mPipDisplayLayoutState.getDisplayId();
+        destroyInputConsumerSafely(displayId);
         mInputEventReceiver.dispose();
         mInputEventReceiver = null;
         mMainExecutor.execute(() -> {

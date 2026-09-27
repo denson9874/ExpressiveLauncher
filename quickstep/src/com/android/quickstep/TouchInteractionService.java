@@ -867,7 +867,11 @@ public class TouchInteractionService extends Service {
         mActionCornerHandler = LauncherComponentProvider.get(
                 this).getActionCornerHandlerFactory().create(mOverviewCommandHelper);
         mUserUnlocked = true;
-        mInputConsumer.registerInputConsumer();
+        try {
+            mInputConsumer.registerInputConsumer();
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to register input consumer during onUserUnlocked", t);
+        }
         mDeviceStateRepository.forEach(/* createIfAbsent= */ true, deviceState ->
                 onSystemUiFlagsChanged(deviceState.getSysuiStateFlags(),
                         deviceState.getDisplayId()));
