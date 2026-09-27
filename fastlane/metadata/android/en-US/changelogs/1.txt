@@ -1,0 +1,1 @@
+Initial Android 17 release with expressive theming, Pixel-inspired defaults, widget support, icon packs, folders, search, and Smartspacer integration.

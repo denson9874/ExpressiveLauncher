@@ -1,5 +1,6 @@
 package app.lawnchair.ui.preferences.about
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import app.lawnchair.util.getApkVersionComparison
 import com.android.launcher3.R
 import java.io.File
@@ -61,6 +63,25 @@ fun UpdateSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
                 )
+                TextButton(
+                    onClick = {
+                        val webpage = AboutDestinations.OBTAINIUM_ADD_URL.toUri()
+                        val intent = Intent(Intent.ACTION_VIEW, webpage)
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, AboutDestinations.OBTAINIUM_WEB_URL.toUri()))
+                            } catch (_: Exception) {}
+                        }
+                    },
+                    modifier = Modifier.padding(top = 2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.obtainium_auto_update_prompt),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
 
             is UpdateState.WaitingForChannel -> {
@@ -117,6 +138,25 @@ fun UpdateSection(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp),
                 )
+                TextButton(
+                    onClick = {
+                        val webpage = AboutDestinations.OBTAINIUM_ADD_URL.toUri()
+                        val intent = Intent(Intent.ACTION_VIEW, webpage)
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, AboutDestinations.OBTAINIUM_WEB_URL.toUri()))
+                            } catch (_: Exception) {}
+                        }
+                    },
+                    modifier = Modifier.padding(top = 2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.add_to_obtainium),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
 
             is UpdateState.MajorUpdate -> if (showMajorDialog) {

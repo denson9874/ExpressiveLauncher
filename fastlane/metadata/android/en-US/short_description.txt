@@ -1,1 +1,1 @@
-Homescreen based on Launcher3 from AOSP
+A customizable Android 17 home screen with expressive, Pixel-inspired design

@@ -114,13 +114,26 @@ def bump_version(
         feed_gradle.write_text(feed_content, encoding="utf-8")
         print(f"Updated expressiveFeed/build.gradle: {current_name} (Build {current_code}) -> {next_name} (Build {next_code})")
 
-    # Prepare Google Play changelog file
-    changelog_path = ROOT / f"play/listing/en-US/changelogs/{next_code}.txt"
-    if not changelog_path.exists():
-        msg = changelog_message or f"- Expressive Launcher {next_name} update with performance improvements and bug fixes."
-        changelog_path.parent.mkdir(parents=True, exist_ok=True)
-        changelog_path.write_text(msg.strip() + "\n", encoding="utf-8")
-        print(f"Created Play Store changelog at {changelog_path}")
+    # Prepare changelog files (Play Store & Fastlane / IzzyOnDroid)
+    changelog_paths = [
+        ROOT / f"play/listing/en-US/changelogs/{next_code}.txt",
+        ROOT / f"fastlane/metadata/android/en-US/changelogs/{next_code}.txt",
+    ]
+    msg = changelog_message or f"- Expressive Launcher {next_name} update with performance improvements and bug fixes."
+    for cl_path in changelog_paths:
+        if not cl_path.exists():
+            cl_path.parent.mkdir(parents=True, exist_ok=True)
+            cl_path.write_text(msg.strip() + "\n", encoding="utf-8")
+            print(f"Created changelog at {cl_path}")
+
+    # Update .fdroid.yml if present
+    fdroid_path = ROOT / ".fdroid.yml"
+    if fdroid_path.exists():
+        fdroid_txt = fdroid_path.read_text(encoding="utf-8")
+        fdroid_txt = re.sub(r"CurrentVersion:\s*.+", f"CurrentVersion: {next_name}", fdroid_txt)
+        fdroid_txt = re.sub(r"CurrentVersionCode:\s*.+", f"CurrentVersionCode: {next_code}", fdroid_txt)
+        fdroid_path.write_text(fdroid_txt, encoding="utf-8")
+        print(f"Updated .fdroid.yml: CurrentVersion={next_name}, CurrentVersionCode={next_code}")
 
     # Prepare draft release announcement markdown if missing
     announcement_path = ROOT / f"docs/release_notes/{next_name}_announcement.md"
@@ -135,6 +148,7 @@ def bump_version(
             f"- **Package ID**: `com.denson9874.Expressive_Launcher_L3`\n"
             f"- **Developer Certificate SHA-256**: `2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7`\n\n"
             f"🔗 **Links & Downloads**:\n"
+            f"- **1-Click Add to Obtainium**: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)\n"
             f"- **Companion Landing Page**: [https://denson9874.github.io/ExpressiveLauncher/feed/](https://denson9874.github.io/ExpressiveLauncher/feed/)\n"
             f"- **GitHub Repository**: [https://github.com/denson9874/ExpressiveLauncher](https://github.com/denson9874/ExpressiveLauncher)\n"
             f"- **Community & Feedback**: [@ExpressiveLauncherFeedback](https://t.me/ExpressiveLauncherFeedback)\n"

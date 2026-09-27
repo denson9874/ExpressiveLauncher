@@ -1,0 +1,6 @@
+Expressive Launcher L3 version 3.0.4.
+- Official Google Play release signed by verified developer Daryl Denson.
+- Full Material You expressive theming with dynamic colors and adaptive icons.
+- Pixel-inspired Home layout, app drawer, search, and widget support.
+- Private Space and hidden apps support on Android 17.
+- Smartspacer integration and customizable gestures.

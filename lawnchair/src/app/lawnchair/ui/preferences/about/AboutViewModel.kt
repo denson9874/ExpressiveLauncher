@@ -24,6 +24,8 @@ internal object AboutDestinations {
     const val RELEASE_BUILDS_URL = "$GITHUB_REPOSITORY_URL/releases"
     const val TELEGRAM_FEEDBACK_URL = "https://t.me/ExpressiveLauncherFeedback"
     const val TELEGRAM_ANNOUNCEMENTS_URL = "https://t.me/ExpressiveLauncher"
+    const val OBTAINIUM_ADD_URL = "obtainium://add/https://github.com/denson9874/ExpressiveLauncher"
+    const val OBTAINIUM_WEB_URL = "https://github.com/ImranR98/Obtainium"
 }
 
 internal fun expressiveProductOwners(): List<TeamMember> = listOf(
@@ -68,6 +70,11 @@ internal fun expressiveCommunityLinks(): List<Link> = listOf(
         iconResId = R.drawable.ic_telegram,
         labelResId = R.string.telegram_announcements,
         url = AboutDestinations.TELEGRAM_ANNOUNCEMENTS_URL,
+    ),
+    Link(
+        iconResId = R.drawable.ic_github,
+        labelResId = R.string.add_to_obtainium,
+        url = AboutDestinations.OBTAINIUM_ADD_URL,
     ),
 )
 

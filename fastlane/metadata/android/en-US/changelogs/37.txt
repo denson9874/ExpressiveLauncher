@@ -1,0 +1,2 @@
+Google Discover setup improvements and companion integration.
+Enhanced compatibility for Google Play Store.

@@ -63,8 +63,14 @@ fun LawnchairLink(
             .clickable {
                 val webpage = url.toUri()
                 val intent = Intent(Intent.ACTION_VIEW, webpage)
-                if (intent.resolveActivity(context.packageManager) != null) {
+                try {
                     context.startActivity(intent)
+                } catch (_: Exception) {
+                    if (url.startsWith("obtainium://")) {
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, AboutDestinations.OBTAINIUM_WEB_URL.toUri()))
+                        } catch (_: Exception) {}
+                    }
                 }
             },
     ) {
@@ -99,8 +105,14 @@ fun HorizontalLawnchairLink(
         onClick = {
             val webpage = url.toUri()
             val intent = Intent(Intent.ACTION_VIEW, webpage)
-            if (intent.resolveActivity(context.packageManager) != null) {
+            try {
                 context.startActivity(intent)
+            } catch (_: Exception) {
+                if (url.startsWith("obtainium://")) {
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, AboutDestinations.OBTAINIUM_WEB_URL.toUri()))
+                    } catch (_: Exception) {}
+                }
             }
         },
         title = {

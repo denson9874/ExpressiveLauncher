@@ -1,0 +1,17 @@
+Name: Expressive Launcher
+Summary: A focused, Pixel-inspired Home experience for Android 12 through Android 17
+Description: |-
+  Expressive builds on the real Launcher3 foundation through Lawnchair 16, keeping Launcher3 authoritative for the workspace, favorites database, app drawer, folders, widgets, and gestures, while refining everyday customization, accessibility, visual design, and update delivery.
+Categories:
+  - System
+License: Apache-2.0
+WebSite: https://denson9874.github.io/ExpressiveLauncher/
+SourceCode: https://github.com/denson9874/ExpressiveLauncher
+IssueTracker: https://github.com/denson9874/ExpressiveLauncher/issues
+Changelog: https://github.com/denson9874/ExpressiveLauncher/releases
+Donate: https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2
+
+AutoUpdateMode: Version qa-v%v
+UpdateCheckMode: Tags
+CurrentVersion: 3.1.2
+CurrentVersionCode: 44

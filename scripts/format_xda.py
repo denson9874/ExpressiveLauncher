@@ -101,7 +101,8 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
         f"[LIST]\n"
         f'[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v{version_name}-{version_code}"]Download Expressive Launcher v{version_name} (Build {version_code})[/URL]\n'
         f'[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed\n'
-        f'[*][B]Obtainium Support:[/B] Track [ICODE]https://github.com/denson9874/ExpressiveLauncher[/ICODE] for seamless background updates\n'
+        f'[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates\n'
+        f'[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion\n'
         f'[*][B]Companion Feed Landing Page:[/B] [URL="https://denson9874.github.io/ExpressiveLauncher/feed/"]https://denson9874.github.io/ExpressiveLauncher/feed/[/URL]\n'
         f'[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]\n'
         f'[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]\n'

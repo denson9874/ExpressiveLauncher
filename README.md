@@ -47,6 +47,13 @@ Package: dev.launcher.expressive.l3
 Version: 2.0.8 (code 26)
 ```
 
+### 📥 Install & Auto-Update via Obtainium
+[![Add to Obtainium](https://img.shields.io/badge/Obtainium-Add%20App-3DDC84?logo=android&logoColor=white&style=for-the-badge)](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
+
+If you use [Obtainium](https://github.com/ImranR98/Obtainium) on Android, you can install and receive seamless background updates directly from GitHub Releases:
+1. Tap **[Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)** directly from your Android device.
+2. Or in Obtainium: tap **Add App** → paste `https://github.com/denson9874/ExpressiveLauncher` → tap **Save**.
+
 ---
 
 ## What's New in Version 2.0.8 Stable

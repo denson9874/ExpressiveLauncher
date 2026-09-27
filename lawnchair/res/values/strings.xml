@@ -656,6 +656,8 @@
     <string name="telegram_announcements">Telegram announcements</string>
     <string name="news">News</string>
     <string name="discord" translatable="false">Discord</string>
+    <string name="add_to_obtainium">Add to Obtainium</string>
+    <string name="obtainium_auto_update_prompt">Prefer automatic updates? Add to Obtainium</string>
 
     <string name="legal">Legal</string>
     <string name="acknowledgements">Acknowledgements</string>

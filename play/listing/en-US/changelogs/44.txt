@@ -1,0 +1,4 @@
+1. FOSS & IzzyOnDroid / F-Droid Inclusion (Closes #22): Configured full Fastlane metadata structure and .fdroid.yml in repository root for open-source repository distribution.
+2. Obtainium 1-Click Background Updates: Added native Obtainium deep-linking integration in Settings > About with browser fallback, enabling seamless background updates directly from GitHub Releases.
+3. In-App Update Recovery & Fallback: Enhanced update state handling in UpdateSection to present a 1-tap Obtainium setup option when updates are up to date or encounter network errors.
+4. Google Play Testing Sunset Transparency: Transitioned primary distribution to GitHub and FOSS channels, removing Google Play 20-tester bottlenecks and protecting privacy-first PayPal contributions.

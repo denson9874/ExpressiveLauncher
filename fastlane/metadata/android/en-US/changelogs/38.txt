@@ -1,0 +1,2 @@
+Direct Google Discover companion link to official companion release.
+General stability and Play Store compatibility improvements.
