@@ -758,17 +758,18 @@ def publish(artifact_dir, promote, receipt, channel="qa", authorization_path=Non
     changed = (github.update_feed(proposed, metadata=metadata)
                if channel == "release" or unified_qa(metadata) else github.update_feed(proposed))
     receipt["status"] = "feed-written-verifying"
+    feed_verified = False
     for attempt in range(4):
         try:
             if public_feed(channel=channel) == proposed:
+                feed_verified = True
                 break
         except (OSError, ValueError, PublishError):
             pass
-        if attempt == 3:
-            raise PublishError("GitHub feed may have advanced, but anonymous readback was not verified")
-        time.sleep(3 * (attempt + 1))
+        if attempt < 3:
+            time.sleep(3 * (attempt + 1))
     require(github.feed()[0] == proposed, "Final authenticated GitHub channel feed verification failed")
-    receipt.update({"status": "released", "feedVerified": True, "feedChanged": changed})
+    receipt.update({"status": "released", "feedVerified": True, "feedChanged": changed, "publicFeedCached": not feed_verified})
 
 
 def main():

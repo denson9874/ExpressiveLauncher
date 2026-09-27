@@ -163,13 +163,16 @@ def main():
     parser.add_argument("--bump", choices=["auto", "patch", "minor", "major"], help="Bump version in build.gradle before running release (auto rolls over at x.y.9 -> x.(y+1).0)")
     parser.add_argument("--major", action="store_true", help="Bump major version ((MAJOR+1).0.0) before running release")
     parser.add_argument("--skip-jenkins", action="store_true", help="Skip Jenkins build & GitHub publication")
-    parser.add_argument("--skip-play", action="store_true", help="Skip Google Play Store bundle build & publication")
+    parser.add_argument("--with-play", "--enable-play", action="store_true", help="Enable optional Google Play Store bundle build & publication (default: off, direct GitHub Releases primary)")
+    parser.add_argument("--skip-play", action="store_true", help="Explicitly skip Google Play Store bundle build & publication (default)")
     parser.add_argument("--skip-telegram", action="store_true", help="Skip Telegram announcement formatting/posting")
     parser.add_argument("--skip-xda", action="store_true", help="Skip XDA BBCode formatting")
     parser.add_argument("--telegram-token", default="", help="Telegram bot token override")
     parser.add_argument("--telegram-channel", default="", help="Telegram channel override")
     parser.add_argument("--force", action="store_true", help="Bypass minimum 3-improvement threshold warning")
     args = parser.parse_args()
+
+    enable_play = args.with_play and not args.skip_play
 
     if args.major or args.bump:
         b_type = "major" if args.major else args.bump
@@ -202,7 +205,7 @@ def main():
     print(f"EXPRESSIVE LAUNCHER UNIFIED RELEASE PIPELINE")
     print(f"Version:       {version_name} (Build {version_code})")
     print(f"Revision:      {revision}")
-    print(f"Play Tracks:   {args.play_tracks}")
+    print(f"Play Deploy:   {'Enabled (' + args.play_tracks + ')' if enable_play else 'Disabled (GitHub primary)'}")
     if notes_file:
         print(f"Release Notes: {notes_file}")
     print("=" * 70)
@@ -241,9 +244,9 @@ def main():
         print(f"\n[SUCCESS] Published to GitHub Releases and promoted in-app update feed!")
 
     # -------------------------------------------------------------
-    # 2. Google Play Store Release Flow (AAB Bundle & Developer API)
+    # 2. Google Play Store Release Flow (Optional via --with-play)
     # -------------------------------------------------------------
-    if not args.skip_play:
+    if enable_play:
         print("\n>>> STAGE 3: Building Google Play App Bundle (.aab)...")
         bundle_cmd = [
             "./gradlew", "bundleLawnWithQuickstepExpressiveRelease",
@@ -322,7 +325,10 @@ def main():
     print(f"- Version:            {version_name} (Build {version_code})")
     print(f"- GitHub Release:     https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v{version_name}-{version_code}")
     print(f"- QA In-App Feed:     https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json")
-    print(f"- Google Play Tracks: {args.play_tracks}")
+    if enable_play:
+        print(f"- Google Play Tracks: {args.play_tracks}")
+    else:
+        print(f"- Google Play:        Skipped (Direct GitHub Releases primary)")
     if not args.skip_telegram:
         print(f"- Telegram:           {tg_status}")
     if not args.skip_xda and xda_output:
