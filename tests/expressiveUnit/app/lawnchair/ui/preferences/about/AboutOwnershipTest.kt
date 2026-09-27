@@ -58,6 +58,11 @@ class AboutOwnershipTest {
                 labelResId = R.string.telegram_announcements,
                 url = "https://t.me/ExpressiveLauncher",
             ),
+            Link(
+                iconResId = R.drawable.ic_github,
+                labelResId = R.string.add_to_obtainium,
+                url = AboutDestinations.OBTAINIUM_ADD_URL,
+            ),
         ).inOrder()
     }
 
