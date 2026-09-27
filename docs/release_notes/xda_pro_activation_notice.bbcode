@@ -1,0 +1,48 @@
+[CENTER][SIZE=5][B]📢 Important Update: Expressive Pro Activation & PayPal Verification[/B][/SIZE]
+[SIZE=3][I]Transparency note, root-cause resolution, and 24/7 automated instant activation[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Hey everyone,
+
+First and foremost, I want to extend a massive thank you to everyone in the community who has supported the project, tested the recent builds, and provided detailed feedback on the PayPal contribution and Pro activation experience.
+
+Over the past couple of days, several users reported issues where entering their PayPal transaction ID or tapping "Check Payment Status" returned a connection or verification error instead of instantly unlocking Expressive Pro. I want to provide complete transparency on what happened, what the root cause was, and the permanent fix we have deployed.
+
+[HR][/HR]
+
+[SIZE=4][B]🔍 What Was Happening (Root Cause)[/B][/SIZE]
+
+[LIST]
+[*][B]Endpoint Routing Mismatch:[/B] Expressive Pro features a hybrid architecture: an offline cryptographic validator (built right into the app using ECDSA P-256 signatures) paired with a serverless cloud edge worker to handle automated PayPal webhook verification. During our recent infrastructure updates, the launcher was attempting to communicate with a pre-migration cloud endpoint that was unreachable, leading to "Server unreachable" and verification timeouts.
+[*][B]Manual Fallback Dependency:[/B] Because the automated online verification was failing to reach the cloud worker, the app fell back to our manual offline key generation path. This meant activations had to be manually processed and sent back one by one, leading to frustrating delays for supporters who reasonably expected instant activation upon donating.
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=4][B]🛠️ What Has Been Done to Permanently Resolve It[/B][/SIZE]
+
+[LIST]
+[*][B]Deployed 24/7 Global Serverless Edge Worker:[/B] We have successfully deployed and verified our dedicated activation backend on Cloudflare’s global edge network. It runs 24/7 with zero dependence on any local machine, ensuring 100% uptime worldwide.
+[*][B]Live PayPal Webhook Integration:[/B] The edge worker is directly integrated with PayPal's real-time payment webhooks. The instant a $4.99 contribution is completed, Cloudflare automatically signs a unique, permanent cryptographic license key bound to your device ID and stores it in encrypted high-speed key-value storage.
+[*][B]Instant Automated Activation:[/B] When you return to the launcher and tap [B]"Check Payment Status"[/B], your device license is retrieved and unlocked in under 2 seconds.
+[*][B]Offline Integrity Preserved:[/B] Once activated, your Pro license remains completely offline and unrevocable—it does not require an ongoing internet connection to remain active.
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=4][B]🙋 What Should You Do If You Already Donated?[/B][/SIZE]
+
+If you previously contributed via PayPal and your Pro features haven't unlocked yet, please try the following:
+
+[LIST=1]
+[*]Open [B]Launcher Settings > Expressive Pro[/B].
+[*]Tap [B]"Check Payment Status"[/B]. If your transaction was recorded, it will activate immediately.
+[*]Alternatively, expand [B]"Verify with Transaction ID"[/B], enter your 17-character PayPal receipt ID (e.g., [ICODE]5Y6345678A1234567[/ICODE]), and tap Verify.
+[*]If you still experience any issues, tap [B]"Email Support for Pro Key"[/B] or send a quick PM here on XDA with your [B]Device ID[/B] and PayPal receipt ID. I will personally generate and reply with your offline license key right away.
+[/LIST]
+
+Thank you so much for your patience, understanding, and continued support as we refine Expressive Launcher into the smoothest Android 17 experience possible!
+
+Warm regards,  
+[B]Daryl (denson9874)[/B]
