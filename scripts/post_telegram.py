@@ -155,6 +155,33 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str, disable_previ
         return json.loads(resp.read().decode("utf-8"))
 
 
+def chunk_telegram_html(html_text: str, max_chars: int = 3800) -> list[str]:
+    """Split HTML text into clean chunks below Telegram limit without breaking delimiters."""
+    if len(html_text) <= max_chars:
+        return [html_text]
+
+    delimiter = "───────────────────────"
+    sections = html_text.split(delimiter)
+    chunks = []
+    current_chunk = []
+    current_len = 0
+
+    for idx, sec in enumerate(sections):
+        sec_str = (delimiter + sec) if idx > 0 else sec
+        if current_len + len(sec_str) > max_chars and current_chunk:
+            chunks.append("".join(current_chunk).strip())
+            current_chunk = [sec.strip()]
+            current_len = len(sec.strip())
+        else:
+            current_chunk.append(sec_str)
+            current_len += len(sec_str)
+
+    if current_chunk:
+        chunks.append("".join(current_chunk).strip())
+
+    return [c for c in chunks if c]
+
+
 def send_telegram_document(bot_token: str, chat_id: str, file_path: Path, caption: str = ""):
     """Send a document file (such as an APK) via multipart/form-data."""
     import mimetypes
@@ -274,14 +301,17 @@ def main():
         return
 
     print(f"Posting release announcement to Telegram channel: {channel}...")
+    chunks = chunk_telegram_html(telegram_html)
+    print(f"Announcement split into {len(chunks)} message chunk(s).")
     try:
-        res = send_telegram_message(token, channel, telegram_html)
-        if res.get("ok"):
-            msg_id = res.get("result", {}).get("message_id")
-            print(f"Successfully posted to Telegram! Message ID: {msg_id}")
-        else:
-            print(f"Telegram API response: {res}", file=sys.stderr)
-            sys.exit(1)
+        for idx, chunk in enumerate(chunks, 1):
+            res = send_telegram_message(token, channel, chunk)
+            if res.get("ok"):
+                msg_id = res.get("result", {}).get("message_id")
+                print(f"Successfully posted chunk {idx}/{len(chunks)} to Telegram! Message ID: {msg_id}")
+            else:
+                print(f"Telegram API response for chunk {idx}: {res}", file=sys.stderr)
+                sys.exit(1)
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8", errors="replace")
         print(f"Telegram API HTTP error {e.code}: {error_body}", file=sys.stderr)
