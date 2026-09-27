@@ -13,10 +13,24 @@ import json
 import os
 from pathlib import Path
 import re
+import socket
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+
+# Prefer IPv4 on macOS to avoid IPv6 route hang/timeout to api.telegram.org
+_orig_getaddrinfo = socket.getaddrinfo
+
+
+def _ipv4_getaddrinfo(host, port, family=0, *args, **kwargs):
+    try:
+        return _orig_getaddrinfo(host, port, socket.AF_INET, *args, **kwargs)
+    except Exception:
+        return _orig_getaddrinfo(host, port, family, *args, **kwargs)
+
+
+socket.getaddrinfo = _ipv4_getaddrinfo
 
 DEFAULT_CHANNEL = "@ExpressiveLauncher"
 DEFAULT_FEEDBACK_GROUP = "https://t.me/ExpressiveLauncherFeedback"
