@@ -31,8 +31,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.lawnchair.FeedBridge
 import app.lawnchair.feed.ExpressiveFeedSetup
 import app.lawnchair.feed.ExpressiveFeedSetup.Kind
-import app.lawnchair.feed.FeedHelperSource
-import app.lawnchair.feed.feedHelperSource
 import app.lawnchair.feed.shouldInstallAfterReplacement
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
@@ -157,7 +155,7 @@ fun ExpressiveFeedPreferences() {
             val current = withContext(Dispatchers.IO) { ExpressiveFeedSetup.inspect(context) }
             status = current
             val continueInstall = shouldInstallAfterReplacement(replaceRequested, current.kind) &&
-                feedHelperSource(com.android.launcher3.BuildConfig.TARGET_PLAY_STORE) == FeedHelperSource.BUNDLED
+                !com.android.launcher3.BuildConfig.TARGET_PLAY_STORE
             replaceRequested = false
             if (continueInstall) beginSetup() else refresh++
         }
@@ -212,33 +210,9 @@ fun ExpressiveFeedPreferences() {
         when (kind) {
             null -> FeedSetupAction(R.string.expressive_feed_checking, enabled = false)
             Kind.HELPER_MISSING, Kind.UPDATE_AVAILABLE -> {
-                if (feedHelperSource(com.android.launcher3.BuildConfig.TARGET_PLAY_STORE) == FeedHelperSource.DOWNLOAD) {
-                    FeedSetupAction(
-                        title = R.string.expressive_feed_companion_download,
-                        description = R.string.expressive_feed_companion_download_desc,
-                        enabled = true,
-                        onClick = {
-                            val releaseUrl = context.getString(R.string.expressive_feed_companion_url)
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)))
-                            } catch (e: Exception) {
-                                Log.w("ExpressiveFeedSetup", "Unable to open companion release URL", e)
-                            }
-                        },
-                    )
-                    FeedSetupAction(
-                        title = R.string.expressive_feed_smartspacer_play,
-                        description = R.string.expressive_feed_smartspacer_play_desc,
-                        enabled = true,
-                        onClick = {
-                            val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.kieronquinn.app.smartspacer"))
-                            try {
-                                context.startActivity(marketIntent)
-                            } catch (_: Exception) {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.kieronquinn.app.smartspacer")))
-                            }
-                        },
-                    )
+                if (com.android.launcher3.BuildConfig.TARGET_PLAY_STORE) {
+                    // Discover support ships only inside the FOSS builds, signed with the launcher.
+                    FeedSetupAction(R.string.expressive_feed_play_unavailable, enabled = false)
                 } else {
                     FeedSetupAction(
                         title = if (busy) R.string.expressive_feed_preparing else if (kind == Kind.UPDATE_AVAILABLE) {

@@ -12,7 +12,6 @@ import androidx.annotation.WorkerThread
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
 import app.lawnchair.FeedBridge
-import com.android.launcher3.BuildConfig
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
@@ -157,11 +156,9 @@ object ExpressiveFeedSetup {
         if (!pm.isAppEnabled(google)) return Status(Kind.GOOGLE_DISABLED, metadata.versionName)
         val helper = pm.packageOrNull(HELPER_PACKAGE)
             ?: return Status(Kind.HELPER_MISSING, metadata.versionName)
-        val signed = isFeedHelperSignerCompatible(
-            sameSigner = pm.checkSignatures(context.packageName, HELPER_PACKAGE) == PackageManager.SIGNATURE_MATCH,
-            developerSigned = FeedBridge.isDarylDensonSigned(context, HELPER_PACKAGE),
-            playBuild = BuildConfig.TARGET_PLAY_STORE,
-        )
+        // The companion accepts only the launcher that shares its signer. Any other pairing would
+        // look ready while the companion silently refuses every connection.
+        val signed = pm.checkSignatures(context.packageName, HELPER_PACKAGE) == PackageManager.SIGNATURE_MATCH
         val resolved = pm.resolveService(
             FeedBridge.createOverlayIntent(context, HELPER_PACKAGE),
             PackageManager.GET_META_DATA,
@@ -240,26 +237,6 @@ internal fun evaluateFeedHelper(bundledVersion: Long, installed: FeedInstalledSt
         else -> ExpressiveFeedSetup.Kind.READY
     }
 }
-
-/**
- * Mirrors the companion's own caller policy: it accepts the launcher that shares its signer, and a
- * developer-signed companion additionally accepts only the Play build. Reporting any other pairing
- * as usable would show Discover as ready while the companion silently refuses every connection.
- */
-internal fun isFeedHelperSignerCompatible(sameSigner: Boolean, developerSigned: Boolean, playBuild: Boolean): Boolean =
-    sameSigner || (playBuild && developerSigned)
-
-internal enum class FeedHelperSource {
-    /** The same-signed helper packaged inside this launcher. */
-    BUNDLED,
-
-    /** The developer-signed standalone helper, usable only by the Play build. */
-    DOWNLOAD,
-}
-
-/** Direct builds must never be sent to the developer-signed download; it cannot connect to them. */
-internal fun feedHelperSource(playBuild: Boolean): FeedHelperSource =
-    if (playBuild) FeedHelperSource.DOWNLOAD else FeedHelperSource.BUNDLED
 
 /** Continues a replacement with the bundled install only once Android has removed the old helper. */
 internal fun shouldInstallAfterReplacement(replaceRequested: Boolean, kind: ExpressiveFeedSetup.Kind): Boolean =

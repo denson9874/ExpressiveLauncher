@@ -17,19 +17,13 @@ public final class FeedCallerPolicyTest {
     }
 
     @Test
-    public void playLauncher_sameSignature_isAllowed() {
+    public void playEdition_isNotAcceptedEvenWithAMatchingSignature() {
+        // The Play edition and its name-based signer exemption were retired for FOSS-only builds.
+        final String playPackage = "com.denson9874.Expressive_Launcher_L3";
         assertThat(FeedCallerPolicy.isAllowedCaller(
-                new String[] {FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE},
-                PackageManager.SIGNATURE_MATCH,
-                FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE)).isTrue();
-    }
-
-    @Test
-    public void playLauncher_playSignatureMismatch_isStillAllowed() {
+                new String[] {playPackage}, PackageManager.SIGNATURE_MATCH, playPackage)).isFalse();
         assertThat(FeedCallerPolicy.isAllowedCaller(
-                new String[] {FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE},
-                PackageManager.SIGNATURE_NO_MATCH,
-                FeedCallerPolicy.PLAY_LAUNCHER_PACKAGE)).isTrue();
+                new String[] {playPackage}, PackageManager.SIGNATURE_NO_MATCH, playPackage)).isFalse();
     }
 
     @Test

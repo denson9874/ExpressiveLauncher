@@ -145,11 +145,10 @@ def bump_version(
             f"---\n\n"
             f"### 🛡️ Verification & Technical Details\n\n"
             f"- **Launcher Version**: `{next_name}` (Build `{next_code}`)\n"
-            f"- **Package ID**: `com.denson9874.Expressive_Launcher_L3`\n"
-            f"- **Developer Certificate SHA-256**: `2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7`\n\n"
+            f"- **Package ID**: `dev.launcher.expressive.l3`\n"
+            f"- **Release Certificate SHA-256**: `C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2`\n\n"
             f"🔗 **Links & Downloads**:\n"
             f"- **1-Click Add to Obtainium**: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)\n"
-            f"- **Companion Landing Page**: [https://denson9874.github.io/ExpressiveLauncher/feed/](https://denson9874.github.io/ExpressiveLauncher/feed/)\n"
             f"- **GitHub Repository**: [https://github.com/denson9874/ExpressiveLauncher](https://github.com/denson9874/ExpressiveLauncher)\n"
             f"- **Community & Feedback**: [@ExpressiveLauncherFeedback](https://t.me/ExpressiveLauncherFeedback)\n"
         )

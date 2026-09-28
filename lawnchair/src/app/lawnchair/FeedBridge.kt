@@ -24,7 +24,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Process
 import android.util.Log
-import app.lawnchair.feed.isFeedHelperSignerCompatible
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.util.SingletonHolder
 import app.lawnchair.util.ensureOnMainThread
@@ -156,15 +155,9 @@ class FeedBridge(private val context: Context) {
 
     private inner class SameSignatureBridgeInfo(packageName: String) : BridgeInfo(packageName, 0) {
         override fun isSigned(): Boolean {
-            // Direct distribution builds share the exact same signer. Only the Play build, re-signed
-            // by Play App Signing, may pair with the developer-signed companion, which rejects all
-            // other launchers.
-            return isFeedHelperSignerCompatible(
-                sameSigner = context.packageManager.checkSignatures(context.packageName, packageName) ==
-                    PackageManager.SIGNATURE_MATCH,
-                developerSigned = isDarylDensonSigned(context, packageName),
-                playBuild = BuildConfig.TARGET_PLAY_STORE,
-            )
+            // The companion is bundled in and signed with the launcher; it rejects any other signer.
+            return context.packageManager.checkSignatures(context.packageName, packageName) ==
+                PackageManager.SIGNATURE_MATCH
         }
     }
 
@@ -226,8 +219,6 @@ class FeedBridge(private val context: Context) {
         const val FIRST_PARTY_FEED_PACKAGE = "dev.launcher.expressive.feed"
         const val FIRST_PARTY_CONNECT_PERMISSION =
             "dev.launcher.expressive.feed.permission.CONNECT"
-        const val EXPRESSIVE_DEVELOPER_KEY_SHA256 =
-            "2aa9f1bf3dbd2d5bd27ad7516f1caf1b8a18e15f6d59858a37282784bb2acba7"
 
         private val expressiveIncompatibleProviders = setOf(
             "app.lawnchair.lawnfeed",
@@ -273,26 +264,6 @@ class FeedBridge(private val context: Context) {
         @JvmStatic
         fun useBridge(context: Context) = getInstance(context).resolveConnection()?.useBridge == true
 
-        @JvmStatic
-        fun isDarylDensonSigned(context: Context, packageName: String): Boolean {
-            return runCatching {
-                val info = if (Utilities.ATLEAST_P) {
-                    context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                } else {
-                    context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-                }
-                val signers = if (Utilities.ATLEAST_P) {
-                    info.signingInfo?.apkContentsSigners
-                } else {
-                    info.signatures
-                } ?: return false
-                val digest = java.security.MessageDigest.getInstance("SHA-256")
-                signers.any {
-                    val hex = digest.digest(it.toByteArray()).joinToString("") { b -> "%02x".format(b) }
-                    hex.equals(EXPRESSIVE_DEVELOPER_KEY_SHA256, ignoreCase = true)
-                }
-            }.getOrDefault(false)
-        }
     }
 
     init {

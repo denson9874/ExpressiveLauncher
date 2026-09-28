@@ -159,27 +159,6 @@ class ExpressiveFeedSetupTest {
     }
 
     @Test
-    fun signer_directBuildsRequireTheExactLauncherSigner() {
-        assertThat(isFeedHelperSignerCompatible(sameSigner = true, developerSigned = false, playBuild = false)).isTrue()
-        assertThat(isFeedHelperSignerCompatible(sameSigner = false, developerSigned = false, playBuild = false)).isFalse()
-        // The developer-signed GitHub companion rejects release-signed direct launchers, so it is not usable.
-        assertThat(isFeedHelperSignerCompatible(sameSigner = false, developerSigned = true, playBuild = false)).isFalse()
-    }
-
-    @Test
-    fun signer_playBuildsAlsoAcceptTheDeveloperSignedCompanion() {
-        assertThat(isFeedHelperSignerCompatible(sameSigner = false, developerSigned = true, playBuild = true)).isTrue()
-        assertThat(isFeedHelperSignerCompatible(sameSigner = true, developerSigned = false, playBuild = true)).isTrue()
-        assertThat(isFeedHelperSignerCompatible(sameSigner = false, developerSigned = false, playBuild = true)).isFalse()
-    }
-
-    @Test
-    fun source_directBuildsNeverFallBackToTheDeveloperSignedDownload() {
-        assertThat(feedHelperSource(playBuild = false)).isEqualTo(FeedHelperSource.BUNDLED)
-        assertThat(feedHelperSource(playBuild = true)).isEqualTo(FeedHelperSource.DOWNLOAD)
-    }
-
-    @Test
     fun replacement_installsTheBundledHelperOnlyAfterTheOldOneIsGone() {
         assertThat(shouldInstallAfterReplacement(replaceRequested = true, kind = Kind.HELPER_MISSING)).isTrue()
         assertThat(shouldInstallAfterReplacement(replaceRequested = true, kind = Kind.HELPER_INCOMPATIBLE)).isFalse()

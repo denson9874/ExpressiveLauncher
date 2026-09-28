@@ -20,9 +20,12 @@ is preserved. The switch is enabled by a completed, explicitly requested setup; 
 settings does not change the user's preference.
 
 New launcher versions include matching support updates. **Update Discover support** runs the same
-verified Android installation flow. An already newer compatible helper is retained. A disabled or
-differently signed helper requires attention in Android App info; Expressive does not silently
-uninstall it or bypass Android's signature rules.
+verified Android installation flow. An already newer compatible helper is retained. A disabled
+helper requires attention in Android App info. A differently signed helper (for example the retired
+standalone Google Play companion) cannot connect, so settings offer **Replace Discover support**:
+Android's own uninstall confirmation, then the bundled installation. Expressive never uninstalls it
+silently or bypasses Android's signature rules. Discover support is FOSS-only; the Google Play
+edition reports it as unavailable.
 
 ## Packaging and trust
 
@@ -39,8 +42,7 @@ Android remains responsible for permission and installation confirmation.
 From versionCode 10, Jenkins also requires the bundled support's identity, digest, version,
 same signing certificate and service-only manifest during package verification. The main Qa APK
 must remain non-debuggable. The small helper deliberately has its own debuggable application
-identity and accepts only same-signed Expressive callers through a signature permission and UID
-validation. Android lists it as **Expressive Feed** in installed applications, despite its lack of
+identity and accepts only same-signed Expressive callers, checked by signature and Binder UID. Android lists it as **Expressive Feed** in installed applications, despite its lack of
 launcher icon or separate UI.
 
 ## Google compatibility boundary
