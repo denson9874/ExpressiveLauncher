@@ -365,16 +365,20 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun showDefaultOptions(x: Float, y: Float) {
         val showWallpaperCarousel = "+carousel" in preferenceManager2.launcherPopupOrder.firstCached()
 
-        if (showWallpaperCarousel) {
+        if (useQpr2HomeMenu) {
+            // One QPR2 card whether or not the wallpaper row is enabled.
             show<LawnchairLauncher>(
                 this,
                 getPopupTarget(x, y),
                 OptionsPopupView.getOptions(this),
-                width = if (useQpr2HomeMenu) {
-                    homeMenuWidthPx(deviceProfile.deviceProperties.widthPx, resources.displayMetrics.density)
-                } else {
-                    0
-                },
+                width = homeMenuWidthPx(deviceProfile.deviceProperties.widthPx, resources.displayMetrics.density),
+                showWallpaperCarousel = showWallpaperCarousel,
+            )
+        } else if (showWallpaperCarousel) {
+            show<LawnchairLauncher>(
+                this,
+                getPopupTarget(x, y),
+                OptionsPopupView.getOptions(this),
             )
         } else {
             super.showDefaultOptions(x, y)
@@ -387,6 +391,7 @@ class LawnchairLauncher : QuickstepLauncher() {
         items: List<OptionItem>,
         shouldAddArrow: Boolean = false,
         width: Int = 0,
+        showWallpaperCarousel: Boolean = true,
     ): OptionsPopupView<T>? where T : Context?, T : ActivityContext? {
         if (activityContext == null) return null
 
@@ -400,6 +405,9 @@ class LawnchairLauncher : QuickstepLauncher() {
         ) as OptionsPopupView<T>
         popup.setTargetRect(targetRect)
         popup.setShouldAddArrow(shouldAddArrow)
+        if (!showWallpaperCarousel) {
+            popup.findViewById<View>(R.id.wallpaper_container).visibility = View.GONE
+        }
 
         for (item in items) {
             val view = popup.inflateAndAdd<DeepShortcutView>(
