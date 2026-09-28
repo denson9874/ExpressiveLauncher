@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expressive Feed Companion (retired)</title>
+  <title>Turn on Google Discover in Expressive</title>
   <style>
     :root {
       --bg: #0f141c;
@@ -169,29 +169,33 @@
 </head>
 <body>
   <div class="container">
-    <span class="header-badge">Retired</span>
-    <h1>Discover is built into Expressive</h1>
-    <p class="lead">The standalone Expressive Feed Companion is retired. Expressive Launcher is FOSS-only now, and every release includes its own Discover helper.</p>
+    <span class="header-badge">Built into Expressive</span>
+    <h1>Turn on Google Discover</h1>
+    <p class="lead">The standalone Expressive Feed Companion is retired. Discover support now ships inside every Expressive release, so there's nothing extra to download. If Expressive sent you here from <strong>Download Expressive Feed Companion</strong>, follow these steps instead.</p>
+
+    <div class="alert-box">
+      <strong>Installed the old companion?</strong>
+      Uninstall it first: Android <strong>Settings</strong> &gt; <strong>Apps</strong> &gt; <strong>Expressive Feed</strong> &gt; <strong>Uninstall</strong>. It was signed for the retired Google Play edition, can't connect to Expressive from GitHub, and blocks the built-in helper.
+    </div>
+
+    <div class="section-title">📲 Expressive 3.1.4 and earlier</div>
+    <ol class="step-list">
+      <li>Let Expressive install its helper: <strong>Settings</strong> &gt; <strong>Apps</strong> &gt; <strong>Special app access</strong> &gt; <strong>Install unknown apps</strong> &gt; <strong>Expressive Launcher L3</strong> &gt; <strong>Always allow</strong>. You can change this back afterwards.</li>
+      <li>In Expressive, open <strong>Home settings</strong> &gt; <strong>Google Discover</strong> and tap <strong>Set up Google Discover</strong>. Tap <strong>Install</strong> when Android asks.</li>
+      <li>If <strong>Google Play Protect</strong> shows <em>App scan recommended</em>, tap <strong>Scan app</strong>. When it reports <em>This app looks safe</em>, tap <strong>Install</strong>.</li>
+      <li><strong>Show Google Discover</strong> turns on. Swipe right from your first Home page.</li>
+    </ol>
+
+    <div class="section-title">✨ Coming in the next update</div>
+    <p style="font-size: 0.95rem;"><strong>Set up Google Discover</strong> is always shown and asks for install permission itself. If the old companion is installed, settings offer <strong>Replace Discover support</strong>, which removes it and installs the built-in helper.</p>
 
     <div class="download-card">
       <a href="https://github.com/denson9874/ExpressiveLauncher/releases" class="btn-download">
-        Get Expressive Launcher
+        Get the latest Expressive Launcher
       </a>
       <div class="alt-links">
         Or <a href="obtainium://add/https://github.com/denson9874/ExpressiveLauncher">add it to Obtainium</a> for automatic updates.
       </div>
-    </div>
-
-    <div class="section-title">📲 Turn on Google Discover</div>
-    <ol class="step-list">
-      <li>Open <strong>Expressive Launcher</strong> &gt; <strong>Home settings</strong> &gt; <strong>Google Discover</strong>.</li>
-      <li>Tap <strong>Set up</strong> and allow Expressive to install its Discover helper when Android asks.</li>
-      <li>Return to your Home screen and swipe right.</li>
-    </ol>
-
-    <div class="alert-box">
-      <strong>Installed the old companion?</strong>
-      It was signed for the retired Google Play edition and can't connect to Expressive from GitHub. In <strong>Home settings</strong> &gt; <strong>Google Discover</strong>, tap <strong>Replace Discover support</strong>, or uninstall <strong>Expressive Feed</strong> and tap <strong>Set up</strong>.
     </div>
 
     <footer>
