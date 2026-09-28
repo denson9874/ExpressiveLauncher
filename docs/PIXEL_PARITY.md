@@ -4,6 +4,27 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Folder shape, settings overflow and system hand-offs — 2026-09-27 (candidate 3.1.3 / code 45)
+
+XDA feedback (Pixel 11 Pro thread, posts 90743078 and 90743830) asked for folders that match the
+icon shape, visible overflow on settings pages, a warning before landing in Android settings, and
+removal of the "app grid" claim from Wallpaper & style.
+
+1. **Folder shape follows app icon shape (XDA-006).** Pixel folders take the system icon shape.
+   New `folder_shape_matches_icon_shape` preference (`auto`/`on`/`off`); `auto` follows the icon
+   shape only while the stored folder shape is still the shipped default, so pre-existing custom
+   folder shapes are never overridden. Picking a folder shape explicitly sets `off`.
+   `LawnchairThemeManager` renders `PreferenceManager2.effectiveFolderShape()`.
+2. **Settings scroll indicator (XDA-007).** `PreferenceColumn`/`PreferenceLazyColumn` draw a
+   passive thumb (hidden when content fits, inset below the top bar, RTL-aware).
+3. **Android settings hand-off glyph (XDA-008, XDA-013).** `PreferenceCategory(opensSystemSettings)`
+   and Notification dots show a Launch glyph announced as "Opens Android settings". The Wallpaper &
+   style subtitle no longer mentions an app grid.
+
+Validation: `FolderShapeMatchPolicyTest` (6), `ScrollIndicatorGeometryTest` (8),
+`SystemSettingsHandoffTest` (3); full app suite 291/291 and CI contracts 279/279 locally before
+Jenkins. No device screenshots were captured in this run.
+
 ## Jenkins adoption QA delivery — 2026-09-06
 
 Version **1.0.8 / code 9** was built and published through Jenkins from commit

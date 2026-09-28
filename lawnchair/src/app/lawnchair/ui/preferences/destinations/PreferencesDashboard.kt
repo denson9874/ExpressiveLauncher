@@ -175,6 +175,7 @@ fun PreferencesDashboard(
                 label = stringResource(R.string.styles_wallpaper_button_text),
                 description = stringResource(R.string.wallpaper_style_description),
                 iconResource = R.drawable.ic_palette,
+                opensSystemSettings = true,
                 onNavigate = { launchWallpaperAndStyle(context) },
             )
 

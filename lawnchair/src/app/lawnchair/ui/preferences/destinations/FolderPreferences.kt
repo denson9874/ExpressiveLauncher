@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import app.lawnchair.icons.shape.FolderShapeMatch
+import app.lawnchair.icons.shape.FolderShapeMatchPolicy
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.preferences2.preferenceManager2
@@ -51,19 +53,46 @@ fun FolderPreferences(
             val prefs = preferenceManager()
             val prefs2 = preferenceManager2()
             val folderIconShapeAdapter = prefs2.folderShape.getAdapter()
+            val appIconShape = prefs2.iconShape.getAdapter().state.value
+            val folderShapeMatch = prefs2.folderShapeMatchesIconShape.getAdapter()
+            val matchesAppIconShape = FolderShapeMatchPolicy.matchesIconShape(
+                match = folderShapeMatch.state.value,
+                folderShapeIsDefault = folderIconShapeAdapter.state.value.toString() ==
+                    prefs2.folderShape.defaultValue.toString(),
+            )
         val folderIconShapeSubtitle = iconShapeEntries(context)
             .firstOrNull { it.value == folderIconShapeAdapter.state.value }
             ?.label?.invoke()
             ?: stringResource(id = R.string.custom)
         PreferenceGroup(heading = stringResource(id = R.string.general_label)) {
-            NavigationActionPreference(
-                label = stringResource(id = R.string.folder_shape_label),
-                destination = GeneralIconShape(ShapeRoute.FOLDER_SHAPE),
-                subtitle = folderIconShapeSubtitle,
-                endWidget = {
-                    IconShapePreview(iconShape = folderIconShapeAdapter.state.value)
+            SwitchPreference(
+                checked = matchesAppIconShape,
+                onCheckedChange = {
+                    folderShapeMatch.onChange(if (it) FolderShapeMatch.ON else FolderShapeMatch.OFF)
                 },
+                label = stringResource(id = R.string.folder_shape_match_icon_label),
+                description = stringResource(id = R.string.folder_shape_match_icon_description),
             )
+            ExpandAndShrink(visible = !matchesAppIconShape) {
+                NavigationActionPreference(
+                    label = stringResource(id = R.string.folder_shape_label),
+                    destination = GeneralIconShape(ShapeRoute.FOLDER_SHAPE),
+                    subtitle = folderIconShapeSubtitle,
+                    endWidget = {
+                        IconShapePreview(iconShape = folderIconShapeAdapter.state.value)
+                    },
+                )
+            }
+            ExpandAndShrink(visible = matchesAppIconShape) {
+                NavigationActionPreference(
+                    label = stringResource(id = R.string.icon_shape_label),
+                    destination = GeneralIconShape(ShapeRoute.APP_SHAPE),
+                    subtitle = stringResource(id = R.string.folder_shape_following_app_icon),
+                    endWidget = {
+                        IconShapePreview(iconShape = appIconShape)
+                    },
+                )
+            }
             ColorPreference(preference = prefs2.folderColor)
             SliderPreference(
                 label = stringResource(id = R.string.folder_preview_bg_opacity_label),

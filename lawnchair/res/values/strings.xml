@@ -155,7 +155,7 @@
     <string name="x_and_y">%1$s &amp; %2$s</string>
 
     <string name="advanced">Advanced</string>
-    <string name="wallpaper_style_description" tools:ignore="MissingTranslation">Wallpaper, colors, themed icons, and app grid</string>
+    <string name="wallpaper_style_description" tools:ignore="MissingTranslation">Opens Android Wallpaper &amp; style for wallpaper, colors and themed icons</string>
     <string name="advanced_settings_description" tools:ignore="MissingTranslation">Dock, folders, gestures, and backup</string>
     <string name="wallpaper_picker_unavailable" tools:ignore="MissingTranslation">No wallpaper and style app is available</string>
 
@@ -310,6 +310,10 @@
     <string name="folder_shape_label">Folder shape</string>
     <string name="folder_label">Folder</string>
     <string name="app_icon_shape_label">App</string>
+    <string name="opens_android_settings">Opens Android settings</string>
+    <string name="folder_shape_match_icon_label">Match app icon shape</string>
+    <string name="folder_shape_match_icon_description">Folders use the same shape as your app icons</string>
+    <string name="folder_shape_following_app_icon">Folders follow this shape</string>
 
     <string name="gesturenavcontract_label">Use GestureNavContract API</string>
     <string name="gesturenavcontract_description">Support Android\'s enhanced animations when using gesture navigation</string>

@@ -1,0 +1,4 @@
+1. Folders match your app icons (XDA-006): new Folders > Match app icon shape toggle. Folders follow your icon shape automatically until you pick a folder shape of your own, so existing custom folder shapes are kept.
+2. Scroll hints in Settings (XDA-007): long settings pages now show a slim scroll thumb so you can tell more options sit below the fold. Pages that fit show nothing.
+3. Clear hand-offs to Android settings (XDA-008): rows that leave Expressive, such as Wallpaper & style and Notification dots, now show an opens-elsewhere icon that TalkBack announces as Opens Android settings.
+4. Honest Wallpaper & style subtitle (XDA-013): the row no longer promises an app grid it does not control and names the Android destination instead.

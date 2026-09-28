@@ -39,10 +39,15 @@ fun PreferenceColumn(
             horizontalAlignment = horizontalAlignment,
             modifier = Modifier
                 .fillMaxHeight()
-                .addIf(scrollState != null) {
-                    this
-                        .verticalScroll(scrollState!!)
-                }
+                .then(
+                    if (scrollState != null) {
+                        Modifier
+                            .scrollIndicator(scrollState, contentPadding)
+                            .verticalScroll(scrollState)
+                    } else {
+                        Modifier
+                    },
+                )
                 .padding(contentPadding)
                 .padding(top = 8.dp, bottom = 16.dp),
             content = content,
@@ -73,7 +78,8 @@ fun PreferenceLazyColumn(
             modifier = Modifier
                 .addIf(!isChild) {
                     fillMaxHeight()
-                },
+                }
+                .then(if (isChild) Modifier else Modifier.scrollIndicator(state, contentPadding)),
             contentPadding = contentPadding,
             state = state,
             content = content,

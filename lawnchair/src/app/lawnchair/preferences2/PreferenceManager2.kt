@@ -35,6 +35,8 @@ import app.lawnchair.gestures.handlers.SleepMode
 import app.lawnchair.gestures.type.GestureType
 import app.lawnchair.hotseat.HotseatMode
 import app.lawnchair.icons.CustomAdaptiveIconDrawable
+import app.lawnchair.icons.shape.FolderShapeMatch
+import app.lawnchair.icons.shape.FolderShapeMatchPolicy
 import app.lawnchair.icons.shape.IconShape
 import app.lawnchair.icons.shape.IconShapeManager
 import app.lawnchair.predictions.PredictionMode
@@ -164,8 +166,28 @@ class PreferenceManager2 @Inject constructor(
         },
         save = { it.toString() },
         onSet = {
+            // Picking a folder shape is an explicit choice: stop borrowing the app icon shape.
+            folderShapeMatchesIconShape.setBlocking(FolderShapeMatch.OFF)
             reloadHelper.reloadIcons()
         },
+    )
+
+    val folderShapeMatchesIconShape = preference(
+        key = stringPreferencesKey(name = "folder_shape_matches_icon_shape"),
+        defaultValue = FolderShapeMatch.AUTO,
+        parse = { FolderShapeMatch.fromKey(it) },
+        save = { it.key },
+        onSet = {
+            reloadHelper.reloadIcons()
+        },
+    )
+
+    /** The shape folders actually render with, honouring [folderShapeMatchesIconShape]. */
+    fun effectiveFolderShape(): IconShape = FolderShapeMatchPolicy.resolve(
+        match = folderShapeMatchesIconShape.firstCached(this),
+        iconShape = iconShape.firstCached(this),
+        folderShape = folderShape.firstCached(this),
+        defaultFolderShape = folderShape.defaultValue,
     )
 
     val customIconShape = preference(

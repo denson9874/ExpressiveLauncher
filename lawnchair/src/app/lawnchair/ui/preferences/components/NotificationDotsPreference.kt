@@ -86,7 +86,7 @@ fun NotificationDotsPreference(
                 )
             }
         } else {
-            null
+            { SystemSettingsHandoffIcon() }
         },
         onClick = {
             if (showWarning) {

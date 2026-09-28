@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import app.lawnchair.ui.preferences.components.SystemSettingsHandoff
+import app.lawnchair.ui.preferences.components.SystemSettingsHandoffIcon
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.preview.PreviewLawnchair
@@ -63,6 +65,7 @@ fun PreferenceCategory(
     isSelected: Boolean = false,
     description: String? = null,
     showProBadge: Boolean = false,
+    opensSystemSettings: Boolean = false,
     endWidget: (@Composable () -> Unit)? = null,
 ) {
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
@@ -127,7 +130,11 @@ fun PreferenceCategory(
                 )
             }
         },
-        endWidget = endWidget,
+        endWidget = if (SystemSettingsHandoff.showsIndicator(opensSystemSettings, endWidget != null)) {
+            { SystemSettingsHandoffIcon() }
+        } else {
+            endWidget
+        },
         onClick = {
             mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
             onNavigate()
