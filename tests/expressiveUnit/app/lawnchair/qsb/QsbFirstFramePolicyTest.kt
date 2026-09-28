@@ -49,7 +49,8 @@ class QsbFirstFramePolicyTest {
         val resources = ApplicationProvider.getApplicationContext<Application>().resources
 
         assertThat(resources.getBoolean(R.bool.config_default_show_hotseat)).isTrue()
-        assertThat(resources.getString(R.string.config_default_hotseat_mode)).isEqualTo("lawnchair")
+        // Expressive hosts Google's own search widget, as Pixel Launcher does (QPR2 parity).
+        assertThat(resources.getString(R.string.config_default_hotseat_mode)).isEqualTo("google_search")
         assertThat(resources.getString(R.string.config_default_qsb_search_provider_id))
             .isEqualTo("google")
     }

@@ -3,4 +3,7 @@
     <!-- Expressive mirrors Pixel Launcher's first-run behavior: Discover is available by default.
          This flavor override leaves the upstream Lawnchair default and explicit user choices alone. -->
     <bool name="config_default_enable_feed">true</bool>
+    <!-- Host Google's own search widget in the dock, as Pixel Launcher does, so its buttons (Lens,
+         AI Mode) follow the Google app. Without the Google app, Hotseat falls back to Expressive's bar. -->
+    <string name="config_default_hotseat_mode" translatable="false">google_search</string>
 </resources>
