@@ -7,7 +7,7 @@
     <string name="expressive_feed_swipe_right">Swipe right from your first Home page to open Discover.</string>
     <string name="expressive_feed_swipe_left">Swipe left from your first Home page to open Discover.</string>
     <string name="expressive_feed_setup">Set up Google Discover</string>
-    <string name="expressive_feed_setup_description">Install the included background support to see Discover inside Expressive. There is no separate feed app to open.</string>
+    <string name="expressive_feed_setup_description">Installs the Discover helper included with Expressive. Android may ask you to allow installs from Expressive. If Play Protect offers to scan it, choose Scan app, then Install.</string>
     <string name="expressive_feed_update">Update Discover support</string>
     <string name="expressive_feed_update_description">An updated background component is included with this version of Expressive.</string>
     <string name="expressive_feed_preparing">Preparing Google Discover…</string>
@@ -25,6 +25,6 @@
     <string name="expressive_feed_setup_unavailable">Discover setup is unavailable in this build.</string>
     <string name="expressive_feed_retry">Try setup again</string>
     <string name="expressive_feed_setup_failed">Google Discover could not be set up. Try again; your current Home settings are preserved.</string>
-    <string name="expressive_feed_permission_needed">Allow Expressive to install apps to finish Discover setup. You can try again when ready.</string>
+    <string name="expressive_feed_permission_needed">To finish Discover setup, set Expressive to Always allow in Install unknown apps (Ask every time isn\'t enough), then try again.</string>
     <string name="expressive_feed_setup_cancelled">Setup was not completed. You can try again whenever you are ready.</string>
 </resources>
