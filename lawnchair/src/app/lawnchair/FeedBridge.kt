@@ -24,6 +24,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Process
 import android.util.Log
+import app.lawnchair.feed.isFeedHelperSignerCompatible
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.util.SingletonHolder
 import app.lawnchair.util.ensureOnMainThread
@@ -155,14 +156,15 @@ class FeedBridge(private val context: Context) {
 
     private inner class SameSignatureBridgeInfo(packageName: String) : BridgeInfo(packageName, 0) {
         override fun isSigned(): Boolean {
-            // Direct distribution builds share the exact same signer.
-            if (context.packageManager.checkSignatures(context.packageName, packageName) ==
-                PackageManager.SIGNATURE_MATCH) {
-                return true
-            }
-            // For Google Play-distributed builds where the launcher was re-signed by Play App Signing,
-            // verify that the companion is signed by the verified Expressive Developer certificate.
-            return isDarylDensonSigned(context, packageName)
+            // Direct distribution builds share the exact same signer. Only the Play build, re-signed
+            // by Play App Signing, may pair with the developer-signed companion, which rejects all
+            // other launchers.
+            return isFeedHelperSignerCompatible(
+                sameSigner = context.packageManager.checkSignatures(context.packageName, packageName) ==
+                    PackageManager.SIGNATURE_MATCH,
+                developerSigned = isDarylDensonSigned(context, packageName),
+                playBuild = BuildConfig.TARGET_PLAY_STORE,
+            )
         }
     }
 

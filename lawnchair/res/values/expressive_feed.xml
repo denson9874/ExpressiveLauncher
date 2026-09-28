@@ -18,7 +18,8 @@
     <string name="expressive_feed_support_enable">Enable Discover support</string>
     <string name="expressive_feed_support_disabled">The background support is disabled. Enable it in App info to use Discover.</string>
     <string name="expressive_feed_support_attention">Review Discover support</string>
-    <string name="expressive_feed_support_incompatible">The installed support belongs to a different version of Expressive. Remove it in App info, then return here to set it up again.</string>
+    <string name="expressive_feed_support_replace">Replace Discover support</string>
+    <string name="expressive_feed_support_incompatible">The installed Expressive Feed was made for a different edition of Expressive, so Discover can\'t connect. Replace it with the version included in this app.</string>
     <string name="expressive_feed_support_unavailable">Discover support is installed but unavailable. Check that it is enabled in App info.</string>
     <string name="expressive_feed_setup_unavailable">Discover setup is unavailable in this build.</string>
     <string name="expressive_feed_retry">Try setup again</string>

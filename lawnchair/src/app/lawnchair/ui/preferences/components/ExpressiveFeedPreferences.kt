@@ -31,6 +31,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.lawnchair.FeedBridge
 import app.lawnchair.feed.ExpressiveFeedSetup
 import app.lawnchair.feed.ExpressiveFeedSetup.Kind
+import app.lawnchair.feed.FeedHelperSource
+import app.lawnchair.feed.feedHelperSource
+import app.lawnchair.feed.shouldInstallAfterReplacement
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.preferences2.preferenceManager2
@@ -147,6 +150,29 @@ fun ExpressiveFeedPreferences() {
             message = R.string.expressive_feed_setup_failed
         }
     }
+    var replaceRequested by rememberSaveable { mutableStateOf(false) }
+    val remover = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        scope.launch {
+            // Uninstall result codes are unreliable; continue only if Android actually removed it.
+            val current = withContext(Dispatchers.IO) { ExpressiveFeedSetup.inspect(context) }
+            status = current
+            val continueInstall = shouldInstallAfterReplacement(replaceRequested, current.kind) &&
+                feedHelperSource(com.android.launcher3.BuildConfig.TARGET_PLAY_STORE) == FeedHelperSource.BUNDLED
+            replaceRequested = false
+            if (continueInstall) beginSetup() else refresh++
+        }
+    }
+    val replaceHelper: () -> Unit = {
+        replaceRequested = true
+        message = null
+        try {
+            remover.launch(ExpressiveFeedSetup.uninstallIntent())
+        } catch (error: RuntimeException) {
+            Log.w("ExpressiveFeedSetup", "Unable to open the uninstall confirmation", error)
+            replaceRequested = false
+            message = R.string.expressive_feed_setup_failed
+        }
+    }
     val openDetails: (String) -> Unit = { packageName ->
         try {
             context.startActivity(ExpressiveFeedSetup.appDetailsIntent(packageName))
@@ -186,7 +212,7 @@ fun ExpressiveFeedPreferences() {
         when (kind) {
             null -> FeedSetupAction(R.string.expressive_feed_checking, enabled = false)
             Kind.HELPER_MISSING, Kind.UPDATE_AVAILABLE -> {
-                if (com.android.launcher3.BuildConfig.TARGET_PLAY_STORE || !ExpressiveFeedSetup.canRequestPackageInstalls(context)) {
+                if (feedHelperSource(com.android.launcher3.BuildConfig.TARGET_PLAY_STORE) == FeedHelperSource.DOWNLOAD) {
                     FeedSetupAction(
                         title = R.string.expressive_feed_companion_download,
                         description = R.string.expressive_feed_companion_download_desc,
@@ -247,9 +273,11 @@ fun ExpressiveFeedPreferences() {
             Kind.HELPER_DISABLED -> FeedSetupAction(R.string.expressive_feed_support_enable, R.string.expressive_feed_support_disabled) {
                 openDetails(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
             }
-            Kind.HELPER_INCOMPATIBLE -> FeedSetupAction(R.string.expressive_feed_support_attention, R.string.expressive_feed_support_incompatible) {
-                openDetails(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
-            }
+            Kind.HELPER_INCOMPATIBLE -> FeedSetupAction(
+                title = R.string.expressive_feed_support_replace,
+                description = R.string.expressive_feed_support_incompatible,
+                onClick = replaceHelper,
+            )
             Kind.HELPER_UNAVAILABLE -> FeedSetupAction(R.string.expressive_feed_support_attention, R.string.expressive_feed_support_unavailable) {
                 openDetails(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
             }
