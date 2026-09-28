@@ -114,6 +114,11 @@ private fun AppPredictionsFeature(
             description = stringResource(R.string.show_suggested_apps_in_drawer_description),
         )
         SwitchPreference(
+            adapter = prefs2.showSuggestedAppsInDock.getAdapter(),
+            label = stringResource(R.string.show_suggested_apps_in_dock),
+            description = stringResource(R.string.show_suggested_apps_in_dock_description),
+        )
+        SwitchPreference(
             adapter = prioritizeRecentlyInstalledAdapter,
             label = stringResource(R.string.prioritize_recently_installed_apps),
             description = stringResource(R.string.prioritize_recently_installed_apps_description),

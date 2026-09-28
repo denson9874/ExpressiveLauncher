@@ -46,6 +46,7 @@ import com.android.launcher3.views.ActivityContext;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.theme.StatusBarBackgroundPolicy;
 import app.lawnchair.util.ViewExtensionsKt;
 
 /**
@@ -93,6 +94,13 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
     private final View mRoot;
     private final StatefulContainer mContainer;
     private boolean mHideSysUiScrim;
+
+    // Lawnchair: optional solid background behind the status bar (independent of Top shadow).
+    private final Paint mSolidStatusBarPaint = new Paint();
+    private boolean mSolidStatusBar;
+    private boolean mStatusBarShown = true;
+    private int mTopInset;
+    private int mWidth;
     private boolean mSkipScrimAnimationForTest = false;
 
     private boolean mAnimateScrimOnNextDraw = false;
@@ -131,6 +139,23 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
                     mRoot.invalidate();
                     return null;
                 });
+        mSolidStatusBarPaint.setColor(StatusBarBackgroundPolicy.SOLID_BACKGROUND_COLOR);
+        PreferenceExtensionsKt.onEach(
+                preferenceManager2.getSolidStatusBarBackground(),
+                ViewExtensionsKt.getViewAttachedScope(mRoot),
+                (solid) -> {
+                    mSolidStatusBar = solid;
+                    mRoot.invalidate();
+                    return null;
+                });
+        PreferenceExtensionsKt.onEach(
+                preferenceManager2.getShowStatusBar(),
+                ViewExtensionsKt.getViewAttachedScope(mRoot),
+                (shown) -> {
+                    mStatusBarShown = shown;
+                    mRoot.invalidate();
+                    return null;
+                });
     }
 
     /**
@@ -139,7 +164,9 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
     public void draw(Canvas canvas) {
         if (canvas == null)
             return;
-        if (!mHideSysUiScrim) {
+        int solidHeight = StatusBarBackgroundPolicy.solidBackgroundHeight(
+                mSolidStatusBar, mStatusBarShown, mTopInset);
+        if (!mHideSysUiScrim || solidHeight > 0) {
             if (mSysUiProgress.value <= 0) {
                 mAnimateScrimOnNextDraw = false;
                 return;
@@ -156,10 +183,12 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
                 mAnimateScrimOnNextDraw = false;
             }
 
-            if (mDrawTopScrim && mTopMaskBitmap != null) {
+            if (solidHeight > 0) {
+                canvas.drawRect(0, 0, mWidth, solidHeight, mSolidStatusBarPaint);
+            } else if (mDrawTopScrim && mTopMaskBitmap != null && !mHideSysUiScrim) {
                 canvas.drawBitmap(mTopMaskBitmap, null, mTopMaskRect, mTopMaskPaint);
             }
-            if (mDrawBottomScrim && mBottomMaskBitmap != null) {
+            if (mDrawBottomScrim && mBottomMaskBitmap != null && !mHideSysUiScrim) {
                 canvas.drawBitmap(mBottomMaskBitmap, null, mBottomMaskRect, mBottomMaskPaint);
             }
         }
@@ -189,6 +218,7 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
     public void onInsetsChanged(Rect insets) {
         DeviceProfile dp = mContainer.getDeviceProfile();
         mDrawTopScrim = insets.top > 0;
+        mTopInset = insets.top;
         mDrawBottomScrim = !dp.isVerticalBarLayout() && !dp.getDeviceProperties().isGestureMode() && !dp.isTaskbarPresent;
     }
 
@@ -206,6 +236,7 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
      * Set the width and height of the view being scrimmed
      */
     public void setSize(int w, int h) {
+        mWidth = w;
         mTopMaskRect.set(0, 0, w, mTopMaskHeight);
         mBottomMaskRect.set(0, h - mBottomMaskHeight, w, h);
     }
@@ -221,7 +252,7 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
 
     private void reapplySysUiAlpha() {
         reapplySysUiAlphaNoInvalidate();
-        if (!mHideSysUiScrim) {
+        if (!mHideSysUiScrim || mSolidStatusBar) {
             mRoot.invalidate();
         }
     }
@@ -231,6 +262,7 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
         if (mSkipScrimAnimationForTest) factor = 1f;
         mBottomMaskPaint.setAlpha(Math.round(MAX_SYSUI_SCRIM_ALPHA * factor));
         mTopMaskPaint.setAlpha(Math.round(MAX_SYSUI_SCRIM_ALPHA * factor));
+        mSolidStatusBarPaint.setAlpha(Math.round(MAX_SYSUI_SCRIM_ALPHA * factor));
     }
 
     private Bitmap createDitheredAlphaMask(int height, @ColorInt int[] colors, float[] positions) {

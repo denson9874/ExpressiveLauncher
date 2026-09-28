@@ -394,6 +394,11 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.recreate() },
     )
 
+    val solidStatusBarBackground = preference(
+        key = booleanPreferencesKey(name = "solid_status_bar_background"),
+        defaultValue = context.resources.getBoolean(R.bool.config_default_solid_status_bar_background),
+    )
+
     val showTopShadow = preference(
         key = booleanPreferencesKey(name = "show_top_shadow"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_show_top_shadow),
@@ -487,6 +492,11 @@ class PreferenceManager2 @Inject constructor(
         key = booleanPreferencesKey(name = "show_suggested_apps_at_drawer_top"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_show_suggested_apps_at_drawer_top),
         onSet = { reloadHelper.recreate() },
+    )
+
+    val showSuggestedAppsInDock = preference(
+        key = booleanPreferencesKey(name = "show_suggested_apps_in_dock"),
+        defaultValue = context.resources.getBoolean(R.bool.config_default_show_suggested_apps_in_dock),
     )
 
     val prioritizeRecentlyInstalledApps = preference(
