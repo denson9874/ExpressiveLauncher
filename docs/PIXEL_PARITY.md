@@ -4,6 +4,38 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Discover setup, Google dock search and QPR2 home menu — 2026-09-28 (candidate 3.1.5 / code 47)
+
+Reference: Pixel Launcher on the Android 17 QPR2 Beta 5 emulator (CP41.260828.004.A7, Google app
+17.46), side by side with Expressive, plus the user's Pixel 11 Pro XL screenshots.
+
+1. **Google Discover.** Pixel reaches Discover through Google's privileged launcher client.
+   Expressive relies on its bundled, same-signed, debuggable helper. Direct builds without install
+   permission had linked to the standalone Play-signed companion, which rejects GitHub builds
+   ("Only the same-signed Expressive Launcher may connect"). The helper is now FOSS-only and trusts
+   the same signer only. **Set up Google Discover** is always shown, and **Replace Discover support**
+   uninstalls an incompatible helper through Android's confirmation, then installs the bundled one.
+   On Android 17 QPR2, *Install unknown apps → Ask every time* reports deny, and Play Protect shows
+   *App scan recommended* for the helper. The setup copy names both.
+2. **Google dock search.** Pixel hosts `GoogleSearchWidgetProvider` from the Google app in the
+   dock. Expressive now defaults to the Google widget mode (`config_default_hotseat_mode`), keeping
+   explicit user choices. Both Google search widgets now declare an optional customization
+   activity (`WIDGET_FEATURE_CONFIGURATION_OPTIONAL`), so the AOSP lookup skipped them and bound
+   the home-screen-only Premium widget, which renders empty. `pickGoogleDockSearchWidget()` prefers
+   Pixel's widget, then `SearchWidgetProvider`, and never falls back to a non-search-box widget.
+   Binding without extra options renders search, voice and Lens; AI Mode comes from the Google app.
+3. **Home long-press menu.** Pixel's QPR2 menu is one wallpaper-tinted card (Wallpaper & style,
+   Widgets, Apps list, Home settings, with filled icons and a gear) about 78% of the phone width,
+   topped on the user's device by the current and recent wallpapers. Expressive now draws the
+   popup as one card using `system_accent1_100`/`system_accent1_800` and 28dp corners, at
+   `homeMenuWidthPx()` (78% of the width, capped at 360dp), with filled icons. The carousel shows
+   the current home wallpaper plus up to three recent ones, with no lock card or chips. The card
+   stays the same when the carousel is disabled. Applies to the Expressive product only.
+
+Validation: `ExpressiveFeedSetupTest`, `GoogleDockSearchWidgetPolicyTest` (5), `HomeMenuQpr2StyleTest`
+(4), `FeedCallerPolicyTest` (6); full app unit suite 316/316 and CI contracts 279/279 locally before
+Jenkins. Emulator checks as listed; AI Mode not checked (emulator signed out).
+
 ## Dock suggestions, solid status bar and Dock access — 2026-09-28 (candidate 3.1.4 / code 46)
 
 XDA feedback (Pixel 11 Pro thread, post 90743078) reported a dock that fills with unexpected apps
