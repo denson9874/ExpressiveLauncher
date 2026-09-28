@@ -67,8 +67,14 @@ object LauncherOptionsPopup {
 
         val wallpaperResString =
             if (Utilities.existsStyleWallpapers(launcher)) R.string.styles_wallpaper_button_text else R.string.wallpapers
-        val wallpaperResDrawable =
-            if (Utilities.existsStyleWallpapers(launcher)) R.drawable.ic_palette else R.drawable.ic_wallpaper
+        val wallpaperResDrawable = when {
+            useQpr2HomeMenu -> R.drawable.ic_home_menu_palette
+            Utilities.existsStyleWallpapers(launcher) -> R.drawable.ic_palette
+            else -> R.drawable.ic_wallpaper
+        }
+        val widgetsDrawable = if (useQpr2HomeMenu) R.drawable.ic_home_menu_widgets else SystemShortcut.Widgets.getDrawableId()
+        val allAppsDrawable = if (useQpr2HomeMenu) R.drawable.ic_home_menu_apps else R.drawable.ic_apps
+        val homeSettingsDrawable = if (useQpr2HomeMenu) R.drawable.ic_home_menu_settings else R.drawable.ic_home_screen
 
         val optionsList = mapOf(
             "lock" to OptionItem(
@@ -95,7 +101,7 @@ object LauncherOptionsPopup {
             "all_apps" to OptionItem(
                 launcher,
                 R.string.all_apps_button_label,
-                R.drawable.ic_apps,
+                allAppsDrawable,
                 LauncherEvent.LAUNCHER_ALL_APPS_TAP_OR_LONGPRESS,
                 onStartAllApps,
             ),
@@ -109,21 +115,21 @@ object LauncherOptionsPopup {
             "widgets" to OptionItem(
                 launcher,
                 R.string.widget_button_text,
-                SystemShortcut.Widgets.getDrawableId(),
+                widgetsDrawable,
                 LauncherEvent.LAUNCHER_WIDGETSTRAY_BUTTON_TAP_OR_LONGPRESS,
                 onStartWidgetsMenu,
             ),
             "enterAllApps" to OptionItem(
                 launcher,
                 R.string.all_apps_button_label,
-                R.drawable.ic_apps,
+                allAppsDrawable,
                 LauncherEvent.LAUNCHER_ALL_APPS_TAP_OR_LONGPRESS,
                 onStartAllApps,
             ),
             "home_settings" to OptionItem(
                 launcher,
                 R.string.settings_button_text,
-                R.drawable.ic_home_screen,
+                homeSettingsDrawable,
                 LauncherEvent.LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS,
                 onStartHomeSettings,
             ),

@@ -111,8 +111,14 @@ class WallpaperCarouselView @JvmOverloads constructor(
     private fun displayWallpapers(savedWallpapers: List<Wallpaper>) {
         val items = buildList {
             add(CarouselItem.Current(WallpaperManager.FLAG_SYSTEM, R.string.wallpaper_carousel_home))
-            add(CarouselItem.Current(WallpaperManager.FLAG_LOCK, R.string.wallpaper_carousel_lock))
-            savedWallpapers.take(MAX_SAVED_PREVIEWS).forEach { add(CarouselItem.Saved(it)) }
+            if (useQpr2HomeMenu) {
+                // QPR2 shows the current home wallpaper followed by recent ones, with no lock card.
+                val plan = homeMenuCarouselPlan(savedWallpapers.size)
+                savedWallpapers.take(plan.savedPreviews).forEach { add(CarouselItem.Saved(it)) }
+            } else {
+                add(CarouselItem.Current(WallpaperManager.FLAG_LOCK, R.string.wallpaper_carousel_lock))
+                savedWallpapers.take(MAX_SAVED_PREVIEWS).forEach { add(CarouselItem.Saved(it)) }
+            }
         }
         displayedItems = items
         currentItemIndex = currentItemIndex.coerceIn(0, items.lastIndex)
@@ -153,7 +159,7 @@ class WallpaperCarouselView @JvmOverloads constructor(
             is CarouselItem.Current -> context.getString(item.labelResId)
             is CarouselItem.Saved -> context.getString(
                 R.string.wallpaper_carousel_recent,
-                index - CURRENT_PREVIEW_COUNT + 1,
+                index - displayedItems.count { it is CarouselItem.Current } + 1,
             )
         }
         return CardView(context).apply {
@@ -206,7 +212,8 @@ class WallpaperCarouselView @JvmOverloads constructor(
             imageView,
             FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
         )
-        addPreviewLabel(cardView, item.labelResId)
+        // QPR2 previews carry no visible chip; the card's content description still names it.
+        if (!useQpr2HomeMenu) addPreviewLabel(cardView, item.labelResId)
         if (index == currentItemIndex) addIconFrameToCenter(cardView)
 
         // Both getWallpaperColors() and live-thumbnail loading may use IPC/package I/O. Android's
@@ -500,7 +507,6 @@ class WallpaperCarouselView @JvmOverloads constructor(
 
     private companion object {
         const val TAG = "WallpaperCarouselView"
-        const val CURRENT_PREVIEW_COUNT = 2
         const val MAX_SAVED_PREVIEWS = 3
         const val WIDTH_ANIMATION_DURATION_MILLIS = 300L
     }

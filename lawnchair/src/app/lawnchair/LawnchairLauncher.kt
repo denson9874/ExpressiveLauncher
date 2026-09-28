@@ -47,6 +47,8 @@ import app.lawnchair.root.RootNotAvailableException
 import app.lawnchair.theme.ThemeProvider
 import app.lawnchair.ui.popup.LauncherOptionsPopup
 import app.lawnchair.ui.popup.LawnchairShortcut
+import app.lawnchair.ui.popup.homeMenuWidthPx
+import app.lawnchair.ui.popup.useQpr2HomeMenu
 import app.lawnchair.util.getThemedIconPacksInstalled
 import app.lawnchair.util.unsafeLazy
 import app.lawnchair.views.LawnchairFloatingSurfaceView
@@ -368,6 +370,11 @@ class LawnchairLauncher : QuickstepLauncher() {
                 this,
                 getPopupTarget(x, y),
                 OptionsPopupView.getOptions(this),
+                width = if (useQpr2HomeMenu) {
+                    homeMenuWidthPx(deviceProfile.deviceProperties.widthPx, resources.displayMetrics.density)
+                } else {
+                    0
+                },
             )
         } else {
             super.showDefaultOptions(x, y)
