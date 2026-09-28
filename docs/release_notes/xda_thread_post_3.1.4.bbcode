@@ -1,0 +1,106 @@
+[CENTER][SIZE=6][B]Expressive Launcher 3.1.4 QA — Quiet Dock, Solid Top[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Welcome to Expressive Launcher 3.1.4 (Build 46)! This build is about the edges of your Home screen. The dock stops filling empty spots with apps you didn't ask for, the status bar can get a solid background, and Dock settings are easier to find. All three come from the Pixel 11 Pro XDA thread. Thank you, nutzfreelance, for the detailed list.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+1. [B]Suggestions in dock toggle (XDA-004)[/B]
+[LIST]
+[*]New [B]Suggestions in dock[/B] switch in [B]Home screen[/B], [B]Dock[/B] and [B]Suggestions[/B] settings. It works like Pixel's "suggestions on Home screen" option.
+[*]Turn it off and empty dock spots stay empty. Predicted apps leave the dock right away, with no restart.
+[*]Turning it off only hides suggestions. It never restores an old dock backup or moves your pinned apps, and switching it back on shows the latest suggestions immediately.
+[*]App drawer suggestions have their own switch and are not affected.
+
+[/LIST]
+2. [B]Solid status bar background (XDA-010)[/B]
+[LIST]
+[*]New [B]Home screen > Status bar > Solid status bar background[/B] switch paints a black bar behind the clock and icons on Home.
+[*]It covers exactly the status bar area and is only drawn while the status bar is shown. It fades out with the rest of the Home chrome when you open the app drawer or Recents.
+[*]While it is on, status bar icons stay light so they remain readable on the dark bar, even with a light wallpaper or [I]Dark status bar icons[/I] turned on.
+[*]Android controls the status bar's height, so a Home app can't change it. The setting says so rather than promise a height control.
+
+[/LIST]
+3. [B]Dock settings from Home screen settings (XDA-012)[/B]
+[LIST]
+[*][B]Home screen[/B] settings now has a [B]Dock[/B] row that opens the full Dock page (search bar, icon count, background and suggestions), so you don't have to know it sits under [B]Advanced[/B].
+[*]The dashboard's Advanced section is unchanged, so existing shortcuts and muscle memory still work.
+
+[/LIST]
+Also confirmed for [B]XDA-005[/B]: the app drawer icon requested for the dock has shipped since 2.0.10. Use [B]Home screen > Add app drawer icon[/B] or [B]Dock > Add app drawer icon[/B].
+
+[HR][/HR]
+
+[SIZE=5][B]💎 Expressive Pro & Free Core[/B][/SIZE]
+
+[LIST]
+[*][B]Free Core[/B]: always supported, ad-free and privacy-first. Both new switches are part of Free Core.
+[*][B]Expressive Pro ($4.99 one-time)[/B]: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
+
+[/LIST]
+> [I]Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.[/I]
+
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+> [B]Q:[/B] [I]Why did the dock start leaving seats empty?[/I]
+> [B]A:[/B] [I]It finally learned that "suggested guest" and "invited guest" are two different lists.[/I]
+
+> The status bar asked for a taller hat. Android said no, so we got it a nice black one instead.
+
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+> [I]I sit at the top in the darkest attire. I'm exactly as tall as the clock needs, no higher. I vanish in drawers and I fade out in Recents. Turn me on for contrast and your icons stay decent. What am I?[/I]
+
+[SPOILER="Tap to reveal answer"]<b>The new solid status bar background!</b>[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🧪 Validation[/B][/SIZE]
+
+[LIST]
+[*]App unit suite: 306 tests passing, including 15 new regression tests for dock suggestions, the solid status bar background and the Dock link.
+[*]CI pipeline contract tests: 279 passing.
+[*]Jenkins handled the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Version[/B]: [ICODE]3.1.4[/ICODE] (Build [ICODE]46[/ICODE]), QA channel
+[*][B]Package[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Source revision[/B]: [ICODE]9b010b50bd36061f9feeb59f2870c56959c37aa4[/ICODE]
+[*][B]APK SHA-256[/B]: [ICODE]8673e31a1aecf42a565387da57232e8b49d3450ae403a3b05b8775f47a1c8a07[/ICODE] (24.1 MB)
+[*]Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
+[*][B]This release[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.4-46"]qa-v3.1.4-46[/URL]
+[*][B]Direct APK[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v3.1.4-46/ExpressiveLauncherL3-3.1.4-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk"]ExpressiveLauncherL3-3.1.4 signed APK[/URL]
+[*][B]All releases[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases"]GitHub Releases[/URL]
+[*][B]Bug reports[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/issues"]GitHub Issues[/URL]
+[*][B]Telegram Channel[/B]: [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.4-46"]Download Expressive Launcher v3.1.4 (Build 46)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Companion Feed Landing Page:[/B] [URL="https://denson9874.github.io/ExpressiveLauncher/feed/"]https://denson9874.github.io/ExpressiveLauncher/feed/[/URL]
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]

@@ -1,31 +1,33 @@
-<b>Expressive Launcher 3.1.3 QA — Shape Up, Scroll On</b>
+<b>Expressive Launcher 3.1.4 QA — Quiet Dock, Solid Top</b>
 
-Welcome to Expressive Launcher 3.1.3 (Build 45)! This one is all about settings that tell the truth: folders that finally dress like your app icons, settings pages that admit there is more below the fold, and rows that warn you before they whisk you off to Android's own settings. Every item comes straight from your XDA feedback — thank you, especially to the Pixel 11 Pro thread.
+Welcome to Expressive Launcher 3.1.4 (Build 46)! This build is about the edges of your Home screen. The dock stops filling empty spots with apps you didn't ask for, the status bar can get a solid background, and Dock settings are easier to find. All three come from the Pixel 11 Pro XDA thread. Thank you, nutzfreelance, for the detailed list.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Folders match your app icons (XDA-006)</b>
-• New <b>Settings > Folders > Match app icon shape</b> toggle. Pick squircle icons and your folders go squircle too.
-• It is on automatically for anyone who never chose a folder shape. If you already picked a custom folder shape, it stays exactly as you left it.
-• Choosing a folder shape by hand switches matching off, so what you pick is what you get.
+1. <b>Suggestions in dock toggle (XDA-004)</b>
+• New <b>Suggestions in dock</b> switch in <b>Home screen</b>, <b>Dock</b> and <b>Suggestions</b> settings. It works like Pixel's "suggestions on Home screen" option.
+• Turn it off and empty dock spots stay empty. Predicted apps leave the dock right away, with no restart.
+• Turning it off only hides suggestions. It never restores an old dock backup or moves your pinned apps, and switching it back on shows the latest suggestions immediately.
+• App drawer suggestions have their own switch and are not affected.
 
-2. <b>Scroll hints in Settings (XDA-007)</b>
-• Long settings pages now show a slim scroll thumb on the edge, so it is obvious when more options sit below the fold.
-• It brightens while you scroll, stays clear of the top bar, and simply is not drawn on pages that fit on screen.
+2. <b>Solid status bar background (XDA-010)</b>
+• New <b>Home screen > Status bar > Solid status bar background</b> switch paints a black bar behind the clock and icons on Home.
+• It covers exactly the status bar area and is only drawn while the status bar is shown. It fades out with the rest of the Home chrome when you open the app drawer or Recents.
+• While it is on, status bar icons stay light so they remain readable on the dark bar, even with a light wallpaper or <i>Dark status bar icons</i> turned on.
+• Android controls the status bar's height, so a Home app can't change it. The setting says so rather than promise a height control.
 
-3. <b>Clear hand-offs to Android settings (XDA-008)</b>
-• Rows that leave Expressive for an Android system screen — like <b>Wallpaper & style</b> and <b>Notification dots</b> — now carry an "opens elsewhere" icon.
-• TalkBack announces it as <i>Opens Android settings</i>, so nobody lands in system settings by surprise.
+3. <b>Dock settings from Home screen settings (XDA-012)</b>
+• <b>Home screen</b> settings now has a <b>Dock</b> row that opens the full Dock page (search bar, icon count, background and suggestions), so you don't have to know it sits under <b>Advanced</b>.
+• The dashboard's Advanced section is unchanged, so existing shortcuts and muscle memory still work.
 
-4. <b>Honest Wallpaper & style subtitle (XDA-013)</b>
-• The row used to promise an "app grid" it does not control. It now says it opens Android's Wallpaper & style for wallpaper, colors and themed icons. Grid size lives in Expressive's own Home screen settings.
+Also confirmed for <b>XDA-005</b>: the app drawer icon requested for the dock has shipped since 2.0.10. Use <b>Home screen > Add app drawer icon</b> or <b>Dock > Add app drawer icon</b>.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core</b>: always supported, ad-free and privacy-first.
+• <b>Free Core</b>: always supported, ad-free and privacy-first. Both new switches are part of Free Core.
 • <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
@@ -34,36 +36,36 @@ Welcome to Expressive Launcher 3.1.3 (Build 45)! This one is all about settings 
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the round folder feel left out at the squircle party?</i>
-<b>A:</b> <i>Nobody told it the dress code. Now there's a toggle for that.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the dock start leaving seats empty?</i>
+<b>A:</b> <i>It finally learned that "suggested guest" and "invited guest" are two different lists.</i></blockquote>
 
-<blockquote>Our settings pages used to hide options below the fold like socks under a bed. The new scroll thumb is the flashlight.</blockquote>
+<blockquote>The status bar asked for a taller hat. Android said no, so we got it a nice black one instead.</blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I'm thin as a whisker and never get tapped. I only appear when there's more to be mapped. I glow when you move, I fade when you stay. When everything fits, I just stay away. What am I?</i></blockquote>
+<blockquote><i>I sit at the top in the darkest attire. I'm exactly as tall as the clock needs, no higher. I vanish in drawers and I fade out in Recents. Turn me on for contrast and your icons stay decent. What am I?</i></blockquote>
 
-<tg-spoiler><b>The new settings scroll indicator!</b></tg-spoiler>
+<tg-spoiler><b>The new solid status bar background!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🧪 Validation</b>
-• App unit suite: 291 tests passing, including 17 new regression tests for folder shape matching, scroll-thumb geometry and the Android-settings hand-off.
+• App unit suite: 306 tests passing, including 15 new regression tests for dock suggestions, the solid status bar background and the Dock link.
 • CI pipeline contract tests: 279 passing.
-• Signed QA build, emulator smoke checks and publication handled by Jenkins. No physical-device matrix is claimed for this build.
+• Jenkins handled the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
 
 ───────────────────────
 
 <b>🛡️ Technical Details</b>
-• <b>Version</b>: <code>3.1.3</code> (Build <code>45</code>), QA channel
+• <b>Version</b>: <code>3.1.4</code> (Build <code>46</code>), QA channel
 • <b>Package</b>: <code>dev.launcher.expressive.l3</code>
 • Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
-• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.3-45">qa-v3.1.3-45</a>
+• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.4-46">qa-v3.1.4-46</a>
 • <b>All releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">GitHub Releases</a>
 • <b>Bug reports</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/issues">GitHub Issues</a>
 • <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>
