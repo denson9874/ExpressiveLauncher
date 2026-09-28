@@ -7,8 +7,11 @@ import json
 import re
 import sys
 
+PUSH_ALLOWED_REFS = re.compile(r"^(codex/pixel-parity|HEAD:codex/pixel-parity|(claude|docs)/[\w./-]+)$")
+
 RULES = [
-    (r"\bgit\s+push\b", "Pushing source is not part of the workflow; the user pushes manually."),
+    (r"\bgit\s+push\b[^;&|]*(\s--?f\b|--force|--mirror|--delete|\s-d\b|\s\+\S|\s:\S)",
+     "Force-pushes, mirror pushes and remote ref deletions are forbidden."),
     (r"\bgit\s+(switch|checkout)\b", "Branch switches/checkouts are forbidden; stay on codex/pixel-parity and preserve work."),
     (r"\bgit\s+(rebase|merge)\b", "Merges/rebases are forbidden in this checkout."),
     (r"\bgit\s+reset\b[^;&|]*--hard", "Hard resets discard work."),
@@ -29,6 +32,23 @@ RULES = [
 ]
 
 
+def push_violation(command):
+    """Allow only explicit `git push origin <allowed-ref>`; main/stable/updates/gh-pages belong to the publisher and PRs."""
+    for match in re.finditer(r"\bgit\s+push\b([^;&|]*)", command):
+        args = [a for a in match.group(1).split() if not a.startswith("-")]
+        if len(args) < 2 or args[0] != "origin":
+            return "Push must name the remote and branch explicitly: git push origin codex/pixel-parity."
+        bad = [ref for ref in args[1:] if not PUSH_ALLOWED_REFS.match(ref)]
+        if bad:
+            return f"Pushing {', '.join(bad)} is not allowed; only codex/pixel-parity and claude/* or docs/* PR branches."
+    return None
+
+
+def block(reason):
+    print(f"Blocked by .claude/hooks/guard_bash.py: {reason} Ask the user if this is really needed.", file=sys.stderr)
+    return 2
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -37,8 +57,10 @@ def main():
     command = (payload.get("tool_input") or {}).get("command") or ""
     for pattern, reason in RULES:
         if re.search(pattern, command):
-            print(f"Blocked by .claude/hooks/guard_bash.py: {reason} Ask the user if this is really needed.", file=sys.stderr)
-            return 2
+            return block(reason)
+    reason = push_violation(command)
+    if reason:
+        return block(reason)
     return 0
 
 

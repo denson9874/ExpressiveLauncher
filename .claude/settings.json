@@ -1,11 +1,14 @@
 {
   "permissions": {
+    "defaultMode": "auto",
     "allow": [
       "Bash(./gradlew *)",
       "Bash(python3 -m unittest *)",
       "Bash(python3 ci/*)",
       "Bash(python3 scripts/bump_version.py *)",
       "Bash(python3 scripts/format_xda.py *)",
+      "Bash(python3 scripts/post_telegram.py *)",
+      "Bash(python3 scripts/release_unified.py *)",
       "Bash(python3 ~/.claude/skills/expressive-xda-feedback/scripts/route_qa.py *)",
       "Bash(adb *)",
       "Bash(git status*)",
@@ -13,19 +16,22 @@
       "Bash(git log*)",
       "Bash(git show*)",
       "Bash(git rev-parse*)",
+      "Bash(git fetch*)",
       "Bash(git branch --show-current)",
       "Bash(git add *)",
       "Bash(git commit *)",
+      "Bash(git push origin codex/pixel-parity)",
       "Bash(gh release view *)",
       "Bash(gh release list*)",
+      "Bash(gh release edit *)",
+      "Bash(gh issue *)",
+      "Bash(gh pr *)",
       "Read(~/Library/Application Support/Expressive CI/**)",
-      "Edit(~/Library/Application Support/Expressive CI/feedback/xda/**)"
+      "Edit(~/Library/Application Support/Expressive CI/feedback/xda/**)",
+      "Read(~/ExpressiveLauncher/**)",
+      "Edit(~/ExpressiveLauncher/**)"
     ],
     "ask": [
-      "Bash(python3 ci/jenkins/control.py run *)",
-      "Bash(gh release edit *)",
-      "Bash(python3 scripts/post_telegram.py *)",
-      "Bash(python3 scripts/release_unified.py *)",
       "Bash(python3 scripts/publish_play_bundle.py *)"
     ],
     "deny": [
@@ -36,7 +42,8 @@
       "Edit(**/*.keystore)"
     ],
     "additionalDirectories": [
-      "~/Library/Application Support/Expressive CI/feedback/xda"
+      "~/Library/Application Support/Expressive CI/feedback/xda",
+      "~/ExpressiveLauncher"
     ]
   },
   "hooks": {
