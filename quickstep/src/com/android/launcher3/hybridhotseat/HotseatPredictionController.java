@@ -37,7 +37,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import app.lawnchair.predictions.DockSuggestionsPolicy;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.util.ViewExtensionsKt;
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.DragSource;
 import com.android.launcher3.DropTarget;
@@ -95,6 +98,9 @@ public class HotseatPredictionController implements DragController.DragListener,
     private final Runnable mUpdateFillIfNotLoading = this::updateFillIfNotLoading;
 
     private List<ItemInfo> mPredictedItems = Collections.emptyList();
+    // Everything the predictor last sent; mPredictedItems is the part the dock may show.
+    private List<ItemInfo> mSourcePredictedItems = Collections.emptyList();
+    private boolean mSuggestionsEnabled = true;
 
     private AnimatorSet mIconRemoveAnimators;
     private int mPauseFlags = 0;
@@ -140,6 +146,30 @@ public class HotseatPredictionController implements DragController.DragListener,
                 fillGapsWithPrediction(true);
             }
         });
+        PreferenceManager2 prefs = PreferenceManager2.getInstance(launcher);
+        mSuggestionsEnabled = PreferenceCacheExtensionsKt.firstCached(
+                prefs.getShowSuggestedAppsInDock());
+        PreferenceExtensionsKt.onEach(
+                prefs.getShowSuggestedAppsInDock(),
+                ViewExtensionsKt.getViewAttachedScope(mHotseat),
+                (enabled) -> {
+                    setSuggestionsEnabled(enabled);
+                    return null;
+                });
+    }
+
+    /**
+     * Shows or hides predicted apps in empty dock spots (Suggestions in dock setting).
+     */
+    public void setSuggestionsEnabled(boolean enabled) {
+        if (mSuggestionsEnabled == enabled) {
+            return;
+        }
+        mSuggestionsEnabled = enabled;
+        mPredictedItems = DockSuggestionsPolicy.visibleSuggestions(enabled, mSourcePredictedItems);
+        if (!mLauncher.isWorkspaceLoading()) {
+            fillGapsWithPrediction(true);
+        }
     }
 
     private void attachPageListeners() {
@@ -326,8 +356,10 @@ public class HotseatPredictionController implements DragController.DragListener,
      * Sets or updates the predicted items
      */
     public void setPredictedItems(PredictedContainerInfo items) {
-        mPredictedItems = items.getContents();
-        if (mPredictedItems.isEmpty()) {
+        mSourcePredictedItems = items.getContents();
+        mPredictedItems = DockSuggestionsPolicy.visibleSuggestions(
+                mSuggestionsEnabled, mSourcePredictedItems);
+        if (DockSuggestionsPolicy.shouldRestoreMigrationBackup(mSourcePredictedItems)) {
             HotseatRestoreHelper.restoreBackup(mLauncher);
         }
         fillGapsWithPrediction();

@@ -4,6 +4,31 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Dock suggestions, solid status bar and Dock access — 2026-09-28 (candidate 3.1.4 / code 46)
+
+XDA feedback (Pixel 11 Pro thread, post 90743078) reported a dock that fills with unexpected apps
+and no empty slots, asked for a solid dark status-bar background, and wanted Dock controls outside
+Advanced.
+
+1. **Suggestions in dock (XDA-004).** Pixel Launcher can turn off Home-screen suggestions, which
+   leaves empty hotseat spots empty. New `show_suggested_apps_in_dock` preference (default on, like
+   Pixel) in Home screen, Dock and Suggestions settings. `HotseatPredictionController` keeps the
+   predictor's last result and shows `DockSuggestionsPolicy.visibleSuggestions()`. The hybrid-hotseat
+   migration backup is still restored only when the predictor itself sends nothing, never because
+   the user hid suggestions. Changes apply live through the hotseat's attached scope.
+2. **Solid status bar background (XDA-010).** Not a Pixel feature. It is opt-in and off by default.
+   `SysUiScrim` paints opaque black over exactly the top inset, only while the status bar is shown,
+   and fades with the existing SysUI scrim progress (hidden in All Apps/Recents). It replaces the top
+   shadow while on. `StatusBarBackgroundPolicy.useDarkStatusBarIcons()` forces light icons over the
+   bar. Status-bar height stays under Android's control, and the setting copy says so.
+3. **Dock link on Home screen settings (XDA-012).** A Dock navigation row in Home screen → General
+   opens the existing Dock destination. The dashboard's Advanced grouping (covered by
+   `PreferencesAdvancedComposeTest`) is unchanged.
+
+Validation: `DockSuggestionsPolicyTest` (6), `StatusBarBackgroundPolicyTest` (7),
+`HomeScreenDockLinkTest` (2); full app unit suite 306/306 and CI contracts 279/279 locally before Jenkins.
+No device screenshots were captured in this run.
+
 ## Folder shape, settings overflow and system hand-offs — 2026-09-27 (candidate 3.1.3 / code 45)
 
 XDA feedback (Pixel 11 Pro thread, posts 90743078 and 90743830) asked for folders that match the

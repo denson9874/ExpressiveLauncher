@@ -184,6 +184,7 @@
 
     <string name="dock_label">Dock</string>
     <string name="dock_description">Search bar, icon count</string>
+    <string name="home_screen_dock_link_description" tools:ignore="MissingTranslation">Search bar, icon count, background and suggestions</string>
 
     <string name="app_drawer_label">App drawer</string>
     <string name="app_drawer_description">Hidden apps, column count, icons</string>
@@ -357,6 +358,8 @@
 
     <string name="show_suggested_apps_in_drawer">Show suggestions in drawer</string>
     <string name="show_suggested_apps_in_drawer_description">Show predicted or recently installed apps at the top of the app drawer</string>
+    <string name="show_suggested_apps_in_dock" tools:ignore="MissingTranslation">Suggestions in dock</string>
+    <string name="show_suggested_apps_in_dock_description" tools:ignore="MissingTranslation">Fill empty dock spots with apps you\'re likely to use. Turn off to keep empty spots empty</string>
     <string name="prioritize_recently_installed_apps">Prioritize recently installed apps</string>
     <string name="prioritize_recently_installed_apps_description">Show newly installed and updated applications first in the app drawer suggestion row</string>
 
@@ -876,6 +879,9 @@
     <string name="show_status_bar">Show status bar</string>
     <string name="dark_status_bar_label">Dark status bar icons</string>
     <string name="dark_status_bar_description">Display dark icons and clock text on the status bar for lighter wallpapers</string>
+    <string name="solid_status_bar_background_label" tools:ignore="MissingTranslation">Solid status bar background</string>
+    <string name="solid_status_bar_background_description" tools:ignore="MissingTranslation">Paint a black bar behind the clock and icons on Home. Android sets the bar\'s height</string>
+    <string name="dark_status_bar_solid_background_note" tools:ignore="MissingTranslation">Icons stay light while the solid background is on</string>
     <string name="status_bar_clock_label">Status bar clock</string>
     <string name="status_bar_clock_description">Dynamically hide the status bar clock on the first screen</string>
 

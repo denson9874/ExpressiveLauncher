@@ -49,6 +49,7 @@ import app.lawnchair.ui.preferences.components.controls.SwitchPreference
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
+import app.lawnchair.ui.preferences.navigation.Dock
 import app.lawnchair.ui.preferences.navigation.HomeScreenGrid
 import app.lawnchair.util.collectAsStateBlocking
 import com.android.launcher3.LauncherAppState
@@ -114,12 +115,23 @@ fun HomeScreenPreferences(
                 label = stringResource(id = R.string.return_to_default_page),
                 description = stringResource(id = R.string.return_to_default_page_description),
             )
+            SwitchPreference(
+                adapter = prefs2.showSuggestedAppsInDock.getAdapter(),
+                label = stringResource(id = R.string.show_suggested_apps_in_dock),
+                description = stringResource(id = R.string.show_suggested_apps_in_dock_description),
+            )
             ClickablePreference(
                 label = stringResource(id = R.string.add_app_drawer_icon),
                 subtitle = stringResource(id = R.string.add_app_drawer_icon_description),
                 onClick = {
                     AppDrawerShortcutActivity.pinAppDrawerShortcut(context)
                 },
+            )
+            // XDA-012: Dock lives under Advanced on the dashboard; link it where people look for it.
+            NavigationActionPreference(
+                label = stringResource(id = R.string.dock_label),
+                destination = Dock,
+                subtitle = stringResource(id = R.string.home_screen_dock_link_description),
             )
         }
         PreferenceGroup(heading = stringResource(id = R.string.home_screen_actions)) {
@@ -227,6 +239,14 @@ fun HomeScreenPreferences(
                 adapter = showStatusBarAdapter,
                 label = stringResource(id = R.string.show_status_bar),
             )
+            val solidStatusBarAdapter = prefs2.solidStatusBarBackground.getAdapter()
+            ExpandAndShrink(visible = showStatusBarAdapter.state.value) {
+                SwitchPreference(
+                    adapter = solidStatusBarAdapter,
+                    label = stringResource(id = R.string.solid_status_bar_background_label),
+                    description = stringResource(id = R.string.solid_status_bar_background_description),
+                )
+            }
             ExpandAndShrink(visible = showStatusBarAdapter.state.value) {
                 ProGate(
                     lockedTitle = stringResource(id = R.string.status_bar_label),
@@ -235,7 +255,12 @@ fun HomeScreenPreferences(
                         SwitchPreference(
                             adapter = prefs2.darkStatusBar.getAdapter(),
                             label = stringResource(id = R.string.dark_status_bar_label),
-                            description = stringResource(id = R.string.dark_status_bar_description),
+                            description = if (solidStatusBarAdapter.state.value) {
+                                stringResource(id = R.string.dark_status_bar_solid_background_note)
+                            } else {
+                                stringResource(id = R.string.dark_status_bar_description)
+                            },
+                            enabled = !solidStatusBarAdapter.state.value,
                         )
                         if (LawnchairApp.isRecentsEnabled) {
                             SwitchPreference(

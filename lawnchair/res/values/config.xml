@@ -131,6 +131,7 @@
     <bool name="config_default_search_bar_background">true</bool>
     <bool name="config_default_show_scrollbar">true</bool>
     <bool name="config_default_show_top_shadow">true</bool>
+    <bool name="config_default_solid_status_bar_background">false</bool>
     <bool name="config_default_lock_home_screen">false</bool>
     <bool name="config_default_lock_home_screen_on_popup">false</bool>
     <bool name="config_default_edit_home_screen_on_popup">false</bool>
@@ -140,6 +141,7 @@
     <bool name="config_default_show_hidden_apps_in_search">false</bool>
     <bool name="config_default_enable_smart_hide">false</bool>
     <bool name="config_default_show_suggested_apps_at_drawer_top">true</bool>
+    <bool name="config_default_show_suggested_apps_in_dock">true</bool>
     <bool name="config_default_enable_font_selection">true</bool>
     <bool name="config_default_enable_smartspace_calendar_selection">true</bool>
     <bool name="config_default_dts2">true</bool>

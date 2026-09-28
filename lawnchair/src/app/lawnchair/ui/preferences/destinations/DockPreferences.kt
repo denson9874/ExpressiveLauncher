@@ -94,6 +94,11 @@ fun DockPreferences(modifier: Modifier = Modifier) {
                         adapter = prefs2.enableLabelInDock.getAdapter(),
                         label = stringResource(id = R.string.show_labels),
                     )
+                    SwitchPreference(
+                        adapter = prefs2.showSuggestedAppsInDock.getAdapter(),
+                        label = stringResource(id = R.string.show_suggested_apps_in_dock),
+                        description = stringResource(id = R.string.show_suggested_apps_in_dock_description),
+                    )
                     ClickablePreference(
                         label = stringResource(id = R.string.add_app_drawer_icon),
                         subtitle = stringResource(id = R.string.add_app_drawer_icon_description),
