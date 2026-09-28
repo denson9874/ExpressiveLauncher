@@ -40,11 +40,9 @@ SystemUI remains responsible for Overview and gesture navigation.
         </intent>
     </queries>
 
-    <!-- Both independently installed APKs declare this permission so either one can be installed
-         first. Matching signatures are required before the launcher can bind the feed service. -->
-    <permission
-        android:name="dev.launcher.expressive.feed.permission.CONNECT"
-        android:protectionLevel="signature" />
+    <!-- Companions before 3.0.6 declare and enforce this permission; the launcher keeps requesting it
+         so it can still bind to one. It no longer declares it: debug, direct and Play launchers use
+         different signers, and a second declaration blocks installing them side by side. -->
     <uses-permission android:name="dev.launcher.expressive.feed.permission.CONNECT" />
     <!-- Direct distribution uses Android's per-source user approval for in-app APK updates. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
