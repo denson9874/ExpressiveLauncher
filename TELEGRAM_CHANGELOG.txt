@@ -1,38 +1,52 @@
-<b>Expressive Launcher 3.1.0 — Smart Recent Apps & Drawer Header Controls</b>
+<b>Expressive Launcher 3.1.2 — FOSS Evolution, Obtainium & Streamlined Delivery</b>
 
-Welcome to Expressive Launcher 3.1.0 (Build 42)! This release introduces our user-requested smart recently-installed apps ranking in the drawer suggestions row, independent controls for drawer search and suggestion headers, and refined prediction row layout stability.
+Welcome to Expressive Launcher 3.1.2 (Build 44)! This release marks a pivotal evolution in how Expressive Launcher is delivered. We are embracing an open, friction-free FOSS distribution model—bringing first-class <b>Obtainium</b> background updates, <b>IzzyOnDroid / F-Droid</b> repository readiness, and complete transparency regarding our transition away from Google Play internal testing.
+
+───────────────────────
+
+<b>📢 Important Distribution Update: Transition Away from Google Play Testing</b>
+
+To our testers and community members:
+• <b>The Challenge with Google Play:</b> For personal developer accounts, Google Play Console enforces a policy requiring at least 20 testers opted-in continuously for 14 straight days before production access can even be reviewed. For a community-driven Android 17 launcher, this creates an artificial barrier and unnecessary delays. Furthermore, Google Play's billing policies conflict with our direct, privacy-respecting PayPal contributions and offline ECDSA P-256 Pro licensing.
+• <b>The Open Resolution:</b> Moving forward, <b>GitHub Releases</b>, our built-in <b>In-App Updater</b>, and <b>Obtainium</b> are our primary, official distribution channels. You will receive updates the instant they are built, with zero wait times, zero store gatekeeping, and full feature preservation.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Recently Installed Apps Prioritization (Closes #21)</b>:
-• Added smart installation-order ranking into the app drawer prediction engine. Freshly installed or updated applications can now automatically bubble to the top of your drawer suggestions row so you can launch new apps instantly without searching.
-• Configurable directly from <b>Settings > App Drawer > Suggestions</b> and <b>Settings > App Drawer > Search</b>.
+1. <b>FOSS & IzzyOnDroid / F-Droid Inclusion Readiness (Closes #22)</b>:
+• Configured full standard Fastlane metadata (<code>fastlane/metadata/android/en-US/</code>) including titles, short/full descriptions, feature graphics, app icons, and per-version changelogs.
+• Added <code>.fdroid.yml</code> in the repository root for automated crawler indexing, directly fulfilling community request #22 for open repository distribution.
 
-2. <b>Independent Drawer Search & Suggestions Controls</b>:
-• De-coupled the drawer search bar and the top suggestions row. You can now enable or disable drawer suggestions independently of the drawer search bar, giving you complete granular control over your app drawer layout.
-• Added direct preference switches in both <b>App Drawer</b> settings and <b>Search</b> settings.
+2. <b>Native Obtainium 1-Click Background Updates</b>:
+• Added direct 1-click Obtainium integration (<code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>) across the launcher:
+• Under <b>Settings > About > Community</b>, tap <b>Add to Obtainium</b> to immediately configure seamless background updates.
+• Built-in graceful web fallback: if Obtainium is not installed yet on your device, tapping the link opens the official Obtainium download page in your browser.
+• Added Obtainium install badges and setup instructions to <code>README.md</code>.
 
-3. <b>Prediction Row Stability & Android 17 Private Space Parity</b>:
-• Guarded prediction row layout updates (<code>mParent.onHeightUpdated()</code>) to prevent null-pointer race conditions during early drawer initialization or theme changes.
-• Reinforced Private Space profile visibility boundaries to ensure secure apps never leak into prediction surfaces when Private Space is locked.
+3. <b>In-App Update Recovery & Fallback in Settings</b>:
+• Enhanced <code>UpdateSection.kt</code> with smart action prompts: when the launcher is up to date or if a network check encounters a connection timeout, the launcher now provides a 1-tap button to launch or configure Obtainium.
+• Preserves offline resilience and ensures you always have an automated update path even if GitHub raw CDNs experience caching delays.
+
+4. <b>Streamlined Continuous Delivery Pipeline</b>:
+• Decoupled heavy Google Play bundle uploads by default in our release orchestrator (<code>release_unified.py</code>), cutting release cycle times from ~8 minutes to under 2 minutes.
+• Hardened Jenkins feed verification in <code>ci/publish_qa.py</code> with direct authenticated repository fallback when raw CDN caches take time to purge.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core (Always Supported & Ad-Free)</b>:
+• <b>Free Core (Always Supported & 100% Free)</b>:
 • Clean, fluid Android 17 Pixel experience with 100% Pixel parity, private space support, and Google Discover feed integration via Expressive Feed Companion.
 • <b>Expressive Pro ($4.99 One-Time)</b>:
 • Unlocks deep personalization including custom grid sizing, typography, gesture mapping, dock styling, and per-app icon overrides.
-• <i>Expressive Pro is a one-time $4.99 contribution. Every dollar directly funds automated CI/CD servers, Android 17 test devices, cryptographic signing pipelines, and continuous active development.</i>
+• Powered by our 24/7 global serverless edge worker on Cloudflare and validated completely offline on your device with ECDSA P-256 cryptographic signatures.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the freshly installed app jump straight to the front of the line?</i>  
-<b>A:</b> <i>Because Expressive Launcher knew you didn't want to play hide-and-seek in a drawer of 200 apps!</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the launcher switch from Google Play to Obtainium and GitHub?</i>  
+<b>A:</b> <i>Because 20 testers for 14 days is a hostage situation, but an open-source APK is pure freedom!</i></blockquote>
 
 ───────────────────────
 
@@ -40,20 +54,21 @@ Welcome to Expressive Launcher 3.1.0 (Build 42)! This release introduces our use
 
 Can you solve this edition's launcher riddle?
 
-<blockquote><i>Just downloaded, fresh from the store, I used to hide down on the drawer floor. Now with one toggle, smart and neat, I'm waiting for you right at your seat. What am I?</i></blockquote>
+<blockquote><i>No closed tracks can hold my pace, no waiting fourteen days in place. One tap in settings and I appear, fetching the newest code right here. I bypass the store with open grace. What am I?</i></blockquote>
 
-<tg-spoiler><b>A Recently Installed App in the Suggestions Row!</b></tg-spoiler>
+<tg-spoiler><b>Obtainium & the Expressive Open Update Feed!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>3.1.0</code> (Build <code>42</code>)
+• <b>Launcher Version</b>: <code>3.1.2</code> (Build <code>44</code>)
 • <b>Package ID</b>: <code>com.denson9874.Expressive_Launcher_L3</code>
 • <b>Developer Certificate SHA-256</b>: <code>2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7</code>
 
 🔗 <b>Links & Downloads</b>:
-• <b>Google Play Internal Testing</b>: <a href="https://play.google.com/apps/internaltest/4700941727845829659">https://play.google.com/apps/internaltest/4700941727845829659</a>
+• <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
+• <b>Direct GitHub Releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">https://github.com/denson9874/ExpressiveLauncher/releases</a>
 • <b>Companion Landing Page</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/feed/">https://denson9874.github.io/ExpressiveLauncher/feed/</a>
 • <b>Direct Companion APK</b>: <a href="https://denson9874.github.io/ExpressiveLauncher/ExpressiveFeed.apk">Download ExpressiveFeed.apk</a>
-• <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
-• <b>Community & Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
+• <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>
+• <b>Telegram Community & Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
