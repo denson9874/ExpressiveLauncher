@@ -78,6 +78,10 @@ class FinalizeQaTests(unittest.TestCase):
                 self.write("qa-result.json", {**qa, **change})
                 self.assertRejected("not a pass for these exact APK bytes")
         self.write("qa-result.json", qa)
+        metadata = json.loads((self.artifact / "metadata.json").read_text())
+        self.write("metadata.json", {**metadata, "sha256": "0" * 64})
+        self.assertRejected("not a pass for these exact APK bytes")
+        self.write("metadata.json", metadata)
         (self.artifact / "Expressive-QA.apk").write_bytes(APK + b"tampered")
         self.assertRejected("not a pass for these exact APK bytes")
 
