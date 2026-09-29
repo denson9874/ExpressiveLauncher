@@ -38,8 +38,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -68,17 +70,22 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
 
             currentJob?.cancel()
             currentJob = coroutineScope.launch {
+                val calcResult = CalculatorSearchProvider.search(context, query)
+                    .firstOrNull()
+                    .orEmpty()
+                val actionResults = generateActionResults(query)
+
+                // Seed every provider with an empty result so apps, shortcuts and calculations
+                // show as soon as they are ready. Without the seed, combine() waits for the
+                // slowest provider (web suggestions go over the network) before the first frame.
                 val nonAppProvidersFlow = combine(
-                    searchProviders.map { it.search(context, query) },
+                    searchProviders.map { it.search(context, query).onStart { emit(emptyList()) } },
                 ) { resultsArray ->
                     resultsArray.toList().flatten()
                 }
 
-                nonAppProvidersFlow.collect { nonAppResults ->
-                    val calcResult = CalculatorSearchProvider.search(context, query)
-                        .firstOrNull()
-
-                    val allResults = appResults + shortcutResults + (calcResult ?: emptyList()) + nonAppResults + generateActionResults(query)
+                nonAppProvidersFlow.collectLatest { nonAppResults ->
+                    val allResults = appResults + shortcutResults + calcResult + nonAppResults + actionResults
 
                     val searchTargets = translateToSearchTargets(query, allResults)
                     setFirstItemQuickLaunch(searchTargets)
