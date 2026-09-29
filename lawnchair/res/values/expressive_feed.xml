@@ -26,5 +26,5 @@
     <string name="expressive_feed_retry">Try setup again</string>
     <string name="expressive_feed_setup_failed">Google Discover could not be set up. Try again; your current Home settings are preserved.</string>
     <string name="expressive_feed_permission_needed">To finish Discover setup, set Expressive to Always allow in Install unknown apps (Ask every time isn\'t enough), then try again.</string>
-    <string name="expressive_feed_setup_cancelled">Setup was not completed. You can try again whenever you are ready.</string>
+    <string name="expressive_feed_setup_cancelled">Setup was not completed. If Android said \"App not installed\", an old Expressive Feed is probably still installed in your Private space or work profile: uninstall it there, then try again.</string>
 </resources>
