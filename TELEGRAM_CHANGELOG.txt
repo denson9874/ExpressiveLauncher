@@ -1,33 +1,39 @@
-<b>Expressive Launcher 3.1.5 QA — Swipe Right, Search Bright</b>
+<b>Expressive Launcher 3.1.6 QA — Search and Ye Shall Find</b>
 
-Welcome to Expressive Launcher 3.1.5 (Build 47)! This build fixes Google Discover and brings two Android 17 QPR2 touches to Home: Google's own search bar in the dock and Pixel's new long-press menu.
+Welcome to Expressive Launcher 3.1.6 (Build 48)! Settings search used to answer "No widgets or shortcuts found" when you asked it for a setting. This build teaches it to find every setting, walk you to the row and knock twice.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Google Discover works again</b>
-• <b>What went wrong:</b> if Expressive didn't have install permission yet, setup offered the standalone <i>Expressive Feed Companion</i> download. That APK was signed for the retired Google Play edition and refuses to connect to Expressive from GitHub. Discover stayed blank while settings said it was on, and Android wouldn't let the built-in helper replace it.
-• <b>Set up Google Discover</b> is now always shown. It installs the Discover helper included with Expressive. When Android asks, choose <b>Always allow</b> for Expressive under <i>Install unknown apps</i>; <i>Ask every time</i> isn't enough. If Play Protect shows <b>App scan recommended</b>, tap <b>Scan app</b>, then <b>Install</b>.
-• <b>Installed the old companion?</b> Settings now offer <b>Replace Discover support</b>. It opens Android's uninstall confirmation, then installs the built-in helper.
-• Discover support is now FOSS-only. The standalone companion is retired, its download page explains the built-in setup, and the helper only trusts the launcher it shipped with.
+1. <b>Settings search finds every setting</b>
+• <b>What went wrong:</b> the search list was a short hand-written set of English phrases that had drifted from the screens. Typing <i>return</i>, <i>suggestions in dock</i>, <i>status bar</i>, <i>Discover</i> or <i>rotation</i> found nothing or the wrong thing, and an empty result said "No widgets or shortcuts found" (the widget picker's message). It even listed settings Expressive doesn't have.
+• <b>Now:</b> about 150 settings are searchable, in your language, and each result opens the screen it lives on. The best match comes first: an exact title, then titles that start with your words, then the rest. Accents and capitals don't matter, and every word you type has to match.
+• The search box now says <b>Search settings</b> and an empty result says <b>No matching settings</b>.
 
-2. <b>Google's own search bar, when you want it</b>
-• New free <b>Home screen > Google search bar</b> switch puts the Google app's own search widget in the dock, like Pixel Launcher on Android 17 QPR2, with search, voice and Lens. The buttons come from the Google app, so AI Mode appears when Google offers it for your account.
-• Android asks once, when you turn the switch on, whether Expressive may create the widget. Tap <b>Create</b>. Tap <b>Cancel</b> and nothing changes. Expressive never shows that prompt on its own.
-• Fixed an empty bar: the Google search bar option picked a Google widget that draws nothing in the dock.
+2. <b>Search takes you to the setting</b>
+• Choose a result and the screen scrolls to that row, with its neighbours in view, and pulses it twice so you can spot it.
+• Options hidden behind an Expressive Pro lock stay hidden; you land on the lock card.
 
-3. <b>Android 17 QPR2 home menu</b>
-• Long-press Home for one wallpaper-tinted card instead of separate tiles, with filled icons and a gear for <b>Home settings</b>.
-• The top row shows your current wallpaper, followed by up to three recent ones. Tap the current one to open <b>Wallpaper & style</b>.
-• The menu keeps the same card if you turn the wallpaper row off.
+3. <b>TalkBack can name Settings' icon buttons</b>
+• Back, <b>Search settings</b>, <b>More options</b>, <b>Clear</b>, copy, paste, reset and download buttons were all announced as just "Button". They now say what they do, and any new icon button has to carry a label.
 
-For developers: debug and release builds can be installed side by side again.
+4. <b>One less switch that did nothing</b>
+• <b>Live information</b> in <i>Icons & appearance</i> promised announcements and default feature flags, but Expressive never fetched or showed either. The switch and the empty <b>Updates</b> heading above it are gone.
+
+5. <b>Clearer Discover setup</b>
+• If Android answers "App not installed" because an old Expressive Feed is still hiding in Private space or a work profile, the message now names that as the likely cause. Android hides that copy from apps, so this can only be explained after the attempt.
+
+───────────────────────
+
+<b>🗣️ From Your Reports</b>
+• <b>Finding settings</b> (the navigation and discoverability threads): search is now a dependable way in, and it takes you to the row instead of to the top of a long page.
+• <b>Return to default page (XDA-015):</b> we re-tested this on 3.1.5. With the switch off, opening an app from page 2 and coming back with Back or Home leaves you on page 2. With it on (the default, as on Pixel), you return to page 1. No change needed.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core</b>: always supported, ad-free and privacy-first. Discover, the Google search bar switch and the new menu are all part of Free Core.
+• <b>Free Core</b>: always supported, ad-free and privacy-first. Settings search, its jump-to-setting and the TalkBack labels are all part of Free Core.
 • <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
@@ -36,37 +42,38 @@ For developers: debug and release builds can be installed side by side again.
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did Discover keep standing everyone up?</i>
-<b>A:</b> <i>Its ride showed up with the wrong key to the house.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did Settings search keep saying "No widgets or shortcuts found"?</i>
+<b>A:</b> <i>It was checking the widget picker for your setting. Awkward for everyone.</i></blockquote>
 
-<blockquote>The Google search bar wanted to move into the dock right away. We told it to wait until it's invited.</blockquote>
+<blockquote>The icon buttons in Settings finally got name tags. They were tired of being introduced as "Button".</blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I live just left of your first page, yet I'm never in your grid. I arrive with the news whenever you reach for me. Last week I waited at the door for a friend holding the wrong key. What am I?</i></blockquote>
+<blockquote><i>I know a hundred rooms and live in none of them. Ask for a switch and I'll walk you to its door, knock twice and step aside. Last week I swore your dock had no suggestions. What am I?</i></blockquote>
 
-<tg-spoiler><b>Google Discover, now opened by the helper built into Expressive!</b></tg-spoiler>
+<tg-spoiler><b>Settings search, now complete and pointing at the exact setting!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🧪 Validation</b>
-• App unit suite: 319 tests passing, including 13 new regression tests for replacing the Discover helper, choosing and turning on Google's dock search bar, and the home menu's width and wallpaper row.
-• Discover helper unit tests: 6 passing. CI pipeline contract tests: 279 passing.
-• Android 17 QPR2 emulator (Google app 17.46): reproduced the blank Discover with the retired companion; verified the built-in setup and <b>Replace Discover support</b>, including Play Protect's scan prompt; compared the dock search bar and home menu with Pixel Launcher in light and dark themes. Turned the Google search bar on and off: Android's prompt appears only then, and Cancel leaves the dock unchanged. The emulator isn't signed in to Google, so AI Mode wasn't checked there.
-• Jenkins handles the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
+• App unit suite: 346 tests passing, including 27 new ones for the search index and ranking, a guard that fails when a screen's setting is missing from the index, the jump-to-setting request, icon-button labels and the Live information switch.
+• CI pipeline contract tests: 283 passing.
+• Android 17 QPR2 emulator: reproduced the failed searches and the Return to default page behavior on the released 3.1.5; on this build checked the search results and their ranking, the empty state, the jump and pulse to <i>Solid status bar background</i>, results opening Icon shape, Search provider, Create backup and Home screen rotation, the labelled top-bar buttons and the missing Updates group.
+• Jenkins handles the signed QA build, emulator smoke checks and publication. No TalkBack run and no physical-device matrix are claimed for this build.
 
 ───────────────────────
 
 <b>🛡️ Technical Details</b>
-• <b>Version</b>: <code>3.1.5</code> (Build <code>47</code>), QA channel
+• <b>Version</b>: <code>3.1.6</code> (Build <code>48</code>), QA channel
 • <b>Package</b>: <code>dev.launcher.expressive.l3</code>
 • Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
-• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.5-47">qa-v3.1.5-47</a>
+• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.6-48">qa-v3.1.6-48</a>
+• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v3.1.6-48/ExpressiveLauncherL3-3.1.6-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk">ExpressiveLauncherL3-3.1.6 signed APK</a>
 • <b>All releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">GitHub Releases</a>
 • <b>Bug reports</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/issues">GitHub Issues</a>
 • <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>
