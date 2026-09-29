@@ -120,6 +120,12 @@ public class BaseDepthController {
     protected boolean mWaitingOnSurfaceValidity;
 
     private SurfaceControl mBlurSurface = null;
+
+    /** Whether a blur {@link RenderEffect} may currently be set on the depth blur targets. */
+    private boolean mWorkspaceEffectApplied;
+    /** Last workspace blur effect, reused while the radius stays the same. */
+    private RenderEffect mWorkspaceBlurEffect;
+    private int mWorkspaceBlurEffectRadius;
     /**
      * Info for early wakeup requests to SurfaceFlinger.
      */
@@ -243,7 +249,6 @@ public class BaseDepthController {
             return;
         }
         if (mBaseSurface == null) {
-            Log.d(TAG, "mSurface is null and mCurrentBlur is: " + mCurrentBlur);
             return;
         }
         if (!mBaseSurface.isValid()) {
@@ -259,12 +264,8 @@ public class BaseDepthController {
                         : mBaseSurface;
 
         if (skipUpdate) {
-            Log.d(TAG, "Skipping small blur delta. newBlur: " + newBlur + " previousBlur: "
-                    + previousBlur + " delta: " + delta + " surface: " + blurSurface);
             return;
         }
-
-        Log.v(TAG, "Applying blur: " + mCurrentBlur + " to " + blurSurface);
 
         final SurfaceControl.Transaction finalTransaction =
                 transaction == null ? createTransaction() : transaction;
@@ -350,7 +351,7 @@ public class BaseDepthController {
                 || mDepth <= 0f
                 || mCurrentBlur <= 0
                 || (settledState == LauncherState.NORMAL && !stateManager.isInTransition())) {
-            clearWorkspaceRenderEffects();
+            clearWorkspaceRenderEffectsIfApplied();
             return false;
         }
 
@@ -358,14 +359,31 @@ public class BaseDepthController {
                 ? stateManager.getTargetState() : settledState;
         // Only blur workspace if the current state wants to blur based on the target state.
         if (!stateManager.getCurrentStableState().shouldBlurWorkspace(targetState)) {
-            clearWorkspaceRenderEffects();
+            clearWorkspaceRenderEffectsIfApplied();
             return false;
         }
 
-        RenderEffect blurEffect = RenderEffect.createBlurEffect(
-                mCurrentBlur, mCurrentBlur, Shader.TileMode.DECAL);
+        if (mWorkspaceBlurEffect == null || mWorkspaceBlurEffectRadius != mCurrentBlur) {
+            mWorkspaceBlurEffect = RenderEffect.createBlurEffect(
+                    mCurrentBlur, mCurrentBlur, Shader.TileMode.DECAL);
+            mWorkspaceBlurEffectRadius = mCurrentBlur;
+        }
+        RenderEffect blurEffect = mWorkspaceBlurEffect;
+        // Setting the same effect again is a no-op for the view, so this stays cheap per frame
+        // and still re-applies it if something else cleared it.
         mLauncher.getDepthBlurTargets().forEach(target -> target.setRenderEffect(blurEffect));
+        mWorkspaceEffectApplied = true;
         return true;
+    }
+
+    /**
+     * Per-frame path: only clears and invalidates the targets if we set a blur on them, so
+     * depth changes with no workspace blur (e.g. app open/close) don't redraw workspace/hotseat.
+     */
+    private void clearWorkspaceRenderEffectsIfApplied() {
+        if (mWorkspaceEffectApplied) {
+            clearWorkspaceRenderEffects();
+        }
     }
 
     /**
@@ -376,6 +394,7 @@ public class BaseDepthController {
         if (!Utilities.ATLEAST_S) {
             return;
         }
+        mWorkspaceEffectApplied = false;
         mLauncher.getDepthBlurTargets().forEach(target -> {
             target.setRenderEffect(null);
             target.invalidate();
