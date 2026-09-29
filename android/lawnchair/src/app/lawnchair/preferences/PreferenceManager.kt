@@ -141,7 +141,7 @@ class PreferenceManager @Inject constructor(
     val searchResultPeople = BoolPref("pref_searchResultPeople", false, recreate)
     val searchResultPixelTips = BoolPref("pref_searchResultPixelTips", false)
     val searchResultSettings = BoolPref("pref_searchResultSettings", false)
-    val searchResultCalculator = BoolPref("pref_searchResultCalculator", false)
+    val searchResultCalculator = BoolPref("pref_searchResultCalculator", true)
 
     val searchResultApps = BoolPref("pref_searchResultApps", true, recreate)
     val searchResultFilesToggle = BoolPref("pref_searchResultFiles", false, recreate)

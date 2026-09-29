@@ -15,12 +15,9 @@ import android.util.AttributeSet
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ViewTreeObserver
-import android.view.ViewTreeObserver.OnGlobalFocusChangeListener
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.TextView
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -203,26 +200,6 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
 
             setContent {
-                var isFocused by remember(input) { mutableStateOf(input.hasFocus()) }
-
-                // Yes, this is a bit hacky, but it's the only way to ensure that
-                // we can check if the input has focus in Compose without wrestling
-                // with multiple global variables or state changes
-                DisposableEffect(input) {
-                    val focusListener = OnGlobalFocusChangeListener { _, _ ->
-                        isFocused = input.hasFocus()
-                    }
-
-                    val observer = input.viewTreeObserver
-                    observer.addOnGlobalFocusChangeListener(focusListener)
-
-                    onDispose {
-                        if (observer.isAlive) {
-                            observer.removeOnGlobalFocusChangeListener(focusListener)
-                        }
-                    }
-                }
-
                 val searchProviderPref by prefs2.hotseatQsbProvider.asState()
                 val searchProvider = remember(searchProviderPref, context) {
                     getSearchProvider(context, searchProviderPref)
@@ -253,9 +230,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                     ColorTokens.SearchboxHighlight.resolveColor(context)
                 }
 
-                val backgroundAlpha by animateIntAsState(
-                    if (isFocused || !queryEmpty) 0 else 100,
-                )
+                // Keep the pill visible while focused or typing, as Pixel does.
+                val backgroundAlpha = 100
 
                 // Ignore other theme attributes to preserve existing behavior
                 val style = buildQsbStyle(
