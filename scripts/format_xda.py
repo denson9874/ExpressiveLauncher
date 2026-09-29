@@ -39,6 +39,10 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
         flags=re.IGNORECASE,
     )
 
+    # 3b. XDA shows raw HTML literally; convert the inline tags the notes use (e.g. a riddle answer).
+    text = re.sub(r"<(?:b|strong)>([\s\S]*?)</(?:b|strong)>", r"[B]\1[/B]", text, flags=re.IGNORECASE)
+    text = re.sub(r"<(?:i|em)>([\s\S]*?)</(?:i|em)>", r"[I]\1[/I]", text, flags=re.IGNORECASE)
+
     # 4. Convert Horizontal Rules (---) -> [HR][/HR]
     text = re.sub(r"^[ \t]*---[ \t]*$", "[HR][/HR]", text, flags=re.MULTILINE)
 
@@ -60,8 +64,23 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
     # 9. Convert Italic (*text* or _text_) -> [I]text[/I]
     text = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"[I]\1[/I]", text)
 
-    # 10. Convert Markdown links [Label](URL) -> [URL="URL"]Label[/URL]
-    text = re.sub(r"\[([^\]]+)\]\((https?://[^\s)]+)\)", r'[URL="\2"]\1[/URL]', text)
+    # 10. Convert Markdown links [Label](URL) -> [URL="URL"]Label[/URL], any scheme (e.g. obtainium://)
+    text = re.sub(r"\[([^\]]+)\]\(([a-zA-Z][a-zA-Z0-9+.-]*://[^\s)]+)\)", r'[URL="\2"]\1[/URL]', text)
+
+    # 10b. Convert consecutive "> " quote lines into one [QUOTE] block; a blank line starts a new one.
+    quoted_lines = []
+    quote_buffer = []
+    for line in text.split("\n"):
+        if line.startswith(">"):
+            quote_buffer.append(line[1:].lstrip(" "))
+            continue
+        if quote_buffer:
+            quoted_lines.append("[QUOTE]" + "\n".join(quote_buffer) + "[/QUOTE]")
+            quote_buffer = []
+        quoted_lines.append(line)
+    if quote_buffer:
+        quoted_lines.append("[QUOTE]" + "\n".join(quote_buffer) + "[/QUOTE]")
+    text = "\n".join(quoted_lines)
 
     # 11. Convert Bullet Lists: consecutive lines starting with - or * into [LIST]...[/LIST]
     lines = text.split("\n")
