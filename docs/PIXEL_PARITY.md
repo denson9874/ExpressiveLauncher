@@ -18,8 +18,11 @@ Reference: Pixel Launcher on the Android 17 QPR2 Beta 5 emulator (CP41.260828.00
    On Android 17 QPR2, *Install unknown apps → Ask every time* reports deny, and Play Protect shows
    *App scan recommended* for the helper. The setup copy names both.
 2. **Google dock search.** Pixel hosts `GoogleSearchWidgetProvider` from the Google app in the
-   dock. Expressive now defaults to the Google widget mode (`config_default_hotseat_mode`), keeping
-   explicit user choices. Both Google search widgets now declare an optional customization
+   dock. A third-party HOME app needs Android's one-time "Create widget and allow access?"
+   confirmation, so Expressive offers it as a free **Home screen > Google search bar** switch
+   (`GoogleSearchBarSetup`) instead of making it the default. Jenkins build 46's smoke QA caught the
+   dialog covering Home after the upgrade, and `QsbContainerView` had re-requested it on every Home
+   start; that auto-request is removed (AOSP behavior). Both Google search widgets now declare an optional customization
    activity (`WIDGET_FEATURE_CONFIGURATION_OPTIONAL`), so the AOSP lookup skipped them and bound
    the home-screen-only Premium widget, which renders empty. `pickGoogleDockSearchWidget()` prefers
    Pixel's widget, then `SearchWidgetProvider`, and never falls back to a non-search-box widget.
@@ -32,9 +35,11 @@ Reference: Pixel Launcher on the Android 17 QPR2 Beta 5 emulator (CP41.260828.00
    the current home wallpaper plus up to three recent ones, with no lock card or chips. The card
    stays the same when the carousel is disabled. Applies to the Expressive product only.
 
-Validation: `ExpressiveFeedSetupTest`, `GoogleDockSearchWidgetPolicyTest` (5), `HomeMenuQpr2StyleTest`
-(4), `FeedCallerPolicyTest` (6); full app unit suite 316/316 and CI contracts 279/279 locally before
-Jenkins. Emulator checks as listed; AI Mode not checked (emulator signed out).
+Validation: `ExpressiveFeedSetupTest`, `GoogleDockSearchWidgetPolicyTest` (5), `GoogleSearchBarSetupTest`
+(3), `HomeMenuQpr2StyleTest` (4), `FeedCallerPolicyTest` (6); full app unit suite 319/319 and CI
+contracts 279/279 locally before Jenkins. Emulator: first Home after install shows no dialog; switch
+on → one prompt → Google bar (search, voice, Lens) persists across restarts; Cancel and off leave
+Expressive's bar; on again doesn't re-prompt. AI Mode not checked (emulator signed out).
 
 ## Dock suggestions, solid status bar and Dock access — 2026-09-28 (candidate 3.1.4 / code 46)
 

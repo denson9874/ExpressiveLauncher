@@ -163,9 +163,10 @@ public class QsbContainerView extends FrameLayout {
     public static class QsbFragment extends FragmentWithPreview {
 
         public static final int QSB_WIDGET_HOST_ID = 1026;
+        public static final String KEY_QSB_WIDGET_ID = "qsb_widget_id";
         private static final int REQUEST_BIND_QSB = 1;
 
-        protected String mKeyWidgetId = "qsb_widget_id";
+        protected String mKeyWidgetId = KEY_QSB_WIDGET_ID;
         private QsbWidgetHost mQsbWidgetHost;
         protected AppWidgetProviderInfo mWidgetInfo;
         private QsbWidgetHostView mQsb;
@@ -315,7 +316,8 @@ public class QsbContainerView extends FrameLayout {
             View v = QsbWidgetHostView.getDefaultView(container);
             // pE-TODO(??): Why are we using isInPreviewMode() check to prevent crash?
             if (showSetupIcon && !isInPreviewMode()) {
-                requestQsbCreate();
+                // Ask only when the user taps setup. Requesting here popped Android's bind dialog over
+                // Home on every launcher start until it was accepted.
                 View setupButton = v.findViewById(R.id.btn_qsb_setup);
                 setupButton.setVisibility(View.VISIBLE);
                 setupButton.setOnClickListener((v2) -> requestQsbCreate());

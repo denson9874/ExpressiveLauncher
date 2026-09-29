@@ -39,6 +39,7 @@ import app.lawnchair.ui.preferences.LocalIsExpandedScreen
 import app.lawnchair.ui.preferences.components.FeedPreference
 import app.lawnchair.ui.preferences.components.ExpressiveFeedPreferences
 import app.lawnchair.ui.preferences.components.GestureHandlerPreference
+import app.lawnchair.ui.preferences.components.GoogleSearchBarPreference
 import app.lawnchair.ui.preferences.components.HomeLayoutSettings
 import app.lawnchair.ui.preferences.components.NavigationActionPreference
 import app.lawnchair.ui.preferences.components.OverlayHandlerPreference
@@ -133,6 +134,9 @@ fun HomeScreenPreferences(
                 destination = Dock,
                 subtitle = stringResource(id = R.string.home_screen_dock_link_description),
             )
+            if (BuildConfig.IS_EXPRESSIVE_PRODUCT) {
+                GoogleSearchBarPreference()
+            }
         }
         PreferenceGroup(heading = stringResource(id = R.string.home_screen_actions)) {
             ClickablePreference(

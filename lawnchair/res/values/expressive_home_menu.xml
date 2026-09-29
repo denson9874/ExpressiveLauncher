@@ -5,4 +5,6 @@
     <color name="expressive_home_menu_on_surface">@android:color/system_accent1_900</color>
     <dimen name="expressive_home_menu_corner_radius">28dp</dimen>
     <dimen name="expressive_home_menu_vertical_padding">8dp</dimen>
+    <string name="google_search_bar_label">Google search bar</string>
+    <string name="google_search_bar_description">Use the Google app\'s own search bar in the dock, like Pixel. Android asks once to allow it.</string>
 </resources>

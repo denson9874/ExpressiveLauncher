@@ -16,7 +16,15 @@ class GoogleQsbContainerView @JvmOverloads constructor(
     class QsbFragment : QsbContainerView.QsbFragment() {
         override fun isQsbEnabled(): Boolean = true
 
-        override fun getSearchWidgetProvider(): AppWidgetProviderInfo? {
+        override fun getSearchWidgetProvider(): AppWidgetProviderInfo? = findGoogleDockSearchWidget(context)
+
+    }
+
+    companion object {
+        private const val GOOGLE_PACKAGE = "com.google.android.googlequicksearchbox"
+
+        /** The Google widget the dock hosts; shared with the Home screen switch that binds it. */
+        fun findGoogleDockSearchWidget(context: Context): AppWidgetProviderInfo? {
             val providers = AppWidgetManager.getInstance(context)
                 .getInstalledProvidersForPackage(GOOGLE_PACKAGE, Process.myUserHandle())
             val chosen = pickGoogleDockSearchWidget(
@@ -30,11 +38,6 @@ class GoogleQsbContainerView @JvmOverloads constructor(
             ) ?: return null
             return providers.first { it.provider.className == chosen.className }
         }
-
-    }
-
-    companion object {
-        private const val GOOGLE_PACKAGE = "com.google.android.googlequicksearchbox"
     }
 }
 
