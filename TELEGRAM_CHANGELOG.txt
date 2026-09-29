@@ -1,33 +1,33 @@
-<b>Expressive Launcher 3.1.4 QA — Quiet Dock, Solid Top</b>
+<b>Expressive Launcher 3.1.5 QA — Swipe Right, Search Bright</b>
 
-Welcome to Expressive Launcher 3.1.4 (Build 46)! This build is about the edges of your Home screen. The dock stops filling empty spots with apps you didn't ask for, the status bar can get a solid background, and Dock settings are easier to find. All three come from the Pixel 11 Pro XDA thread. Thank you, nutzfreelance, for the detailed list.
+Welcome to Expressive Launcher 3.1.5 (Build 47)! This build fixes Google Discover and brings two Android 17 QPR2 touches to Home: Google's own search bar in the dock and Pixel's new long-press menu.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Suggestions in dock toggle (XDA-004)</b>
-• New <b>Suggestions in dock</b> switch in <b>Home screen</b>, <b>Dock</b> and <b>Suggestions</b> settings. It works like Pixel's "suggestions on Home screen" option.
-• Turn it off and empty dock spots stay empty. Predicted apps leave the dock right away, with no restart.
-• Turning it off only hides suggestions. It never restores an old dock backup or moves your pinned apps, and switching it back on shows the latest suggestions immediately.
-• App drawer suggestions have their own switch and are not affected.
+1. <b>Google Discover works again</b>
+• <b>What went wrong:</b> if Expressive didn't have install permission yet, setup offered the standalone <i>Expressive Feed Companion</i> download. That APK was signed for the retired Google Play edition and refuses to connect to Expressive from GitHub. Discover stayed blank while settings said it was on, and Android wouldn't let the built-in helper replace it.
+• <b>Set up Google Discover</b> is now always shown. It installs the Discover helper included with Expressive. When Android asks, choose <b>Always allow</b> for Expressive under <i>Install unknown apps</i>; <i>Ask every time</i> isn't enough. If Play Protect shows <b>App scan recommended</b>, tap <b>Scan app</b>, then <b>Install</b>.
+• <b>Installed the old companion?</b> Settings now offer <b>Replace Discover support</b>. It opens Android's uninstall confirmation, then installs the built-in helper.
+• Discover support is now FOSS-only. The standalone companion is retired, its download page explains the built-in setup, and the helper only trusts the launcher it shipped with.
 
-2. <b>Solid status bar background (XDA-010)</b>
-• New <b>Home screen > Status bar > Solid status bar background</b> switch paints a black bar behind the clock and icons on Home.
-• It covers exactly the status bar area and is only drawn while the status bar is shown. It fades out with the rest of the Home chrome when you open the app drawer or Recents.
-• While it is on, status bar icons stay light so they remain readable on the dark bar, even with a light wallpaper or <i>Dark status bar icons</i> turned on.
-• Android controls the status bar's height, so a Home app can't change it. The setting says so rather than promise a height control.
+2. <b>Google's own search bar, when you want it</b>
+• New free <b>Home screen > Google search bar</b> switch puts the Google app's own search widget in the dock, like Pixel Launcher on Android 17 QPR2, with search, voice and Lens. The buttons come from the Google app, so AI Mode appears when Google offers it for your account.
+• Android asks once, when you turn the switch on, whether Expressive may create the widget. Tap <b>Create</b>. Tap <b>Cancel</b> and nothing changes. Expressive never shows that prompt on its own.
+• Fixed an empty bar: the Google search bar option picked a Google widget that draws nothing in the dock.
 
-3. <b>Dock settings from Home screen settings (XDA-012)</b>
-• <b>Home screen</b> settings now has a <b>Dock</b> row that opens the full Dock page (search bar, icon count, background and suggestions), so you don't have to know it sits under <b>Advanced</b>.
-• The dashboard's Advanced section is unchanged, so existing shortcuts and muscle memory still work.
+3. <b>Android 17 QPR2 home menu</b>
+• Long-press Home for one wallpaper-tinted card instead of separate tiles, with filled icons and a gear for <b>Home settings</b>.
+• The top row shows your current wallpaper, followed by up to three recent ones. Tap the current one to open <b>Wallpaper & style</b>.
+• The menu keeps the same card if you turn the wallpaper row off.
 
-Also confirmed for <b>XDA-005</b>: the app drawer icon requested for the dock has shipped since 2.0.10. Use <b>Home screen > Add app drawer icon</b> or <b>Dock > Add app drawer icon</b>.
+For developers: debug and release builds can be installed side by side again.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core</b>: always supported, ad-free and privacy-first. Both new switches are part of Free Core.
+• <b>Free Core</b>: always supported, ad-free and privacy-first. Discover, the Google search bar switch and the new menu are all part of Free Core.
 • <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
@@ -36,36 +36,37 @@ Also confirmed for <b>XDA-005</b>: the app drawer icon requested for the dock ha
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the dock start leaving seats empty?</i>
-<b>A:</b> <i>It finally learned that "suggested guest" and "invited guest" are two different lists.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did Discover keep standing everyone up?</i>
+<b>A:</b> <i>Its ride showed up with the wrong key to the house.</i></blockquote>
 
-<blockquote>The status bar asked for a taller hat. Android said no, so we got it a nice black one instead.</blockquote>
+<blockquote>The Google search bar wanted to move into the dock right away. We told it to wait until it's invited.</blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I sit at the top in the darkest attire. I'm exactly as tall as the clock needs, no higher. I vanish in drawers and I fade out in Recents. Turn me on for contrast and your icons stay decent. What am I?</i></blockquote>
+<blockquote><i>I live just left of your first page, yet I'm never in your grid. I arrive with the news whenever you reach for me. Last week I waited at the door for a friend holding the wrong key. What am I?</i></blockquote>
 
-<tg-spoiler><b>The new solid status bar background!</b></tg-spoiler>
+<tg-spoiler><b>Google Discover, now opened by the helper built into Expressive!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🧪 Validation</b>
-• App unit suite: 306 tests passing, including 15 new regression tests for dock suggestions, the solid status bar background and the Dock link.
-• CI pipeline contract tests: 279 passing.
-• Jenkins handled the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
+• App unit suite: 319 tests passing, including 13 new regression tests for replacing the Discover helper, choosing and turning on Google's dock search bar, and the home menu's width and wallpaper row.
+• Discover helper unit tests: 6 passing. CI pipeline contract tests: 279 passing.
+• Android 17 QPR2 emulator (Google app 17.46): reproduced the blank Discover with the retired companion; verified the built-in setup and <b>Replace Discover support</b>, including Play Protect's scan prompt; compared the dock search bar and home menu with Pixel Launcher in light and dark themes. Turned the Google search bar on and off: Android's prompt appears only then, and Cancel leaves the dock unchanged. The emulator isn't signed in to Google, so AI Mode wasn't checked there.
+• Jenkins handles the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
 
 ───────────────────────
 
 <b>🛡️ Technical Details</b>
-• <b>Version</b>: <code>3.1.4</code> (Build <code>46</code>), QA channel
+• <b>Version</b>: <code>3.1.5</code> (Build <code>47</code>), QA channel
 • <b>Package</b>: <code>dev.launcher.expressive.l3</code>
 • Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
-• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.4-46">qa-v3.1.4-46</a>
+• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.5-47">qa-v3.1.5-47</a>
 • <b>All releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">GitHub Releases</a>
 • <b>Bug reports</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/issues">GitHub Issues</a>
 • <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>
