@@ -23,6 +23,7 @@ import com.google.android.msdl.data.model.MSDLToken
 fun ClickableIcon(
     painter: Painter,
     onClick: () -> Unit,
+    contentDescription: String?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tint: Color = LocalContentColor.current,
@@ -44,7 +45,7 @@ fun ClickableIcon(
         val alpha by animateFloatAsState(targetValue = contentAlpha, label = "")
         Icon(
             painter = painter,
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = tint.copy(alpha = alpha),
         )
     }
@@ -54,6 +55,7 @@ fun ClickableIcon(
 fun ClickableIcon(
     imageVector: ImageVector,
     onClick: () -> Unit,
+    contentDescription: String?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tint: Color = LocalContentColor.current,
@@ -61,6 +63,7 @@ fun ClickableIcon(
     ClickableIcon(
         painter = rememberVectorPainter(image = imageVector),
         onClick = onClick,
+        contentDescription = contentDescription,
         modifier = modifier,
         enabled = enabled,
         tint = tint,

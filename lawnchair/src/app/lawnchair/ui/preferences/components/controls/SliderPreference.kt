@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.preferences.rememberTransformAdapter
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import app.lawnchair.ui.preferences.components.layout.settingsSearchTarget
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.preview.PreferenceGroupPreviewContainer
 import app.lawnchair.ui.util.preview.PreviewLawnchair
@@ -175,7 +176,7 @@ private fun SliderPreference(
                 }
             }
         },
-        modifier = modifier,
+        modifier = modifier.settingsSearchTarget(label),
         description = {
             Slider(
                 value = sliderValue,

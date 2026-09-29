@@ -50,6 +50,7 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.components.notificationDotsEnabled
 import app.lawnchair.ui.preferences.components.notificationServiceEnabled
+import app.lawnchair.ui.preferences.data.liveinfo.LiveInformationAvailability
 import app.lawnchair.ui.preferences.data.liveinfo.liveInformationManager
 import app.lawnchair.ui.preferences.navigation.GeneralIconPack
 import app.lawnchair.ui.preferences.navigation.GeneralIconShape
@@ -101,19 +102,25 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
                 description = stringResource(id = R.string.home_screen_rotation_description),
             )
         }
-        PreferenceGroup(heading = stringResource(id = R.string.updater)) {
-            if (BuildConfig.APPLICATION_ID.contains("nightly")) {
-                SwitchPreference(
-                    adapter = prefs2.autoUpdaterNightly.getAdapter(),
-                    label = stringResource(id = R.string.auto_updater_label),
-                    description = stringResource(id = R.string.auto_updater_description),
-                )
+        val isNightly = BuildConfig.APPLICATION_ID.contains("nightly")
+        val liveInformationAvailable = LiveInformationAvailability.isAvailable(BuildConfig.STANDARD_HOME_ONLY)
+        if (LiveInformationAvailability.showsUpdatesGroup(isNightly, liveInformationAvailable)) {
+            PreferenceGroup(heading = stringResource(id = R.string.updater)) {
+                if (isNightly) {
+                    SwitchPreference(
+                        adapter = prefs2.autoUpdaterNightly.getAdapter(),
+                        label = stringResource(id = R.string.auto_updater_label),
+                        description = stringResource(id = R.string.auto_updater_description),
+                    )
+                }
+                if (liveInformationAvailable) {
+                    SwitchPreference(
+                        adapter = liveInfoManager.enabled.getAdapter(),
+                        label = stringResource(id = R.string.live_information_label),
+                        description = stringResource(id = R.string.live_information_description),
+                    )
+                }
             }
-            SwitchPreference(
-                adapter = liveInfoManager.enabled.getAdapter(),
-                label = stringResource(id = R.string.live_information_label),
-                description = stringResource(id = R.string.live_information_description),
-            )
         }
         ExpandAndShrink(visible = prefs2.enableFontSelection.asState().value) {
             ProGate(

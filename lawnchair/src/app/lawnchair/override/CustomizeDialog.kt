@@ -199,6 +199,7 @@ fun CustomizeDialog(
                     ClickableIcon(
                         painter = painterResource(id = R.drawable.ic_undo),
                         onClick = { onTitleChange(defaultTitle) },
+                        contentDescription = stringResource(id = R.string.icon_picker_reset_to_default),
                     )
                 }
             },

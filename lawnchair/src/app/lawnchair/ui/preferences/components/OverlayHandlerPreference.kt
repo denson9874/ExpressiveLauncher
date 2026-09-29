@@ -20,6 +20,7 @@ import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.ui.ModalBottomSheetContent
 import app.lawnchair.ui.preferences.components.layout.PreferenceDivider
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import app.lawnchair.ui.preferences.components.layout.settingsSearchTarget
 import app.lawnchair.ui.util.LocalBottomSheetHandler
 import app.lawnchair.views.overlay.FullScreenOverlayMode
 import com.android.launcher3.util.MSDLPlayerWrapper
@@ -53,7 +54,7 @@ fun OverlayHandlerPreference(
 
     PreferenceTemplate(
         title = { Text(text = label) },
-        modifier = modifier,
+        modifier = modifier.settingsSearchTarget(label),
         description = { Text(text = stringResource(currentConfig.labelRes)) },
         onClick = {
             mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)

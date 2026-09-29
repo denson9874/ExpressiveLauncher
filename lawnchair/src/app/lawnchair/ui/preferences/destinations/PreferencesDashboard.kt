@@ -77,6 +77,7 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.preferences.components.layout.ProvideDescriptionTextStyle
+import app.lawnchair.ui.preferences.data.liveinfo.LiveInformationAvailability
 import app.lawnchair.ui.preferences.data.liveinfo.SyncLiveInformation
 import app.lawnchair.ui.preferences.navigation.About
 import app.lawnchair.ui.preferences.navigation.AppDrawer
@@ -114,7 +115,8 @@ fun PreferencesDashboard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    if (!BuildConfig.STANDARD_HOME_ONLY) {
+    val liveInformationAvailable = LiveInformationAvailability.isAvailable(BuildConfig.STANDARD_HOME_ONLY)
+    if (liveInformationAvailable) {
         SyncLiveInformation()
     }
     val prefs = preferenceManager()
@@ -143,11 +145,12 @@ fun PreferencesDashboard(
             ClickableIcon(
                 imageVector = Icons.Rounded.Search,
                 onClick = { onNavigate(SettingsSearch) },
+                contentDescription = stringResource(R.string.settings_search_placeholder),
             )
             PreferencesOverflowMenu(currentRoute = currentRoute, onNavigate = onNavigate)
         },
     ) {
-        if (!BuildConfig.STANDARD_HOME_ONLY) {
+        if (liveInformationAvailable) {
             AnnouncementPreference()
         }
 
@@ -345,6 +348,7 @@ fun RowScope.PreferencesOverflowMenu(
         ClickableIcon(
             imageVector = Icons.Rounded.Build,
             onClick = { onNavigate(DebugMenu) },
+            contentDescription = "Debug menu",
             modifier = Modifier.addIf(currentRoute == DebugMenu) {
                 Modifier
                     .clip(highlightShape)

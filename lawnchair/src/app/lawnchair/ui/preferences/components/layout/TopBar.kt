@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +73,7 @@ fun TopBar(
                         ClickableIcon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             onClick = { backDispatcher?.onBackPressed() },
+                            contentDescription = stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
                         )
                     }
                 }
@@ -101,6 +103,7 @@ fun TopBar(
                         ClickableIcon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             onClick = { backDispatcher?.onBackPressed() },
+                            contentDescription = stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
                         )
                     }
                 }

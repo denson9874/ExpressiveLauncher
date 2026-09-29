@@ -40,6 +40,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import app.lawnchair.ui.preferences.components.layout.settingsSearchTarget
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.preview.PreferenceGroupPreviewContainer
 import app.lawnchair.ui.util.preview.PreviewLawnchair
@@ -94,7 +95,7 @@ fun TwoTargetSwitchPreference(
 
     PreferenceTemplate(
         title = { Text(text = label) },
-        modifier = modifier,
+        modifier = modifier.settingsSearchTarget(label),
         enabled = enabled,
         description = description?.let { { Text(text = it) } },
         endWidget = {

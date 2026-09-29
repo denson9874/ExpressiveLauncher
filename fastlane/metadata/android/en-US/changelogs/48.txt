@@ -1,0 +1,4 @@
+1. Settings search finds every setting in your language, ranks the best match first and scrolls to the row with a pulse.
+2. Back, Search, More options and the other icon buttons in Settings now have TalkBack labels.
+3. Removed the Live information switch, which did nothing in Expressive.
+4. Discover setup explains "App not installed" when an old helper hides in Private space or a work profile.

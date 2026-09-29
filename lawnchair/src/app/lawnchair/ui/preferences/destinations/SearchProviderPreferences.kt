@@ -135,6 +135,7 @@ private fun ListItem(
                         ClickableIcon(
                             painter = painterResource(id = R.drawable.ic_about),
                             onClick = onSponsorDisclaimerClick,
+                            contentDescription = stringResource(id = R.string.about_label),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(end = 4.dp),
                         )
@@ -143,6 +144,7 @@ private fun ListItem(
                         ClickableIcon(
                             painter = painterResource(id = R.drawable.ic_download),
                             onClick = onDownloadClick,
+                            contentDescription = stringResource(id = R.string.settings_get_app),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(end = 4.dp),
                         )
@@ -186,6 +188,7 @@ private fun Options(
                     ClickableIcon(
                         painter = painterResource(R.drawable.ic_download),
                         onClick = onAppDownloadClick,
+                        contentDescription = stringResource(id = R.string.settings_get_app),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(end = 4.dp),
                     )

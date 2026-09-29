@@ -276,6 +276,7 @@ private fun HexColorPicker(
 
         ClickableIcon(
             imageVector = Icons.Rounded.ContentCopy,
+            contentDescription = stringResource(id = R.string.action_copy),
             onClick = {
                 mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
                 val clip =
@@ -291,6 +292,7 @@ private fun HexColorPicker(
 
         ClickableIcon(
             imageVector = Icons.Rounded.ContentPaste,
+            contentDescription = stringResource(id = R.string.action_paste),
             onClick = {
                 mMSDLPlayerWrapper.playToken(MSDLToken.TAP_LOW_EMPHASIS)
                 clipboardManager.primaryClip?.getItemAt(0)?.text?.let {

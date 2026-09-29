@@ -10,6 +10,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import app.lawnchair.ui.preferences.components.layout.ClickableIcon
@@ -28,6 +29,7 @@ fun OverflowMenu(
         ClickableIcon(
             imageVector = Icons.Rounded.MoreVert,
             onClick = { showMenu.value = true },
+            contentDescription = stringResource(androidx.appcompat.R.string.abc_action_menu_overflow_description),
         )
         DropdownMenu(
             expanded = showMenu.value,

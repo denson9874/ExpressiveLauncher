@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -96,6 +97,7 @@ private fun SearchBar(
         ClickableIcon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
             onClick = { backDispatcher?.onBackPressed() },
+            contentDescription = stringResource(androidx.appcompat.R.string.abc_action_bar_up_description),
         )
         Box(modifier = Modifier.weight(1f)) {
             SearchTextField(
@@ -118,6 +120,7 @@ private fun SearchBar(
                         ClickableIcon(
                             imageVector = Icons.Rounded.Clear,
                             onClick = { onValueChange("") },
+                            contentDescription = stringResource(androidx.appcompat.R.string.abc_searchview_description_clear),
                         )
                     }
                 }

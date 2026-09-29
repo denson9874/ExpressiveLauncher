@@ -35,6 +35,7 @@ import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.ui.ModalBottomSheetContent
 import app.lawnchair.ui.preferences.components.layout.PreferenceDivider
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import app.lawnchair.ui.preferences.components.layout.settingsSearchTarget
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.bottomSheetHandler
 import app.lawnchair.ui.util.preview.PreferenceGroupPreviewContainer
@@ -85,7 +86,7 @@ fun <T> ListPreference(
 
     PreferenceTemplate(
         title = { Text(text = label) },
-        modifier = modifier,
+        modifier = modifier.settingsSearchTarget(label),
         enabled = enabled,
         description = currentDescription?.let { { Text(text = it) } },
         endWidget = endWidget,

@@ -27,6 +27,7 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
@@ -41,6 +42,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.window.layout.DisplayFeature
+import app.lawnchair.ui.preferences.components.layout.LocalSettingsSearchTarget
+import app.lawnchair.ui.preferences.components.layout.SettingsSearchTarget
 import app.lawnchair.ui.preferences.destinations.PreferencesDashboard
 import app.lawnchair.ui.preferences.navigation.General
 import app.lawnchair.ui.preferences.navigation.IconPicker
@@ -53,6 +56,7 @@ import app.lawnchair.ui.util.ProvideBottomSheetHandler
 import app.lawnchair.util.ProvideLifecycleState
 import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
 import com.google.accompanist.adaptive.TwoPane
+import kotlinx.coroutines.delay
 
 // todo migrate away from implicit navcontroller
 val LocalNavController = staticCompositionLocalOf<NavController> {
@@ -92,6 +96,15 @@ fun Preferences(
 
     var currentTopRoute by remember { mutableStateOf(defaultStartingRoute) }
 
+    val searchTarget = remember { SettingsSearchTarget() }
+    LaunchedEffect(searchTarget.requestCount) {
+        // A result whose screen has no such row must not fire on some later screen.
+        if (searchTarget.hasPending) {
+            delay(SettingsSearchTarget.EXPIRY_MS)
+            searchTarget.clear()
+        }
+    }
+
     Providers {
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -101,6 +114,7 @@ fun Preferences(
                 LocalNavController provides navController,
                 LocalPreferenceInteractor provides interactor,
                 LocalIsExpandedScreen provides isExpandedScreen,
+                LocalSettingsSearchTarget provides searchTarget,
             ) {
                 PreferenceScreen(
                     currentTopRoute = currentTopRoute,

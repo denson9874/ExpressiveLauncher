@@ -185,6 +185,11 @@
     <string name="dock_label">Dock</string>
     <string name="dock_description">Search bar, icon count</string>
     <string name="home_screen_dock_link_description" tools:ignore="MissingTranslation">Search bar, icon count, background and suggestions</string>
+    <!-- Empty state of the settings search. Deliberately not the widget picker's no_search_results. -->
+    <string name="settings_search_no_results" tools:ignore="MissingTranslation">No matching settings</string>
+    <string name="settings_search_placeholder" tools:ignore="MissingTranslation">Search settings</string>
+    <!-- Content description of the download button beside a search provider that needs its app. -->
+    <string name="settings_get_app" tools:ignore="MissingTranslation">Get app</string>
 
     <string name="app_drawer_label">App drawer</string>
     <string name="app_drawer_description">Hidden apps, column count, icons</string>

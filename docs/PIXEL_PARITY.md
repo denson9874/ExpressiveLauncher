@@ -4,6 +4,57 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Settings search, TalkBack labels and honest settings — 2026-09-29 (candidate 3.1.6 / code 48)
+
+Reference: the released 3.1.5 build on the Android 17 QPR2 Beta 5 emulator (CP41.260828.004.A7,
+Pixel 11 Pro XL geometry), driven through its UI with `uiautomator` dumps beside Pixel Launcher's
+Home settings. Pixel Launcher has no settings search, so this entry is not a parity claim; it makes
+Expressive's own navigation aids trustworthy after the discoverability reports (XDA-001, -007, -011,
+-012) and the recent settings additions.
+
+1. **Settings search finds every setting.** On 3.1.5, searching "return" (Return to default page)
+   showed *No widgets or shortcuts found*, "suggestions" matched only *Web search suggestions*, and
+   Suggestions in dock, Solid status bar background, Dark status bar icons, Match app icon shape,
+   Google search bar, Show Google Discover, Add app drawer icon, Home screen rotation and Themed
+   icons could not be found at all. The index was a hand-written list of 58 English strings that
+   had drifted from the screens: it also listed rows Expressive never shows (*Pinch to overview*,
+   *Quickstep / Recents*). `SettingsSearchIndex` now builds 149 entries (152 across products) from
+   the same string resources the screens use, so titles follow the user's language and cannot drift
+   from the page; each entry opens the screen the setting lives on (sub-screens included). Results
+   are accent-insensitive and ranked: exact title, title prefix, a word of the title, other title
+   matches, keywords, then descriptions and page names. `SettingsSearchCoverageTest` scans the
+   screens' sources and fails when a labelled row is neither searchable nor listed with a reason.
+   The empty state no longer reuses the widget picker's *No widgets or shortcuts found* and the
+   field says *Search settings*.
+2. **Search takes you to the setting.** Choosing a result now scrolls the destination screen to
+   that row, with neighbours above and below it, and pulses it twice (`Modifier.settingsSearchTarget`
+   on the switch, slider, list, navigation, action, gesture and overlay rows). Rows a Pro lock hides
+   never answer; the request expires after four seconds instead of firing on a later screen.
+3. **TalkBack names the icon buttons.** `ClickableIcon` had no way to carry a label, so the back
+   arrow, Search, More options, Clear, copy/paste, reset and download buttons were announced as
+   *Button*. It now requires a `contentDescription`; Back, More options and Clear use AppCompat's
+   translated strings. `ClickableIconLabelsTest` scans every call site.
+4. **No dead switch.** The standard-home product never syncs or shows Live information (the dashboard
+   skips both), yet *Icons & appearance > Updates* offered a *Live information* switch described as
+   "Displays announcement, and set the default feature flags". It, and the Updates group it left
+   empty, are hidden for Expressive (`LiveInformationAvailability`).
+5. **Verified, not changed: Return to default page (XDA-015).** With the switch off, opening an app
+   from page 2 and returning by Back or Home stays on page 2; with it on, the launcher returns to
+   page 1 (release 3.1.5, emulator). The report is the default-on behavior, as on Pixel.
+
+Also measured and ruled out: the shipped baseline profile already covers the launcher (4,264 classes
+in the primary dex), and forcing full AOT compilation left cold start at about 0.8 s (725–964 ms
+either way), so no startup change is warranted.
+
+Validation: `SettingsSearchIndexTest` (11), `SettingsSearchCoverageTest` (2), `SettingsSearchTargetTest`
+(7), `ClickableIconLabelsTest` (3), `LiveInformationAvailabilityTest` (4); full app unit suite 346/346
+and CI contracts 283/283 locally before Jenkins. Emulator (debug build of this candidate): search
+results for "return", "suggestions", "status bar", "discover", "dock" and a no-match query; a result
+scrolled to *Solid status bar background* and pulsed twice (sampled frame colors); Search, Icon shape,
+Search provider, Create backup and Home screen rotation results opened the right screens; the top
+bar buttons expose *Search settings*, *More options*, *Navigate up* and *Clear query*; the Updates
+group is gone from Icons & appearance. No TalkBack run and no physical-device check were made.
+
 ## Discover setup, Google dock search and QPR2 home menu — 2026-09-28 (candidate 3.1.5 / code 47)
 
 Reference: Pixel Launcher on the Android 17 QPR2 Beta 5 emulator (CP41.260828.004.A7, Google app

@@ -37,6 +37,7 @@ import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.ui.ModalBottomSheetContent
 import app.lawnchair.ui.preferences.components.layout.PreferenceDivider
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
+import app.lawnchair.ui.preferences.components.layout.settingsSearchTarget
 import app.lawnchair.ui.util.LocalBottomSheetHandler
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.MSDLPlayerWrapper
@@ -70,7 +71,7 @@ fun GestureHandlerPreference(
 
     PreferenceTemplate(
         title = { Text(text = label) },
-        modifier = modifier,
+        modifier = modifier.settingsSearchTarget(label),
         description = { Text(text = currentConfig.getLabel(context)) },
         onClick = {
             mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
