@@ -1,39 +1,91 @@
-<b>Expressive Launcher 3.1.6 QA — Search and Ye Shall Find</b>
+<b>Expressive Launcher 4.0.0 Stable — Type Less, Find More</b>
 
-Welcome to Expressive Launcher 3.1.6 (Build 48)! Settings search used to answer "No widgets or shortcuts found" when you asked it for a setting. This build teaches it to find every setting, walk you to the row and knock twice.
-
-───────────────────────
-
-<b>✨ What's New & Improved</b>
-
-1. <b>Settings search finds every setting</b>
-• <b>What went wrong:</b> the search list was a short hand-written set of English phrases that had drifted from the screens. Typing <i>return</i>, <i>suggestions in dock</i>, <i>status bar</i>, <i>Discover</i> or <i>rotation</i> found nothing or the wrong thing, and an empty result said "No widgets or shortcuts found" (the widget picker's message). It even listed settings Expressive doesn't have.
-• <b>Now:</b> about 150 settings are searchable, in your language, and each result opens the screen it lives on. The best match comes first: an exact title, then titles that start with your words, then the rest. Accents and capitals don't matter, and every word you type has to match.
-• The search box now says <b>Search settings</b> and an empty result says <b>No matching settings</b>.
-
-2. <b>Search takes you to the setting</b>
-• Choose a result and the screen scrolls to that row, with its neighbours in view, and pulses it twice so you can spot it.
-• Options hidden behind an Expressive Pro lock stay hidden; you land on the lock card.
-
-3. <b>TalkBack can name Settings' icon buttons</b>
-• Back, <b>Search settings</b>, <b>More options</b>, <b>Clear</b>, copy, paste, reset and download buttons were all announced as just "Button". They now say what they do, and any new icon button has to carry a label.
-
-4. <b>One less switch that did nothing</b>
-• <b>Live information</b> in <i>Icons & appearance</i> promised announcements and default feature flags, but Expressive never fetched or showed either. The switch and the empty <b>Updates</b> heading above it are gone.
-
-5. <b>Clearer Discover setup</b>
-• If Android answers "App not installed" because an old Expressive Feed is still hiding in Private space or a work profile, the message now names that as the likely cause. Android hides that copy from apps, so this can only be explained after the attempt.
+Welcome to <b>Expressive Launcher 4.0.0 Stable</b> (Build 49), the first stable release since 2.0.8 and our first major release since 3.0. Stable users are getting the headline 4.0 changes plus everything from the 22 builds released since 2.0.8. The app drawer search now behaves like Pixel's, Home does a lot less unnecessary work, Discover works again, and there's a lot more in between.
 
 ───────────────────────
 
-<b>🗣️ From Your Reports</b>
-• <b>Finding settings</b> (the navigation and discoverability threads): search is now a dependable way in, and it takes you to the row instead of to the top of a long page.
-• <b>Return to default page (XDA-015):</b> we re-tested this on 3.1.5. With the switch off, opening an app from page 2 and coming back with Back or Home leaves you on page 2. With it on (the default, as on Pixel), you return to page 1. No change needed.
+<b>🏗️ The work behind this release</b>
+
+Stable only moves when the QA channel has proved a change. Here's what went into this one:
+• <b>22 builds shipped</b> between 2.0.8 Stable (Build 26) and this release, from 2.0.8 Hotfix 1 (Build 27) to 3.1.6 (Build 48), 18 of them as public QA releases, plus the 4.0.0 candidate itself.
+• <b>70 commits</b> of product work: 268 files changed, about 15,400 lines added and 1,700 removed.
+• <b>7 GitHub issues fixed</b> (#17, #18, #19, #21, #22, #23, #24) and <b>8 XDA reports acted on</b> (XDA-003, -004, -006, -007, -008, -010, -012, -013).
+• <b>Automated tests grew from 237 to 381</b> app unit tests (+144). The release-pipeline contract tests now number 288, including new checks that only exact, fully tested APKs can be sealed for release.
+• <b>Five public pull requests</b> (#29–#33) were reviewed by independent agents, unit-tested and checked on the Android 17 QPR2 emulator before being ported into 4.0.0. A dedicated review pass (#33) found and fixed four problems in them before any user saw them.
+• <b>Every build in this history</b> went through Jenkins: full unit suite, signature and packaging checks, and an isolated emulator upgrade test before publication.
+
+Details of the testing for this build are under <b>🧪 Validation</b> below.
+
+───────────────────────
+
+<b>🌟 New in 4.0.0</b>
+
+1. <b>Pixel-style drawer search</b>
+• Results appear as you type. Each section keeps its rows until its new answers arrive, so going from <i>wea</i> to <i>weat</i> doesn't make the list jump.
+• The search pill stays solid while you're using it.
+• Closing the search (clear, Back or closing the drawer) starts the next one fresh. Old results can't sneak in.
+• The Pixel Search provider is now labelled <b>Pixel Search (third-party)</b>, to be clear it isn't Google's own.
+2. <b>Enter searches the web.</b> Enter on a query with no matching app opens your web search. It used to be able to open a Play Store search while suggestions were loading.
+3. <b>A calculator that knows when it's needed.</b> Calculator results are on by default: type *12\<i>7</i> and 84 is at the top. It only answers real calculations, so <i>e</i>, <i>2024</i> or <i>pi</i> no longer get a calculator row. <code>sqrt()</code> works too.
+4. <b>Smoother Home and app transitions</b>
+• Home no longer clears a blur that's already clear, or writes a log line on every animation frame.
+• Home no longer reloads every app and icon each time it's recreated, only when an icon pack or themed icon pack needs it.
+• App suggestion rows stop re-binding every time you return to Home or open the drawer.
+5. <b>Labels follow your language.</b> Change the system language and Home and drawer labels, plus the drawer's section letters, switch right away instead of after a restart.
+
+───────────────────────
+
+<b>📦 Since 2.0.8 Stable (released in QA along the way)</b>
+
+<b>Search and settings</b>
+• <b>Settings search finds every setting</b>, in your language, with the best match first. Choosing a result scrolls to the row and pulses it (3.1.6).
+• <b>TalkBack labels</b> for Back, Search, More options and the other icon buttons in Settings (3.1.6).
+• <b>Scroll hints</b> on long settings pages, and an opens-elsewhere icon on rows that hand off to Android settings (3.1.3, XDA-007/-008/-013).
+• Removed settings that did nothing: the Live information switch and redundant widget rows (3.1.6, 2.0.8 Hotfix 1).
+
+<b>Home, dock and drawer</b>
+• <b>Android 17 QPR2 home menu:</b> long-press Home for one wallpaper-tinted card with filled icons and your current and recent wallpapers (3.1.5).
+• <b>Google search bar switch:</b> put the Google app's own dock search bar on Home, with Lens, voice and AI Mode, as on Pixel. It's opt-in (3.1.5).
+• <b>Suggestions in dock</b> switch; with it off, empty dock spots stay empty (3.1.4, XDA-004).
+• <b>Solid status bar background</b> option on Home, with light icons (3.1.4, XDA-010), and a Dock row in Home screen settings (3.1.4, XDA-012).
+• <b>Folders match your app icon shape</b>, keeping any folder shape you picked yourself (3.1.3, XDA-006).
+• <b>Recently installed apps</b> in drawer suggestions, and separate switches for drawer suggestions and the search bar (3.1.0, #21).
+• <b>Home screen shortcuts:</b> edit their icon and label (#19); app drawer icon option and direct shortcuts (#17).
+
+<b>Google Discover</b>
+• <b>Discover works again.</b> Setup always installs the helper built into Expressive, <b>Replace Discover support</b> swaps out the old companion that couldn't connect, and the setup text explains what Android and Play Protect will ask (3.1.5).
+• If Android answers "App not installed" because an old helper is hiding in Private space or a work profile, Expressive now says so (3.1.6).
+
+<b>Fixes</b>
+• QuickSwitch/Quickstep crash on Android 17 (<code>createInputConsumer</code>) fixed (3.1.1, #24).
+• Crash when dragging shortcuts fixed, and returning to the default page fixed (#18, #23).
+• Software rendering now protected against hardware icon bitmaps.
+• Infinite scrolling setting now kept in Home screen settings.
+
+<b>Updates and distribution</b>
+• <b>Obtainium 1-click updates</b> from Settings > About, with F-Droid / IzzyOnDroid metadata in the repository (3.1.2, #22).
+
+───────────────────────
+
+<b>⚙️ Changes to know about when coming from 2.0.8</b>
+• <b>Expressive Pro arrived in 3.0.</b> Deep customization options (such as grid sizing, typography, gestures, per-app icon overrides and folder styles) now need a one-time $4.99 Pro activation. <b>Customizations you already made keep working after the upgrade.</b> Pro is only needed to change those options. Everything else stays free.
+• <b>"Always reload icons" is now off</b> if you never changed it. If you turned it on yourself, it stays on. You can turn it back on in Experimental features if your icon pack updates often.
+• <b>Calculator results in drawer search are now on.</b> You can turn them off in the drawer search settings.
+• <b>Discover support is FOSS-only:</b> the separate Play-signed Feed Companion is retired. Use <b>Set up</b> or <b>Replace Discover support</b> in Discover settings.
+
+───────────────────────
+
+<b>🐞 Known issues</b>
+• Pressing Enter within a few milliseconds of the last letter may be ignored. Press it again.
+• The <i>Search on Google</i> row can flash a Play Store icon for a couple of frames.
+• Empty cards can appear for about 0.2 s when a new search first shows results.
+• A hardware keyboard's Enter can start the web search twice.
+• After a language change, some drawer icons can lose their TalkBack description until the next restart.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core</b>: always supported, ad-free and privacy-first. Settings search, its jump-to-setting and the TalkBack labels are all part of Free Core.
+• <b>Free Core</b>: always supported, ad-free and privacy-first. The new drawer search, calculator, settings search, Discover setup and every performance change are part of Free Core.
 • <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
@@ -42,38 +94,53 @@ Welcome to Expressive Launcher 3.1.6 (Build 48)! Settings search used to answer 
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did Settings search keep saying "No widgets or shortcuts found"?</i>
-<b>A:</b> <i>It was checking the widget picker for your setting. Awkward for everyone.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the calculator answer "e"?</i>
+<b>A:</b> <i>It was just being irrational. It now waits until you actually ask it something.</i></blockquote>
 
-<blockquote>The icon buttons in Settings finally got name tags. They were tired of being introduced as "Button".</blockquote>
+<blockquote>Home used to reload every icon each time it came back, like checking every pocket for your keys when they're already in your hand. It only checks when something has changed now.</blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I know a hundred rooms and live in none of them. Ask for a switch and I'll walk you to its door, knock twice and step aside. Last week I swore your dock had no suggestions. What am I?</i></blockquote>
+<blockquote><i>You give me one letter and I give you a list. Add another and I keep what I had until something better arrives. Hand me a sum and I'll answer it, but say "pi" and I'll just offer you pizza. What am I?</i></blockquote>
 
-<tg-spoiler><b>Settings search, now complete and pointing at the exact setting!</b></tg-spoiler>
+<tg-spoiler><b>The new Pixel-style drawer search, with its much pickier calculator!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🧪 Validation</b>
-• App unit suite: 346 tests passing, including 27 new ones for the search index and ranking, a guard that fails when a screen's setting is missing from the index, the jump-to-setting request, icon-button labels and the Live information switch.
-• CI pipeline contract tests: 283 passing.
-• Android 17 QPR2 emulator: reproduced the failed searches and the Return to default page behavior on the released 3.1.5; on this build checked the search results and their ranking, the empty state, the jump and pulse to <i>Solid status bar background</i>, results opening Icon shape, Search provider, Create backup and Home screen rotation, the labelled top-bar buttons and the missing Updates group.
-• Jenkins handles the signed QA build, emulator smoke checks and publication. No TalkBack run and no physical-device matrix are claimed for this build.
+
+<b>Automated tests</b>
+• App unit suite: <b>381 tests, all passing</b>. New ones cover the language reload, search rows that stay in place, the Enter target and the calculator.
+• Release-pipeline contract tests: <b>288, all passing</b>.
+
+<b>Hands-on emulator checks</b> (Android 17 QPR2 Beta 5 emulator, on the 4.0.0 candidate):
+• Typing <i>wea</i> → <i>weat</i> keeps the rows in place; the search pill stays visible while focused.
+• *12\<i>7</i> gives 84; <i>e</i>, <i>2024</i> and <i>pi</i> show no calculator row.
+• Enter on <i>weather</i> opens the web search, not Play Store.
+• Back with a query, then a new search: no leftover results.
+• System language switched English → German → English: Home and drawer labels and drawer order followed each time.
+• Home page swipes, opening and closing an app, opening and closing the drawer.
+• The signed 4.0.0 build installed over the released 3.1.6, with drawer search checked again.
+
+<b>Jenkins stable pipeline</b> (signed Release APK): full unit suite; signature continuity and non-debuggable packaging; an upgrade from the shipped 2.0.8 Stable APK on an isolated emulator, with settings kept; Home launches, drawer, search and date hand-off; and launcher crash/ANR logs checked.
+
+No physical-device check is claimed for this build.
 
 ───────────────────────
 
 <b>🛡️ Technical Details</b>
-• <b>Version</b>: <code>3.1.6</code> (Build <code>48</code>), QA channel
+• <b>Version</b>: <code>4.0.0</code> (Build <code>49</code>), Stable channel
 • <b>Package</b>: <code>dev.launcher.expressive.l3</code>
+• <b>Source revision</b>: <code>e9fcfdcb53770a456df52d86a2c8b448ecb500ea</code>
+• <b>APK SHA-256</b>: <code>54febd8232f5e603ffb4af275785ce33299ed0c63b89aa41da95a6babd238a99</code> (24.1 MB)
 • Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
-• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v3.1.6-48">qa-v3.1.6-48</a>
-• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v3.1.6-48/ExpressiveLauncherL3-3.1.6-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk">ExpressiveLauncherL3-3.1.6 signed APK</a>
+• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/v4.0.0-49">v4.0.0-49</a>
+• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/v4.0.0-49/ExpressiveLauncherL3-4.0.0-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk">ExpressiveLauncherL3-4.0.0 signed APK</a>
 • <b>All releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">GitHub Releases</a>
 • <b>Bug reports</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/issues">GitHub Issues</a>
 • <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>

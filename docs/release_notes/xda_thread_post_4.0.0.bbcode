@@ -1,0 +1,195 @@
+[CENTER][SIZE=6][B]Expressive Launcher 4.0.0 Stable — Type Less, Find More[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Welcome to [B]Expressive Launcher 4.0.0 Stable[/B] (Build 49), the first stable release since 2.0.8 and our first major release since 3.0. Stable users are getting the headline 4.0 changes plus everything from the 22 builds released since 2.0.8. The app drawer search now behaves like Pixel's, Home does a lot less unnecessary work, Discover works again, and there's a lot more in between.
+
+[HR][/HR]
+
+[SIZE=5][B]🏗️ The work behind this release[/B][/SIZE]
+
+Stable only moves when the QA channel has proved a change. Here's what went into this one:
+
+[LIST]
+[*][B]22 builds shipped[/B] between 2.0.8 Stable (Build 26) and this release, from 2.0.8 Hotfix 1 (Build 27) to 3.1.6 (Build 48), 18 of them as public QA releases, plus the 4.0.0 candidate itself.
+[*][B]70 commits[/B] of product work: 268 files changed, about 15,400 lines added and 1,700 removed.
+[*][B]7 GitHub issues fixed[/B] (#17, #18, #19, #21, #22, #23, #24) and [B]8 XDA reports acted on[/B] (XDA-003, -004, -006, -007, -008, -010, -012, -013).
+[*][B]Automated tests grew from 237 to 381[/B] app unit tests (+144). The release-pipeline contract tests now number 288, including new checks that only exact, fully tested APKs can be sealed for release.
+[*][B]Five public pull requests[/B] (#29–#33) were reviewed by independent agents, unit-tested and checked on the Android 17 QPR2 emulator before being ported into 4.0.0. A dedicated review pass (#33) found and fixed four problems in them before any user saw them.
+[*][B]Every build in this history[/B] went through Jenkins: full unit suite, signature and packaging checks, and an isolated emulator upgrade test before publication.
+
+[/LIST]
+Details of the testing for this build are under [B]🧪 Validation[/B] below.
+
+[HR][/HR]
+
+[SIZE=5][B]🌟 New in 4.0.0[/B][/SIZE]
+
+1. [B]Pixel-style drawer search[/B]
+[LIST]
+[*]Results appear as you type. Each section keeps its rows until its new answers arrive, so going from [I]wea[/I] to [I]weat[/I] doesn't make the list jump.
+[*]The search pill stays solid while you're using it.
+[*]Closing the search (clear, Back or closing the drawer) starts the next one fresh. Old results can't sneak in.
+[*]The Pixel Search provider is now labelled [B]Pixel Search (third-party)[/B], to be clear it isn't Google's own.
+[/LIST]
+2. [B]Enter searches the web.[/B] Enter on a query with no matching app opens your web search. It used to be able to open a Play Store search while suggestions were loading.
+3. [B]A calculator that knows when it's needed.[/B] Calculator results are on by default: type [I]12\[/I]7[I] and 84 is at the top. It only answers real calculations, so [/I]e[I], [/I]2024[I] or [/I]pi[I] no longer get a calculator row. [ICODE]sqrt()[/ICODE] works too.
+4. [B]Smoother Home and app transitions[/B]
+[LIST]
+[*]Home no longer clears a blur that's already clear, or writes a log line on every animation frame.
+[*]Home no longer reloads every app and icon each time it's recreated, only when an icon pack or themed icon pack needs it.
+[*]App suggestion rows stop re-binding every time you return to Home or open the drawer.
+[/LIST]
+5. [B]Labels follow your language.[/B] Change the system language and Home and drawer labels, plus the drawer's section letters, switch right away instead of after a restart.
+
+[HR][/HR]
+
+[SIZE=5][B]📦 Since 2.0.8 Stable (released in QA along the way)[/B][/SIZE]
+
+[SIZE=5][B]Search and settings[/B][/SIZE]
+[LIST]
+[*][B]Settings search finds every setting[/B], in your language, with the best match first. Choosing a result scrolls to the row and pulses it (3.1.6).
+[*][B]TalkBack labels[/B] for Back, Search, More options and the other icon buttons in Settings (3.1.6).
+[*][B]Scroll hints[/B] on long settings pages, and an opens-elsewhere icon on rows that hand off to Android settings (3.1.3, XDA-007/-008/-013).
+[*]Removed settings that did nothing: the Live information switch and redundant widget rows (3.1.6, 2.0.8 Hotfix 1).
+
+[/LIST]
+[SIZE=5][B]Home, dock and drawer[/B][/SIZE]
+[LIST]
+[*][B]Android 17 QPR2 home menu:[/B] long-press Home for one wallpaper-tinted card with filled icons and your current and recent wallpapers (3.1.5).
+[*][B]Google search bar switch:[/B] put the Google app's own dock search bar on Home, with Lens, voice and AI Mode, as on Pixel. It's opt-in (3.1.5).
+[*][B]Suggestions in dock[/B] switch; with it off, empty dock spots stay empty (3.1.4, XDA-004).
+[*][B]Solid status bar background[/B] option on Home, with light icons (3.1.4, XDA-010), and a Dock row in Home screen settings (3.1.4, XDA-012).
+[*][B]Folders match your app icon shape[/B], keeping any folder shape you picked yourself (3.1.3, XDA-006).
+[*][B]Recently installed apps[/B] in drawer suggestions, and separate switches for drawer suggestions and the search bar (3.1.0, #21).
+[*][B]Home screen shortcuts:[/B] edit their icon and label (#19); app drawer icon option and direct shortcuts (#17).
+
+[/LIST]
+[SIZE=5][B]Google Discover[/B][/SIZE]
+[LIST]
+[*][B]Discover works again.[/B] Setup always installs the helper built into Expressive, [B]Replace Discover support[/B] swaps out the old companion that couldn't connect, and the setup text explains what Android and Play Protect will ask (3.1.5).
+[*]If Android answers "App not installed" because an old helper is hiding in Private space or a work profile, Expressive now says so (3.1.6).
+
+[/LIST]
+[SIZE=5][B]Fixes[/B][/SIZE]
+[LIST]
+[*]QuickSwitch/Quickstep crash on Android 17 ([ICODE]createInputConsumer[/ICODE]) fixed (3.1.1, #24).
+[*]Crash when dragging shortcuts fixed, and returning to the default page fixed (#18, #23).
+[*]Software rendering now protected against hardware icon bitmaps.
+[*]Infinite scrolling setting now kept in Home screen settings.
+
+[/LIST]
+[SIZE=5][B]Updates and distribution[/B][/SIZE]
+[LIST]
+[*][B]Obtainium 1-click updates[/B] from Settings > About, with F-Droid / IzzyOnDroid metadata in the repository (3.1.2, #22).
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]⚙️ Changes to know about when coming from 2.0.8[/B][/SIZE]
+
+[LIST]
+[*][B]Expressive Pro arrived in 3.0.[/B] Deep customization options (such as grid sizing, typography, gestures, per-app icon overrides and folder styles) now need a one-time $4.99 Pro activation. [B]Customizations you already made keep working after the upgrade.[/B] Pro is only needed to change those options. Everything else stays free.
+[*][B]"Always reload icons" is now off[/B] if you never changed it. If you turned it on yourself, it stays on. You can turn it back on in Experimental features if your icon pack updates often.
+[*][B]Calculator results in drawer search are now on.[/B] You can turn them off in the drawer search settings.
+[*][B]Discover support is FOSS-only:[/B] the separate Play-signed Feed Companion is retired. Use [B]Set up[/B] or [B]Replace Discover support[/B] in Discover settings.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🐞 Known issues[/B][/SIZE]
+
+[LIST]
+[*]Pressing Enter within a few milliseconds of the last letter may be ignored. Press it again.
+[*]The [/I]Search on Google[I] row can flash a Play Store icon for a couple of frames.
+[*]Empty cards can appear for about 0.2 s when a new search first shows results.
+[*]A hardware keyboard's Enter can start the web search twice.
+[*]After a language change, some drawer icons can lose their TalkBack description until the next restart.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]💎 Expressive Pro & Free Core[/B][/SIZE]
+
+[LIST]
+[*][B]Free Core[/B]: always supported, ad-free and privacy-first. The new drawer search, calculator, settings search, Discover setup and every performance change are part of Free Core.
+[*][B]Expressive Pro ($4.99 one-time)[/B]: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
+
+[/LIST]
+[QUOTE][/I]Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.[I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE][B]Q:[/B] [/I]Why did the calculator answer "e"?[I]
+[B]A:[/B] [/I]It was just being irrational. It now waits until you actually ask it something.[I][/QUOTE]
+
+[QUOTE]Home used to reload every icon each time it came back, like checking every pocket for your keys when they're already in your hand. It only checks when something has changed now.[/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][/I]You give me one letter and I give you a list. Add another and I keep what I had until something better arrives. Hand me a sum and I'll answer it, but say "pi" and I'll just offer you pizza. What am I?[I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]The new Pixel-style drawer search, with its much pickier calculator![/B][/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🧪 Validation[/B][/SIZE]
+
+[B]Automated tests[/B]
+[LIST]
+[*]App unit suite: [B]381 tests, all passing[/B]. New ones cover the language reload, search rows that stay in place, the Enter target and the calculator.
+[*]Release-pipeline contract tests: [B]288, all passing[/B].
+
+[/LIST]
+[B]Hands-on emulator checks[/B] (Android 17 QPR2 Beta 5 emulator, on the 4.0.0 candidate):
+[LIST]
+[*]Typing [/I]wea[I] → [/I]weat[I] keeps the rows in place; the search pill stays visible while focused.
+[*][/I]12\[I]7[/I] gives 84; [I]e[/I], [I]2024[/I] and [I]pi[/I] show no calculator row.
+[*]Enter on [I]weather[/I] opens the web search, not Play Store.
+[*]Back with a query, then a new search: no leftover results.
+[*]System language switched English → German → English: Home and drawer labels and drawer order followed each time.
+[*]Home page swipes, opening and closing an app, opening and closing the drawer.
+[*]The signed 4.0.0 build installed over the released 3.1.6, with drawer search checked again.
+
+[/LIST]
+[B]Jenkins stable pipeline[/B] (signed Release APK): full unit suite; signature continuity and non-debuggable packaging; an upgrade from the shipped 2.0.8 Stable APK on an isolated emulator, with settings kept; Home launches, drawer, search and date hand-off; and launcher crash/ANR logs checked.
+
+No physical-device check is claimed for this build.
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Version[/B]: [ICODE]4.0.0[/ICODE] (Build [ICODE]49[/ICODE]), Stable channel
+[*][B]Package[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Source revision[/B]: [ICODE]e9fcfdcb53770a456df52d86a2c8b448ecb500ea[/ICODE]
+[*][B]APK SHA-256[/B]: [ICODE]54febd8232f5e603ffb4af275785ce33299ed0c63b89aa41da95a6babd238a99[/ICODE] (24.1 MB)
+[*]Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]This release[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/v4.0.0-49"]v4.0.0-49[/URL]
+[*][B]Direct APK[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/download/v4.0.0-49/ExpressiveLauncherL3-4.0.0-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk"]ExpressiveLauncherL3-4.0.0 signed APK[/URL]
+[*][B]All releases[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases"]GitHub Releases[/URL]
+[*][B]Bug reports[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/issues"]GitHub Issues[/URL]
+[*][B]Telegram Channel[/B]: [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/v4.0.0-49"]Download Expressive Launcher v4.0.0 (Build 49)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
