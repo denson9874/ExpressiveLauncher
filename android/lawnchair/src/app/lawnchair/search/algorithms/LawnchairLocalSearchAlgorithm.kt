@@ -34,14 +34,13 @@ import com.android.launcher3.LauncherAppState
 import com.android.launcher3.R
 import com.android.launcher3.allapps.BaseAllAppsAdapter
 import com.android.launcher3.search.SearchCallback
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -63,43 +62,63 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
         WebSuggestionProvider,
     )
 
+    private val nonAppProviderResults = SeededProviderResults(searchProviders)
+
+    // Bumped when a search session ends (cancel(true), zero state). A search queued on the model
+    // thread before that must not run afterwards, or its results would reach the next session.
+    private val session = AtomicInteger()
+
+    // Guards currentJob and the session check, so a session can't end between a model-thread
+    // search checking the session and launching its job.
+    private val jobLock = Any()
+
     override fun doSearch(query: String, callback: SearchCallback<BaseAllAppsAdapter.AdapterItem>) {
+        val requestSession = session.get()
         appState.model.enqueueModelUpdateTask { _, _, apps ->
+            if (session.get() != requestSession) return@enqueueModelUpdateTask
             val appResults = appSearchProvider.search(context, query, apps)
             val shortcutResults = shortcutSearchProvider.search(context, appResults)
 
-            currentJob?.cancel()
-            currentJob = coroutineScope.launch {
-                val calcResult = CalculatorSearchProvider.search(context, query)
-                    .firstOrNull()
-                    .orEmpty()
-                val actionResults = generateActionResults(query)
+            synchronized(jobLock) {
+                if (session.get() != requestSession) return@enqueueModelUpdateTask
+                currentJob?.cancel()
+                currentJob = launchSearch(query, requestSession, appResults, shortcutResults, callback)
+            }
+        }
+    }
 
-                // Seed every provider with an empty result so apps, shortcuts and calculations
-                // show as soon as they are ready. Without the seed, combine() waits for the
-                // slowest provider (web suggestions go over the network) before the first frame.
-                val nonAppProvidersFlow = combine(
-                    searchProviders.map { it.search(context, query).onStart { emit(emptyList()) } },
-                ) { resultsArray ->
-                    resultsArray.toList().flatten()
-                }
+    private fun launchSearch(
+        query: String,
+        requestSession: Int,
+        appResults: List<SearchResult>,
+        shortcutResults: List<SearchResult>,
+        callback: SearchCallback<BaseAllAppsAdapter.AdapterItem>,
+    ): Job = coroutineScope.launch {
+        val calcResult = CalculatorSearchProvider.search(context, query)
+            .firstOrNull()
+            .orEmpty()
+        val actionResults = generateActionResults(query)
 
-                nonAppProvidersFlow.collectLatest { nonAppResults ->
-                    val allResults = appResults + shortcutResults + calcResult + nonAppResults + actionResults
+        // Seed every provider with what it returned for the previous query so apps,
+        // shortcuts and calculations show as soon as they are ready while the other
+        // sections keep their rows until their provider answers. Without the seed,
+        // combine() waits for the slowest provider (web suggestions go over the network).
+        nonAppProviderResults.search(context, query).collectLatest { nonAppResults ->
+            val allResults = appResults + shortcutResults + calcResult + nonAppResults + actionResults
 
-                    val searchTargets = translateToSearchTargets(query, allResults)
-                    setFirstItemQuickLaunch(searchTargets)
-                    val adapterItems = transformSearchResults(searchTargets)
-                    withContext(Dispatchers.Main) {
-                        callback.onSearchResult(query, ArrayList(adapterItems))
-                    }
+            val searchTargets = translateToSearchTargets(query, allResults)
+            setFirstItemQuickLaunch(searchTargets)
+            val adapterItems = transformSearchResults(searchTargets)
+            withContext(Dispatchers.Main) {
+                if (session.get() == requestSession) {
+                    callback.onSearchResult(query, ArrayList(adapterItems))
                 }
             }
         }
     }
 
     override fun doZeroStateSearch(callback: SearchCallback<BaseAllAppsAdapter.AdapterItem>) {
-        currentJob?.cancel()
+        endSession()
 
         val prefs = PreferenceManager.getInstance(context)
         val historyEnabled = prefs.searchResulRecentSuggestion.get()
@@ -107,7 +126,7 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
         if (!historyEnabled) {
             callback.clearSearchResult()
         } else {
-            currentJob = coroutineScope.launch {
+            val historyJob = coroutineScope.launch {
                 val prefs2 = PreferenceManager2.getInstance(context)
                 val maxHistory = prefs2.maxRecentResultCount.firstCached()
 
@@ -131,11 +150,25 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
                     callback.onSearchResult("", ArrayList(adapterItems))
                 }
             }
+            synchronized(jobLock) { currentJob = historyJob }
         }
     }
 
     override fun cancel(interruptActiveRequests: Boolean) {
-        currentJob?.cancel()
+        // Typing cancels with false before each new query; true ends the search session.
+        if (interruptActiveRequests) {
+            endSession()
+        } else {
+            synchronized(jobLock) { currentJob?.cancel() }
+        }
+    }
+
+    private fun endSession() {
+        synchronized(jobLock) {
+            session.incrementAndGet()
+            currentJob?.cancel()
+        }
+        nonAppProviderResults.clear()
     }
 
     private fun generateActionResults(query: String): List<SearchResult.Action> {
