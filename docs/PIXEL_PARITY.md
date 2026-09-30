@@ -4,6 +4,43 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Pixel-style drawer search and launcher performance — 2026-09-30 (candidate 4.0.0 / code 49)
+
+Ported from public main PRs #29–#33 (938e9c6c9cb..73b6592add1, `android/` only).
+
+1. **Results as you type, stable rows.** Pixel's drawer search keeps the current results on screen
+   and swaps in each section's new answers as they arrive. Expressive cleared and rebuilt every
+   section on each keystroke, so rows jumped. `SeededProviderResults` now seeds each provider's
+   section with the previous query's rows until that provider answers; a session counter and lock
+   end the session on clear, Back or close, so a search queued before Back can't leak into the next
+   one. The drawer search pill stays opaque while focused.
+2. **Enter searches the web.** Enter on a query with no app match opens the web search target,
+   never a Play Store search while web suggestions are loading (quick-launch target chosen in
+   `LawnchairSearchAlgorithm`, covered by `SearchQuickLaunchTargetTest`).
+3. **Calculator.** On by default, as on Pixel. It answers only real calculations (a digit plus an
+   operator or function; `sqrt()` added), so *e*, *2024* and *pi* get no calculator row.
+4. **Provider label.** The Pixel Search provider is labelled *Pixel Search (third-party)*: it is not
+   Google's private on-device search, which a third-party HOME app can't host.
+5. **Performance.** `BaseDepthController` skips redundant workspace blur clears and per-frame
+   logging; the model is no longer reloaded on every recreate (`config_default_always_reload_icons`
+   → false; icons reload only with an icon pack or themed pack); prediction containers stop
+   re-binding on every resume and state change.
+6. **Locale.** `InvariantDeviceProfile.toModelState` includes the locale list, so a system language
+   change reloads the model and labels plus drawer section letters follow the new language.
+
+Known gaps (from PR #33 review, not fixed): Enter within a few ms of the last letter is ignored; a
+2-frame Play Store icon flicker on *Search on Google*; blank cards for ~200 ms when a new search
+first shows results; hardware Enter can start the web search twice; some drawer icons lose their
+accessibility description after a language reload.
+
+Validation: `InvariantDeviceProfileLocaleTest`, `SeededProviderResultsTest`,
+`SearchQuickLaunchTargetTest`, `CalculatorSearchProviderTest`; full app unit suite 381/381 and CI
+contracts 288/288 locally. Emulator (Android 17 QPR2 Beta 5, debug build of this candidate): *wea* →
+*weat* kept rows in place; *12\*7* → 84, *e*/*2024*/*pi* no calculator row; Enter on *weather* opened
+Chrome, not Play Store; Back then *ma* showed no calculator rows from the previous query; focused
+pill visible; system language English → German → English updated Home and drawer labels and drawer
+order; Home page swipes, app open/close, drawer open/close. No physical-device check.
+
 ## Settings search, TalkBack labels and honest settings — 2026-09-29 (candidate 3.1.6 / code 48)
 
 Reference: the released 3.1.5 build on the Android 17 QPR2 Beta 5 emulator (CP41.260828.004.A7,

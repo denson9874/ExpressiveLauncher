@@ -1,0 +1,5 @@
+1. Pixel-style drawer search: results appear as you type and stay in place, the search pill stays visible, Enter searches the web.
+2. Smarter calculator, now on by default; it only answers real sums like 12*7.
+3. Smoother Home and app transitions: less blur work, no full reload on every return, suggestions stop re-binding.
+4. Labels and drawer letters follow a language change right away.
+5. "Always reload icons" is now off unless you turned it on.
