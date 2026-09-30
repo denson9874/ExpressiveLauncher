@@ -31,6 +31,19 @@ class FormatXdaTests(unittest.TestCase):
         self.assertIn("[QUOTE]Three.[/QUOTE]", out)
         self.assertNotIn("\n> ", out)
 
+    def test_release_link_uses_the_qa_tag_for_qa_notes(self):
+        out = convert("# Expressive Launcher 9.9.9 QA — T\n\nBody")
+        self.assertIn("/releases/tag/qa-v9.9.9-99", out)
+
+    def test_release_link_uses_the_stable_tag_for_stable_notes(self):
+        out = convert("# Expressive Launcher 9.9.9 Stable — T\n\nBody")
+        self.assertIn("/releases/tag/v9.9.9-99", out)
+        self.assertNotIn("qa-v9.9.9", out)
+
+    def test_explicit_channel_overrides_the_title(self):
+        out = format_xda.markdown_to_xda_bbcode("# T\n\nBody", "9.9.9", "99", channel="release")
+        self.assertIn("/releases/tag/v9.9.9-99", out)
+
     def test_published_announcement_has_no_leftover_markdown_or_html(self):
         notes = ROOT / "docs" / "release_notes" / "3.1.5_announcement.md"
         out = convert(notes.read_text(encoding="utf-8"))

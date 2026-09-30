@@ -11,7 +11,7 @@ import re
 import sys
 
 
-def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: str) -> str:
+def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: str, channel: str | None = None) -> str:
     text = markdown_text.strip()
 
     # 1. Remove HTML comments
@@ -21,6 +21,11 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
     first_heading_match = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
     title = first_heading_match.group(1).strip() if first_heading_match else f"Expressive Launcher {version_name} (Build {version_code})"
     
+    # Stable releases are tagged vX.Y.Z-N, QA releases qa-vX.Y.Z-N; infer from the title when not given.
+    if channel is None:
+        channel = "release" if re.search(r"\bStable\b", title) else "qa"
+    tag = f"{'qa-' if channel == 'qa' else ''}v{version_name}-{version_code}"
+
     # Remove the first # Header from body
     text = re.sub(r"^#\s+.+$", "", text, count=1, flags=re.MULTILINE).strip()
 
@@ -118,7 +123,7 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
         f"\n\n[HR][/HR]\n"
         f"[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]\n"
         f"[LIST]\n"
-        f'[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v{version_name}-{version_code}"]Download Expressive Launcher v{version_name} (Build {version_code})[/URL]\n'
+        f'[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/{tag}"]Download Expressive Launcher v{version_name} (Build {version_code})[/URL]\n'
         f'[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed\n'
         f'[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates\n'
         f'[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion\n'
@@ -136,6 +141,8 @@ def main():
     parser.add_argument("--output", help="Path to output .bbcode file (default: replaces .md with .bbcode)")
     parser.add_argument("--version-name", default="", help="Version name (e.g. 3.0.9)")
     parser.add_argument("--version-code", default="", help="Version code (e.g. 41)")
+    parser.add_argument("--channel", choices=["qa", "release"], default=None,
+                        help="Release channel for the tag link (default: Stable in the title means release, else qa)")
     args = parser.parse_args()
 
     input_path = Path(args.input_file)
@@ -153,7 +160,7 @@ def main():
         if m and not version_name:
             version_name = m.group(1)
 
-    bbcode = markdown_to_xda_bbcode(raw_text, version_name or "3.0.9", version_code or "41")
+    bbcode = markdown_to_xda_bbcode(raw_text, version_name or "3.0.9", version_code or "41", args.channel)
     output_path = Path(args.output) if args.output else input_path.with_suffix(".bbcode")
     output_path.write_text(bbcode, encoding="utf-8")
     print(f"Successfully generated XDA BBCode at: {output_path}")
