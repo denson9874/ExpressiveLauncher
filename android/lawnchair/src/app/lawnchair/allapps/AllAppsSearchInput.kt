@@ -349,6 +349,11 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 if (input.text.isNullOrEmpty() && input.hasFocus() && !input.isResetting) {
                     searchAlgorithm?.doZeroStateSearch(this)
                 }
+                if (input.text.isNullOrEmpty() && input.isResetting) {
+                    // Back with a query resets the box without resetSearch(); end the typing
+                    // session here too so the next search does not start from these results.
+                    searchAlgorithm?.cancel(true)
+                }
                 if (input.text.toString() == "/lawnchairdebug") {
                     val enableDebugMenu = prefs.enableDebugMenu
                     enableDebugMenu.set(!enableDebugMenu.get())
@@ -491,6 +496,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     }
 
     override fun resetSearch() {
+        // Closing search ends the typing session, so the next query starts without old results.
+        searchAlgorithm?.cancel(true)
         searchBarController.reset()
     }
 

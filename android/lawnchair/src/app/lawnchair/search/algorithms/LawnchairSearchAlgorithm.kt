@@ -7,6 +7,7 @@ import app.lawnchair.allapps.views.SearchResultView.Companion.EXTRA_QUICK_LAUNCH
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.search.LawnchairSearchAdapterProvider
+import app.lawnchair.search.adapter.MARKET_STORE
 import app.lawnchair.search.adapter.START_PAGE
 import app.lawnchair.search.adapter.SearchAdapterItem
 import app.lawnchair.search.adapter.SearchTargetCompat
@@ -124,20 +125,6 @@ sealed class LawnchairSearchAlgorithm(
         }
     }
 
-    protected fun setFirstItemQuickLaunch(searchTargets: List<SearchTargetCompat>) {
-        val hasQuickLaunch = searchTargets.any { it.extras.getBoolean(EXTRA_QUICK_LAUNCH, false) }
-        if (!hasQuickLaunch) {
-            // check if we have a header or spacer item. if so, we skip as there isn't any relevant
-            // action to be applied
-            val target = searchTargets.getOrNull(
-                searchTargets.indexOfFirst { it.layoutType != TEXT_HEADER },
-            )
-            target?.extras?.apply {
-                putBoolean(EXTRA_QUICK_LAUNCH, true)
-            }
-        }
-    }
-
     private fun findIndices(filtered: List<SearchTargetCompat>, layoutType: String): List<Int> {
         return filtered.indices.filter {
             filtered[it].layoutType == layoutType && !filtered[it].isApp
@@ -248,6 +235,26 @@ sealed class LawnchairSearchAlgorithm(
 
                 else -> LawnchairAppSearchAlgorithm(context)
             }
+        }
+    }
+}
+
+// Top level so the quick-launch choice can be unit tested without building a search algorithm.
+internal fun setFirstItemQuickLaunch(searchTargets: List<SearchTargetCompat>) {
+    val hasQuickLaunch = searchTargets.any { it.extras.getBoolean(EXTRA_QUICK_LAUNCH, false) }
+    if (!hasQuickLaunch) {
+        // Web suggestions arrive after the other rows, so the Play Store row can briefly be the
+        // first one. Skip it while a web search row is shown so Enter does not flip between them.
+        val skipMarketSearch = searchTargets.any { it.packageName == START_PAGE }
+        // check if we have a header or spacer item. if so, we skip as there isn't any relevant
+        // action to be applied
+        val target = searchTargets.getOrNull(
+            searchTargets.indexOfFirst {
+                it.layoutType != TEXT_HEADER && !(skipMarketSearch && it.packageName == MARKET_STORE)
+            },
+        )
+        target?.extras?.apply {
+            putBoolean(EXTRA_QUICK_LAUNCH, true)
         }
     }
 }
