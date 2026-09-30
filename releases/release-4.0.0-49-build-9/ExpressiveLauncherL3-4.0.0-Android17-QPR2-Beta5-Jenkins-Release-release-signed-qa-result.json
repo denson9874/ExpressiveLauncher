@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "channel": "release",
+  "packageName": "dev.launcher.expressive.l3",
+  "sourceRevision": "e9fcfdcb53770a456df52d86a2c8b448ecb500ea",
+  "apk": "/Users/daryldenson/Library/Application Support/Expressive CI/agent/workspace/expressive-release-build/build-9/artifacts/ExpressiveLauncherL3-4.0.0-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk",
+  "apkSha256": "54febd8232f5e603ffb4af275785ce33299ed0c63b89aa41da95a6babd238a99",
+  "sha256": "54febd8232f5e603ffb4af275785ce33299ed0c63b89aa41da95a6babd238a99",
+  "baselineApk": "/Users/daryldenson/Library/Application Support/Expressive CI/agent/workspace/expressive-release-build/build-9/artifacts/baseline.apk",
+  "baselineSha256": "f0368d2af067fd64eec9e688b813999d80e17d6e2ed16979d444671b56bff703",
+  "avd": "Expressive_CI_20260930_004739_62b6716c",
+  "serial": "emulator-5580",
+  "flows": {
+    "guest_identity": {
+      "passed": true,
+      "build": "CP41.260828.004.A7",
+      "sdk": 37
+    },
+    "baseline_install": {
+      "passed": true,
+      "version": "2.0.8",
+      "versionCode": "26"
+    },
+    "seed_preference": {
+      "passed": true,
+      "preference": "Infinite scrolling",
+      "value": true
+    },
+    "same_signer_upgrade": {
+      "passed": true,
+      "firstInstallTime": "2026-09-30 00:48:46",
+      "installedSha256": "54febd8232f5e603ffb4af275785ce33299ed0c63b89aa41da95a6babd238a99"
+    },
+    "preference_retention": {
+      "passed": true,
+      "preference": "Infinite scrolling",
+      "value": true
+    },
+    "warm_start": {
+      "passed": true,
+      "pid": "5920"
+    },
+    "cold_start": {
+      "passed": true,
+      "pid": "6847"
+    },
+    "drawer_swipe": {
+      "passed": true,
+      "path": [
+        672,
+        2094,
+        672,
+        658
+      ],
+      "durationMs": 350
+    },
+    "local_search": {
+      "passed": true,
+      "query": "Calendar"
+    },
+    "current_date_handoff": {
+      "passed": true,
+      "guestEpoch": 1790743853,
+      "intentEpochs": [
+        1790743853
+      ]
+    },
+    "clean_app_logs": {
+      "passed": true,
+      "fatal": false,
+      "anr": false
+    }
+  },
+  "evidence": [
+    "baseline-home-launch.txt",
+    "baseline-home.png",
+    "baseline-home.xml",
+    "baseline-metadata.json",
+    "baseline-package.txt",
+    "baseline-preference-reopened-root.png",
+    "baseline-preference-reopened-root.xml",
+    "baseline-preference-reopened.png",
+    "baseline-preference-reopened.xml",
+    "baseline-preference-root.png",
+    "baseline-preference-root.xml",
+    "baseline-preference-seeded.png",
+    "baseline-preference-seeded.xml",
+    "baseline-preference.png",
+    "baseline-preference.xml",
+    "baseline-seeded-home-launch.txt",
+    "baseline-seeded-home.png",
+    "baseline-seeded-home.xml",
+    "candidate-cold-home-launch.txt",
+    "candidate-cold-home.png",
+    "candidate-cold-home.xml",
+    "candidate-date-handoff.png",
+    "candidate-date-handoff.xml",
+    "candidate-date-home-launch.txt",
+    "candidate-date-home.png",
+    "candidate-date-home.xml",
+    "candidate-date-intents.txt",
+    "candidate-drawer.png",
+    "candidate-drawer.xml",
+    "candidate-final-home-launch.txt",
+    "candidate-final-home.png",
+    "candidate-final-home.xml",
+    "candidate-first-home-launch.txt",
+    "candidate-first-home.png",
+    "candidate-first-home.xml",
+    "candidate-metadata.json",
+    "candidate-package.txt",
+    "candidate-preference-retained-root.png",
+    "candidate-preference-retained-root.xml",
+    "candidate-preference-retained.png",
+    "candidate-preference-retained.xml",
+    "candidate-search-calendar.png",
+    "candidate-search-calendar.xml",
+    "candidate-search-focused.png",
+    "candidate-search-focused.xml",
+    "candidate-search-ime-attempt-1.txt",
+    "candidate-search-ime-ready.txt",
+    "candidate-warm-home-launch.txt",
+    "candidate-warm-home.png",
+    "candidate-warm-home.xml",
+    "commands.log",
+    "crash.txt",
+    "emulator-stop.txt",
+    "emulator-version.txt",
+    "emulator.log",
+    "events.txt",
+    "guest-properties.txt",
+    "image-source.properties",
+    "logcat.txt"
+  ],
+  "scope": "quiesced-adb-upgrade-smoke",
+  "limitations": [
+    "Does not test live updater download, notifications, or installer UI.",
+    "No physical device, privileged Quickstep, widgets, rotation, or midnight rollover coverage."
+  ],
+  "baselineMode": "quiesced-upgrade",
+  "stableBootstrap": false,
+  "avdPath": "/Users/daryldenson/.android/avd/Expressive_CI_20260930_004739_62b6716c.avd",
+  "guestBuild": "CP41.260828.004.A7",
+  "guestSdk": 37,
+  "guestFingerprint": "google/sdk_gphone16k_arm64/emu64a16k:17/CP41.260828.004.A7/16296984:user/dev-keys",
+  "versionName": "4.0.0",
+  "versionCode": 49,
+  "reportSha256": "3f144bd441050f4f7efed3a6919048f0cf369d9d35c914787bf84f4ac53b64e1"
+}
