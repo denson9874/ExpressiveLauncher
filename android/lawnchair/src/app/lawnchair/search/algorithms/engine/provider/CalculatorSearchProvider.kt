@@ -1,6 +1,7 @@
 package app.lawnchair.search.algorithms.engine.provider
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.search.algorithms.data.Calculation
 import app.lawnchair.search.algorithms.data.calculator.Expressions
@@ -36,11 +37,16 @@ object CalculatorSearchProvider : SearchProvider {
         }
     }
 
-    private fun calculateEquationFromString(
+    @VisibleForTesting
+    internal fun calculateEquationFromString(
         query: String,
     ): Calculation {
         return try {
-            val evaluatedValue = Expressions().eval(query)
+            val expressions = Expressions()
+            // A bare number or constant ("2024", "e", "pi") would otherwise show a calculator row
+            // that becomes the Enter target when no app matches.
+            require(expressions.isCalculation(query)) { "Not a calculation" }
+            val evaluatedValue = expressions.eval(query)
             val roundedValue = evaluatedValue.round(MathContext.DECIMAL64)
             val formattedValue = roundedValue.stripTrailingZeros()
             val absoluteValue = formattedValue.abs()
