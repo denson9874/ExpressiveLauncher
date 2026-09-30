@@ -10,7 +10,9 @@ import app.lawnchair.allapps.views.SearchResultView
 import app.lawnchair.search.adapter.SearchAdapterItem
 import com.android.app.search.LayoutType
 import com.android.launcher3.DeviceProfile
+import androidx.recyclerview.widget.RecyclerView
 import com.android.launcher3.R
+import com.android.launcher3.Utilities
 import com.android.launcher3.allapps.ActivityAllAppsContainerView
 import com.android.launcher3.allapps.AllAppsGridAdapter
 import com.android.launcher3.allapps.BaseAllAppsAdapter
@@ -38,6 +40,10 @@ class LawnchairSearchAdapterProvider(
         append(SEARCH_RESULT_EMPTY_STATE, R.layout.search_result_empty_state)
         append(SEARCH_RESULT_SEARCH_SETTINGS, R.layout.search_result_search_settings)
     }
+    private val submitGate = SearchSubmitGate()
+    private val runPendingSubmit = Runnable {
+        submitGate.onQuickLaunchReady(currentQuery()) { findQuickLaunchView()?.launch() ?: false }
+    }
     private var quickLaunchItem: SearchResultView? = null
         set(value) {
             field = value
@@ -47,7 +53,47 @@ class LawnchairSearchAdapterProvider(
                 field != null,
             )
             appsView.mSearchRecyclerView.invalidate()
+            if (value != null && submitGate.hasPendingSubmit) {
+                // Bound during layout: launch after it, never from inside onBindView.
+                appsView.mSearchRecyclerView.removeCallbacks(runPendingSubmit)
+                appsView.mSearchRecyclerView.post(runPendingSubmit)
+            }
         }
+
+    /** Results for [query] were handed to the list. */
+    fun onSearchResultsShown(query: String) {
+        submitGate.onResultsShown(query)
+        if (submitGate.hasPendingSubmit) {
+            // An unchanged list is not rebound, so also check once the results are laid out.
+            appsView.mSearchRecyclerView.removeCallbacks(runPendingSubmit)
+            appsView.mSearchRecyclerView.post(runPendingSubmit)
+        }
+    }
+
+    /** Search was cleared or closed. */
+    fun onSearchCleared() {
+        appsView.mSearchRecyclerView.removeCallbacks(runPendingSubmit)
+        submitGate.reset()
+    }
+
+    private fun currentQuery(): String =
+        appsView.searchUiManager.editText?.text?.let { Utilities.trim(it) }.orEmpty()
+
+    /** The on-screen quick-launch row for the current list, or null while the list is changing. */
+    private fun findQuickLaunchView(): SearchResultView? {
+        val recyclerView = appsView.mSearchRecyclerView
+        if (recyclerView.hasPendingAdapterUpdates()) return null
+        quickLaunchItem?.takeIf { it.isQuickLaunch && (it as View).isAttachedToWindow }?.let { return it }
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i)
+            if (child is SearchResultView && child.isQuickLaunch &&
+                recyclerView.getChildAdapterPosition(child) != RecyclerView.NO_POSITION
+            ) {
+                return child
+            }
+        }
+        return null
+    }
 
     override fun isViewSupported(viewType: Int): Boolean = layoutIdMap.contains(viewType)
 
@@ -102,7 +148,8 @@ class LawnchairSearchAdapterProvider(
 
     override fun getItemsPerRow(viewType: Int, appsPerRow: Int) = if (viewType != SEARCH_RESULT_ICON) 1 else super.getItemsPerRow(viewType, appsPerRow)
 
-    override fun launchHighlightedItem(): Boolean = quickLaunchItem?.launch() ?: false
+    override fun launchHighlightedItem(): Boolean =
+        submitGate.submit(currentQuery()) { findQuickLaunchView()?.launch() ?: false }
 
     override fun getHighlightedItem() = quickLaunchItem as View?
 

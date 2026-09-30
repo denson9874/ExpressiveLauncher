@@ -981,7 +981,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         } else {
             defaultColor = mBottomSheetBackgroundColorOverBlur;
         }
-        int newColor = LawnchairUtilsKt.getAllAppsBackgroundColor(mActivityContext, defaultColor);
+        // Battery Saver switches cross-window blur off: fall back to a solid Material You sheet.
+        int newColor = LawnchairUtilsKt.getAllAppsBackgroundColor(
+                mActivityContext, defaultColor, !Flags.allAppsBlur() || blurEnabled);
         if (mCachedBottomSheetBgColor != newColor) {
             mCachedBottomSheetBgColor = newColor;
             return true;

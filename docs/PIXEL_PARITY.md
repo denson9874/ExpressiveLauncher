@@ -28,10 +28,22 @@ Ported from public main PRs #29–#33 (938e9c6c9cb..73b6592add1, `android/` only
 6. **Locale.** `InvariantDeviceProfile.toModelState` includes the locale list, so a system language
    change reloads the model and labels plus drawer section letters follow the new language.
 
-Known gaps (from PR #33 review, not fixed): Enter within a few ms of the last letter is ignored; a
-2-frame Play Store icon flicker on *Search on Google*; blank cards for ~200 ms when a new search
-first shows results; hardware Enter can start the web search twice; some drawer icons lose their
+Known gaps (from PR #33 review, not fixed): a 2-frame Play Store icon flicker on *Search on
+Google*; blank cards for ~200 ms when a new search first shows results; some drawer icons lose their
 accessibility description after a language reload.
+
+Fixed in 4.0.1 (50): Enter right after the last letter waits for that query's results and opens its
+quick-launch row (it was ignored, or could open a row left from a shorter query), and a repeated
+Enter / editor action for the same query within 800 ms is swallowed, so one press opens one web
+search (`SearchSubmitGate`, `SearchSubmitGateTest`). Emulator: `input text clock; keyevent ENTER`
+opened Clock once from two editor actions 2 ms apart (released 4.0.0 opened nothing); a web-only
+query opened Chrome once from the launcher.
+
+Drawer sheet without blur (XDA-019, 4.0.1): when Android turns cross-window blur off (Battery
+Saver, thermal, reduced transparency) the sheet uses the solid Material You fallback instead of the
+opacity slider value, updating live through `CrossWindowBlurListeners` (`allAppsSheetAlpha`,
+`AllAppsSheetAlphaTest`). Recents already blurs the wallpaper where Android allows it and switches to
+its fallback style when blur is off.
 
 Validation: `InvariantDeviceProfileLocaleTest`, `SeededProviderResultsTest`,
 `SearchQuickLaunchTargetTest`, `CalculatorSearchProviderTest`; full app unit suite 381/381 and CI

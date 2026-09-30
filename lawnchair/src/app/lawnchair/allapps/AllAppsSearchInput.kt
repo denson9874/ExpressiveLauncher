@@ -53,6 +53,7 @@ import app.lawnchair.qsb.providers.Google
 import app.lawnchair.qsb.providers.PixelSearch
 import app.lawnchair.qsb.rememberAllAppsQsbState
 import app.lawnchair.search.LawnchairRecentSuggestionProvider
+import app.lawnchair.search.LawnchairSearchAdapterProvider
 import app.lawnchair.search.algorithms.LawnchairSearchAlgorithm
 import app.lawnchair.theme.color.tokens.ColorTokens
 import app.lawnchair.ui.theme.LawnchairTheme
@@ -530,10 +531,12 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             apps.setSearchResults(items)
             notifyResultChanged()
             appsView.setSearchResults(items)
+            (appsView.mainAdapterProvider as? LawnchairSearchAdapterProvider)?.onSearchResultsShown(query)
         }
     }
 
     override fun clearSearchResult() {
+        (appsView.mainAdapterProvider as? LawnchairSearchAdapterProvider)?.onSearchCleared()
         if (apps.setSearchResults(null)) {
             notifyResultChanged()
         }
