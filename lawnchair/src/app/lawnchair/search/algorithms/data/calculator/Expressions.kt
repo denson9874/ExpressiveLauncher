@@ -1,11 +1,20 @@
 package app.lawnchair.search.algorithms.data.calculator
 
+import app.lawnchair.search.algorithms.data.calculator.internal.AssignExpr
+import app.lawnchair.search.algorithms.data.calculator.internal.BinaryExpr
+import app.lawnchair.search.algorithms.data.calculator.internal.CallExpr
 import app.lawnchair.search.algorithms.data.calculator.internal.Evaluator
 import app.lawnchair.search.algorithms.data.calculator.internal.Expr
 import app.lawnchair.search.algorithms.data.calculator.internal.Function
+import app.lawnchair.search.algorithms.data.calculator.internal.GroupingExpr
+import app.lawnchair.search.algorithms.data.calculator.internal.LiteralExpr
+import app.lawnchair.search.algorithms.data.calculator.internal.LogicalExpr
 import app.lawnchair.search.algorithms.data.calculator.internal.Parser
 import app.lawnchair.search.algorithms.data.calculator.internal.Scanner
 import app.lawnchair.search.algorithms.data.calculator.internal.Token
+import app.lawnchair.search.algorithms.data.calculator.internal.TokenType.SQUARE_ROOT
+import app.lawnchair.search.algorithms.data.calculator.internal.UnaryExpr
+import app.lawnchair.search.algorithms.data.calculator.internal.VariableExpr
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -28,6 +37,16 @@ class Expressions {
             }
 
             arguments.first().abs()
+        }
+
+        evaluator.addFunction("sqrt") { arguments ->
+            if (arguments.size != 1) {
+                throw ExpressionException(
+                    "sqrt requires one argument",
+                )
+            }
+
+            arguments.first().sqrt(evaluator.mathContext)
         }
 
         evaluator.addFunction("sum") { arguments ->
@@ -165,6 +184,25 @@ class Expressions {
 
     fun eval(expression: String): BigDecimal {
         return evaluator.eval(parse(expression))
+    }
+
+    /**
+     * Whether [expression] actually calculates something: it contains a digit and applies an
+     * operator (other than a leading sign) or a function to it. A bare number or constant such as
+     * `2024`, `-5` or `pi` is not a calculation.
+     */
+    fun isCalculation(expression: String): Boolean {
+        return expression.any(Char::isDigit) && parse(expression).hasOperation()
+    }
+
+    private fun Expr.hasOperation(): Boolean {
+        return when (this) {
+            is BinaryExpr, is LogicalExpr, is CallExpr -> true
+            is UnaryExpr -> operator.type == SQUARE_ROOT || right.hasOperation()
+            is GroupingExpr -> expression.hasOperation()
+            is AssignExpr -> value.hasOperation()
+            is LiteralExpr, is VariableExpr -> false
+        }
     }
 
     /**

@@ -446,7 +446,9 @@ public class InvariantDeviceProfile {
         enableTwoLinesInAllApps = Flags.enableTwolineToggle()
                 && Utilities.isEnglishLanguage(context)
                 && mPrefs.get(ENABLE_TWOLINE_ALLAPPS_TOGGLE);
-        mLocale = context.getResources().getConfiguration().locale.toString();
+        // The whole list, not just the primary locale: app labels fall back through it and the
+        // drawer's section index is built from it.
+        mLocale = context.getResources().getConfiguration().getLocales().toLanguageTags();
 
          DeviceProfileOverrides.Options overrideOptions = DeviceProfileOverrides.INSTANCE.get(context)
                  .getOverrides(displayOption.grid, displayInfo.getDeviceType(), previewOverrides);
@@ -625,7 +627,10 @@ public class InvariantDeviceProfile {
     private Object[] toModelState() {
         return new Object[]{
                 numColumns, numRows, numSearchContainerColumns, numDatabaseHotseatIcons,
-                        iconBitmapSize, allAppsIconBitmapSize, fillResIconDpi, numDatabaseAllAppsColumns, dbFile};
+                        iconBitmapSize, allAppsIconBitmapSize, fillResIconDpi, numDatabaseAllAppsColumns, dbFile,
+                // A language change must reload the model so app labels and drawer sections
+                // follow the new locale.
+                mLocale};
     }
 
     /** Updates IDP using the provided context. Notifies listeners of change. */
