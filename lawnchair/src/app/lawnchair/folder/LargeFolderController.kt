@@ -21,7 +21,13 @@ object LargeFolderController {
         if (!canResize(icon)) return false
         val cellLayout = launcher.workspace.getScreenWithId(info.screenId) ?: return false
         val target = if (LargeFolders.isLarge(info)) {
-            CellRect(info.cellX, info.cellY, 1, 1)
+            // Shrink to an empty covered cell, never onto a widget.
+            LargeFolderOverlap.oneByOneCell(CellRect(info.cellX, info.cellY, info.spanX, info.spanY)) { x, y ->
+                LargeFolderLayout.ownerAt(cellLayout, icon, x, y)
+            } ?: run {
+                Toast.makeText(launcher, R.string.large_folder_no_space, Toast.LENGTH_SHORT).show()
+                return false
+            }
         } else {
             val anchor = if (!LargeFolders.canGrow(launcher.deviceProfile.panelCount)) null else LargeFolders.findLargeAnchor(info.cellX, info.cellY, cellLayout.countX, cellLayout.countY) { x, y ->
                 LargeFolderLayout.ownerAt(cellLayout, icon, x, y)
@@ -42,6 +48,9 @@ object LargeFolderController {
         val cellLayout = launcher.workspace.getScreenWithId(info.screenId) ?: return false
         val lp = icon.layoutParams as? CellLayoutLayoutParams ?: return false
         if (target.spanX > 1 && !LargeFolders.canGrow(launcher.deviceProfile.panelCount)) return false
+        if (target.spanX == 1 && LargeFolderLayout.ownerAt(cellLayout, icon, target.x, target.y) != CellOwner.EMPTY) {
+            return false
+        }
         if (target.spanX > 1 && !LargeFolderOverlap.canPlace(target, cellLayout.countX, cellLayout.countY) { x, y ->
                 LargeFolderLayout.ownerAt(cellLayout, icon, x, y)
             }

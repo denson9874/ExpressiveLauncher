@@ -2257,6 +2257,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         } else {
             final View cell = mDragInfo.cell;
             boolean droppedOnOriginalCellDuringTransition = false;
+            boolean dropFailed = false; // LC-Note: large folders v2, no cell found or snapped back
 
             if (dropTargetLayout != null && !d.cancelled) {
                 // Move internally
@@ -2394,6 +2395,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                         movedFolder.onSizeModeChanged(); // LC-Note: large folders v2
                     }
                 } else {
+                    dropFailed = true;
                     if (!returnToOriginalCellToPreventShuffling) {
                         onNoCellFound(dropTargetLayout, d.dragInfo, d.logInstanceId);
                     }
@@ -2427,9 +2429,11 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
             // resize frame, like widgets.
             if (cell instanceof FolderIcon folderIcon && !d.cancelled
                     && LargeFolderController.canResize(folderIcon) && !options.isAccessibleDrag
-                    && folderIcon.mInfo.screenId == mDragInfo.screenId
-                    && folderIcon.mInfo.cellX == mDragInfo.cellX
-                    && folderIcon.mInfo.cellY == mDragInfo.cellY) {
+                    && LargeFolders.shouldOpenResizeFrame(
+                            folderIcon.mInfo.screenId == mDragInfo.screenId
+                                    && folderIcon.mInfo.cellX == mDragInfo.cellX
+                                    && folderIcon.mInfo.cellY == mDragInfo.cellY,
+                            dropFailed)) {
                 onCompleteRunnable = () -> {
                     if (!isPageInTransition()) FolderResizeFrame.show(mLauncher, folderIcon);
                 };

@@ -43,7 +43,8 @@ object FolderResizeMath {
     @JvmStatic
     fun isAllowed(target: CellRect, countX: Int, countY: Int, ownerAt: (Int, Int) -> CellOwner): Boolean =
         if (target.spanX == 1) {
-            target.x in 0 until countX && target.y in 0 until countY
+            target.x in 0 until countX && target.y in 0 until countY &&
+                ownerAt(target.x, target.y) == CellOwner.EMPTY
         } else {
             LargeFolderOverlap.canPlace(target, countX, countY, ownerAt)
         }

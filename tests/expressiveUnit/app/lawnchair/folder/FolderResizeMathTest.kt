@@ -48,7 +48,9 @@ class FolderResizeMathTest {
         assertThat(FolderResizeMath.isAllowed(target, 4, 5) { x, y -> if (x == 2 && y == 2) CellOwner.BLOCKING else CellOwner.EMPTY }).isFalse()
         assertThat(FolderResizeMath.isAllowed(target, 4, 5) { x, _ -> if (x == 2) CellOwner.WIDGET else CellOwner.EMPTY }).isTrue()
         assertThat(FolderResizeMath.isAllowed(CellRect(3, 1, 2, 2), 4, 5) { _, _ -> CellOwner.EMPTY }).isFalse()
-        assertThat(FolderResizeMath.isAllowed(CellRect(1, 1, 1, 1), 4, 5) { _, _ -> CellOwner.BLOCKING }).isTrue()
+        // Shrinking must land on an empty cell: never on a widget (it would hide the folder).
+        assertThat(FolderResizeMath.isAllowed(CellRect(1, 1, 1, 1), 4, 5) { _, _ -> CellOwner.WIDGET }).isFalse()
+        assertThat(FolderResizeMath.isAllowed(CellRect(1, 1, 1, 1), 4, 5) { _, _ -> CellOwner.EMPTY }).isTrue()
     }
 
     @Test

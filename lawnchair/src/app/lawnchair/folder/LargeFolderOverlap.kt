@@ -104,4 +104,23 @@ object LargeFolderOverlap {
         }
         return null
     }
+
+    /**
+     * The cell a large folder shrinks to (or its last app takes): its top-left cell if empty,
+     * otherwise the first other empty cell it covers. A 1x1 item must never sit on a widget: it would
+     * be hidden there, and the loader rejects the overlap. Null when every covered cell is a widget's.
+     */
+    @JvmStatic
+    fun oneByOneCell(folder: CellRect, ownerAt: (Int, Int) -> CellOwner): CellRect? =
+        folder.cells().firstOrNull { (x, y) -> ownerAt(x, y) == CellOwner.EMPTY }
+            ?.let { (x, y) -> CellRect(x, y, 1, 1) }
+
+    /** [relocationFor] for several folders at once; each new cell is taken for the next. */
+    @JvmStatic
+    fun relocateAll(folders: List<CellRect>, widgets: List<CellRect>, taken: List<CellRect>, countX: Int, countY: Int): List<CellRect?> {
+        val soFar = taken.toMutableList()
+        return folders.map { folder ->
+            relocationFor(folder, widgets, soFar, countX, countY)?.also { soFar += it }
+        }
+    }
 }

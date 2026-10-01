@@ -83,4 +83,12 @@ class LargeFoldersTest {
         // Two-panel (foldable/tablet) layouts are untested; folders there can shrink but not grow.
         assertThat(LargeFolders.canGrow(panelCount = 2)).isFalse()
     }
+
+    @Test
+    fun resizeFrameOpensOnlyWhenTheFolderReallyStayed() {
+        assertThat(LargeFolders.shouldOpenResizeFrame(stayedInPlace = true, dropFailed = false)).isTrue()
+        // A move that found no cell and snapped back is not a "release in place".
+        assertThat(LargeFolders.shouldOpenResizeFrame(stayedInPlace = true, dropFailed = true)).isFalse()
+        assertThat(LargeFolders.shouldOpenResizeFrame(stayedInPlace = false, dropFailed = false)).isFalse()
+    }
 }

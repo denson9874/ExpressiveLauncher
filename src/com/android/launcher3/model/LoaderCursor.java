@@ -700,10 +700,23 @@ public class LoaderCursor extends CursorWrapper {
         return KIND_OTHER;
     }
 
+    // LC-Note: Large folders v2. 1x1 folders found on a widget's cells; moved, never deleted.
+    private final java.util.List<FolderInfo> mFoldersToRelocate = new java.util.ArrayList<>();
+
+    public java.util.List<FolderInfo> getFoldersToRelocate() {
+        return mFoldersToRelocate;
+    }
+
     private boolean isRegionPlaceable(ItemInfo item, GridOccupancy occupancy) {
         if (occupancy.isRegionVacant(item.cellX, item.cellY, item.spanX, item.spanY)) return true;
         int kind = kindOf(item);
         int[][] kinds = getDesktopKinds(item.screenId);
+        if (item instanceof FolderInfo folder && kind == KIND_OTHER
+                && isOnlyOnWidgets(item, occupancy, kinds)) {
+            // A folder deleted here takes its apps with it; move it to a free cell instead.
+            mFoldersToRelocate.add(folder);
+            return true;
+        }
         for (int x = item.cellX; x < item.cellX + item.spanX; x++) {
             for (int y = item.cellY; y < item.cellY + item.spanY; y++) {
                 if (!occupancy.cells[x][y]) continue;
@@ -714,6 +727,15 @@ public class LoaderCursor extends CursorWrapper {
                         held == KIND_WIDGET, held == KIND_LARGE_ANCHOR)) {
                     return false;
                 }
+            }
+        }
+        return true;
+    }
+
+    private boolean isOnlyOnWidgets(ItemInfo item, GridOccupancy occupancy, int[][] kinds) {
+        for (int x = item.cellX; x < item.cellX + item.spanX; x++) {
+            for (int y = item.cellY; y < item.cellY + item.spanY; y++) {
+                if (occupancy.cells[x][y] && kinds[x][y] != KIND_WIDGET) return false;
             }
         }
         return true;

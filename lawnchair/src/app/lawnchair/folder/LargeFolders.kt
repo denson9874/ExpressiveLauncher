@@ -29,6 +29,14 @@ object LargeFolders {
     @JvmStatic
     fun canGrow(panelCount: Int): Boolean = panelCount == 1
 
+    /**
+     * Whether releasing a long-pressed Home folder opens the resize frame: only when it really
+     * stayed where it was, not when a move found no cell and snapped back.
+     */
+    @JvmStatic
+    fun shouldOpenResizeFrame(stayedInPlace: Boolean, dropFailed: Boolean): Boolean =
+        stayedInPlace && !dropFailed
+
     @JvmStatic
     fun isLarge(info: ItemInfo?): Boolean =
         info is FolderInfo && wantsLarge(info.container, info.spanX, info.spanY)

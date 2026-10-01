@@ -121,4 +121,25 @@ class LargeFolderOverlapTest {
         // Page full: no move.
         assertThat(LargeFolderOverlap.relocationFor(CellRect(2, 1, 1, 1), listOf(widget), listOf(CellRect(0, 0, 4, 5)), 4, 5)).isNull()
     }
+
+    @Test
+    fun oneByOneCell_skipsWidgetCellsOfTheFolder() {
+        // Folder (1..2, 1..2) whose top-left (1,1) and (1,2) are widget cells.
+        val ownerAt = owners(mapOf((1 to 1) to CellOwner.WIDGET, (1 to 2) to CellOwner.WIDGET))
+        assertThat(LargeFolderOverlap.oneByOneCell(CellRect(1, 1, 2, 2), ownerAt)).isEqualTo(CellRect(2, 1, 1, 1))
+        // Anchor free: stays at the anchor.
+        assertThat(LargeFolderOverlap.oneByOneCell(CellRect(1, 1, 2, 2)) { _, _ -> CellOwner.EMPTY }).isEqualTo(CellRect(1, 1, 1, 1))
+        // All four cells covered by a widget: no 1x1 cell.
+        assertThat(LargeFolderOverlap.oneByOneCell(CellRect(1, 1, 2, 2)) { _, _ -> CellOwner.WIDGET }).isNull()
+    }
+
+    @Test
+    fun relocateAll_givesEachFolderItsOwnCell() {
+        val widget = CellRect(1, 1, 2, 2)
+        val taken = listOf(CellRect(0, 0, 4, 1), widget)
+        val moved = LargeFolderOverlap.relocateAll(
+            listOf(CellRect(1, 1, 1, 1), CellRect(2, 2, 1, 1)), listOf(widget), taken, 4, 5,
+        )
+        assertThat(moved).containsExactly(CellRect(0, 1, 1, 1), CellRect(3, 1, 1, 1)).inOrder()
+    }
 }

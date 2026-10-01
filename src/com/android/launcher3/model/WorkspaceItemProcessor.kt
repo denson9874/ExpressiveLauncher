@@ -722,11 +722,17 @@ class WorkspaceItemProcessor(
         }
     }
 
-    /** LC-Note: Large folders v2. Decide 2x2 vs 1x1 per page; rewrite rows that no longer fit. */
+    /**
+     * LC-Note: Large folders v2. Decide 2x2 vs 1x1 per page and rewrite rows that no longer fit; a
+     * 1x1 folder left on a widget's cells (it would be hidden) moves to a free cell.
+     */
     private fun promoteLargeFolders(modelDbController: ModelDbController) {
         val candidates = c.largeFolderCandidates.filter { loadedItems.get(it.id) === it }
-        if (candidates.isEmpty()) return
-        for ((screenId, onScreen) in candidates.groupBy { it.screenId }) {
+        val onWidgets = c.foldersToRelocate.filter { loadedItems.get(it.id) === it }
+        if (candidates.isEmpty() && onWidgets.isEmpty()) return
+        val screens = (candidates + onWidgets).map { it.screenId }.toSet()
+        for (screenId in screens) {
+            val onScreen = candidates.filter { it.screenId == screenId }
             val items = buildList {
                 loadedItems.forEach { info ->
                     if (info.container != Favorites.CONTAINER_DESKTOP || info.screenId != screenId) {
@@ -748,29 +754,32 @@ class WorkspaceItemProcessor(
                     folder.spanY = LargeFolders.SPAN
                 }
             }
-            for (folder in onScreen) {
-                if (folder.id in large) continue
-                // A 1x1 folder under a widget would be hidden; move it to a free cell.
-                val widgets = items.filter { it.kind == LoadKind.WIDGET }.map { it.rect }
-                val taken = blocked + items.filter { it.id != folder.id }.map {
-                    val promoted = onScreen.firstOrNull { f -> f.id == it.id && f.id in large }
-                    if (promoted != null) CellRect(it.rect.x, it.rect.y, LargeFolders.SPAN, LargeFolders.SPAN) else it.rect
-                }
-                val moved = LargeFolderOverlap.relocationFor(
-                    CellRect(folder.cellX, folder.cellY, 1, 1), widgets, taken, c.gridColumns, c.gridRows,
-                )
+            val demoted = onScreen.filter { it.id !in large }
+            val toMove = demoted + onWidgets.filter { it.screenId == screenId && demoted.none { d -> d === it } }
+            if (toMove.isEmpty()) continue
+            val widgets = items.filter { it.kind == LoadKind.WIDGET }.map { it.rect }
+            val taken = blocked + items.filter { item -> toMove.none { it.id == item.id } }.map {
+                if (it.id in large) CellRect(it.rect.x, it.rect.y, LargeFolders.SPAN, LargeFolders.SPAN) else it.rect
+            }
+            val moved = LargeFolderOverlap.relocateAll(
+                toMove.map { CellRect(it.cellX, it.cellY, 1, 1) }, widgets, taken, c.gridColumns, c.gridRows,
+            )
+            toMove.forEachIndexed { i, folder ->
+                val cell = moved[i]
                 val values = ContentValues().apply {
                     put(Favorites.SPANX, 1)
                     put(Favorites.SPANY, 1)
-                    if (moved != null) {
-                        put(Favorites.CELLX, moved.x)
-                        put(Favorites.CELLY, moved.y)
+                    if (cell != null) {
+                        put(Favorites.CELLX, cell.x)
+                        put(Favorites.CELLY, cell.y)
                     }
                 }
-                if (moved != null) {
-                    folder.cellX = moved.x
-                    folder.cellY = moved.y
+                if (cell != null) {
+                    folder.cellX = cell.x
+                    folder.cellY = cell.y
                 }
+                folder.spanX = 1
+                folder.spanY = 1
                 modelDbController.update(values, "${Favorites._ID} = ?", arrayOf(folder.id.toString()))
             }
         }
