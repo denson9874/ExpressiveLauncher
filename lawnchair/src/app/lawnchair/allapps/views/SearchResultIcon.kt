@@ -4,6 +4,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
+import android.content.res.Configuration
+import android.graphics.drawable.Icon
 import android.os.UserHandle
 import android.util.AttributeSet
 import android.view.View
@@ -102,6 +104,8 @@ class SearchResultIcon(context: Context, attrs: AttributeSet?) :
         flags = getFlags(target.extras)
         reset()
         setForceHideDot(true)
+        // Only an action row waiting for its icon hides it; every other bind shows it.
+        setIconVisible(true)
 
         val extras = target.extras
         val iconComponentKey = extras.getString(SearchResultView.EXTRA_ICON_COMPONENT_KEY)
@@ -181,13 +185,51 @@ class SearchResultIcon(context: Context, attrs: AttributeSet?) :
         }
         notifyApplied(info)
         if (bindIcon) {
+            val iconKey = searchActionIconKey(
+                packageName = target.packageName,
+                user = target.userHandle.toString(),
+                layoutType = target.layoutType,
+                icon = action.icon,
+                primaryIconFromTitle = info.hasFlags(SearchActionItemInfo.FLAG_PRIMARY_ICON_FROM_TITLE),
+                badged = info.hasFlags(SearchActionItemInfo.FLAG_BADGE_WITH_COMPONENT_NAME) ||
+                    info.hasFlags(SearchActionItemInfo.FLAG_BADGE_WITH_PACKAGE),
+                theme = "${System.identityHashCode(launcher)}:" +
+                    (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK),
+            )
+            // Rows such as "Search on Google" and web suggestions rebind on every keystroke with
+            // the same icon: reuse the one loaded last time in the same frame.
+            val cached = iconKey?.let { ACTION_ICON_CACHE.get(it) }
+            if (cached != null) {
+                info.bitmap = cached
+                applyFromItemInfoWithIcon(info)
+                return
+            }
+            // A recycled row would show its previous icon (e.g. the Play Store's) until this one
+            // loads, so hide it. Load off the model thread: there it queued behind the search
+            // itself and rows stayed iconless for ~200 ms.
+            setIconVisible(false)
             val targetId = boundId
-            Executors.MODEL_EXECUTOR.handler.postAtFrontOfQueue {
-                populateSearchActionItemInfo(target, info)
+            val applyLoaded = {
                 runOnMainThread {
+                    if (iconKey != null) ACTION_ICON_CACHE.put(iconKey, info.bitmap)
                     if (boundId == targetId) {
                         applyFromItemInfoWithIcon(info)
+                        setIconVisible(true)
                     }
+                }
+            }
+            val loadOnModelThread = {
+                // The package icon fallback reads the icon cache, which only allows its own thread.
+                Executors.MODEL_EXECUTOR.handler.postAtFrontOfQueue {
+                    populateSearchActionItemInfo(target, info)
+                    applyLoaded()
+                }
+            }
+            if (iconKey == null) {
+                loadOnModelThread()
+            } else {
+                Executors.UI_HELPER_EXECUTOR.handler.postAtFrontOfQueue {
+                    if (loadActionIcon(action.icon, info)) applyLoaded() else loadOnModelThread()
                 }
             }
         }
@@ -215,14 +257,30 @@ class SearchResultIcon(context: Context, attrs: AttributeSet?) :
     private fun bindFromShortcutInfo(targetId: String, shortcutInfo: ShortcutInfo) {
         val si = WorkspaceItemInfo(shortcutInfo, launcher)
         si.container = LauncherSettings.Favorites.CONTAINER_ALL_APPS
+        // App shortcut rows (Maps > Home, Work) rebind on every keystroke. Reuse the icon loaded
+        // last time instead of showing an empty placeholder until the model thread reloads it.
+        val iconKey = searchShortcutIconKey(
+            packageName = shortcutInfo.`package`,
+            id = shortcutInfo.id,
+            user = shortcutInfo.userHandle.toString(),
+            lastChanged = shortcutInfo.lastChangedTimestamp,
+            theme = "${System.identityHashCode(launcher)}:" +
+                (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK),
+        )
+        val cached = ACTION_ICON_CACHE.get(iconKey)
+        if (cached != null) si.bitmap = cached
         applyFromWorkspaceItem(si)
         notifyApplied(si)
+        if (cached != null) return
+        setIconVisible(false)
         val cache = LauncherAppState.getInstance(launcher).iconCache
         Executors.MODEL_EXECUTOR.handler.postAtFrontOfQueue {
             cache.getShortcutIcon(si, shortcutInfo)
             runOnMainThread {
+                ACTION_ICON_CACHE.put(iconKey, si.bitmap)
                 if (boundId == targetId) {
                     applyFromWorkspaceItem(si)
+                    setIconVisible(true)
                 }
             }
         }
@@ -237,6 +295,15 @@ class SearchResultIcon(context: Context, attrs: AttributeSet?) :
         ItemClickHandler.INSTANCE.onClick(v)
     }
 
+    /** Loads an action icon that needs no package icon; false when its drawable can't load. */
+    private fun loadActionIcon(icon: Icon?, info: SearchActionItemInfo): Boolean {
+        val drawable = icon?.loadDrawable(context) ?: return false
+        LauncherIcons.obtain(context).use { li ->
+            info.bitmap = li.createBadgedIconBitmap(drawable, BaseIconFactory.IconOptions().setUser(info.user))
+        }
+        return true
+    }
+
     private fun populateSearchActionItemInfo(
         target: SearchTargetCompat,
         info: SearchActionItemInfo,
@@ -245,7 +312,8 @@ class SearchResultIcon(context: Context, attrs: AttributeSet?) :
         LauncherIcons.obtain(context).use { li ->
             val icon = action.icon
 
-            val packageIcon = getPackageIcon(target.packageName, target.userHandle)
+            // Lazy: most action icons never need the package icon, and its lookup takes the cache lock.
+            val packageIcon by lazy { getPackageIcon(target.packageName, target.userHandle) }
 
             info.bitmap = when {
                 info.hasFlags(SearchActionItemInfo.FLAG_PRIMARY_ICON_FROM_TITLE) ->

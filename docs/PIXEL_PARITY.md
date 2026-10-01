@@ -28,9 +28,23 @@ Ported from public main PRs #29–#33 (938e9c6c9cb..73b6592add1, `android/` only
 6. **Locale.** `InvariantDeviceProfile.toModelState` includes the locale list, so a system language
    change reloads the model and labels plus drawer section letters follow the new language.
 
-Known gaps (from PR #33 review, not fixed): a 2-frame Play Store icon flicker on *Search on
-Google*; blank cards for ~200 ms when a new search first shows results; some drawer icons lose their
-accessibility description after a language reload.
+The PR #33 review gaps are all fixed (after 4.0.1):
+- *Search on Google* showing the Play Store icon: action and shortcut rows rebound with the previous
+  row's icon until a model-thread load finished. Fixed icons (the web-search provider's drawable,
+  suggestion/history/calculator glyphs, app shortcuts) are now cached by what they are and bound in
+  the same frame; a miss hides the old icon and loads on the UI helper thread
+  (`SearchActionIconCache`, `SearchActionIconKeyTest`).
+- Blank cards when a search first shows results: the enter animation fades rows as RenderNode
+  properties, which never redrew the RecyclerView, so the card decorations stayed fully drawn
+  around transparent rows for ~4 frames. `RecyclerViewAnimationController` now redraws the
+  decorations each frame and the cards follow their row's content alpha and scaled bounds
+  (`SearchCardAlphaTest`). Rows also showed no icons for ~200 ms because their icon loads queued
+  behind the search on the model thread (fixed by the cache above).
+- TalkBack names after a language change: stale icon-database rows send drawer apps through
+  `IconCache.loadIconSubsection`'s fallback, which kept the new title but a null description.
+  The fallback now derives the description from the title (`IconCacheFallbackDescriptionTest`).
+  Emulator: en-US → de-DE → en-US, all 21 drawer apps kept a content description (before: 16 of 21
+  empty after the switch).
 
 Fixed in 4.0.1 (50): Enter right after the last letter waits for that query's results and opens its
 quick-launch row (it was ignored, or could open a row left from a shorter query), and a repeated

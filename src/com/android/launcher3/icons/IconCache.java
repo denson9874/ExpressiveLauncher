@@ -583,6 +583,11 @@ public class IconCache extends BaseIconCache {
                         LawnchairActivityCachingLogic.INSTANCE.get(context),
                             sectionKey.first);
                 }
+                // LC-Note: After a language change the database rows are stale and we land here
+                // with the item's (new) title but no description, which left TalkBack without a
+                // label for most drawer icons. Derive it from the title like a database load does.
+                entry.contentDescription = fallbackContentDescription(entry.contentDescription,
+                        entry.title, title -> getUserBadgedLabel(title, sectionKey.first));
 
                 for (IconRequestInfo<T> iconRequest : duplicateIconRequestsMap.get(cn)) {
                     applyCacheEntry(entry, iconRequest.itemInfo);
@@ -633,6 +638,20 @@ public class IconCache extends BaseIconCache {
             return getDefaultIcon(user);
         }
         return bitmap.withFlags(getUserFlagOpLocked(user));
+    }
+
+    /**
+     * Description for a fallback cache entry: the existing one, or the user-badged title when the
+     * entry has a title but no description.
+     */
+    @VisibleForTesting
+    static CharSequence fallbackContentDescription(@Nullable CharSequence existing,
+            @Nullable CharSequence title,
+            @NonNull java.util.function.Function<CharSequence, CharSequence> badge) {
+        if (!TextUtils.isEmpty(existing) || TextUtils.isEmpty(title)) {
+            return existing == null ? "" : existing;
+        }
+        return badge.apply(title);
     }
 
     protected void applyCacheEntry(@NonNull final CacheEntry entry,

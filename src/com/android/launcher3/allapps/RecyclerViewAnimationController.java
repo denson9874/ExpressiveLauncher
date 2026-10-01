@@ -173,6 +173,13 @@ public class RecyclerViewAnimationController {
             }
             currentView.setY(y);
         }
+        // LC-Note: Alpha, scale and position above are RenderNode properties and don't redraw the
+        // RecyclerView. Its item decorations (our search result cards) were left at their last
+        // drawing and showed as blank cards around still-transparent rows; redraw them with the
+        // rows.
+        if (allAppsRecyclerView.getItemDecorationCount() > 0) {
+            allAppsRecyclerView.invalidate();
+        }
         return totalHeight - appRowHeight;
     }
 
