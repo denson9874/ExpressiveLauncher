@@ -29,4 +29,5 @@
     <item type="id" name="qsbIconTintQuaternary" />
     <item type="id" name="action_folder_make_large" />
     <item type="id" name="action_folder_make_small" />
+    <item name="large_folder_reorder_lock" type="id" />
 </resources>

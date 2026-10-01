@@ -45,6 +45,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewDebug;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -231,6 +232,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         icon.setTag(folderInfo);
         icon.setOnClickListener(activity.getItemOnClickListener());
         icon.mInfo = folderInfo;
+        icon.updateLargeElevation();
         icon.mActivity = activity;
         icon.mDotRenderer = grid.mDotRendererWorkSpace;
 
@@ -894,8 +896,16 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         }
     }
 
+    /** LC-Note: Large folders draw above widgets they cover and get their touches (Z order). */
+    private void updateLargeElevation() {
+        boolean large = isLarge();
+        setOutlineProvider(large ? null : ViewOutlineProvider.BACKGROUND);
+        setElevation(large ? getResources().getDimension(R.dimen.large_folder_elevation) : 0f);
+    }
+
     /** LC-Note: Call after the folder switched between 1x1 and large. */
     public void onSizeModeChanged() {
+        updateLargeElevation();
         if (isLarge()) {
             getLargeTile().setItems(mInfo.getContents());
             requestLargeTileHighRes();
@@ -962,3 +972,4 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         void clearFolderLeaveBehind(FolderIcon child);
     }
 }
+

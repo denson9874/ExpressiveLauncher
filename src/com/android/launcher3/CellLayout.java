@@ -68,6 +68,7 @@ import com.android.launcher3.celllayout.ReorderPreviewAnimation;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dragndrop.DraggableView;
 import com.android.launcher3.folder.FolderIcon;
+import app.lawnchair.folder.LargeFolderLayout;
 import com.android.launcher3.folder.PreviewBackground;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
@@ -1891,12 +1892,12 @@ public class CellLayout extends ViewGroup {
                 && view.getTag() instanceof LauncherAppWidgetInfo info) {
             CellPos pos = mActivity.getCellPosMapper().mapModelToPresenter(info);
             mOccupied.markCells(pos.cellX, pos.cellY, info.spanX, info.spanY, true);
+            LargeFolderLayout.refresh(this); // LC-Note: large folders v2
             return;
         }
         if (view == null || view.getParent() != mShortcutsAndWidgets) return;
-        CellLayoutLayoutParams
-                lp = (CellLayoutLayoutParams) view.getLayoutParams();
-        mOccupied.markCells(lp.getCellX(), lp.getCellY(), lp.cellHSpan, lp.cellVSpan, true);
+        markCellsForViewRaw(view, true);
+        LargeFolderLayout.refresh(this); // LC-Note: large folders v2
     }
 
     public void markCellsAsUnoccupiedForView(View view) {
@@ -1904,12 +1905,22 @@ public class CellLayout extends ViewGroup {
                 && view.getTag() instanceof LauncherAppWidgetInfo info) {
             CellPos pos = mActivity.getCellPosMapper().mapModelToPresenter(info);
             mOccupied.markCells(pos.cellX, pos.cellY, info.spanX, info.spanY, false);
+            // LC-Note: Large folders v2. A large folder over this widget keeps its cells.
+            LargeFolderLayout.remarkOverlapping(this, view);
+            LargeFolderLayout.refresh(this);
             return;
         }
         if (view == null || view.getParent() != mShortcutsAndWidgets) return;
-        CellLayoutLayoutParams
-                lp = (CellLayoutLayoutParams) view.getLayoutParams();
-        mOccupied.markCells(lp.getCellX(), lp.getCellY(), lp.cellHSpan, lp.cellVSpan, false);
+        markCellsForViewRaw(view, false);
+        // LC-Note: Large folders v2. Widgets under a large folder keep their cells, and vice versa.
+        LargeFolderLayout.remarkOverlapping(this, view);
+        LargeFolderLayout.refresh(this);
+    }
+
+    /** LC-Note: Marks a child's own cells without touching overlapping items. */
+    public void markCellsForViewRaw(View view, boolean value) {
+        CellLayoutLayoutParams lp = (CellLayoutLayoutParams) view.getLayoutParams();
+        mOccupied.markCells(lp.getCellX(), lp.getCellY(), lp.cellHSpan, lp.cellVSpan, value);
     }
 
     public int getDesiredWidth() {
