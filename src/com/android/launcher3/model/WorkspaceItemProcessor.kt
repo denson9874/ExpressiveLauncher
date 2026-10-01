@@ -746,13 +746,32 @@ class WorkspaceItemProcessor(
                 if (folder.id in large) {
                     folder.spanX = LargeFolders.SPAN
                     folder.spanY = LargeFolders.SPAN
-                } else {
-                    val values = ContentValues().apply {
-                        put(Favorites.SPANX, 1)
-                        put(Favorites.SPANY, 1)
-                    }
-                    modelDbController.update(values, "${Favorites._ID} = ?", arrayOf(folder.id.toString()))
                 }
+            }
+            for (folder in onScreen) {
+                if (folder.id in large) continue
+                // A 1x1 folder under a widget would be hidden; move it to a free cell.
+                val widgets = items.filter { it.kind == LoadKind.WIDGET }.map { it.rect }
+                val taken = blocked + items.filter { it.id != folder.id }.map {
+                    val promoted = onScreen.firstOrNull { f -> f.id == it.id && f.id in large }
+                    if (promoted != null) CellRect(it.rect.x, it.rect.y, LargeFolders.SPAN, LargeFolders.SPAN) else it.rect
+                }
+                val moved = LargeFolderOverlap.relocationFor(
+                    CellRect(folder.cellX, folder.cellY, 1, 1), widgets, taken, c.gridColumns, c.gridRows,
+                )
+                val values = ContentValues().apply {
+                    put(Favorites.SPANX, 1)
+                    put(Favorites.SPANY, 1)
+                    if (moved != null) {
+                        put(Favorites.CELLX, moved.x)
+                        put(Favorites.CELLY, moved.y)
+                    }
+                }
+                if (moved != null) {
+                    folder.cellX = moved.x
+                    folder.cellY = moved.y
+                }
+                modelDbController.update(values, "${Favorites._ID} = ?", arrayOf(folder.id.toString()))
             }
         }
     }

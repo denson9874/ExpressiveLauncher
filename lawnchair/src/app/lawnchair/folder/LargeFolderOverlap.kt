@@ -83,4 +83,25 @@ object LargeFolderOverlap {
         occupantIsWidget: Boolean,
         occupantIsLargeFolder: Boolean,
     ): Boolean = (newIsWidget && occupantIsLargeFolder) || (newIsLargeFolder && occupantIsWidget)
+
+    /** The span a dragged item uses over a target: a large folder becomes 1x1 over the dock. */
+    @JvmStatic
+    fun dragSpan(span: Int, isLargeFolder: Boolean, targetIsHotseat: Boolean): Int =
+        if (isLargeFolder && targetIsHotseat) 1 else span
+
+    /**
+     * Where a folder that lost its 2x2 size goes when its 1x1 cell is under a widget (it would be
+     * hidden there): the first free cell, row by row. Null when it isn't under a widget or the page
+     * is full.
+     */
+    @JvmStatic
+    fun relocationFor(folder: CellRect, widgets: List<CellRect>, taken: List<CellRect>, countX: Int, countY: Int): CellRect? {
+        if (widgets.none { it.intersects(folder) }) return null
+        for (y in 0 until countY) {
+            for (x in 0 until countX) {
+                if (taken.none { it.contains(x, y) }) return CellRect(x, y, 1, 1)
+            }
+        }
+        return null
+    }
 }

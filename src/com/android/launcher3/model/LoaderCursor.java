@@ -649,8 +649,10 @@ public class LoaderCursor extends CursorWrapper {
         final GridOccupancy occupancy = getDesktopOccupancy(item.screenId);
 
         // Check if any workspace icons overlap with each other
-        if (occupancy.isRegionVacant(item.cellX, item.cellY, item.spanX, item.spanY)) {
+        // LC-Note: Large folders v2. A widget and a large folder's anchor may share cells.
+        if (isRegionPlaceable(item, occupancy)) {
             occupancy.markCells(item, true);
+            markDesktopKinds(item);
             return true;
         } else {
             Log.e(TAG, "Error loading shortcut " + item
@@ -675,6 +677,56 @@ public class LoaderCursor extends CursorWrapper {
             mOccupied.put(screenId, screen);
         }
         return mOccupied.get(screenId);
+    }
+
+    // LC-Note: Large folders v2. What holds each loaded Home cell: widget, large-folder anchor or other.
+    private static final int KIND_WIDGET = 1;
+    private static final int KIND_LARGE_ANCHOR = 2;
+    private static final int KIND_OTHER = 3;
+    private final java.util.Map<Integer, int[][]> mDesktopKinds = new java.util.HashMap<>();
+
+    private int[][] getDesktopKinds(int screenId) {
+        return mDesktopKinds.computeIfAbsent(screenId,
+                id -> new int[mIDP.numColumns + 1][mIDP.numRows + 1]);
+    }
+
+    private int kindOf(ItemInfo item) {
+        if (item instanceof com.android.launcher3.model.data.LauncherAppWidgetInfo) {
+            return KIND_WIDGET;
+        }
+        for (FolderInfo f : mLargeFolderCandidates) {
+            if (f == item) return KIND_LARGE_ANCHOR;
+        }
+        return KIND_OTHER;
+    }
+
+    private boolean isRegionPlaceable(ItemInfo item, GridOccupancy occupancy) {
+        if (occupancy.isRegionVacant(item.cellX, item.cellY, item.spanX, item.spanY)) return true;
+        int kind = kindOf(item);
+        int[][] kinds = getDesktopKinds(item.screenId);
+        for (int x = item.cellX; x < item.cellX + item.spanX; x++) {
+            for (int y = item.cellY; y < item.cellY + item.spanY; y++) {
+                if (!occupancy.cells[x][y]) continue;
+                // Occupied cells with no recorded kind (the search bar) block everything.
+                int held = kinds[x][y];
+                if (!app.lawnchair.folder.LargeFolderOverlap.isAllowedBindOverlap(
+                        kind == KIND_WIDGET, kind == KIND_LARGE_ANCHOR,
+                        held == KIND_WIDGET, held == KIND_LARGE_ANCHOR)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void markDesktopKinds(ItemInfo item) {
+        int[][] kinds = getDesktopKinds(item.screenId);
+        int kind = kindOf(item);
+        for (int x = item.cellX; x < item.cellX + item.spanX; x++) {
+            for (int y = item.cellY; y < item.cellY + item.spanY; y++) {
+                if (kinds[x][y] == 0) kinds[x][y] = kind;
+            }
+        }
     }
 
     // LC-Note: Large folders v2. Stored 2x2 folders, resolved after all items load.

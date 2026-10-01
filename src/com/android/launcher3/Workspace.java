@@ -98,6 +98,9 @@ import com.android.launcher3.dragndrop.DraggableView;
 import com.android.launcher3.dragndrop.SpringLoadedDragController;
 import com.android.launcher3.folder.Folder;
 import com.android.launcher3.folder.FolderIcon;
+import app.lawnchair.folder.LargeFolders;
+import app.lawnchair.folder.LargeFolderOverlap;
+import app.lawnchair.folder.LargeFolderController;
 import com.android.launcher3.folder.PreviewBackground;
 import com.android.launcher3.graphics.DragPreviewProvider;
 import com.android.launcher3.icons.BitmapRenderer;
@@ -2261,8 +2264,9 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                 int container = hasMovedIntoHotseat ? CONTAINER_HOTSEAT : CONTAINER_DESKTOP;
                 int screenId = (mTargetCell[0] < 0) ?
                         mDragInfo.screenId : getCellLayoutId(dropTargetLayout);
-                int spanX = mDragInfo != null ? mDragInfo.spanX : 1;
-                int spanY = mDragInfo != null ? mDragInfo.spanY : 1;
+                // LC-Note: Large folders v2. A large folder is 1x1 in the dock.
+                int spanX = mDragInfo != null ? dragSpan(d.dragInfo, mDragInfo.spanX, dropTargetLayout) : 1;
+                int spanY = mDragInfo != null ? dragSpan(d.dragInfo, mDragInfo.spanY, dropTargetLayout) : 1;
                 // First we find the cell nearest to point at which the item is
                 // dropped, without any consideration to whether there is an item there.
 
@@ -2286,8 +2290,8 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                 // Aside from the special case where we're dropping a shortcut onto a shortcut,
                 // we need to find the nearest cell location that is vacant
                 ItemInfo item = d.dragInfo;
-                int minSpanX = item.spanX;
-                int minSpanY = item.spanY;
+                int minSpanX = spanX;
+                int minSpanY = spanY;
                 if (item.minSpanX > 0 && item.minSpanY > 0) {
                     minSpanX = item.minSpanX;
                     minSpanY = item.minSpanY;
@@ -2302,11 +2306,19 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
 
                 // When quickly moving an item, a user may accidentally rearrange their
                 // workspace. So instead we move the icon back safely to its original position.
+                // LC-Note: Large folders v2. A large folder may land over widgets without reorder.
+                int[] largeOverlay = (!hasMovedIntoHotseat && cell instanceof FolderIcon fi)
+                        ? LargeFolderController.overlayDropAnchor(dropTargetLayout, fi, mTargetCell)
+                        : null;
                 boolean returnToOriginalCellToPreventShuffling = !isFinishedSwitchingState()
                         && !droppedOnOriginalCellDuringTransition && !dropTargetLayout
                         .isRegionVacant(mTargetCell[0], mTargetCell[1], spanX, spanY);
                 int[] resultSpan = new int[2];
-                if (returnToOriginalCellToPreventShuffling) {
+                if (largeOverlay != null) {
+                    mTargetCell = largeOverlay;
+                    resultSpan[0] = spanX;
+                    resultSpan[1] = spanY;
+                } else if (returnToOriginalCellToPreventShuffling) {
                     mTargetCell[0] = mTargetCell[1] = -1;
                 } else {
                     mTargetCell = dropTargetLayout.performReorder((int) mDragViewVisualCenter[0],
@@ -2347,6 +2359,12 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                         } else if (FeatureFlags.IS_STUDIO_BUILD) {
                             throw new NullPointerException("mDragInfo.cell has null parent");
                         }
+                        // LC-Note: Large folders v2. Dock folders are always 1x1.
+                        if (cell instanceof FolderIcon && LargeFolders.isLarge(info)
+                                && container != CONTAINER_DESKTOP) {
+                            int span = LargeFolderOverlap.spanForContainer(container, true);
+                            info.spanX = info.spanY = item.spanX = item.spanY = span;
+                        }
                         addInScreen(cell, container, screenId, mTargetCell[0], mTargetCell[1],
                                 info.spanX, info.spanY);
                     }
@@ -2371,6 +2389,9 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                     }
                     mLauncher.getModelWriter().modifyItemInDatabase(info, container, screenId,
                             lp.getCellX(), lp.getCellY(), item.spanX, item.spanY);
+                    if (cell instanceof FolderIcon movedFolder) {
+                        movedFolder.onSizeModeChanged(); // LC-Note: large folders v2
+                    }
                 } else {
                     if (!returnToOriginalCellToPreventShuffling) {
                         onNoCellFound(dropTargetLayout, d.dragInfo, d.logInstanceId);
@@ -2711,18 +2732,21 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
 
         // Handle the drag over
         if (mDragTargetLayout != null) {
+            // LC-Note: Large folders v2. A large folder is 1x1 over the dock.
+            int dragSpanX = dragSpan(item, item.spanX, mDragTargetLayout);
+            int dragSpanY = dragSpan(item, item.spanY, mDragTargetLayout);
             // We want the point to be mapped to the dragTarget.
             mapPointFromDropLayout(mDragTargetLayout, mDragViewVisualCenter);
 
-            int minSpanX = item.spanX;
-            int minSpanY = item.spanY;
+            int minSpanX = dragSpanX;
+            int minSpanY = dragSpanY;
             if (item.minSpanX > 0 && item.minSpanY > 0) {
                 minSpanX = item.minSpanX;
                 minSpanY = item.minSpanY;
             }
 
             mTargetCell = findNearestArea((int) mDragViewVisualCenter[0],
-                    (int) mDragViewVisualCenter[1], item.spanX, item.spanY,
+                    (int) mDragViewVisualCenter[1], dragSpanX, dragSpanY,
                     mDragTargetLayout, mTargetCell);
             int reorderX = mTargetCell[0];
             int reorderY = mTargetCell[1];
@@ -2735,8 +2759,8 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
             manageFolderFeedback(targetCellDistance, d);
 
             boolean nearestDropOccupied = mDragTargetLayout.isNearestDropLocationOccupied((int)
-                            mDragViewVisualCenter[0], (int) mDragViewVisualCenter[1], item.spanX,
-                    item.spanY, child, mTargetCell);
+                            mDragViewVisualCenter[0], (int) mDragViewVisualCenter[1], dragSpanX,
+                    dragSpanY, child, mTargetCell);
 
             manageReorderOnDragOver(d, targetCellDistance, nearestDropOccupied, minSpanX, minSpanY,
                     reorderX, reorderY);
@@ -2750,35 +2774,53 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         }
     }
 
+    /** LC-Note: Large folders v2. The span [item] uses over [layout]. */
+    private int dragSpan(ItemInfo item, int span, @Nullable CellLayout layout) {
+        return LargeFolderOverlap.dragSpan(span, LargeFolders.isLarge(item),
+                layout != null && mLauncher.isHotseatLayout(layout));
+    }
+
     protected void manageReorderOnDragOver(DragObject d, float targetCellDistance,
             boolean nearestDropOccupied, int minSpanX, int minSpanY, int reorderX, int reorderY) {
 
         ItemInfo item = d.dragInfo;
         final View child = (mDragInfo == null) ? null : mDragInfo.cell;
+        int dragSpanX = dragSpan(item, item.spanX, mDragTargetLayout);
+        int dragSpanY = dragSpan(item, item.spanY, mDragTargetLayout);
+        // LC-Note: Large folders v2. Over widgets a large folder lands without reordering anything.
+        if (child instanceof FolderIcon largeFolder && !mLauncher.isHotseatLayout(mDragTargetLayout)
+                && LargeFolderController.overlayDropAnchor(
+                        mDragTargetLayout, largeFolder, mTargetCell) != null) {
+            mReorderAlarm.cancelAlarm();
+            mDragTargetLayout.revertTempState();
+            mDragTargetLayout.visualizeDropLocation(mTargetCell[0], mTargetCell[1], dragSpanX,
+                    dragSpanY, d);
+            return;
+        }
         if (!nearestDropOccupied) {
             int[] span = new int[2];
             mDragTargetLayout.performReorder((int) mDragViewVisualCenter[0],
-                    (int) mDragViewVisualCenter[1], minSpanX, minSpanY, item.spanX, item.spanY,
+                    (int) mDragViewVisualCenter[1], minSpanX, minSpanY, dragSpanX, dragSpanY,
                     child, mTargetCell, span, CellLayout.MODE_SHOW_REORDER_HINT);
             mDragTargetLayout.visualizeDropLocation(mTargetCell[0], mTargetCell[1], span[0],
                     span[1], d);
             nearestDropOccupied = mDragTargetLayout.isNearestDropLocationOccupied((int)
-                            mDragViewVisualCenter[0], (int) mDragViewVisualCenter[1], item.spanX,
-                    item.spanY, child, mTargetCell);
+                            mDragViewVisualCenter[0], (int) mDragViewVisualCenter[1], dragSpanX,
+                    dragSpanY, child, mTargetCell);
         } else if ((mDragMode == DRAG_MODE_NONE || mDragMode == DRAG_MODE_REORDER)
                 && (mLastReorderX != reorderX || mLastReorderY != reorderY)
-                && targetCellDistance < mDragTargetLayout.getReorderRadius(mTargetCell, item.spanX,
-                item.spanY)) {
+                && targetCellDistance < mDragTargetLayout.getReorderRadius(mTargetCell, dragSpanX,
+                dragSpanY)) {
             mReorderAlarm.cancelAlarm();
             mLastReorderX = reorderX;
             mLastReorderY = reorderY;
             mDragTargetLayout.performReorder((int) mDragViewVisualCenter[0],
-                    (int) mDragViewVisualCenter[1], minSpanX, minSpanY, item.spanX, item.spanY,
+                    (int) mDragViewVisualCenter[1], minSpanX, minSpanY, dragSpanX, dragSpanY,
                     child, mTargetCell, new int[2], CellLayout.MODE_SHOW_REORDER_HINT);
             // Otherwise, if we aren't adding to or creating a folder and there's no pending
             // reorder, then we schedule a reorder
             ReorderAlarmListener listener = new ReorderAlarmListener(mDragViewVisualCenter,
-                    minSpanX, minSpanY, item.spanX, item.spanY, d, child);
+                    minSpanX, minSpanY, dragSpanX, dragSpanY, d, child);
             mReorderAlarm.setOnAlarmListener(listener);
             mReorderAlarm.setAlarm(REORDER_TIMEOUT);
         }

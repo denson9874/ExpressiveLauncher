@@ -17,31 +17,31 @@ class LargeFoldersTest {
 
     @Test
     fun growsRightAndDownWhenFree() {
-        val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { _, _ -> false }
+        val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { _, _ -> CellOwner.EMPTY }
         assertThat(anchor).asList().containsExactly(1, 1).inOrder()
     }
 
     @Test
     fun growsLeftOrUpAtTheGridEdge() {
-        assertThat(LargeFolders.findLargeAnchor(3, 1, 4, 5) { _, _ -> false }).asList()
+        assertThat(LargeFolders.findLargeAnchor(3, 1, 4, 5) { _, _ -> CellOwner.EMPTY }).asList()
             .containsExactly(2, 1).inOrder()
-        assertThat(LargeFolders.findLargeAnchor(1, 4, 4, 5) { _, _ -> false }).asList()
+        assertThat(LargeFolders.findLargeAnchor(1, 4, 4, 5) { _, _ -> CellOwner.EMPTY }).asList()
             .containsExactly(1, 3).inOrder()
-        assertThat(LargeFolders.findLargeAnchor(3, 4, 4, 5) { _, _ -> false }).asList()
+        assertThat(LargeFolders.findLargeAnchor(3, 4, 4, 5) { _, _ -> CellOwner.EMPTY }).asList()
             .containsExactly(2, 3).inOrder()
     }
 
     @Test
     fun skipsOccupiedCells() {
         // (2,1) is taken, so growing right fails; growing left works.
-        val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, y -> x == 2 && y == 1 }
+        val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, y -> if (x == 2 && y == 1) CellOwner.BLOCKING else CellOwner.EMPTY }
         assertThat(anchor).asList().containsExactly(0, 1).inOrder()
     }
 
     @Test
     fun noSpaceReturnsNull() {
-        assertThat(LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, y -> !(x == 1 && y == 1) }).isNull()
-        assertThat(LargeFolders.findLargeAnchor(0, 0, 1, 5) { _, _ -> false }).isNull()
+        assertThat(LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, y -> if (!(x == 1 && y == 1)) CellOwner.BLOCKING else CellOwner.EMPTY }).isNull()
+        assertThat(LargeFolders.findLargeAnchor(0, 0, 1, 5) { _, _ -> CellOwner.EMPTY }).isNull()
     }
 
     @Test
@@ -69,5 +69,11 @@ class LargeFoldersTest {
         assertThat((0..10).filter { LargeFolders.drawsRank(it) })
             .containsExactly(0, 1, 2, 3, 4, 5, 6)
             .inOrder()
+    }
+
+    @Test
+    fun growsOverWidgetCells() {
+        val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, _ -> if (x == 2) CellOwner.WIDGET else CellOwner.EMPTY }
+        assertThat(anchor).asList().containsExactly(1, 1).inOrder()
     }
 }

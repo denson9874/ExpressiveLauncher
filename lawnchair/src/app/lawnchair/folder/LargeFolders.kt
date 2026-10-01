@@ -32,9 +32,9 @@ object LargeFolders {
         container == Favorites.CONTAINER_DESKTOP && spanX == SPAN && spanY == SPAN
 
     /**
-     * Top-left cell of a free 2x2 area that contains ([cellX], [cellY]), or null. Prefers growing
-     * right and down, then left, then up, so the folder stays where the user put it.
-     * [occupied] must ignore the folder's own cell.
+     * Top-left cell of a 2x2 area that contains ([cellX], [cellY]) and covers only empty cells or
+     * widgets (large folders v2), or null. Prefers growing right and down, then left, then up, so
+     * the folder stays where the user put it. [ownerAt] must treat the folder's own cell as empty.
      */
     @JvmStatic
     fun findLargeAnchor(
@@ -42,23 +42,13 @@ object LargeFolders {
         cellY: Int,
         countX: Int,
         countY: Int,
-        occupied: (x: Int, y: Int) -> Boolean,
+        ownerAt: (x: Int, y: Int) -> CellOwner,
     ): IntArray? {
-        val candidates = listOf(
-            cellX to cellY,
-            cellX - 1 to cellY,
-            cellX to cellY - 1,
-            cellX - 1 to cellY - 1,
-        )
+        val candidates = listOf(cellX to cellY, cellX - 1 to cellY, cellX to cellY - 1, cellX - 1 to cellY - 1)
         for ((x, y) in candidates) {
-            if (x < 0 || y < 0 || x + SPAN > countX || y + SPAN > countY) continue
-            var free = true
-            for (dx in 0 until SPAN) {
-                for (dy in 0 until SPAN) {
-                    if (occupied(x + dx, y + dy)) free = false
-                }
+            if (LargeFolderOverlap.canPlace(CellRect(x, y, SPAN, SPAN), countX, countY, ownerAt)) {
+                return intArrayOf(x, y)
             }
-            if (free) return intArrayOf(x, y)
         }
         return null
     }

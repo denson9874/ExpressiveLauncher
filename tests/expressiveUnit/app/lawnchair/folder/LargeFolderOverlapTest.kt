@@ -93,4 +93,32 @@ class LargeFolderOverlapTest {
         assertThat(LargeFolderOverlap.isAllowedBindOverlap(newIsWidget = true, newIsLargeFolder = false, occupantIsWidget = true, occupantIsLargeFolder = false)).isFalse()
         assertThat(LargeFolderOverlap.isAllowedBindOverlap(newIsWidget = false, newIsLargeFolder = true, occupantIsWidget = false, occupantIsLargeFolder = true)).isFalse()
     }
+
+    @Test
+    fun dragSpan_largeFolderIsOneByOneOverDock() {
+        assertThat(LargeFolderOverlap.dragSpan(2, isLargeFolder = true, targetIsHotseat = true)).isEqualTo(1)
+        assertThat(LargeFolderOverlap.dragSpan(2, isLargeFolder = true, targetIsHotseat = false)).isEqualTo(2)
+        // Widgets and other items keep their span everywhere.
+        assertThat(LargeFolderOverlap.dragSpan(2, isLargeFolder = false, targetIsHotseat = true)).isEqualTo(2)
+    }
+
+    @Test
+    fun resolveLargeFolders_anchorInsideWidgetCanStayLarge() {
+        // Folder grown left over a widget: its anchor (2,1) is a widget cell.
+        val widget = LoadItem(13, CellRect(1, 1, 2, 2), LoadKind.WIDGET)
+        val folder = LoadItem(6, CellRect(2, 1, 1, 1), LoadKind.LARGE_FOLDER_CANDIDATE)
+        assertThat(LargeFolderOverlap.resolveLargeFolders(4, 5, emptyList(), listOf(folder, widget))).containsExactly(6)
+    }
+
+    @Test
+    fun relocation_demotedFolderUnderWidgetMovesToFirstFreeCell() {
+        val widget = CellRect(1, 1, 2, 2)
+        val taken = listOf(CellRect(0, 0, 4, 1), widget, CellRect(0, 1, 1, 1))
+        assertThat(LargeFolderOverlap.relocationFor(CellRect(2, 1, 1, 1), listOf(widget), taken, 4, 5))
+            .isEqualTo(CellRect(3, 1, 1, 1))
+        // Not under a widget: stays where it is.
+        assertThat(LargeFolderOverlap.relocationFor(CellRect(3, 3, 1, 1), listOf(widget), taken, 4, 5)).isNull()
+        // Page full: no move.
+        assertThat(LargeFolderOverlap.relocationFor(CellRect(2, 1, 1, 1), listOf(widget), listOf(CellRect(0, 0, 4, 5)), 4, 5)).isNull()
+    }
 }
