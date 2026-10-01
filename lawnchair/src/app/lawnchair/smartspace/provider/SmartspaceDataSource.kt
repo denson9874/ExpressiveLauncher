@@ -20,6 +20,7 @@ sealed class SmartspaceDataSource(
     val context: Context,
     val providerName: Int,
     getEnabledPref: PreferenceManager2.() -> Preference<Boolean, Boolean, *>,
+    val providerDescription: Int? = null,
 ) {
     val enabledPref = getEnabledPref(PreferenceManager2.getInstance(context))
     open val isAvailable: Boolean = true

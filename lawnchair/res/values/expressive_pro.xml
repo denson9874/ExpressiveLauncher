@@ -59,4 +59,16 @@
     <string name="cakey_smartspace_evening">You make every day sweeter, Cakey ✨</string>
     <string name="cakey_smartspace_night">Sweet dreams, Cakey 🌙</string>
     <string name="cakey_about_subtitle">Cakey Edition 🍰 — The Best of the Best</string>
+    <!-- At a Glance daily messages, Cakey Edition only (see GlanceMessages.kt) -->
+    <string name="glance_cakey_birthday" translatable="false">Happy birthday, Cakey! 🎂❤️</string>
+    <string name="glance_cakey_anniversary" translatable="false">Happy anniversary, Cakey ❤️</string>
+    <string name="glance_cakey_new_year" translatable="false">Happy New Year, Cakey 🎆❤️</string>
+    <string name="glance_cakey_valentines" translatable="false">Happy Valentine\'s Day, Cakey ❤️</string>
+    <string name="glance_cakey_christmas" translatable="false">Merry Christmas, Cakey 🎄❤️</string>
+    <string name="glance_cakey_note_1" translatable="false">Daryl loves you ❤️</string>
+    <string name="glance_cakey_note_2" translatable="false">Proud of you, Cakey 💕</string>
+    <string name="glance_cakey_note_3" translatable="false">Thinking of you, Laura ❤️</string>
+    <string name="glance_cakey_note_4" translatable="false">You\'ve got this, Cakey ✨</string>
+    <string name="glance_cakey_note_5" translatable="false">Lucky to have you, Laura 💕</string>
+    <string name="glance_cakey_note_6" translatable="false">Take a sweet break, Cakey 🍰</string>
 </resources>

@@ -11,8 +11,6 @@ import android.widget.TextView
 import androidx.core.text.layoutDirection
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
-import app.lawnchair.pro.CakeyGreetings
-import app.lawnchair.pro.ProManager
 import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import app.lawnchair.smartspace.model.hasIntent
@@ -77,11 +75,12 @@ class BcSmartspaceCard @JvmOverloads constructor(
             if (!hasTitle || !hasSubtitle) {
                 subtitle = null
             }
-            if (subtitle.isNullOrEmpty() && ProManager.INSTANCE.get(context).isCakey.value) {
-                subtitle = CakeyGreetings.getGreeting(context)
-            }
-            setSubtitle(subtitle, headerAction.contentDescription)
+            setSubtitle(withGlanceMessage(subtitle), headerAction.contentDescription)
             updateIconTint()
+        } else {
+            // The date-only card has no header, so a daily message is its whole second line.
+            iconDrawable = null
+            setSubtitle(target.glanceMessage, null)
         }
 
         if (baseAction != null && baseActionIconSubtitleView != null) {
@@ -161,9 +160,19 @@ class BcSmartspaceCard @JvmOverloads constructor(
         }
     }
 
+    private fun withGlanceMessage(subtitle: CharSequence?): CharSequence? {
+        val message = target.glanceMessage
+        return when {
+            message.isNullOrEmpty() -> subtitle
+            subtitle.isNullOrEmpty() -> message
+            else -> context.getString(R.string.smartspace_glance_message_join, subtitle, message)
+        }
+    }
+
     private fun setSubtitle(subtitle: CharSequence?, charSequence2: CharSequence?) {
         val subtitleView = subtitleTextView ?: return
         subtitleView.text = subtitle
+        subtitleView.ellipsize = TextUtils.TruncateAt.END
         subtitleTextView!!.setCompoundDrawablesRelative(
             if (subtitle.isNullOrEmpty()) null else iconDrawable,
             null,

@@ -6,6 +6,8 @@ data class SmartspaceTarget(
     val baseAction: SmartspaceAction? = null,
     val score: Float = 0f,
     val featureType: FeatureType,
+    /** A daily message shown on the date card's second line, after any weather. */
+    val glanceMessage: CharSequence? = null,
 ) {
 
     enum class FeatureType {

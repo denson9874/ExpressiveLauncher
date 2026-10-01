@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- At a Glance daily messages (see GlanceMessages.kt). Keep each under ~30 characters:
+     they share one line with the weather under the date. -->
+<resources>
+    <string name="smartspace_glance_messages" translatable="false">Daily messages</string>
+    <string name="smartspace_glance_messages_description" translatable="false">Quotes, encouraging words and holidays under the date</string>
+    <string name="smartspace_glance_message_join" translatable="false">%1$s · %2$s</string>
+
+    <string name="glance_holiday_new_year" translatable="false">Happy New Year! 🎆</string>
+    <string name="glance_holiday_valentines" translatable="false">Happy Valentine\'s Day ❤️</string>
+    <string name="glance_holiday_st_patricks" translatable="false">Happy St. Patrick\'s Day ☘️</string>
+    <string name="glance_holiday_easter" translatable="false">Happy Easter 🐣</string>
+    <string name="glance_holiday_mothers_day" translatable="false">Happy Mother\'s Day 💐</string>
+    <string name="glance_holiday_fathers_day" translatable="false">Happy Father\'s Day 💙</string>
+    <string name="glance_holiday_independence_day" translatable="false">Happy Fourth of July 🎆</string>
+    <string name="glance_holiday_halloween" translatable="false">Happy Halloween 🎃</string>
+    <string name="glance_holiday_thanksgiving" translatable="false">Happy Thanksgiving 🦃</string>
+    <string name="glance_holiday_christmas_eve" translatable="false">It\'s Christmas Eve ✨</string>
+    <string name="glance_holiday_christmas" translatable="false">Merry Christmas 🎄</string>
+    <string name="glance_holiday_new_years_eve" translatable="false">Happy New Year\'s Eve 🥂</string>
+
+    <string name="glance_quote_1" translatable="false">Simple things, done well</string>
+    <string name="glance_quote_2" translatable="false">Kindness is never wasted</string>
+    <string name="glance_quote_3" translatable="false">Every day is a first draft</string>
+    <string name="glance_quote_4" translatable="false">Stay curious, stay kind</string>
+    <string name="glance_quote_5" translatable="false">Joy hides in little things</string>
+    <string name="glance_quote_6" translatable="false">Start where you are</string>
+    <string name="glance_quote_7" translatable="false">Make today a good story</string>
+
+    <string name="glance_encouragement_1" translatable="false">You\'ve got this ✨</string>
+    <string name="glance_encouragement_2" translatable="false">Small steps still count</string>
+    <string name="glance_encouragement_3" translatable="false">Be kind to yourself today</string>
+    <string name="glance_encouragement_4" translatable="false">Progress, not perfection</string>
+    <string name="glance_encouragement_5" translatable="false">Take a breath. You\'re doing fine</string>
+    <string name="glance_encouragement_6" translatable="false">Rest is productive too</string>
+    <string name="glance_encouragement_7" translatable="false">Celebrate the small wins 🎉</string>
+</resources>

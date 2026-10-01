@@ -813,6 +813,11 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = true,
     )
 
+    val smartspaceGlanceMessages = preference(
+        key = booleanPreferencesKey("enable_smartspace_glance_messages"),
+        defaultValue = false,
+    )
+
     val smartspaceShowDate = preference(
         key = booleanPreferencesKey("smartspace_show_date"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_smartspace_show_date),

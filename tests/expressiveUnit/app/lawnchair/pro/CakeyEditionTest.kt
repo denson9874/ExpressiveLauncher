@@ -3,7 +3,9 @@ package app.lawnchair.pro
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import app.lawnchair.smartspace.provider.selectGlanceMessage
 import com.google.common.truth.Truth.assertThat
+import java.time.LocalDate
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,9 +91,12 @@ class CakeyEditionTest {
     }
 
     @Test
-    fun cakeyGreetings_returnsValidGreetingText() {
-        val greeting = CakeyGreetings.getGreeting(context)
-        assertThat(greeting).isNotEmpty()
-        assertThat(greeting.contains("Cakey") || greeting.contains("Laura")).isTrue()
+    fun cakeyGlanceMessages_areWrittenForLauraAtEveryHour() {
+        val day = LocalDate.of(2026, 10, 1)
+        for (hour in 0..23) {
+            val message = selectGlanceMessage(day.atTime(hour, 0), isCakey = true, region = "US")
+            val text = context.getString(message.textResId)
+            assertThat(listOf("Cakey", "Laura", "Daryl").any { it in text }).isTrue()
+        }
     }
 }

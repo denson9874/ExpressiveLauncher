@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.launch
 
 @LauncherAppSingleton
 class SmartspaceProvider @Inject constructor(
@@ -33,8 +34,11 @@ class SmartspaceProvider @Inject constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    private val glanceMessages = GlanceMessagesProvider(context)
+
     val dataSources = listOf(
         SmartspaceWidgetReader(context),
+        glanceMessages,
         BatteryStatusProvider(context),
         TorchProvider(context),
         NowPlayingProvider(context),
@@ -56,12 +60,15 @@ class SmartspaceProvider @Inject constructor(
             } else {
                 it.targets
             }
-            applyExpressiveSmartspaceTargetPolicy(targets, BuildConfig.IS_EXPRESSIVE_PRODUCT)
+            applyExpressiveSmartspaceTargetPolicy(
+                attachGlanceMessage(targets),
+                BuildConfig.IS_EXPRESSIVE_PRODUCT,
+            )
         }
     val previewTargets = state
         .map {
             applyExpressiveSmartspaceTargetPolicy(
-                it.targets,
+                attachGlanceMessage(it.targets),
                 BuildConfig.IS_EXPRESSIVE_PRODUCT,
             )
         }
@@ -82,6 +89,10 @@ class SmartspaceProvider @Inject constructor(
         score = 999f,
         featureType = SmartspaceTarget.FeatureType.FEATURE_TIPS,
     )
+
+    init {
+        scope.launch { glanceMessages.enableOnceForCakey() }
+    }
 
     suspend fun startSetup(activity: Activity, lifecycle: Lifecycle) {
         setupCoordinator.collectRequests(

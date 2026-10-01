@@ -149,6 +149,7 @@ private fun LawnchairSmartspaceSettings(
                         SwitchPreference(
                             adapter = it.enabledPref.getAdapter(),
                             label = stringResource(id = it.providerName),
+                            description = it.providerDescription?.let { id -> stringResource(id) },
                         )
                     }
                 }
