@@ -27,6 +27,8 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
+import java.util.ArrayList;
 import android.animation.TimeInterpolator;
 import android.content.Context;
 import android.content.res.Resources;
@@ -137,6 +139,10 @@ public class FolderAnimationManager implements FolderAnimationCreator {
     @Override
     public AnimatorSet createAnimatorSet(boolean isOpening) {
         mIsOpening = isOpening;
+        // LC-Note: Large folders v2. Reveal from the 2x2 tile, not the 1x1 preview circle.
+        if (mFolderIcon.isLarge()) {
+            return createLargeFolderAnimatorSet();
+        }
         final BaseDragLayer.LayoutParams lp =
                 (BaseDragLayer.LayoutParams) mFolder.getLayoutParams();
         mFolderIcon.getPreviewItemManager().recomputePreviewDrawingParams();
@@ -358,6 +364,144 @@ public class FolderAnimationManager implements FolderAnimationCreator {
         return a;
     }
 
+    /** LC-Note: Large folders v2. The panel grows out of the tile; apps fly from their slots. */
+    private AnimatorSet createLargeFolderAnimatorSet() {
+        final BaseDragLayer.LayoutParams lp =
+                (BaseDragLayer.LayoutParams) mFolder.getLayoutParams();
+        final Rect iconPos = new Rect();
+        float s = mFolder.mActivityContext.getDragLayer()
+                .getDescendantRectRelativeToSelf(mFolderIcon, iconPos);
+        app.lawnchair.folder.Box tile = mFolderIcon.getLargeTileBox();
+        float tileLeft = iconPos.left + tile.getLeft() * s;
+        float tileTop = iconPos.top + tile.getTop() * s;
+        float tileSize = tile.getSize() * s;
+        float tileRadius = app.lawnchair.folder.LargeFolderAnimationGeometry.cornerRadius(tile) * s;
+
+        // The panel starts with its top-left on the tile's top-left, clipped to the tile.
+        final float xDistance = tileLeft - lp.x;
+        final float yDistance = tileTop - lp.y;
+        Rect startRect = new Rect(0, 0, Math.round(tileSize), Math.round(tileSize));
+        Rect endRect = new Rect(0, 0, lp.width, lp.height);
+        float finalRadius = mFolderBackground.getCornerRadius();
+
+        int initialColor = LawnchairUtilsKt.resolveFolderPreviewColor(mContext);
+        int finalColor = LawnchairUtilsKt.resolveFolderBackgroundColor(mContext);
+        mFolderBackground.mutate();
+        mFolderBackground.setColor(mIsOpening ? initialColor : finalColor);
+        mFolder.setPivotX(0);
+        mFolder.setPivotY(0);
+
+        AnimatorSet a = new AnimatorSet();
+        mBgColorAnimator = getAnimator(mFolderBackground, "color", initialColor, finalColor);
+        play(a, mBgColorAnimator);
+        play(a, getAnimator(mFolder, View.TRANSLATION_X, xDistance, 0f));
+        play(a, getAnimator(mFolder, View.TRANSLATION_Y, yDistance, 0f));
+        play(a, new app.lawnchair.folder.RoundRectRevealAnimator(mFolder, startRect, endRect,
+                tileRadius, finalRadius, !mIsOpening).create());
+
+        play(a, getAnimator(mFolder.mFooter, ALPHA, 0, 1f));
+        mFolder.getFolderName().setAlpha(mIsOpening ? 0f : 1f);
+        play(a, getAnimator(mFolder.getFolderName(), View.ALPHA, 0, 1));
+
+        // Items: apps on the tile fly between their slot and their cell; the rest fade. The panel
+        // isn't laid out yet, so each flight's start offset is measured on its first frame.
+        int page = mIsOpening ? mContent.getCurrentPage() : mContent.getDestinationPage();
+        final List<BubbleTextView> fliers = new ArrayList<>();
+        final List<app.lawnchair.folder.Box> slots = new ArrayList<>();
+        for (View v : mFolder.getItemsOnPage(page)) {
+            BubbleTextView btv = getBubbleTextView(v);
+            if (btv == null) continue;
+            if (mIsOpening) btv.setTextVisibility(false);
+            play(a, btv.createTextAlphaAnimator(mIsOpening));
+            int rank = ((com.android.launcher3.model.data.ItemInfo) v.getTag()).rank;
+            app.lawnchair.folder.Box onTile = mFolderIcon.getLargeTileBoxForRank(rank);
+            if (onTile == null) {
+                play(a, getAnimator(v, View.ALPHA, 0f, 1f));
+            } else {
+                fliers.add(btv);
+                slots.add(onTile);
+            }
+        }
+        final float[][] starts = new float[fliers.size()][];
+        ValueAnimator flight = ValueAnimator.ofFloat(mIsOpening ? 0f : 1f, mIsOpening ? 1f : 0f);
+        flight.addUpdateListener(anim -> {
+            float p = (float) anim.getAnimatedValue();
+            for (int i = 0; i < fliers.size(); i++) {
+                BubbleTextView btv = fliers.get(i);
+                if (starts[i] == null) {
+                    Rect iconBounds = new Rect();
+                    btv.getIconBounds(iconBounds);
+                    if (btv.getWidth() == 0 || iconBounds.width() <= 0) {
+                        // Not laid out yet: hide it rather than flash it at its final place.
+                        btv.setAlpha(0f);
+                        continue;
+                    }
+                    btv.setAlpha(1f);
+                    btv.setTranslationX(0f);
+                    btv.setTranslationY(0f);
+                    float[] inFolder = {iconBounds.left, iconBounds.top};
+                    Utilities.getDescendantCoordRelativeToAncestor(btv, mFolder, inFolder, false);
+                    app.lawnchair.folder.Box slot = slots.get(i);
+                    starts[i] = new float[] {
+                            tileLeft + (slot.getLeft() - tile.getLeft()) * s - lp.x - xDistance
+                                    - inFolder[0],
+                            tileTop + (slot.getTop() - tile.getTop()) * s - lp.y - yDistance
+                                    - inFolder[1],
+                            slot.getSize() * s / iconBounds.width()};
+                    btv.setPivotX(iconBounds.left);
+                    btv.setPivotY(iconBounds.top);
+                }
+                float[] st = starts[i];
+                btv.setTranslationX(st[0] * (1 - p));
+                btv.setTranslationY(st[1] * (1 - p));
+                float scale = st[2] + (1f - st[2]) * p;
+                btv.setScaleX(scale);
+                btv.setScaleY(scale);
+            }
+        });
+        play(a, flight);
+
+        a.addListener(new AnimatorListenerAdapter() {
+            private CellLayout mCellLayout;
+            private boolean mContentClipChildren;
+            private boolean mCellLayoutClipChildren;
+
+            @Override
+            public void onAnimationStart(Animator animator) {
+                mCellLayout = mContent.getCurrentCellLayout();
+                mContentClipChildren = mContent.getClipChildren();
+                mCellLayoutClipChildren = mCellLayout.getClipChildren();
+                mContent.setClipChildren(false);
+                mCellLayout.setClipChildren(false);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mFolder.setTranslationX(0f);
+                mFolder.setTranslationY(0f);
+                mFolder.getFolderName().setAlpha(1f);
+                mFolder.mFooter.setAlpha(1f);
+                for (View v : mFolder.getItemsOnPage(mContent.getCurrentPage())) {
+                    BubbleTextView btv = getBubbleTextView(v);
+                    v.setAlpha(1f);
+                    if (btv == null) continue;
+                    btv.setAlpha(1f);
+                    btv.setTranslationX(0f);
+                    btv.setTranslationY(0f);
+                    btv.setScaleX(1f);
+                    btv.setScaleY(1f);
+                    btv.setTextVisibility(true);
+                }
+                mContent.setClipChildren(mContentClipChildren);
+                mCellLayout.setClipChildren(mCellLayoutClipChildren);
+            }
+        });
+        for (Animator animator : a.getChildAnimations()) {
+            animator.setInterpolator(mIsOpening ? mFolderOpenInterpolator : mFolderCloseInterpolator);
+        }
+        return a;
+    }
+
     /**
      * Returns the list of "preview items" on {@param page}.
      */
@@ -517,3 +661,4 @@ public class FolderAnimationManager implements FolderAnimationCreator {
                 : (BubbleTextView) v;
     }
 }
+

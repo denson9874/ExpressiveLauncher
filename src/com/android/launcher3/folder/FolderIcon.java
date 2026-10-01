@@ -35,6 +35,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.util.AttributeSet;
@@ -901,6 +902,18 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         boolean large = isLarge();
         setOutlineProvider(large ? null : ViewOutlineProvider.BACKGROUND);
         setElevation(large ? getResources().getDimension(R.dimen.large_folder_elevation) : 0f);
+    }
+
+    /** LC-Note: Large folders v2. The tile, in this view's coordinates. */
+    public app.lawnchair.folder.Box getLargeTileBox() {
+        RectF b = getLargeTile().getBounds();
+        return new app.lawnchair.folder.Box(b.left, b.top, b.width());
+    }
+
+    /** LC-Note: Where the tile draws the app at [rank], in this view's coordinates, or null. */
+    @Nullable
+    public app.lawnchair.folder.Box getLargeTileBoxForRank(int rank) {
+        return getLargeTile().boxForRank(rank);
     }
 
     /** LC-Note: Call after the folder switched between 1x1 and large. */

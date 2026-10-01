@@ -1000,8 +1000,11 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     }
 
     private FolderAnimationCreator getFolderAnimationManager() {
+        // LC-Note: Large folders v2. Large folders open from and close into their 2x2 tile, which
+        // FolderAnimationManager's large-folder branch draws; 1x1 folders keep the spring motion.
         boolean shouldUseSpringMotion = Flags.enableLauncherIconShapes()
-                && Flags.enableExpressiveFolderExpansion();
+                && Flags.enableExpressiveFolderExpansion()
+                && (mFolderIcon == null || !mFolderIcon.isLarge());
         if (shouldUseSpringMotion) {
             ShapeDelegate shapeDelegate =
                     ThemeManager.INSTANCE.get(mActivityContext.asContext()).getFolderShape();
