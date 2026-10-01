@@ -92,7 +92,13 @@ public class LauncherDelegate {
                         // We add the child after removing the folder to prevent both from existing
                         // at the same time in the CellLayout.  We need to add the new item with
                         // addInScreenFromBind() to ensure that hotseat items are placed correctly.
-                        mLauncher.getWorkspace().addInScreenFromBind(newIcon, info);
+                        // LC-Note: Place it where the folder was, at the item's own 1x1 span; a
+                        // large folder's info spans 2x2.
+                        ItemInfo bindInfo = new ItemInfo();
+                        bindInfo.copyFrom(info);
+                        bindInfo.spanX = finalItem.spanX;
+                        bindInfo.spanY = finalItem.spanY;
+                        mLauncher.getWorkspace().addInScreenFromBind(newIcon, bindInfo);
 
                         // Focus the newly created child
                         newIcon.requestFocus();

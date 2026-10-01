@@ -646,19 +646,7 @@ public class LoaderCursor extends CursorWrapper {
             return false;
         }
 
-        if (!mOccupied.containsKey(item.screenId)) {
-            GridOccupancy screen = new GridOccupancy(countX + 1, countY + 1);
-            if (item.screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getEnableSmartspace())) {
-                // Mark the first X columns (X is width of the search container) in the first row as
-                // occupied (if the feature is enabled) in order to account for the search
-                // container.
-                int spanX = mIDP.numSearchContainerColumns;
-                int spanY = 1;
-                screen.markCells(0, 0, spanX, spanY, true);
-            }
-            mOccupied.put(item.screenId, screen);
-        }
-        final GridOccupancy occupancy = mOccupied.get(item.screenId);
+        final GridOccupancy occupancy = getDesktopOccupancy(item.screenId);
 
         // Check if any workspace icons overlap with each other
         if (occupancy.isRegionVacant(item.cellX, item.cellY, item.spanX, item.spanY)) {
@@ -671,6 +659,35 @@ public class LoaderCursor extends CursorWrapper {
                     + ") already occupied");
             return PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getAllowWidgetOverlap());
         }
+    }
+
+    private GridOccupancy getDesktopOccupancy(int screenId) {
+        if (!mOccupied.containsKey(screenId)) {
+            GridOccupancy screen = new GridOccupancy(mIDP.numColumns + 1, mIDP.numRows + 1);
+            if (screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getEnableSmartspace())) {
+                // Mark the first X columns (X is width of the search container) in the first row as
+                // occupied (if the feature is enabled) in order to account for the search
+                // container.
+                int spanX = mIDP.numSearchContainerColumns;
+                int spanY = 1;
+                screen.markCells(0, 0, spanX, spanY, true);
+            }
+            mOccupied.put(screenId, screen);
+        }
+        return mOccupied.get(screenId);
+    }
+
+    /**
+     * LC-Note: Whether a Home screen region is inside the grid and not yet taken by an item loaded
+     * before. A large folder only keeps its 2x2 size when this holds; an item that fails placement
+     * is deleted with its contents.
+     */
+    public boolean isDesktopRegionFree(int screenId, int cellX, int cellY, int spanX, int spanY) {
+        if (cellX < 0 || cellY < 0
+                || cellX + spanX > mIDP.numColumns || cellY + spanY > mIDP.numRows) {
+            return false;
+        }
+        return getDesktopOccupancy(screenId).isRegionVacant(cellX, cellY, spanX, spanY);
     }
 
     @AssistedFactory

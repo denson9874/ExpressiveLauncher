@@ -1,0 +1,64 @@
+package app.lawnchair.folder
+
+import com.android.launcher3.LauncherSettings.Favorites
+import com.google.common.truth.Truth.assertThat
+import org.junit.Test
+
+class LargeFoldersTest {
+
+    @Test
+    fun onlyHomeScreenFoldersCanBeLarge() {
+        assertThat(LargeFolders.wantsLarge(Favorites.CONTAINER_DESKTOP, 2, 2)).isTrue()
+        assertThat(LargeFolders.wantsLarge(Favorites.CONTAINER_HOTSEAT, 2, 2)).isFalse()
+        assertThat(LargeFolders.wantsLarge(Favorites.CONTAINER_DESKTOP, 1, 1)).isFalse()
+        assertThat(LargeFolders.wantsLarge(Favorites.CONTAINER_DESKTOP, 2, 1)).isFalse()
+        assertThat(LargeFolders.wantsLarge(Favorites.CONTAINER_DESKTOP, 3, 3)).isFalse()
+    }
+
+    @Test
+    fun growsRightAndDownWhenFree() {
+        val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { _, _ -> false }
+        assertThat(anchor).asList().containsExactly(1, 1).inOrder()
+    }
+
+    @Test
+    fun growsLeftOrUpAtTheGridEdge() {
+        assertThat(LargeFolders.findLargeAnchor(3, 1, 4, 5) { _, _ -> false }).asList()
+            .containsExactly(2, 1).inOrder()
+        assertThat(LargeFolders.findLargeAnchor(1, 4, 4, 5) { _, _ -> false }).asList()
+            .containsExactly(1, 3).inOrder()
+        assertThat(LargeFolders.findLargeAnchor(3, 4, 4, 5) { _, _ -> false }).asList()
+            .containsExactly(2, 3).inOrder()
+    }
+
+    @Test
+    fun skipsOccupiedCells() {
+        // (2,1) is taken, so growing right fails; growing left works.
+        val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, y -> x == 2 && y == 1 }
+        assertThat(anchor).asList().containsExactly(0, 1).inOrder()
+    }
+
+    @Test
+    fun noSpaceReturnsNull() {
+        assertThat(LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, y -> !(x == 1 && y == 1) }).isNull()
+        assertThat(LargeFolders.findLargeAnchor(0, 0, 1, 5) { _, _ -> false }).isNull()
+    }
+
+    @Test
+    fun slotsShowAppsThenPreviewTheRest() {
+        assertThat(LargeFolders.slotContents(2).toList())
+            .containsExactly(0, 1, LargeFolders.SLOT_EMPTY, LargeFolders.SLOT_EMPTY).inOrder()
+        assertThat(LargeFolders.slotContents(4).toList()).containsExactly(0, 1, 2, 3).inOrder()
+        assertThat(LargeFolders.slotContents(9).toList())
+            .containsExactly(0, 1, 2, LargeFolders.SLOT_MORE).inOrder()
+    }
+
+    @Test
+    fun slotAtMapsQuadrants() {
+        assertThat(LargeFolders.slotAt(10f, 10f, 0f, 0f, 100f)).isEqualTo(0)
+        assertThat(LargeFolders.slotAt(60f, 10f, 0f, 0f, 100f)).isEqualTo(1)
+        assertThat(LargeFolders.slotAt(10f, 60f, 0f, 0f, 100f)).isEqualTo(2)
+        assertThat(LargeFolders.slotAt(99f, 99f, 0f, 0f, 100f)).isEqualTo(3)
+        assertThat(LargeFolders.slotAt(100f, 50f, 0f, 0f, 100f)).isEqualTo(-1)
+    }
+}

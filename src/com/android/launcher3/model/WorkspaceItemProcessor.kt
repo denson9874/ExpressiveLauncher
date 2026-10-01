@@ -28,6 +28,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.SparseArray
+import app.lawnchair.folder.LargeFolders
 import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.LauncherSettings.Favorites
@@ -518,8 +519,24 @@ class WorkspaceItemProcessor(
         c.applyCommonProperties(collection)
         // Do not trim the folder label, as is was set by the user.
         collection.title = c.getString(c.mTitleIndex)
-        collection.spanX = 1
-        collection.spanY = 1
+        // LC-Note: A large Home screen folder keeps its 2x2 size only when it still fits; otherwise
+        // it loads as 1x1 at its top-left cell instead of failing placement (which deletes it).
+        val span = if (collection is FolderInfo &&
+            LargeFolders.wantsLarge(collection.container, c.spanX, c.spanY) &&
+            c.isDesktopRegionFree(
+                collection.screenId,
+                collection.cellX,
+                collection.cellY,
+                LargeFolders.SPAN,
+                LargeFolders.SPAN,
+            )
+        ) {
+            LargeFolders.SPAN
+        } else {
+            1
+        }
+        collection.spanX = span
+        collection.spanY = span
         if (collection is FolderInfo) {
             collection.options = c.options
         } else {

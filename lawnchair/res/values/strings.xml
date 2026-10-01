@@ -1205,4 +1205,10 @@
     <string name="lawnchair_action_failed">Failed to trigger action</string>
 
     <string name="please_wait">Please wait…</string>
+    <!-- Large (2x2) Home screen folders -->
+    <string name="large_folder_make_large">Make folder large</string>
+    <string name="large_folder_make_small">Make folder small</string>
+    <string name="large_folder_made_large">Folder is now large</string>
+    <string name="large_folder_made_small">Folder is now small</string>
+    <string name="large_folder_no_space">No room to make this folder large. Free up the spaces next to it first.</string>
 </resources>

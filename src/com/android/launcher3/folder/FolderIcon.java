@@ -50,6 +50,8 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import app.lawnchair.folder.LargeFolderTile;
+import app.lawnchair.folder.LargeFolders;
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.Alarm;
 import com.android.launcher3.BubbleTextView;
@@ -82,6 +84,7 @@ import com.android.launcher3.model.data.FolderInfo.LabelState;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemFactory;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
+import com.android.launcher3.touch.ItemClickHandler;
 import com.android.launcher3.util.MultiTranslateDelegate;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.views.ActivityContext;
@@ -112,6 +115,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
     // Delay when drag enters until the folder opens, in miliseconds.
     private static final int ON_OPEN_DELAY = 800;
+    private static final float LARGE_ACCEPT_SCALE = 1.06f;
 
     @Thunk BubbleTextView mFolderName;
 
@@ -138,6 +142,11 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     private Animator mDotScaleAnim;
 
     private Rect mTouchArea = new Rect();
+
+    // LC-Note: Large (2x2) Home screen folder, XDA-014. Null until the folder first becomes large.
+    @Nullable private LargeFolderTile mLargeTile;
+    private float mLastTouchX = -1;
+    private float mLastTouchY = -1;
 
     private float mScaleForReorderBounce = 1f;
 
@@ -276,7 +285,13 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         CellLayoutLayoutParams lp = (CellLayoutLayoutParams) getLayoutParams();
         CellLayout cl = (CellLayout) getParent().getParent();
 
-        mBackground.animateToAccept(cl, lp.getCellX(), lp.getCellY());
+        if (isLarge()) {
+            // The accept ring is sized for a 1x1 folder; grow the tile instead.
+            getLargeTile().setAcceptScale(LARGE_ACCEPT_SCALE);
+            invalidate();
+        } else {
+            mBackground.animateToAccept(cl, lp.getCellX(), lp.getCellY());
+        }
         mOpenAlarm.setOnAlarmListener(mOnOpenListener);
         if (SPRING_LOADING_ENABLED &&
                 ((dragInfo instanceof WorkspaceItemFactory)
@@ -318,6 +333,10 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     public void onDragExit() {
+        if (mLargeTile != null && mLargeTile.getAcceptScale() != 1f) {
+            mLargeTile.setAcceptScale(1f);
+            invalidate();
+        }
         mBackground.animateToRest();
         mOpenAlarm.cancelAlarm();
     }
@@ -598,6 +617,13 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
         if (!mBackgroundIsVisible) return;
 
+        if (isLarge()) {
+            mPreviewItemManager.recomputePreviewDrawingParams();
+            getLargeTile().draw(canvas, mBackground.getBgColor());
+            drawDot(canvas);
+            return;
+        }
+
         mPreviewItemManager.recomputePreviewDrawingParams();
 
         if (!mBackground.drawingDelegated()) {
@@ -618,6 +644,13 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     public void drawDot(Canvas canvas) {
         if (!mForceHideDot && ((mDotInfo != null && mDotInfo.hasDot()) || mDotScale > 0)) {
             Rect iconBounds = mDotParams.iconBounds;
+            if (isLarge()) {
+                getLargeTile().getBounds().roundOut(iconBounds);
+                mDotParams.scale = Math.max(0, mDotScale);
+                mDotParams.dotColor = mBackground.getDotColor();
+                mDotRenderer.draw(canvas, mDotParams);
+                return;
+            }
             // FolderIcon draws the icon to be top-aligned (with padding) & horizontally-centered
             int iconSize = mActivity.getDeviceProfile().iconSizePx;
             iconBounds.left = (getWidth() - iconSize) / 2;
@@ -637,6 +670,26 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        if (!isInAppDrawer()) {
+            FrameLayout.LayoutParams labelLp = (FrameLayout.LayoutParams) mFolderName.getLayoutParams();
+            DeviceProfile grid = mActivity.getDeviceProfile();
+            if (isLarge()) {
+                // LC-Note: The tile fills the 2x2 cells above the label, like two rows of icons.
+                Paint.FontMetrics fm = mFolderName.getPaint().getFontMetrics();
+                int labelHeight = (int) Math.ceil(fm.bottom - fm.top);
+                int width = MeasureSpec.getSize(widthMeasureSpec);
+                int height = MeasureSpec.getSize(heightMeasureSpec);
+                int top = getPaddingTop();
+                int maxSize = height - top - labelHeight - grid.iconDrawablePaddingPx;
+                int maxWidth = width - 2 * (width / 2 - grid.iconSizePx) / 2;
+                getLargeTile().layout(width, top, Math.min(maxSize, maxWidth));
+                labelLp.topMargin = (int) getLargeTile().getBounds().bottom - top
+                        + grid.iconDrawablePaddingPx;
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+                return;
+            }
+            labelLp.topMargin = grid.iconSizePx + grid.iconDrawablePaddingPx;
+        }
         boolean shouldCenterIcon = mActivity.getDeviceProfile().iconCenterVertically;
         if (shouldCenterIcon) {
             int iconSize = mActivity.getDeviceProfile().iconSizePx;
@@ -678,6 +731,9 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         mPreviewItemManager.updatePreviewItems(animate);
         mCurrentPreviewItems.clear();
         mCurrentPreviewItems.addAll(getPreviewItemsOnPage(0));
+        if (isLarge()) {
+            getLargeTile().setItems(mInfo.getContents());
+        }
     }
 
     /**
@@ -706,6 +762,11 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         if (event.getAction() == MotionEvent.ACTION_DOWN
                 && shouldIgnoreTouchDown(event.getX(), event.getY())) {
             return false;
+        }
+        if (event.getAction() == MotionEvent.ACTION_DOWN
+                || event.getAction() == MotionEvent.ACTION_UP) {
+            mLastTouchX = event.getX();
+            mLastTouchY = event.getY();
         }
 
         // Call the superclass onTouchEvent first, because sometimes it changes the state to
@@ -743,7 +804,8 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     public void drawLeaveBehindIfExists() {
-        if (isInAppDrawer()) return;
+        // The leave-behind is a 1x1 folder circle; a large folder keeps its tile instead.
+        if (isInAppDrawer() || isLarge()) return;
         if (getParent() instanceof FolderIconParent) {
             ((FolderIconParent) getParent()).drawFolderLeaveBehindForIcon(this);
         }
@@ -777,7 +839,59 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
     @Override
     public void getWorkspaceVisualDragBounds(Rect bounds) {
+        if (isLarge()) {
+            getLargeTile().getBounds().roundOut(bounds);
+            return;
+        }
         getPreviewBounds(bounds);
+    }
+
+    /** LC-Note: Whether this is a large (2x2) Home screen folder. */
+    public boolean isLarge() {
+        return LargeFolders.isLarge(mInfo);
+    }
+
+    /**
+     * LC-Note: Radius around the tile center within which a drop adds to a large folder. Reaches
+     * into the tile's corners, like a 1x1 folder's radius reaches past its circle.
+     */
+    public float getLargeTileRadius() {
+        return getLargeTile().getBounds().width() * 0.65f;
+    }
+
+    private LargeFolderTile getLargeTile() {
+        if (mLargeTile == null) {
+            mLargeTile = new LargeFolderTile(getContext());
+            mLargeTile.setItems(mInfo.getContents());
+        }
+        return mLargeTile;
+    }
+
+    /** LC-Note: Call after the folder switched between 1x1 and large. */
+    public void onSizeModeChanged() {
+        if (isLarge()) {
+            getLargeTile().setItems(mInfo.getContents());
+        }
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * LC-Note: A tap on an app in a large folder opens that app; anywhere else (the preview of the
+     * remaining apps, the label, an accessibility click) opens the folder.
+     */
+    @Override
+    public boolean performClick() {
+        if (isLarge() && mLastTouchX >= 0 && mActivity instanceof Launcher launcher) {
+            ItemInfo item = getLargeTile().itemAt(mLastTouchX, mLastTouchY);
+            mLastTouchX = mLastTouchY = -1;
+            if (item instanceof WorkspaceItemInfo app) {
+                ItemClickHandler.onClickAppShortcut(this, app, launcher);
+                return true;
+            }
+        }
+        mLastTouchX = mLastTouchY = -1;
+        return super.performClick();
     }
 
     /**

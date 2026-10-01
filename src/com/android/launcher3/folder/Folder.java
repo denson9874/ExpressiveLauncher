@@ -70,6 +70,7 @@ import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -138,6 +139,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.folder.LargeFolderController;
+import app.lawnchair.folder.LargeFolders;
 import app.lawnchair.preferences2.PreferenceManager2;
 import app.lawnchair.theme.color.ColorOption;
 import app.lawnchair.theme.color.tokens.ColorTokens;
@@ -237,6 +240,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     private PaginationArrow mRightArrow;
 
     protected LinearLayout mFooter;
+    // LC-Note: Switches a Home screen folder between 1x1 and large (2x2), XDA-014.
+    @Nullable private ImageButton mSizeButton;
     private int mFooterHeight;
 
     // Cell ranks used for drag and drop
@@ -348,6 +353,15 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         mPageIndicator = findViewById(R.id.folder_page_indicator);
         mFooter = findViewById(R.id.folder_footer);
+        mSizeButton = findViewById(R.id.folder_size_button);
+        if (mSizeButton != null) {
+            mSizeButton.setOnClickListener(v -> {
+                if (mActivityContext instanceof Launcher launcher && mFolderIcon != null
+                        && LargeFolderController.toggle(launcher, mFolderIcon)) {
+                    close(true);
+                }
+            });
+        }
         mFooterHeight = dp.folderFooterHeightPx;
         mFolderName = findViewById(R.id.folder_name);
         if (Flags.enableLauncherVisualRefresh()) {
@@ -644,6 +658,20 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         mFolderIcon = icon;
     }
 
+    /** LC-Note: Shows the size button for Home screen folders, offering the other size. */
+    private void updateSizeButton() {
+        if (mSizeButton == null) return;
+        boolean resizable = mActivityContext instanceof Launcher
+                && LargeFolderController.canResize(mFolderIcon);
+        mSizeButton.setVisibility(resizable ? VISIBLE : GONE);
+        if (!resizable) return;
+        boolean large = LargeFolders.isLarge(mInfo);
+        mSizeButton.setImageResource(large
+                ? R.drawable.ic_folder_make_small : R.drawable.ic_folder_make_large);
+        mSizeButton.setContentDescription(getContext().getString(large
+                ? R.string.large_folder_make_small : R.string.large_folder_make_large));
+    }
+
     @Override
     protected void onAttachedToWindow() {
         // requestFocus() causes the focus onto the folder itself, which doesn't cause visual
@@ -846,6 +874,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         mContent.bindItems(items);
         mContent.setCanAnnouncePageDescriptionForFolder(true);
+        updateSizeButton();
         centerAboutIcon();
         mItemsInvalidated = true;
         updateTextViewFocus();

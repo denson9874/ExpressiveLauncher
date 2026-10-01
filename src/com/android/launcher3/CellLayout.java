@@ -67,6 +67,7 @@ import com.android.launcher3.celllayout.ReorderParameters;
 import com.android.launcher3.celllayout.ReorderPreviewAnimation;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dragndrop.DraggableView;
+import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.folder.PreviewBackground;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
@@ -949,7 +950,10 @@ public class CellLayout extends ViewGroup {
         if (child instanceof DraggableView) {
             DraggableView draggableChild = (DraggableView) child;
             if (draggableChild.getViewType() == DRAGGABLE_ICON) {
-                cellToPoint(cellX, cellY, outPoint);
+                // LC-Note: Offset from the icon's own cell; a large (2x2) folder covers cells other
+                // than its top-left one, and its tile center is the same from all of them.
+                CellLayoutLayoutParams childLp = (CellLayoutLayoutParams) child.getLayoutParams();
+                cellToPoint(childLp.getCellX(), childLp.getCellY(), outPoint);
                 draggableChild.getWorkspaceVisualDragBounds(mTempRect);
                 mTempRect.offset(outPoint[0], outPoint[1]);
                 outPoint[0] = mTempRect.centerX();
@@ -964,6 +968,11 @@ public class CellLayout extends ViewGroup {
      * Returns the max distance from the center of a cell that can accept a drop to create a folder.
      */
     public float getFolderCreationRadius(int[] targetCell) {
+        if (getChildAt(targetCell[0], targetCell[1]) instanceof FolderIcon folderIcon
+                && folderIcon.isLarge()) {
+            // LC-Note: Dropping anywhere on a large folder's tile adds to it.
+            return folderIcon.getLargeTileRadius();
+        }
         DeviceProfile grid = mActivity.getDeviceProfile();
         float iconVisibleRadius = ICON_VISIBLE_AREA_FACTOR * grid.iconSizePx / 2;
         // Halfway between reorder radius and icon.

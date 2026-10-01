@@ -27,4 +27,6 @@
     <item type="id" name="qsbIconTintSecondary" />
     <item type="id" name="qsbIconTintTertiary" />
     <item type="id" name="qsbIconTintQuaternary" />
+    <item type="id" name="action_folder_make_large" />
+    <item type="id" name="action_folder_make_small" />
 </resources>
