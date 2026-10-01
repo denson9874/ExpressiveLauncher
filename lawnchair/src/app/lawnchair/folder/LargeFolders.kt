@@ -15,6 +15,13 @@ object LargeFolders {
     /** Up to this many apps are shown directly; with more, the last slot previews the rest. */
     const val DIRECT_SLOTS = 4
 
+    /** Apps the tile draws: the direct slots, then up to four in the preview slot. */
+    const val TILE_ICON_COUNT = DIRECT_SLOTS - 1 + 4
+
+    /** Whether a large folder's tile draws the app at [rank], so it needs a full icon. */
+    @JvmStatic
+    fun drawsRank(rank: Int): Boolean = rank in 0 until TILE_ICON_COUNT
+
     @JvmStatic
     fun isLarge(info: ItemInfo?): Boolean =
         info is FolderInfo && wantsLarge(info.container, info.spanX, info.spanY)

@@ -60,6 +60,7 @@ import com.android.launcher3.CheckLongPressHelper;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.DropTarget.DragObject;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.OnAlarmListener;
 import com.android.launcher3.R;
@@ -82,6 +83,7 @@ import com.android.launcher3.model.data.AppPairInfo;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.FolderInfo.LabelState;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemFactory;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.touch.ItemClickHandler;
@@ -733,6 +735,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         mCurrentPreviewItems.addAll(getPreviewItemsOnPage(0));
         if (isLarge()) {
             getLargeTile().setItems(mInfo.getContents());
+            requestLargeTileHighRes();
         }
     }
 
@@ -863,14 +866,39 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         if (mLargeTile == null) {
             mLargeTile = new LargeFolderTile(getContext());
             mLargeTile.setItems(mInfo.getContents());
+            requestLargeTileHighRes();
         }
         return mLargeTile;
+    }
+
+    /**
+     * LC-Note: The loader only gives full icons to apps in the 1x1 preview, so the tile would keep
+     * drawing low-res placeholders for the others. Loads those, then redraws.
+     */
+    private void requestLargeTileHighRes() {
+        for (ItemInfo item : mInfo.getContents()) {
+            if (item instanceof WorkspaceItemInfo info && LargeFolders.drawsRank(info.rank)
+                    && info.getMatchingLookupFlag()
+                            .isVisuallyLessThan(LauncherSettings.Favorites.DESKTOP_ICON_FLAG)) {
+                LauncherAppState.getInstance(getContext()).getIconCache().updateIconInBackground(
+                        this::onLargeTileIconLoaded, info,
+                        LauncherSettings.Favorites.DESKTOP_ICON_FLAG);
+            }
+        }
+    }
+
+    private void onLargeTileIconLoaded(ItemInfoWithIcon info) {
+        if (mLargeTile != null && isLarge()) {
+            mLargeTile.setItems(mInfo.getContents());
+            invalidate();
+        }
     }
 
     /** LC-Note: Call after the folder switched between 1x1 and large. */
     public void onSizeModeChanged() {
         if (isLarge()) {
             getLargeTile().setItems(mInfo.getContents());
+            requestLargeTileHighRes();
         }
         requestLayout();
         invalidate();

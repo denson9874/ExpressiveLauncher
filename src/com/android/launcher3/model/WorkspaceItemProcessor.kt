@@ -705,6 +705,8 @@ class WorkspaceItemProcessor(
 
             itemInfo.getContents().sortWith(Folder.ITEM_POS_COMPARATOR)
             verifiers.forEach { it.setFolderInfo(itemInfo) }
+            // LC-Note: a large folder's tile draws more ranks than the 1x1 preview.
+            val isLargeFolder = LargeFolders.isLarge(itemInfo)
 
             // Update ranks here to ensure there are no gaps caused by removed folder items.
             // Ranks are the source of truth for folder items, so cellX and cellY can be
@@ -715,7 +717,10 @@ class WorkspaceItemProcessor(
                     info is WorkspaceItemInfo &&
                         info.matchingLookupFlag.isVisuallyLessThan(Favorites.DESKTOP_ICON_FLAG) &&
                         info.itemType == Favorites.ITEM_TYPE_APPLICATION &&
-                        verifiers.any { it.isItemInPreview(info.rank) }
+                        (
+                            verifiers.any { it.isItemInPreview(info.rank) } ||
+                                (isLargeFolder && LargeFolders.drawsRank(info.rank))
+                            )
                 ) {
                     iconCache.getTitleAndIcon(info, Favorites.DESKTOP_ICON_FLAG)
                 }

@@ -61,4 +61,13 @@ class LargeFoldersTest {
         assertThat(LargeFolders.slotAt(99f, 99f, 0f, 0f, 100f)).isEqualTo(3)
         assertThat(LargeFolders.slotAt(100f, 50f, 0f, 0f, 100f)).isEqualTo(-1)
     }
+
+    @Test
+    fun tileNeedsFullIconsForDirectAndPreviewSlotApps() {
+        // Ranks 0-2 get their own slot and 3-6 share the preview slot once a folder has more than
+        // four apps; with four or fewer, ranks 0-3 are direct. Rank 2 is outside the 1x1 preview.
+        assertThat((0..10).filter { LargeFolders.drawsRank(it) })
+            .containsExactly(0, 1, 2, 3, 4, 5, 6)
+            .inOrder()
+    }
 }
