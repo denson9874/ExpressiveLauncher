@@ -47,6 +47,7 @@ object LargeFolderController {
         ) {
             return false
         }
+        icon.captureSizeChangeStart()
         cellLayout.markCellsAsUnoccupiedForView(icon)
         lp.setCellX(target.x)
         lp.setCellY(target.y)
@@ -56,7 +57,7 @@ object LargeFolderController {
         lp.cellVSpan = target.spanY
         launcher.modelWriter.modifyItemInDatabase(info, info.container, info.screenId, target.x, target.y, target.spanX, target.spanY)
         cellLayout.markCellsAsOccupiedForView(icon)
-        icon.onSizeModeChanged()
+        icon.animateSizeChange()
         icon.announceForAccessibility(
             launcher.getString(if (target.spanX > 1) R.string.large_folder_made_large else R.string.large_folder_made_small),
         )

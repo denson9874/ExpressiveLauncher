@@ -31,6 +31,7 @@ import static com.android.launcher3.model.data.FolderInfo.willAcceptItemType;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -47,6 +48,7 @@ import android.view.View;
 import android.view.ViewDebug;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -120,6 +122,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     // Delay when drag enters until the folder opens, in miliseconds.
     private static final int ON_OPEN_DELAY = 800;
     private static final float LARGE_ACCEPT_SCALE = 1.06f;
+    private static final int SIZE_CHANGE_DURATION = 300;
 
     @Thunk BubbleTextView mFolderName;
 
@@ -663,13 +666,24 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
         if (!mBackgroundIsVisible) return;
 
+        int morph = beginSizeMorph(canvas);
         if (isLarge()) {
             mPreviewItemManager.recomputePreviewDrawingParams();
             getLargeTile().draw(canvas, mBackground.getBgColor());
             drawDot(canvas);
+            if (morph >= 0) canvas.restoreToCount(morph);
             return;
         }
+        if (morph >= 0) {
+            // The 1x1 preview draws in several passes; restore after all of them.
+            dispatchDrawSmall(canvas);
+            canvas.restoreToCount(morph);
+            return;
+        }
+        dispatchDrawSmall(canvas);
+    }
 
+    private void dispatchDrawSmall(Canvas canvas) {
         mPreviewItemManager.recomputePreviewDrawingParams();
 
         if (!mBackground.drawingDelegated()) {
@@ -955,6 +969,84 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     @Nullable
     public app.lawnchair.folder.Box getLargeTileBoxForRank(int rank) {
         return getLargeTile().boxForRank(rank);
+    }
+
+    // LC-Note: Large folders v2. Size-change morph between the 1x1 icon and the 2x2 tile.
+    @Nullable private ValueAnimator mSizeAnimator;
+    private final Rect mSizeFrom = new Rect();
+    private float mLabelFromX;
+    private float mLabelFromY;
+    private boolean mSizeFromCaptured;
+    private float mSizeProgress = 1f;
+
+    /** LC-Note: Call before the folder's cell/span changes; the next animateSizeChange starts here. */
+    public void captureSizeChangeStart() {
+        getWorkspaceVisualDragBounds(mSizeFrom);
+        mSizeFrom.offset(getLeft(), getTop());
+        mLabelFromX = getLeft() + mFolderName.getLeft();
+        mLabelFromY = getTop() + mFolderName.getTop();
+        mSizeFromCaptured = true;
+    }
+
+    /** LC-Note: Morphs from the captured bounds to the new size once the new layout is done. */
+    public void animateSizeChange() {
+        onSizeModeChanged();
+        if (!mSizeFromCaptured) return;
+        mSizeFromCaptured = false;
+        if (mSizeAnimator != null) mSizeAnimator.cancel();
+        // Start after the new layout, before its first frame is drawn, so nothing flashes.
+        getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                getViewTreeObserver().removeOnPreDrawListener(this);
+                startSizeMorph();
+                return true;
+            }
+        });
+    }
+
+    private void startSizeMorph() {
+        mSizeProgress = 0f;
+        float labelDx = mLabelFromX - (getLeft() + mFolderName.getLeft());
+        float labelDy = mLabelFromY - (getTop() + mFolderName.getTop());
+        ValueAnimator anim = ValueAnimator.ofFloat(0f, 1f);
+        anim.setInterpolator(Interpolators.EMPHASIZED);
+        anim.setDuration(SIZE_CHANGE_DURATION);
+        anim.addUpdateListener(a -> {
+            mSizeProgress = (float) a.getAnimatedValue();
+            mFolderName.setTranslationX(labelDx * (1f - mSizeProgress));
+            mFolderName.setTranslationY(labelDy * (1f - mSizeProgress));
+            invalidate();
+        });
+        anim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mSizeProgress = 1f;
+                mFolderName.setTranslationX(0f);
+                mFolderName.setTranslationY(0f);
+                mSizeAnimator = null;
+                invalidate();
+            }
+        });
+        mSizeAnimator = anim;
+        anim.start();
+    }
+
+    /** LC-Note: While morphing, draws the end-size icon transformed to start at the old bounds. */
+    private int beginSizeMorph(Canvas canvas) {
+        if (mSizeProgress >= 1f) return -1;
+        Rect to = new Rect();
+        getWorkspaceVisualDragBounds(to);
+        if (to.isEmpty() || mSizeFrom.isEmpty()) return -1;
+        float t = mSizeProgress;
+        float sx = mSizeFrom.width() / (float) to.width();
+        float sy = mSizeFrom.height() / (float) to.height();
+        float dx = (mSizeFrom.centerX() - getLeft() - to.centerX()) * (1f - t);
+        float dy = (mSizeFrom.centerY() - getTop() - to.centerY()) * (1f - t);
+        int save = canvas.save();
+        canvas.translate(dx, dy);
+        canvas.scale(sx + (1f - sx) * t, sy + (1f - sy) * t, to.centerX(), to.centerY());
+        return save;
     }
 
     /** LC-Note: Call after the folder switched between 1x1 and large. */
