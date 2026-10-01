@@ -2425,8 +2425,11 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
 
             // LC-Note: Large folders v2. Releasing a long-pressed Home folder in place opens the
             // resize frame, like widgets.
-            if (droppedOnOriginalCell && cell instanceof FolderIcon folderIcon
-                    && LargeFolderController.canResize(folderIcon) && !options.isAccessibleDrag) {
+            if (cell instanceof FolderIcon folderIcon && !d.cancelled
+                    && LargeFolderController.canResize(folderIcon) && !options.isAccessibleDrag
+                    && folderIcon.mInfo.screenId == mDragInfo.screenId
+                    && folderIcon.mInfo.cellX == mDragInfo.cellX
+                    && folderIcon.mInfo.cellY == mDragInfo.cellY) {
                 onCompleteRunnable = () -> {
                     if (!isPageInTransition()) FolderResizeFrame.show(mLauncher, folderIcon);
                 };
@@ -4118,3 +4121,4 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         }
     }
 }
+
