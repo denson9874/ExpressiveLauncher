@@ -1,0 +1,122 @@
+[CENTER][SIZE=6][B]Expressive Launcher 4.0.2 QA — Think Big, Fold Bigger[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Welcome to Expressive Launcher 4.0.2 (Build 51)! You asked for large folders, so Home screen folders can now grow to 2x2 and open apps straight from the tile. At a Glance can also show a short daily message under the date, and this build fixes the three search issues still listed after 4.0.1.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+1. [B]Large 2x2 Home screen folders[/B] ([URL="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/post-90744865"]XDA request[/URL])
+[LIST]
+[*][B]How:[/B] open a folder on the Home screen and tap the new size button in its footer (TalkBack users get a [I]Make folder large[/I] action). The folder grows into the free spaces next to it, to the right and down first. If there's no room, it tells you instead of moving your icons.
+[*][B]What you get:[/B] a rounded tile showing the first four apps as full-size icons. Tap one to open that app directly; tap anywhere else to open the folder. With more than four apps, the last slot previews the rest. Drop an app anywhere on the tile to add it.
+[*][B]Safe by design:[/B] [I]Make folder small[/I] puts it back to 1x1 in its top-left cell. If a large folder ever doesn't fit after a grid change, it loads as a normal folder instead of disappearing. Dock and app drawer folders stay 1x1.
+
+[/LIST]
+2. [B]Daily messages in At a Glance[/B]
+[LIST]
+[*]A new [B]Daily messages[/B] switch under [I]At a Glance > What to show[/I] (off by default) adds one short line after the weather on the date card, such as [I]74°F · Progress, not perfection[/I].
+[*]Quotes and encouraging words alternate each day, and common holidays get their own greeting. Easter, Mother's Day, Father's Day and Thanksgiving are worked out for each year, and holidays specific to one country only show in that region.
+
+[/LIST]
+3. [B]Search on Google shows the right icon[/B]
+[LIST]
+[*][B]What went wrong:[/B] action rows such as [I]Search on Google[/I] sometimes flashed the previous row's icon (often the Play Store) until the real one finished loading behind the search.
+[*][B]Now:[/B] fixed icons (the web search provider, suggestions, history, calculator, app shortcuts) are remembered and appear in the same frame as the row. Result icons no longer wait about 200 ms behind the search.
+
+[/LIST]
+4. [B]No blank cards when results appear[/B]
+[LIST]
+[*][B]What went wrong:[/B] as the first results faded in, their rounded cards were drawn at full strength around still-invisible rows for a few frames, so you saw empty cards.
+[*][B]Now:[/B] the cards fade and scale together with their rows.
+
+[/LIST]
+5. [B]TalkBack keeps app names after a language change[/B]
+[LIST]
+[*][B]What went wrong:[/B] after switching the system language and back, TalkBack read most drawer apps without a name (16 of 21 on our test emulator).
+[*][B]Now:[/B] every drawer app keeps its spoken name after the switch (21 of 21).
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🗣️ From Your Reports[/B][/SIZE]
+
+[LIST]
+[*][B]Large folders (XDA, Pixel 11 Pro thread):[/B] delivered as Pixel-style 2x2 folders. Known limits for now: the open/close animation still starts from the folder's top-left corner, resizing uses the button or TalkBack action (no drag handle yet), and we haven't tested foldables or landscape. Tell us how they feel on your phone.
+[*][B]Known search gaps from 4.0.0:[/B] all five are now fixed (two in 4.0.1, the last three in this build).
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]💎 Expressive Pro & Free Core[/B][/SIZE]
+
+[LIST]
+[*][B]Free Core[/B]: always supported, ad-free and privacy-first. Everything in this build, large folders and Daily messages included, is part of Free Core.
+[*][B]Expressive Pro ($4.99 one-time)[/B]: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
+
+[/LIST]
+[QUOTE][I]Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE][B]Q:[/B] [I]Why did the folder ask for a 2x2?[/I]
+[B]A:[/B] [I]It was tired of keeping everything bottled up in one cell.[/I][/QUOTE]
+
+[QUOTE]The Play Store icon kept turning up uninvited on [I]Search on Google[/I]. We finally put it on the guest list for its own row only.[/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I used to sit in a single square and hide my friends behind a tap. Now I stretch across four, show you who's inside, and let you call on them by name. Shrink me back and I'll fold up without losing anyone. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]A large 2x2 Home screen folder![/B][/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🧪 Validation[/B][/SIZE]
+
+[LIST]
+[*]App unit suite: 426 tests passing, including new ones for large-folder layout and loading ([ICODE]LargeFoldersTest[/ICODE]), Daily messages and holidays ([ICODE]GlanceMessagesTest[/ICODE], [ICODE]GlanceMessageAttachTest[/ICODE], [ICODE]BcSmartspaceGlanceMessageTest[/ICODE]), search icons and cards ([ICODE]SearchActionIconKeyTest[/ICODE], [ICODE]SearchCardAlphaTest[/ICODE]) and TalkBack names ([ICODE]IconCacheFallbackDescriptionTest[/ICODE]).
+[*]CI pipeline contract tests: 291 passing.
+[*]Android 17 QPR2 Beta 5 emulator, debug builds of this source: made a folder large and small again, opened Gmail from the tile, dropped Play Store onto the tile, moved the large folder, and the size survived a launcher restart with every app on the tile showing its full icon. Daily messages on and off on the Home screen and in the preview. Search on Google showed the right icon and no blank cards appeared (checked frame by frame in screen recordings). English → German → English kept TalkBack names for all 21 drawer apps.
+[*]Jenkins handles the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Version[/B]: [ICODE]4.0.2[/ICODE] (Build [ICODE]51[/ICODE]), QA channel
+[*][B]Package[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Source revision[/B]: [ICODE]e89e49f25a3d3072017274823d51df6c29fcfa0f[/ICODE]
+[*][B]APK SHA-256[/B]: [ICODE]b87d48f36a4b181f2854123c06a4e0ee418609e6241f16769c95a1df5bc617cd[/ICODE] (24.2 MB)
+[*]Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]This release[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.2-51"]qa-v4.0.2-51[/URL]
+[*][B]Direct APK[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.2-51/ExpressiveLauncherL3-4.0.2-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk"]ExpressiveLauncherL3-4.0.2 signed APK[/URL]
+[*][B]All releases[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases"]GitHub Releases[/URL]
+[*][B]Bug reports[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/issues"]GitHub Issues[/URL]
+[*][B]Telegram Channel[/B]: [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.2-51"]Download Expressive Launcher v4.0.2 (Build 51)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]

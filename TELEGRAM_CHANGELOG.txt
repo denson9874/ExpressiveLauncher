@@ -1,33 +1,42 @@
-<b>Expressive Launcher 4.0.1 QA — Enter the Dragon (Just Once)</b>
+<b>Expressive Launcher 4.0.2 QA — Think Big, Fold Bigger</b>
 
-Welcome to Expressive Launcher 4.0.1 (Build 50)! 4.0.0 made app search quicker. It turned out Enter was sometimes quicker still: pressed right after the last letter, it arrived before the results and got ignored. On some keyboards a single press also arrived twice. This build fixes both, and gives the app drawer a solid background when Battery Saver switches blur off.
+Welcome to Expressive Launcher 4.0.2 (Build 51)! You asked for large folders, so Home screen folders can now grow to 2x2 and open apps straight from the tile. At a Glance can also show a short daily message under the date, and this build fixes the three search issues still listed after 4.0.1.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Enter right after typing opens what you typed</b>
-• <b>What went wrong:</b> search results show up a moment after each letter. If you pressed Enter inside that moment, Expressive had no result for your query yet and did nothing. If results for a shorter query were still on screen (<i>wea</i> while you typed <i>weat</i>), Enter could open one of those instead.
-• <b>Now:</b> an early Enter waits for your query's results (up to 2 seconds) and opens the top result as soon as it shows. Results left over from fewer letters are never opened.
+1. <b>Large 2x2 Home screen folders</b> (<a href="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/post-90744865">XDA request</a>)
+• <b>How:</b> open a folder on the Home screen and tap the new size button in its footer (TalkBack users get a <i>Make folder large</i> action). The folder grows into the free spaces next to it, to the right and down first. If there's no room, it tells you instead of moving your icons.
+• <b>What you get:</b> a rounded tile showing the first four apps as full-size icons. Tap one to open that app directly; tap anywhere else to open the folder. With more than four apps, the last slot previews the rest. Drop an app anywhere on the tile to add it.
+• <b>Safe by design:</b> <i>Make folder small</i> puts it back to 1x1 in its top-left cell. If a large folder ever doesn't fit after a grid change, it loads as a normal folder instead of disappearing. Dock and app drawer folders stay 1x1.
 
-2. <b>One Enter, one web search</b>
-• <b>What went wrong:</b> hardware keyboards and some on-screen keyboards deliver Enter as a key press <i>and</i> a search action. Both could start the web search, so the browser opened twice.
-• <b>Now:</b> a second Enter for the same query within 0.8 seconds of opening something is ignored. Pressing Enter again later still works.
+2. <b>Daily messages in At a Glance</b>
+• A new <b>Daily messages</b> switch under <i>At a Glance > What to show</i> (off by default) adds one short line after the weather on the date card, such as <i>74°F · Progress, not perfection</i>.
+• Quotes and encouraging words alternate each day, and common holidays get their own greeting. Easter, Mother's Day, Father's Day and Thanksgiving are worked out for each year, and holidays specific to one country only show in that region.
 
-3. <b>Solid app drawer in Battery Saver</b> (<a href="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/post-90758080">XDA feedback</a>)
-• <b>What went wrong:</b> the drawer sheet sits on a blur. When Android switches blur off (Battery Saver, overheating or reduced transparency), the sheet kept the <i>App drawer opacity</i> value, 50% by default, so Home screen icons showed through the app grid.
-• <b>Now:</b> without blur the sheet uses a solid Material You color, and it switches back as soon as blur returns. With blur on, the opacity slider works as before.
+3. <b>Search on Google shows the right icon</b>
+• <b>What went wrong:</b> action rows such as <i>Search on Google</i> sometimes flashed the previous row's icon (often the Play Store) until the real one finished loading behind the search.
+• <b>Now:</b> fixed icons (the web search provider, suggestions, history, calculator, app shortcuts) are remembered and appear in the same frame as the row. Result icons no longer wait about 200 ms behind the search.
+
+4. <b>No blank cards when results appear</b>
+• <b>What went wrong:</b> as the first results faded in, their rounded cards were drawn at full strength around still-invisible rows for a few frames, so you saw empty cards.
+• <b>Now:</b> the cards fade and scale together with their rows.
+
+5. <b>TalkBack keeps app names after a language change</b>
+• <b>What went wrong:</b> after switching the system language and back, TalkBack read most drawer apps without a name (16 of 21 on our test emulator).
+• <b>Now:</b> every drawer app keeps its spoken name after the switch (21 of 21).
 
 ───────────────────────
 
 <b>🗣️ From Your Reports</b>
-• <b>Blur and Battery Saver (XDA, Pixel 7 Pro thread):</b> the app drawer now turns solid when blur is off. Recents already blurs the wallpaper wherever Android allows blur, and uses its own non-blurred style when Android turns blur off, so we left Recents unchanged. If Recents shows no blur on your phone with Battery Saver off, please tell us your device and Android build.
-• <b>Known search gaps from 4.0.0:</b> two of the five are fixed here (the ignored Enter and the double web search). The Play Store icon flicker on <i>Search on Google</i>, the brief blank result cards and the missing TalkBack names after a language change are still on the list.
+• <b>Large folders (XDA, Pixel 11 Pro thread):</b> delivered as Pixel-style 2x2 folders. Known limits for now: the open/close animation still starts from the folder's top-left corner, resizing uses the button or TalkBack action (no drag handle yet), and we haven't tested foldables or landscape. Tell us how they feel on your phone.
+• <b>Known search gaps from 4.0.0:</b> all five are now fixed (two in 4.0.1, the last three in this build).
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core</b>: always supported, ad-free and privacy-first. All three fixes in this build are part of Free Core.
+• <b>Free Core</b>: always supported, ad-free and privacy-first. Everything in this build, large folders and Daily messages included, is part of Free Core.
 • <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
@@ -36,37 +45,38 @@ Welcome to Expressive Launcher 4.0.1 (Build 50)! 4.0.0 made app search quicker. 
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the web search open twice?</i>
-<b>A:</b> <i>The keyboard knocked, then rang the doorbell to be sure.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the folder ask for a 2x2?</i>
+<b>A:</b> <i>It was tired of keeping everything bottled up in one cell.</i></blockquote>
 
-<blockquote>Battery Saver took the blur away, so the app drawer stopped trying to be a window and settled for being a wall.</blockquote>
+<blockquote>The Play Store icon kept turning up uninvited on <i>Search on Google</i>. We finally put it on the guest list for its own row only.</blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>You press me once and hope for one. Too early and I used to wait on nothing; now I hold the door until your words arrive. Knock me twice by accident and I'll only answer once. What am I?</i></blockquote>
+<blockquote><i>I used to sit in a single square and hide my friends behind a tap. Now I stretch across four, show you who's inside, and let you call on them by name. Shrink me back and I'll fold up without losing anyone. What am I?</i></blockquote>
 
-<tg-spoiler><b>The Enter key in the drawer's search box!</b></tg-spoiler>
+<tg-spoiler><b>A large 2x2 Home screen folder!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🧪 Validation</b>
-• App unit suite: 390 tests passing, including 9 new ones: 7 for when Enter launches, waits or is ignored (<code>SearchSubmitGateTest</code>) and 2 for the drawer sheet opacity with and without blur (<code>AllAppsSheetAlphaTest</code>).
+• App unit suite: 426 tests passing, including new ones for large-folder layout and loading (<code>LargeFoldersTest</code>), Daily messages and holidays (<code>GlanceMessagesTest</code>, <code>GlanceMessageAttachTest</code>, <code>BcSmartspaceGlanceMessageTest</code>), search icons and cards (<code>SearchActionIconKeyTest</code>, <code>SearchCardAlphaTest</code>) and TalkBack names (<code>IconCacheFallbackDescriptionTest</code>).
 • CI pipeline contract tests: 291 passing.
-• Android 17 QPR2 Beta 5 emulator, debug build of this source: typing <i>clock</i> and pressing Enter at once opened Clock exactly once, although the search box received two search actions 2 ms apart. The released 4.0.0 opened nothing for the same input. A web-only query opened Chrome once from the launcher. With the emulator on battery and Battery Saver on, Android reported blur off and the drawer turned solid right away. Battery Saver and the battery state were reset afterwards.
+• Android 17 QPR2 Beta 5 emulator, debug builds of this source: made a folder large and small again, opened Gmail from the tile, dropped Play Store onto the tile, moved the large folder, and the size survived a launcher restart with every app on the tile showing its full icon. Daily messages on and off on the Home screen and in the preview. Search on Google showed the right icon and no blank cards appeared (checked frame by frame in screen recordings). English → German → English kept TalkBack names for all 21 drawer apps.
 • Jenkins handles the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
 
 ───────────────────────
 
 <b>🛡️ Technical Details</b>
-• <b>Version</b>: <code>4.0.1</code> (Build <code>50</code>), QA channel
+• <b>Version</b>: <code>4.0.2</code> (Build <code>51</code>), QA channel
 • <b>Package</b>: <code>dev.launcher.expressive.l3</code>
 • Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
-• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.1-50">qa-v4.0.1-50</a>
+• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.2-51">qa-v4.0.2-51</a>
+• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.2-51/ExpressiveLauncherL3-4.0.2-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk">ExpressiveLauncherL3-4.0.2 signed APK</a>
 • <b>All releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">GitHub Releases</a>
 • <b>Bug reports</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/issues">GitHub Issues</a>
 • <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>
