@@ -101,6 +101,7 @@ import com.android.launcher3.folder.FolderIcon;
 import app.lawnchair.folder.LargeFolders;
 import app.lawnchair.folder.LargeFolderOverlap;
 import app.lawnchair.folder.LargeFolderController;
+import app.lawnchair.folder.FolderResizeFrame;
 import com.android.launcher3.folder.PreviewBackground;
 import com.android.launcher3.graphics.DragPreviewProvider;
 import com.android.launcher3.icons.BitmapRenderer;
@@ -2422,6 +2423,14 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                 }
             }
 
+            // LC-Note: Large folders v2. Releasing a long-pressed Home folder in place opens the
+            // resize frame, like widgets.
+            if (droppedOnOriginalCell && cell instanceof FolderIcon folderIcon
+                    && LargeFolderController.canResize(folderIcon) && !options.isAccessibleDrag) {
+                onCompleteRunnable = () -> {
+                    if (!isPageInTransition()) FolderResizeFrame.show(mLauncher, folderIcon);
+                };
+            }
             final CellLayout parent = (CellLayout) cell.getParent().getParent();
             if (d.dragView.hasDrawn()) {
                 if (droppedOnOriginalCellDuringTransition) {
