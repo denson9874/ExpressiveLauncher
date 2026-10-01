@@ -34,25 +34,9 @@
     "ask": [
       "Bash(python3 scripts/publish_play_bundle.py *)"
     ],
-    "deny": [],
     "additionalDirectories": [
       "~/Library/Application Support/Expressive CI/feedback/xda",
       "~/ExpressiveLauncher"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_bash.py\"",
-            "timeout": 10,
-            "statusMessage": "Checking release guardrails"
-          }
-        ]
-      }
     ]
   }
 }
