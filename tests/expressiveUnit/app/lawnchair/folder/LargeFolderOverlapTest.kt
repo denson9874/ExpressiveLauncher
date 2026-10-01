@@ -83,4 +83,14 @@ class LargeFolderOverlapTest {
         assertThat(LargeFolderOverlap.spanForContainer(Favorites.CONTAINER_DESKTOP, true)).isEqualTo(2)
         assertThat(LargeFolderOverlap.spanForContainer(Favorites.CONTAINER_DESKTOP, false)).isEqualTo(1)
     }
+
+    @Test
+    fun bindOverlap_onlyLargeFolderWithWidget() {
+        assertThat(LargeFolderOverlap.isAllowedBindOverlap(newIsWidget = true, newIsLargeFolder = false, occupantIsWidget = false, occupantIsLargeFolder = true)).isTrue()
+        assertThat(LargeFolderOverlap.isAllowedBindOverlap(newIsWidget = false, newIsLargeFolder = true, occupantIsWidget = true, occupantIsLargeFolder = false)).isTrue()
+        // An icon on a large folder's cell, or a widget on a widget, is still a collision.
+        assertThat(LargeFolderOverlap.isAllowedBindOverlap(newIsWidget = false, newIsLargeFolder = false, occupantIsWidget = false, occupantIsLargeFolder = true)).isFalse()
+        assertThat(LargeFolderOverlap.isAllowedBindOverlap(newIsWidget = true, newIsLargeFolder = false, occupantIsWidget = true, occupantIsLargeFolder = false)).isFalse()
+        assertThat(LargeFolderOverlap.isAllowedBindOverlap(newIsWidget = false, newIsLargeFolder = true, occupantIsWidget = false, occupantIsLargeFolder = true)).isFalse()
+    }
 }

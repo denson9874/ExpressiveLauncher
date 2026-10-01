@@ -74,4 +74,13 @@ object LargeFolderOverlap {
     @JvmStatic
     fun spanForContainer(container: Int, wantsLarge: Boolean): Int =
         if (wantsLarge && container == Favorites.CONTAINER_DESKTOP) LargeFolders.SPAN else 1
+
+    /** Whether a bound item may share its anchor cell with the item already there. */
+    @JvmStatic
+    fun isAllowedBindOverlap(
+        newIsWidget: Boolean,
+        newIsLargeFolder: Boolean,
+        occupantIsWidget: Boolean,
+        occupantIsLargeFolder: Boolean,
+    ): Boolean = (newIsWidget && occupantIsLargeFolder) || (newIsLargeFolder && occupantIsWidget)
 }

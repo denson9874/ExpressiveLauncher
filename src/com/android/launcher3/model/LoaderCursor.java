@@ -677,17 +677,33 @@ public class LoaderCursor extends CursorWrapper {
         return mOccupied.get(screenId);
     }
 
-    /**
-     * LC-Note: Whether a Home screen region is inside the grid and not yet taken by an item loaded
-     * before. A large folder only keeps its 2x2 size when this holds; an item that fails placement
-     * is deleted with its contents.
-     */
-    public boolean isDesktopRegionFree(int screenId, int cellX, int cellY, int spanX, int spanY) {
-        if (cellX < 0 || cellY < 0
-                || cellX + spanX > mIDP.numColumns || cellY + spanY > mIDP.numRows) {
-            return false;
+    // LC-Note: Large folders v2. Stored 2x2 folders, resolved after all items load.
+    private final java.util.List<FolderInfo> mLargeFolderCandidates = new java.util.ArrayList<>();
+
+    public void markLargeFolderCandidate(FolderInfo info) {
+        mLargeFolderCandidates.add(info);
+    }
+
+    public java.util.List<FolderInfo> getLargeFolderCandidates() {
+        return mLargeFolderCandidates;
+    }
+
+    /** LC-Note: The search/smartspace row reserved on the first screen, or null. */
+    @Nullable
+    public app.lawnchair.folder.CellRect getSearchBarRect(int screenId) {
+        if (screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(
+                preferenceManager2.getEnableSmartspace())) {
+            return new app.lawnchair.folder.CellRect(0, 0, mIDP.numSearchContainerColumns, 1);
         }
-        return getDesktopOccupancy(screenId).isRegionVacant(cellX, cellY, spanX, spanY);
+        return null;
+    }
+
+    public int getGridColumns() {
+        return mIDP.numColumns;
+    }
+
+    public int getGridRows() {
+        return mIDP.numRows;
     }
 
     @AssistedFactory

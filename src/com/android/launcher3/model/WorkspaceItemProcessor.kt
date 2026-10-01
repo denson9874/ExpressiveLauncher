@@ -28,7 +28,12 @@ import android.text.TextUtils
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.SparseArray
+import android.content.ContentValues
+import app.lawnchair.folder.CellRect
+import app.lawnchair.folder.LargeFolderOverlap
 import app.lawnchair.folder.LargeFolders
+import app.lawnchair.folder.LoadItem
+import app.lawnchair.folder.LoadKind
 import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.LauncherSettings.Favorites
@@ -519,24 +524,13 @@ class WorkspaceItemProcessor(
         c.applyCommonProperties(collection)
         // Do not trim the folder label, as is was set by the user.
         collection.title = c.getString(c.mTitleIndex)
-        // LC-Note: A large Home screen folder keeps its 2x2 size only when it still fits; otherwise
-        // it loads as 1x1 at its top-left cell instead of failing placement (which deletes it).
-        val span = if (collection is FolderInfo &&
-            LargeFolders.wantsLarge(collection.container, c.spanX, c.spanY) &&
-            c.isDesktopRegionFree(
-                collection.screenId,
-                collection.cellX,
-                collection.cellY,
-                LargeFolders.SPAN,
-                LargeFolders.SPAN,
-            )
-        ) {
-            LargeFolders.SPAN
-        } else {
-            1
-        }
-        collection.spanX = span
-        collection.spanY = span
+        // LC-Note: Large folders v2. Every folder loads 1x1 at its anchor; stored 2x2 folders are
+        // promoted in finalizeData once all Home items are known, so load order doesn't matter.
+        val wantsLarge = collection is FolderInfo &&
+            LargeFolders.wantsLarge(collection.container, c.spanX, c.spanY)
+        collection.spanX = 1
+        collection.spanY = 1
+        if (wantsLarge) c.markLargeFolderCandidate(collection as FolderInfo)
         if (collection is FolderInfo) {
             collection.options = c.options
         } else {
@@ -728,6 +722,41 @@ class WorkspaceItemProcessor(
         }
     }
 
+    /** LC-Note: Large folders v2. Decide 2x2 vs 1x1 per page; rewrite rows that no longer fit. */
+    private fun promoteLargeFolders(modelDbController: ModelDbController) {
+        val candidates = c.largeFolderCandidates.filter { loadedItems.get(it.id) === it }
+        if (candidates.isEmpty()) return
+        for ((screenId, onScreen) in candidates.groupBy { it.screenId }) {
+            val items = buildList {
+                loadedItems.forEach { info ->
+                    if (info.container != Favorites.CONTAINER_DESKTOP || info.screenId != screenId) {
+                        return@forEach
+                    }
+                    val kind = when {
+                        onScreen.any { it === info } -> LoadKind.LARGE_FOLDER_CANDIDATE
+                        info is LauncherAppWidgetInfo -> LoadKind.WIDGET
+                        else -> LoadKind.OTHER
+                    }
+                    add(LoadItem(info.id, CellRect(info.cellX, info.cellY, info.spanX, info.spanY), kind))
+                }
+            }
+            val blocked = listOfNotNull(c.getSearchBarRect(screenId))
+            val large = LargeFolderOverlap.resolveLargeFolders(c.gridColumns, c.gridRows, blocked, items)
+            for (folder in onScreen) {
+                if (folder.id in large) {
+                    folder.spanX = LargeFolders.SPAN
+                    folder.spanY = LargeFolders.SPAN
+                } else {
+                    val values = ContentValues().apply {
+                        put(Favorites.SPANX, 1)
+                        put(Favorites.SPANY, 1)
+                    }
+                    modelDbController.update(values, "${Favorites._ID} = ?", arrayOf(folder.id.toString()))
+                }
+            }
+        }
+    }
+
     private fun removeItems(ids: IntArray?) = ids?.forEach { loadedItems.remove(it) }
 
     /**
@@ -747,6 +776,7 @@ class WorkspaceItemProcessor(
 
         // Remove dead items
         val itemsDeleted = c.commitDeleted()
+        promoteLargeFolders(modelDbController)
 
         processFolderItems()
         // After all items have been processed and added to the BgDataModel, this method
