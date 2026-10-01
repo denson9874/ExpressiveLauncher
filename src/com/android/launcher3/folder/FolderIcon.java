@@ -600,8 +600,49 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
     @Override
     public void setIconVisible(boolean visible) {
+        // LC-Note: Large folders v2. While an app launches from (or returns to) a large folder's
+        // tile, only its slot is hidden; the rest of the tile stays.
+        if (isLarge() && mLaunchingRank >= 0) {
+            boolean onTile = getLargeTile().boxForRank(mLaunchingRank) != null;
+            getLargeTile().setHiddenRank(visible || !onTile ? -1 : mLaunchingRank);
+            if (visible) mLaunchingRank = -1;
+            mBackgroundIsVisible = true;
+            invalidate();
+            return;
+        }
         mBackgroundIsVisible = visible;
         invalidate();
+    }
+
+    // LC-Note: Large folders v2. Rank of the app launching from or returning to the tile, or -1.
+    private int mLaunchingRank = -1;
+
+    /** LC-Note: Marks the app at [rank] as launching from / returning to this large folder. */
+    public void setLaunchingRank(int rank) {
+        mLaunchingRank = rank;
+        if (mLargeTile != null) mLargeTile.setHiddenRank(-1);
+    }
+
+    /** LC-Note: The app launching from / returning to this large folder, or null. */
+    @Nullable
+    public ItemInfo getLaunchingItem() {
+        if (!isLarge() || mLaunchingRank < 0) return null;
+        for (ItemInfo item : mInfo.getContents()) {
+            if (item.rank == mLaunchingRank) return item;
+        }
+        return null;
+    }
+
+    /**
+     * LC-Note: Where a launch starts / a return lands on a large folder: the app's slot, or the
+     * "more" slot for apps the tile doesn't show. Null when this isn't a launching large folder.
+     */
+    @Nullable
+    public app.lawnchair.folder.Box getLaunchBox() {
+        if (!isLarge() || mLaunchingRank < 0) return null;
+        app.lawnchair.folder.Box box = getLargeTile().boxForRank(mLaunchingRank);
+        return box != null ? box : app.lawnchair.folder.LargeFolderAnimationGeometry.slotBox(
+                getLargeTileBox(), app.lawnchair.folder.LargeFolders.DIRECT_SLOTS - 1);
     }
 
     public boolean getIconVisible() {
@@ -937,6 +978,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             ItemInfo item = getLargeTile().itemAt(mLastTouchX, mLastTouchY);
             mLastTouchX = mLastTouchY = -1;
             if (item instanceof WorkspaceItemInfo app) {
+                setLaunchingRank(app.rank);
                 ItemClickHandler.onClickAppShortcut(this, app, launcher);
                 return true;
             }

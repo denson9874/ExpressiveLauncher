@@ -268,8 +268,16 @@ public class FloatingIconView extends FrameLayout implements
 
         if (v instanceof BubbleTextView) {
             ((BubbleTextView) v).getIconBounds(outViewBounds);
-        } else if (v instanceof FolderIcon) {
-            ((FolderIcon) v).getPreviewBounds(outViewBounds);
+        } else if (v instanceof FolderIcon fi) {
+            // LC-Note: Large folders v2. Launch from / return to the app's slot on the tile.
+            app.lawnchair.folder.Box slot = fi.getLaunchBox();
+            if (slot != null) {
+                outViewBounds.set(Math.round(slot.getLeft()), Math.round(slot.getTop()),
+                        Math.round(slot.getLeft() + slot.getSize()),
+                        Math.round(slot.getTop() + slot.getSize()));
+            } else {
+                fi.getPreviewBounds(outViewBounds);
+            }
         } else {
             outViewBounds.set(0, 0, v.getWidth(), v.getHeight());
         }
@@ -630,11 +638,15 @@ public class FloatingIconView extends FrameLayout implements
         // Get the drawable on the background thread
         boolean shouldLoadIcon = originalView.getTag() instanceof ItemInfo && hideOriginal;
         if (shouldLoadIcon) {
-            if (sIconLoadResult != null && sIconLoadResult.itemInfo == originalView.getTag()) {
+            // LC-Note: Large folders v2. A large folder launches one of its apps; use its icon.
+            ItemInfo launchInfo = (ItemInfo) originalView.getTag();
+            if (originalView instanceof FolderIcon fi && fi.getLaunchingItem() != null) {
+                launchInfo = fi.getLaunchingItem();
+            }
+            if (sIconLoadResult != null && sIconLoadResult.itemInfo == launchInfo) {
                 view.mIconLoadResult = sIconLoadResult;
             } else {
-                view.mIconLoadResult = fetchIcon(launcher, originalView,
-                        (ItemInfo) originalView.getTag(), isOpening);
+                view.mIconLoadResult = fetchIcon(launcher, originalView, launchInfo, isOpening);
             }
             view.setOriginalDrawableBackground(view.mIconLoadResult.btvDrawable);
         }

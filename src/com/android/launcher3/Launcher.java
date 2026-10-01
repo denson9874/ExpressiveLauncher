@@ -2453,9 +2453,22 @@ public class Launcher extends StatefulActivity<LauncherState>
                 op -> mapOverCellLayouts(containerArray, op);
 
         // Order: Preferred item by itself or in folder, then by matching package/user
-        return visibleContainer.getFirstMatch(
+        View match = visibleContainer.getFirstMatch(
                 preferredItem, forFolderMatch(preferredItem),
                 packageAndUserAndApp, forFolderMatch(packageAndUserAndApp));
+        // LC-Note: Large folders v2. An app closing into a large folder lands on its slot (or the
+        // "more" slot when the tile doesn't show it).
+        if (match instanceof FolderIcon fi && fi.isLarge()) {
+            int rank = -1;
+            for (ItemInfo i : fi.getFolder().getInfo().getContents()) {
+                if (preferredItem.test(i) || packageAndUserAndApp.test(i)) {
+                    rank = i.rank;
+                    break;
+                }
+            }
+            fi.setLaunchingRank(rank);
+        }
+        return match;
     }
 
     private ValueAnimator createNewAppBounceAnimation(View v, int i) {
