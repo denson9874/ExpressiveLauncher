@@ -1,43 +1,45 @@
-<b>Expressive Launcher 4.0.2 QA — Think Big, Fold Bigger</b>
+<b>Expressive Launcher 4.0.3 QA — Folding Under Pressure</b>
 
-Welcome to Expressive Launcher 4.0.2 (Build 51)! You asked for large folders, so Home screen folders can now grow to 2x2 and open apps straight from the tile. At a Glance can also show a short daily message under the date, and this build fixes the three search issues still listed after 4.0.1.
+Welcome to Expressive Launcher 4.0.3 (Build 52)! Large folders arrived in 4.0.2, and you told us they felt half-finished: they refused to grow next to a widget, there was no obvious way to shrink them back, and every animation still behaved like a small folder. This build reworks all three, and it adds preloaded font styles for everyone.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Large 2x2 Home screen folders</b> (<a href="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/post-90744865">XDA request</a>)
-• <b>How:</b> open a folder on the Home screen and tap the new size button in its footer (TalkBack users get a <i>Make folder large</i> action). The folder grows into the free spaces next to it, to the right and down first. If there's no room, it tells you instead of moving your icons.
-• <b>What you get:</b> a rounded tile showing the first four apps as full-size icons. Tap one to open that app directly; tap anywhere else to open the folder. With more than four apps, the last slot previews the rest. Drop an app anywhere on the tile to add it.
-• <b>Safe by design:</b> <i>Make folder small</i> puts it back to 1x1 in its top-left cell. If a large folder ever doesn't fit after a grid change, it loads as a normal folder instead of disappearing. Dock and app drawer folders stay 1x1.
+1. <b>Large folders can cover widgets</b> (<a href="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/post-90744865">XDA request</a>)
+• <b>Before:</b> making a folder large next to a widget said "No room" and nothing happened.
+• <b>Now:</b> the 2x2 folder grows over the widget and sits on top of it. Taps where they overlap go to the folder; the rest of the widget keeps working. The widget never moves or resizes, and shrinking the folder uncovers it again.
+• Icons, other folders and the At a Glance row still block a large folder, so nothing ever gets hidden underneath one.
 
-2. <b>Daily messages in At a Glance</b>
-• A new <b>Daily messages</b> switch under <i>At a Glance > What to show</i> (off by default) adds one short line after the weather on the date card, such as <i>74°F · Progress, not perfection</i>.
-• Quotes and encouraging words alternate each day, and common holidays get their own greeting. Easter, Mother's Day, Father's Day and Thanksgiving are worked out for each year, and holidays specific to one country only show in that region.
+2. <b>Resize folders with handles</b>
+• Long-press a Home screen folder and let go without moving it: a frame with four handles appears, like the widget resize frame.
+• Drag a handle past half a cell and the folder snaps between 1x1 and 2x2, with a little haptic tick. The side you pull decides the direction. A handle that can't go any further (an icon in the way, or the edge of the grid) just rubber-bands.
+• The size button in the open folder's footer and the TalkBack action still work too.
 
-3. <b>Search on Google shows the right icon</b>
-• <b>What went wrong:</b> action rows such as <i>Search on Google</i> sometimes flashed the previous row's icon (often the Play Store) until the real one finished loading behind the search.
-• <b>Now:</b> fixed icons (the web search provider, suggestions, history, calculator, app shortcuts) are remembered and appear in the same frame as the row. Result icons no longer wait about 200 ms behind the search.
+3. <b>Folder animations that match the tile</b>
+• Opening a large folder now grows the panel out of the 2x2 tile, and its apps fly from their spots on the tile to their places in the folder. Closing does the reverse, landing back on the tile.
+• Switching between 1x1 and 2x2 morphs smoothly instead of snapping.
+• Dragging a large folder shows the real tile at full size. When you hover an app over the tile, it springs and lights up the spot the app will take, and dropping it flies the app into that spot.
+• Apps you open from the tile launch from their own spot where Android supports it.
 
-4. <b>No blank cards when results appear</b>
-• <b>What went wrong:</b> as the first results faded in, their rounded cards were drawn at full strength around still-invisible rows for a few frames, so you saw empty cards.
-• <b>Now:</b> the cards fade and scale together with their rows.
+4. <b>Preloaded font styles for everyone</b> (<a href="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/post-90759508">XDA suggestion</a>)
+• Settings > Icons & appearance > Font now opens for everyone, with eleven offline system styles (Sans, Medium, Condensed, Light, Black, Small Caps, Serif, Mono, Typewriter, Casual and Cursive) plus Google Sans Flex.
+• Importing your own font files and browsing the Google Fonts catalog stay part of Expressive Pro.
 
-5. <b>TalkBack keeps app names after a language change</b>
-• <b>What went wrong:</b> after switching the system language and back, TalkBack read most drawer apps without a name (16 of 21 on our test emulator).
-• <b>Now:</b> every drawer app keeps its spoken name after the switch (21 of 21).
+5. <b>Safer Home screen loading</b>
+• While building the widget overlap we found layouts where a folder and a widget sharing cells could be removed on the next restart. Loading now keeps both in every order, a folder that no longer fits becomes a normal 1x1 folder instead of disappearing, and a small folder never ends up hidden under a widget.
 
 ───────────────────────
 
 <b>🗣️ From Your Reports</b>
-• <b>Large folders (XDA, Pixel 11 Pro thread):</b> delivered as Pixel-style 2x2 folders. Known limits for now: the open/close animation still starts from the folder's top-left corner, resizing uses the button or TalkBack action (no drag handle yet), and we haven't tested foldables or landscape. Tell us how they feel on your phone.
-• <b>Known search gaps from 4.0.0:</b> all five are now fixed (two in 4.0.1, the last three in this build).
+• <b>Large folders (XDA, Pixel 11 Pro thread):</b> covering widgets, a clear way back to 1x1 and proper animations are all in this build. Known limits: we haven't checked foldables and tablets yet, so large folders there can shrink but not grow for now.
+• <b>Font styles (XDA, Pixel 7 Pro thread):</b> preloaded styles are free; imports stay Pro, as suggested.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core</b>: always supported, ad-free and privacy-first. Everything in this build, large folders and Daily messages included, is part of Free Core.
-• <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, typography, gestures, per-app icon overrides and folder styles.
+• <b>Free Core</b>: always supported, ad-free and privacy-first. Large folders, the resize handles, the new animations and the preloaded font styles are all Free Core.
+• <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, imported fonts and the Google Fonts catalog, gestures, per-app icon overrides and folder styles.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
 
@@ -45,38 +47,39 @@ Welcome to Expressive Launcher 4.0.2 (Build 51)! You asked for large folders, so
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the folder ask for a 2x2?</i>
-<b>A:</b> <i>It was tired of keeping everything bottled up in one cell.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the large folder sit on the clock widget?</i>
+<b>A:</b> <i>It wanted to be on time for once.</i></blockquote>
 
-<blockquote>The Play Store icon kept turning up uninvited on <i>Search on Google</i>. We finally put it on the guest list for its own row only.</blockquote>
+<blockquote>The folder used to say "No room" whenever a widget was nearby. We gave it some manners: it now sits politely on top and lets the widget keep its seat.</blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I used to sit in a single square and hide my friends behind a tap. Now I stretch across four, show you who's inside, and let you call on them by name. Shrink me back and I'll fold up without losing anyone. What am I?</i></blockquote>
+<blockquote><i>Four rooms on top of a clock, but the clock keeps ticking. Pull my edge and I shrink to one room; tap a window and someone walks out of it. What am I?</i></blockquote>
 
-<tg-spoiler><b>A large 2x2 Home screen folder!</b></tg-spoiler>
+<tg-spoiler><b>A large Home screen folder resting on a widget!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🧪 Validation</b>
-• App unit suite: 426 tests passing, including new ones for large-folder layout and loading (<code>LargeFoldersTest</code>), Daily messages and holidays (<code>GlanceMessagesTest</code>, <code>GlanceMessageAttachTest</code>, <code>BcSmartspaceGlanceMessageTest</code>), search icons and cards (<code>SearchActionIconKeyTest</code>, <code>SearchCardAlphaTest</code>) and TalkBack names (<code>IconCacheFallbackDescriptionTest</code>).
+• App unit suite: 458 tests passing, including new tests for the folder/widget overlap rules and loading in any order, the resize handles, the animation geometry and the font presets.
 • CI pipeline contract tests: 291 passing.
-• Android 17 QPR2 Beta 5 emulator, debug builds of this source: made a folder large and small again, opened Gmail from the tile, dropped Play Store onto the tile, moved the large folder, and the size survived a launcher restart with every app on the tile showing its full icon. Daily messages on and off on the Home screen and in the preview. Search on Google showed the right icon and no blank cards appeared (checked frame by frame in screen recordings). English → German → English kept TalkBack names for all 21 drawer apps.
+• Android 17 QPR2 Beta 5 emulator, debug builds of this source: folder grown and moved over a clock widget, with taps landing on the folder; several restarts in both load orders with nothing removed; frame shrink, grow and blocked handles; open, close, resize and drop checked frame by frame; animations off; and a free user picking System Serif for Home labels.
+• Not verified on the emulator: launching an app from its spot on the tile (this emulator ignores launch origins for third-party launchers, so even dock icons fade in), removing or moving a widget that sits under a folder, and TalkBack actions on the resize handles.
 • Jenkins handles the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
 
 ───────────────────────
 
 <b>🛡️ Technical Details</b>
-• <b>Version</b>: <code>4.0.2</code> (Build <code>51</code>), QA channel
+• <b>Version</b>: <code>4.0.3</code> (Build <code>52</code>), QA channel
 • <b>Package</b>: <code>dev.launcher.expressive.l3</code>
 • Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
 
 🔗 <b>Links & Downloads</b>:
-• <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
-• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.2-51">qa-v4.0.2-51</a>
-• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.2-51/ExpressiveLauncherL3-4.0.2-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk">ExpressiveLauncherL3-4.0.2 signed APK</a>
+• <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher) (or tap Add App in Obtainium and paste https://github.com/denson9874/ExpressiveLauncher)
+• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.3-52">qa-v4.0.3-52</a>
+• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.3-52/ExpressiveLauncherL3-4.0.3-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk">ExpressiveLauncherL3-4.0.3 signed APK</a>
 • <b>All releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">GitHub Releases</a>
 • <b>Bug reports</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/issues">GitHub Issues</a>
 • <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>

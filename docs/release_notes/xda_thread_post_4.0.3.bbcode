@@ -1,0 +1,125 @@
+[CENTER][SIZE=6][B]Expressive Launcher 4.0.3 QA — Folding Under Pressure[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Welcome to Expressive Launcher 4.0.3 (Build 52)! Large folders arrived in 4.0.2, and you told us they felt half-finished: they refused to grow next to a widget, there was no obvious way to shrink them back, and every animation still behaved like a small folder. This build reworks all three, and it adds preloaded font styles for everyone.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+1. [B]Large folders can cover widgets[/B] ([URL="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/post-90744865"]XDA request[/URL])
+[LIST]
+[*][B]Before:[/B] making a folder large next to a widget said "No room" and nothing happened.
+[*][B]Now:[/B] the 2x2 folder grows over the widget and sits on top of it. Taps where they overlap go to the folder; the rest of the widget keeps working. The widget never moves or resizes, and shrinking the folder uncovers it again.
+[*]Icons, other folders and the At a Glance row still block a large folder, so nothing ever gets hidden underneath one.
+
+[/LIST]
+2. [B]Resize folders with handles[/B]
+[LIST]
+[*]Long-press a Home screen folder and let go without moving it: a frame with four handles appears, like the widget resize frame.
+[*]Drag a handle past half a cell and the folder snaps between 1x1 and 2x2, with a little haptic tick. The side you pull decides the direction. A handle that can't go any further (an icon in the way, or the edge of the grid) just rubber-bands.
+[*]The size button in the open folder's footer and the TalkBack action still work too.
+
+[/LIST]
+3. [B]Folder animations that match the tile[/B]
+[LIST]
+[*]Opening a large folder now grows the panel out of the 2x2 tile, and its apps fly from their spots on the tile to their places in the folder. Closing does the reverse, landing back on the tile.
+[*]Switching between 1x1 and 2x2 morphs smoothly instead of snapping.
+[*]Dragging a large folder shows the real tile at full size. When you hover an app over the tile, it springs and lights up the spot the app will take, and dropping it flies the app into that spot.
+[*]Apps you open from the tile launch from their own spot where Android supports it.
+
+[/LIST]
+4. [B]Preloaded font styles for everyone[/B] ([URL="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/post-90759508"]XDA suggestion[/URL])
+[LIST]
+[*]Settings > Icons & appearance > Font now opens for everyone, with eleven offline system styles (Sans, Medium, Condensed, Light, Black, Small Caps, Serif, Mono, Typewriter, Casual and Cursive) plus Google Sans Flex.
+[*]Importing your own font files and browsing the Google Fonts catalog stay part of Expressive Pro.
+
+[/LIST]
+5. [B]Safer Home screen loading[/B]
+[LIST]
+[*]While building the widget overlap we found layouts where a folder and a widget sharing cells could be removed on the next restart. Loading now keeps both in every order, a folder that no longer fits becomes a normal 1x1 folder instead of disappearing, and a small folder never ends up hidden under a widget.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🗣️ From Your Reports[/B][/SIZE]
+
+[LIST]
+[*][B]Large folders (XDA, Pixel 11 Pro thread):[/B] covering widgets, a clear way back to 1x1 and proper animations are all in this build. Known limits: we haven't checked foldables and tablets yet, so large folders there can shrink but not grow for now.
+[*][B]Font styles (XDA, Pixel 7 Pro thread):[/B] preloaded styles are free; imports stay Pro, as suggested.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]💎 Expressive Pro & Free Core[/B][/SIZE]
+
+[LIST]
+[*][B]Free Core[/B]: always supported, ad-free and privacy-first. Large folders, the resize handles, the new animations and the preloaded font styles are all Free Core.
+[*][B]Expressive Pro ($4.99 one-time)[/B]: unlocks deep personalization such as grid sizing, imported fonts and the Google Fonts catalog, gestures, per-app icon overrides and folder styles.
+
+[/LIST]
+[QUOTE][I]Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE][B]Q:[/B] [I]Why did the large folder sit on the clock widget?[/I]
+[B]A:[/B] [I]It wanted to be on time for once.[/I][/QUOTE]
+
+[QUOTE]The folder used to say "No room" whenever a widget was nearby. We gave it some manners: it now sits politely on top and lets the widget keep its seat.[/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]Four rooms on top of a clock, but the clock keeps ticking. Pull my edge and I shrink to one room; tap a window and someone walks out of it. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]A large Home screen folder resting on a widget![/B][/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🧪 Validation[/B][/SIZE]
+
+[LIST]
+[*]App unit suite: 458 tests passing, including new tests for the folder/widget overlap rules and loading in any order, the resize handles, the animation geometry and the font presets.
+[*]CI pipeline contract tests: 291 passing.
+[*]Android 17 QPR2 Beta 5 emulator, debug builds of this source: folder grown and moved over a clock widget, with taps landing on the folder; several restarts in both load orders with nothing removed; frame shrink, grow and blocked handles; open, close, resize and drop checked frame by frame; animations off; and a free user picking System Serif for Home labels.
+[*]Not verified on the emulator: launching an app from its spot on the tile (this emulator ignores launch origins for third-party launchers, so even dock icons fade in), removing or moving a widget that sits under a folder, and TalkBack actions on the resize handles.
+[*]Jenkins handles the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Version[/B]: [ICODE]4.0.3[/ICODE] (Build [ICODE]52[/ICODE]), QA channel
+[*][B]Package[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Source revision[/B]: [ICODE]f6eb91538afde205fd85f7638e12b768fe439084[/ICODE]
+[*][B]APK SHA-256[/B]: [ICODE]f4f630c2c18e3b665b78990fc758230a951dd18a59f9ef2c18caa1fb40494c64[/ICODE] (24.2 MB)
+[*]Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] (or tap Add App in Obtainium and paste https://github.com/denson9874/ExpressiveLauncher)
+[*][B]This release[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.3-52"]qa-v4.0.3-52[/URL]
+[*][B]Direct APK[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.3-52/ExpressiveLauncherL3-4.0.3-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk"]ExpressiveLauncherL3-4.0.3 signed APK[/URL]
+[*][B]All releases[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases"]GitHub Releases[/URL]
+[*][B]Bug reports[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/issues"]GitHub Issues[/URL]
+[*][B]Telegram Channel[/B]: [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.3-52"]Download Expressive Launcher v4.0.3 (Build 52)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
