@@ -4,6 +4,29 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Large Home folders and At a Glance daily messages — 2026-10-01 (candidate 4.0.2 / code 51)
+
+1. **Large 2x2 folders (XDA-014, fc4b6d8 + 2dc3957).** Pixel lets a Home folder take a 2x2 area and
+   launch its apps from the tile. Expressive adds a size button in the open folder's footer and a
+   TalkBack action; the folder grows into free neighbouring cells (right/down first) or reports no
+   room. The tile (`LargeFolderTile`) shows the first four apps as tappable full icons; with more,
+   the last slot previews the rest and opens the folder. The loader keeps a stored 2x2 span only if
+   the region is inside the grid and free, otherwise it loads 1x1 (failed placement would delete
+   the folder), and it upgrades every icon the tile draws (`LargeFolders.drawsRank`), so no
+   low-res placeholder survives a restart. Dock and drawer folders stay 1x1. Gaps: the open/close
+   animation starts from the 1x1 preview position, no drag-resize handle, no foldable/landscape
+   check. Tests: `LargeFoldersTest`; emulator make large/small, tap-launch, drop-to-add, move,
+   restart.
+2. **Daily messages in At a Glance (d39df14).** Opt-in switch under At a Glance > What to show
+   (off by default) appends one line after the weather on the date card: quotes/encouragement
+   alternating daily and holidays (moveable dates computed per year, region-gated national days).
+   The message travels on `SmartspaceTarget.glanceMessage` and refreshes on TIME_TICK. Tests:
+   `GlanceMessagesTest`, `GlanceMessageAttachTest`, `BcSmartspaceGlanceMessageTest`; emulator Home
+   and preview with the switch on and off.
+3. **Search icons, cards and TalkBack names (5ddcbd6)** — see the PR #33 gaps below.
+
+Validation: app unit 426/426, CI contracts 291/291. No physical-device check.
+
 ## Pixel-style drawer search and launcher performance — 2026-09-30 (candidate 4.0.0 / code 49)
 
 Ported from public main PRs #29–#33 (938e9c6c9cb..73b6592add1, `android/` only).
@@ -28,7 +51,7 @@ Ported from public main PRs #29–#33 (938e9c6c9cb..73b6592add1, `android/` only
 6. **Locale.** `InvariantDeviceProfile.toModelState` includes the locale list, so a system language
    change reloads the model and labels plus drawer section letters follow the new language.
 
-The PR #33 review gaps are all fixed (after 4.0.1):
+The PR #33 review gaps are all fixed (released in 4.0.2 / code 51):
 - *Search on Google* showing the Play Store icon: action and shortcut rows rebound with the previous
   row's icon until a model-thread load finished. Fixed icons (the web-search provider's drawable,
   suggestion/history/calculator glyphs, app shortcuts) are now cached by what they are and bound in

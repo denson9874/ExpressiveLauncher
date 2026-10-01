@@ -1,0 +1,5 @@
+1. Large 2x2 Home screen folders: use the size button in the folder footer; tap an app on the tile to open it.
+2. At a Glance Daily messages: quotes, encouraging words and holidays under the date (What to show, off by default).
+3. Search on Google shows the right icon at once, no Play Store icon flash.
+4. No blank cards when search results first animate in.
+5. TalkBack keeps drawer app names after a system language change.
