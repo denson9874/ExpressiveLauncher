@@ -1,0 +1,5 @@
+1. Large Home folders can cover widgets: the folder sits on top, the widget stays put.
+2. Resize folders with handles: long-press a Home folder, let go, drag a handle.
+3. Folders open and close from their 2x2 tile; resizing, dragging and dropping apps animate properly.
+4. Preloaded font styles for everyone; importing fonts and Google Fonts stay Pro.
+5. Safer Home screen loading: folders and widgets are never removed by overlap.

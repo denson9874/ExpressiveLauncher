@@ -4,7 +4,7 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
-## Large Home folders v2 — 2026-10-01 (branch claude/large-folders-v2, not yet released)
+## Large Home folders v2 — 2026-10-01 (candidate 4.0.3 / code 52)
 
 User feedback on QA 4.0.2: large folders couldn't grow next to widgets, had no discoverable way back
 to 1x1, and every interaction animation assumed a 1x1 folder. Spec:
@@ -28,7 +28,11 @@ to 1x1, and every interaction animation assumed a 1x1 folder. Spec:
    the tile and light up their slot; drops land in the real slot or the "more" slot. App launches
    and returns use the slot (remote bounds and the clip-reveal fallback).
 
-Validation: app unit suite 455/455, CI contracts 291/291. Emulator (Android 17 QPR2 Beta 5): overlap
+Preloaded font styles (4.0.3, XDA post 90759508): the Font rows are no longer Pro-gated; the picker
+offers eleven offline system families plus bundled Google Sans Flex to everyone, while importing
+font files and the Google Fonts catalog stay Pro (`FontPresets`, `FontPresetsTest`).
+
+Validation: app unit suite 458/458, CI contracts 291/291. Emulator (Android 17 QPR2 Beta 5): overlap
 taps/long-press, loader in both orders and across restarts, icon blocking, dock drop + restart,
 frame shrink/grow/blocked, open/close/resize/drop frame captures, animations off. Not verified on
 device: the slot launch origin (this emulator ignores launch origins for this launcher, dock icons
