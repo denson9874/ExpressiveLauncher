@@ -28,7 +28,7 @@ to 1x1, and every interaction animation assumed a 1x1 folder. Spec:
    the tile and light up their slot; drops land in the real slot or the "more" slot. App launches
    and returns use the slot (remote bounds and the clip-reveal fallback).
 
-Validation: app unit suite 452/452, CI contracts 291/291. Emulator (Android 17 QPR2 Beta 5): overlap
+Validation: app unit suite 455/455, CI contracts 291/291. Emulator (Android 17 QPR2 Beta 5): overlap
 taps/long-press, loader in both orders and across restarts, icon blocking, dock drop + restart,
 frame shrink/grow/blocked, open/close/resize/drop frame captures, animations off. Not verified on
 device: the slot launch origin (this emulator ignores launch origins for this launcher, dock icons
