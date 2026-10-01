@@ -61,39 +61,41 @@ class LargeFolderTile(private val context: Context) {
         val radius = bounds.width() * CORNER_FRACTION
         canvas.drawRoundRect(bounds, radius, radius, paint)
 
-        val slotSize = bounds.width() / 2f
+        val box = Box(bounds.left, bounds.top, bounds.width())
         slots.forEachIndexed { slot, content ->
-            val slotLeft = bounds.left + (slot % 2) * slotSize
-            val slotTop = bounds.top + (slot / 2) * slotSize
             when {
-                content >= 0 -> drawIcon(canvas, drawables[content], slotLeft, slotTop, slotSize, ICON_FRACTION)
-                content == LargeFolders.SLOT_MORE -> drawMore(canvas, slotLeft, slotTop, slotSize)
+                content >= 0 && content != hiddenRank ->
+                    drawIconIn(canvas, drawables[content], LargeFolderAnimationGeometry.slotBox(box, slot))
+                content == LargeFolders.SLOT_MORE -> for (i in 0 until 4) {
+                    val rank = LargeFolders.DIRECT_SLOTS - 1 + i
+                    val d = drawables.getOrNull(rank) ?: break
+                    if (rank != hiddenRank) drawIconIn(canvas, d, LargeFolderAnimationGeometry.miniBox(box, i))
+                }
             }
         }
         canvas.restoreToCount(save)
     }
 
-    /** Previews up to four of the apps that don't have their own slot. */
-    private fun drawMore(canvas: Canvas, left: Float, top: Float, size: Float) {
-        val first = LargeFolders.DIRECT_SLOTS - 1
-        val inner = size * ICON_FRACTION
-        val innerLeft = left + (size - inner) / 2f
-        val innerTop = top + (size - inner) / 2f
-        val cell = inner / 2f
-        for (i in 0 until 4) {
-            val drawable = drawables.getOrNull(first + i) ?: break
-            drawIcon(canvas, drawable, innerLeft + (i % 2) * cell, innerTop + (i / 2) * cell, cell, MINI_ICON_FRACTION)
-        }
-    }
-
-    private fun drawIcon(canvas: Canvas, drawable: Drawable?, left: Float, top: Float, slot: Float, fraction: Float) {
+    private fun drawIconIn(canvas: Canvas, drawable: Drawable?, b: Box) {
         drawable ?: return
-        val size = (slot * fraction).roundToInt()
-        val x = (left + (slot - size) / 2f).roundToInt()
-        val y = (top + (slot - size) / 2f).roundToInt()
-        drawable.setBounds(x, y, x + size, y + size)
+        drawable.setBounds(
+            b.left.roundToInt(),
+            b.top.roundToInt(),
+            (b.left + b.size).roundToInt(),
+            (b.top + b.size).roundToInt(),
+        )
         drawable.draw(canvas)
     }
+
+    /** Bounds of the app at [rank] in this tile, or null when the tile doesn't draw it. */
+    fun boxForRank(rank: Int): Box? =
+        LargeFolderAnimationGeometry.boxForRank(Box(bounds.left, bounds.top, bounds.width()), rank, items.size)
+
+    /** The drawable for [rank], for launch and drop animations. */
+    fun drawableForRank(rank: Int): Drawable? = drawables.getOrNull(rank)
+
+    /** One rank hidden while an animation draws it elsewhere (-1 = none). */
+    var hiddenRank = -1
 
     /**
      * The app shown at ([x], [y]), or null when the touch is on the preview slot, an empty slot or
