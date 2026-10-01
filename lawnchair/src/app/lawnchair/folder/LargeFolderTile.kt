@@ -62,6 +62,14 @@ class LargeFolderTile(private val context: Context) {
         canvas.drawRoundRect(bounds, radius, radius, paint)
 
         val box = Box(bounds.left, bounds.top, bounds.width())
+        if (highlightRank >= 0) {
+            // The slot a hovering app will take: the next free slot, or the "more" slot.
+            val slot = minOf(highlightRank, LargeFolders.DIRECT_SLOTS - 1)
+            val hb = LargeFolderAnimationGeometry.slotBox(box, slot, 0.92f)
+            val r = hb.size * CORNER_FRACTION
+            paint.color = ColorUtils.setAlphaComponent(ColorUtils.blendARGB(backgroundColor, 0xFFFFFFFF.toInt(), 0.35f), 0xFF)
+            canvas.drawRoundRect(hb.left, hb.top, hb.left + hb.size, hb.top + hb.size, r, r, paint)
+        }
         slots.forEachIndexed { slot, content ->
             when {
                 content >= 0 && content != hiddenRank ->
@@ -96,6 +104,16 @@ class LargeFolderTile(private val context: Context) {
 
     /** One rank hidden while an animation draws it elsewhere (-1 = none). */
     var hiddenRank = -1
+
+    /** Rank a hovering app would take, highlighted while it hovers (-1 = none). */
+    var highlightRank = -1
+
+    /** Where an app added at [rank] will be drawn (the "more" slot if past the direct slots). */
+    fun boxForRankAfterAdd(rank: Int): Box {
+        val box = Box(bounds.left, bounds.top, bounds.width())
+        return LargeFolderAnimationGeometry.boxForRank(box, rank, items.size + 1)
+            ?: LargeFolderAnimationGeometry.slotBox(box, LargeFolders.DIRECT_SLOTS - 1)
+    }
 
     /**
      * The app shown at ([x], [y]), or null when the touch is on the preview slot, an empty slot or

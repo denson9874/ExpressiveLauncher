@@ -294,8 +294,10 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         CellLayout cl = (CellLayout) getParent().getParent();
 
         if (isLarge()) {
-            // The accept ring is sized for a 1x1 folder; grow the tile instead.
-            getLargeTile().setAcceptScale(LARGE_ACCEPT_SCALE);
+            // The accept ring is sized for a 1x1 folder; spring the tile and light up the slot
+            // the app will take instead.
+            springAcceptScale(LARGE_ACCEPT_SCALE);
+            getLargeTile().setHighlightRank(mInfo.getContents().size());
             invalidate();
         } else {
             mBackground.animateToAccept(cl, lp.getCellX(), lp.getCellY());
@@ -341,8 +343,9 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     public void onDragExit() {
-        if (mLargeTile != null && mLargeTile.getAcceptScale() != 1f) {
-            mLargeTile.setAcceptScale(1f);
+        if (mLargeTile != null) {
+            springAcceptScale(1f);
+            mLargeTile.setHighlightRank(-1);
             invalidate();
         }
         mBackground.animateToRest();
@@ -415,7 +418,12 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                 to.offset(center[0] - animateView.getMeasuredWidth() / 2,
                         center[1] - animateView.getMeasuredHeight() / 2);
 
-                float finalAlpha = index < MAX_NUM_ITEMS_IN_PREVIEW ? 1f : 0f;
+                float finalAlpha = index < MAX_NUM_ITEMS_IN_PREVIEW || isLarge() ? 1f : 0f;
+                if (isLarge()) {
+                    // LC-Note: the tile shows the new app only once the drop lands.
+                    getLargeTile().setHiddenRank(index);
+                    invalidate();
+                }
 
                 float finalScale = scale * scaleRelativeToDragLayer;
 
@@ -434,6 +442,10 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                         () -> {
                             mPreviewItemManager.hidePreviewItem(finalIndex, false);
                             mFolder.showItem(item);
+                            if (mLargeTile != null) {
+                                mLargeTile.setHiddenRank(-1);
+                                invalidate();
+                            }
                         },
                         DragLayer.ANIMATION_END_DISAPPEAR, null);
 
@@ -581,6 +593,17 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     private float getLocalCenterForIndex(int index, int curNumItems, int[] center) {
+        // LC-Note: Large folders v2. Drop into the tile slot the new app takes (or "more").
+        if (isLarge()) {
+            app.lawnchair.folder.Box b = getLargeTile().boxForRank(index);
+            if (b == null) {
+                b = app.lawnchair.folder.LargeFolderAnimationGeometry.slotBox(getLargeTileBox(),
+                        LargeFolders.DIRECT_SLOTS - 1);
+            }
+            center[0] = Math.round(b.getCenterX());
+            center[1] = Math.round(b.getCenterY());
+            return b.getSize() / mPreviewItemManager.getIntrinsicIconSize();
+        }
         mTmpParams = mPreviewItemManager.computePreviewItemDrawingParams(
                 Math.min(MAX_NUM_ITEMS_IN_PREVIEW, index), curNumItems, mTmpParams);
 
@@ -1047,6 +1070,32 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         canvas.translate(dx, dy);
         canvas.scale(sx + (1f - sx) * t, sy + (1f - sy) * t, to.centerX(), to.centerY());
         return save;
+    }
+
+    // LC-Note: Large folders v2. Spring for the tile's accept scale while an app hovers over it.
+    @Nullable private androidx.dynamicanimation.animation.SpringAnimation mAcceptSpring;
+
+    private void springAcceptScale(float target) {
+        LargeFolderTile tile = getLargeTile();
+        if (mAcceptSpring == null) {
+            mAcceptSpring = new androidx.dynamicanimation.animation.SpringAnimation(
+                    new androidx.dynamicanimation.animation.FloatValueHolder(tile.getAcceptScale()))
+                    .setSpring(new androidx.dynamicanimation.animation.SpringForce()
+                            .setStiffness(androidx.dynamicanimation.animation.SpringForce.STIFFNESS_MEDIUM)
+                            .setDampingRatio(
+                                    androidx.dynamicanimation.animation.SpringForce.DAMPING_RATIO_LOW_BOUNCY));
+            mAcceptSpring.addUpdateListener((a, value, velocity) -> {
+                tile.setAcceptScale(value);
+                invalidate();
+            });
+        }
+        if (ValueAnimator.areAnimatorsEnabled()) {
+            mAcceptSpring.animateToFinalPosition(target);
+        } else {
+            mAcceptSpring.cancel();
+            tile.setAcceptScale(target);
+            invalidate();
+        }
     }
 
     /** LC-Note: Call after the folder switched between 1x1 and large. */

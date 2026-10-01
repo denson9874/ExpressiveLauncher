@@ -251,6 +251,9 @@ public abstract class DragView<T extends Context & ActivityContext> extends Fram
     @TargetApi(Build.VERSION_CODES.O)
     public void setItemInfo(final ItemInfo info) {
         mItemType = info.itemType;
+        // LC-Note: Large folders v2. Keep the real 2x2 tile; the adaptive folder icon is a 1x1
+        // rendering.
+        if (app.lawnchair.folder.LargeFolders.isLarge(info)) return;
         // Load the adaptive icon on a background thread and add the view in ui thread.
         MODEL_EXECUTOR.getHandler().postAtFrontOfQueue(() -> {
             ThemeManager themeManager = ThemeManager.INSTANCE.get(getContext());
