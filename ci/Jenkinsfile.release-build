@@ -10,7 +10,7 @@ pipeline {
         ANDROID_HOME = '/Users/daryldenson/Library/Android/sdk'
         ANDROID_SDK_ROOT = '/Users/daryldenson/Library/Android/sdk'
         JAVA_HOME = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
-        EXPRESSIVE_KEYSTORE_PROPERTIES = '/Users/daryldenson/Documents/ChatGPT/New project/keystore.properties'
+        EXPRESSIVE_KEYSTORE_PROPERTIES = '/Users/daryldenson/Developer/ExpressiveLauncher/keystore.properties'
         PATH = '/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }
     stages {

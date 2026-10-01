@@ -12,7 +12,7 @@ GitHub `stable` branch and stable update feed after the publisher rechecks their
 
 ## Infrastructure
 
-- Source checkout: `/Users/daryldenson/Developer/ExpressiveLauncher`, `codex/pixel-parity` (moved out of iCloud Documents on 2026-10-01; the signing `keystore.properties` still lives in the old `Documents/ChatGPT/New project` folder and the Jenkinsfiles point there).
+- Source checkout: `/Users/daryldenson/Developer/ExpressiveLauncher`, `codex/pixel-parity` (moved out of iCloud Documents on 2026-10-01; the gitignored signing `keystore.properties` lives in this checkout's root).
 - Export repository: https://github.com/denson9874/ExpressiveLauncher . This repository contains
   build exports and manifests; the application source checkout and upstream remotes remain separate.
 - Build job: http://127.0.0.1:8091/job/expressive-qa-build/
