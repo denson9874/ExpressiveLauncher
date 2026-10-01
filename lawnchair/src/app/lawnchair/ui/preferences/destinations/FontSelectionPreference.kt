@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,10 +46,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.lawnchair.font.FontCache
+import app.lawnchair.font.FontPresets
 import app.lawnchair.font.googlefonts.GoogleFontsListing
 import app.lawnchair.preferences.BasePreferenceManager
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.preferences.getAdapter
+import app.lawnchair.pro.proManager
 import app.lawnchair.ui.AndroidText
 import app.lawnchair.ui.OverflowMenu
 import app.lawnchair.ui.preferences.components.layout.PreferenceDivider
@@ -76,18 +79,23 @@ fun FontSelection(
     val context = LocalContext.current
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
     val customFonts by remember { FontCache.INSTANCE.get(context).customFonts }.collectAsStateWithLifecycle(initialValue = emptyList())
-    val items by produceState(initialValue = emptyList<FontCache.Family>()) {
-        val list = mutableListOf<FontCache.Family>()
-        list.add(FontCache.Family(FontCache.SystemFont("sans-serif")))
-        list.add(FontCache.Family(FontCache.SystemFont("sans-serif-medium")))
-        list.add(FontCache.Family(FontCache.SystemFont("sans-serif-condensed")))
-        val googleSansFlexVariants = HashMap<String, FontCache.Font>()
-        googleSansFlexVariants["regular"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_regular))
-        googleSansFlexVariants["500"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_medium))
-        googleSansFlexVariants["600"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_semi_bold))
-        googleSansFlexVariants["700"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_bold))
-        list.add(FontCache.Family("Google Sans Flex", googleSansFlexVariants))
-        GoogleFontsListing.INSTANCE.get(context).getFonts().mapTo(list) { font ->
+    // Expressive: preloaded styles are free; importing fonts and the Google Fonts catalog are Pro.
+    val isPro by proManager().isPro.collectAsState()
+    val presets = remember {
+        buildList {
+            FontPresets.SYSTEM_PRESETS.forEach { preset ->
+                add(FontCache.Family(preset.displayName, mapOf("regular" to FontCache.SystemFont(preset.family))))
+            }
+            val googleSansFlexVariants = HashMap<String, FontCache.Font>()
+            googleSansFlexVariants["regular"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_regular))
+            googleSansFlexVariants["500"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_medium))
+            googleSansFlexVariants["600"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_semi_bold))
+            googleSansFlexVariants["700"] = FontCache.ResourceFont(context, R.font.googlesansflex_variable, "Google Sans Flex " + context.getString(R.string.font_weight_bold))
+            add(FontCache.Family("Google Sans Flex", googleSansFlexVariants))
+        }
+    }
+    val catalog by produceState(initialValue = emptyList<FontCache.Family>()) {
+        value = GoogleFontsListing.INSTANCE.get(context).getFonts().map { font ->
             val variantsMap = HashMap<String, FontCache.Font>()
             val variants = font.variants.toTypedArray()
             font.variants.forEach { variant ->
@@ -95,9 +103,9 @@ fun FontSelection(
             }
             FontCache.Family(font.family, variantsMap)
         }
-        value = list
     }
-    val allItems by remember { derivedStateOf { items + customFonts } }
+    val items by remember { derivedStateOf { if (isPro) presets + catalog else presets } }
+    val allItems by remember { derivedStateOf { if (isPro) items + customFonts else items } }
     val adapter = fontPref.getAdapter()
     var searchQuery by remember { mutableStateOf("") }
 
@@ -148,13 +156,18 @@ fun FontSelection(
             }
         },
     ) { padding ->
-        ProGate(
-            modifier = Modifier.padding(padding),
-            lockedTitle = stringResource(R.string.font_label),
-            lockedDescription = stringResource(R.string.expressive_pro_locked_customization),
-        ) {
+        Box {
             PreferenceLazyColumn(padding) {
-                if (!hasFilter) {
+                if (!hasFilter && !isPro) {
+                    item(contentType = { ContentType.ADD_BUTTON }) {
+                        ProGate(
+                            modifier = Modifier.padding(top = 8.dp),
+                            lockedTitle = stringResource(R.string.font_more_fonts_title),
+                            lockedDescription = stringResource(R.string.font_more_fonts_pro),
+                        ) {}
+                    }
+                }
+                if (!hasFilter && isPro) {
                     item(contentType = { ContentType.ADD_BUTTON }) {
                         PreferenceGroupItem(
                             modifier = Modifier.padding(top = 8.dp),

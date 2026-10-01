@@ -24,6 +24,8 @@
     <string name="expressive_pro_locked_message">This feature requires Expressive Pro. Tap to enter your tester or giveaway key.</string>
     <string name="expressive_v3_transition_banner_title">Welcome to Expressive V3</string>
     <string name="expressive_v3_transition_banner_desc">We appreciate your feedback and testing! Free Core continues receiving updates, while customization features are now Pro exclusive.</string>
+    <string name="font_more_fonts_title">More fonts</string>
+    <string name="font_more_fonts_pro">Import your own fonts and browse the Google Fonts catalog with Expressive Pro. Tap to unlock.</string>
     <string name="expressive_pro_locked_customization">Customization is exclusive to Expressive Pro to support development. Tap to unlock.</string>
     <string name="expressive_pro_device_mismatch">This license key is tied to another device (%1$s). Your device ID is %2$s.</string>
     <string name="expressive_pro_tab_donate">Donate &amp; Unlock</string>

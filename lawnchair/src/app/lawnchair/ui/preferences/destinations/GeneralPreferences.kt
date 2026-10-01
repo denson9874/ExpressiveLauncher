@@ -123,9 +123,8 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
             }
         }
         ExpandAndShrink(visible = prefs2.enableFontSelection.asState().value) {
-            ProGate(
-                lockedTitle = stringResource(id = R.string.font_label),
-            ) {
+            // Expressive: preloaded font styles are free; the picker gates imports and the catalog.
+            run {
                 PreferenceGroup(heading = stringResource(id = R.string.font_label)) {
                     FontPreference(
                         fontPref = prefs.fontWorkspace,
