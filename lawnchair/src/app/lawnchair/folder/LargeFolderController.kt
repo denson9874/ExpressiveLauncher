@@ -23,7 +23,7 @@ object LargeFolderController {
         val target = if (LargeFolders.isLarge(info)) {
             CellRect(info.cellX, info.cellY, 1, 1)
         } else {
-            val anchor = LargeFolders.findLargeAnchor(info.cellX, info.cellY, cellLayout.countX, cellLayout.countY) { x, y ->
+            val anchor = if (!LargeFolders.canGrow(launcher.deviceProfile.panelCount)) null else LargeFolders.findLargeAnchor(info.cellX, info.cellY, cellLayout.countX, cellLayout.countY) { x, y ->
                 LargeFolderLayout.ownerAt(cellLayout, icon, x, y)
             }
             if (anchor == null) {
@@ -41,6 +41,7 @@ object LargeFolderController {
         val info = icon.mInfo
         val cellLayout = launcher.workspace.getScreenWithId(info.screenId) ?: return false
         val lp = icon.layoutParams as? CellLayoutLayoutParams ?: return false
+        if (target.spanX > 1 && !LargeFolders.canGrow(launcher.deviceProfile.panelCount)) return false
         if (target.spanX > 1 && !LargeFolderOverlap.canPlace(target, cellLayout.countX, cellLayout.countY) { x, y ->
                 LargeFolderLayout.ownerAt(cellLayout, icon, x, y)
             }

@@ -4,6 +4,37 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Large Home folders v2 — 2026-10-01 (branch claude/large-folders-v2, not yet released)
+
+User feedback on QA 4.0.2: large folders couldn't grow next to widgets, had no discoverable way back
+to 1x1, and every interaction animation assumed a 1x1 folder. Spec:
+`docs/superpowers/specs/2026-10-01-large-folders-v2-design.md`.
+
+1. **Folders cover widgets.** A large folder may cover empty cells and widget cells (never icons,
+   folders or the search bar). It draws above the widget (elevation, no shadow) and gets the
+   touches where they overlap; the widget never moves. Rules in `LargeFolderOverlap` (tests).
+   The loader decides 2x2 vs 1x1 after all Home items are known (any load order), lets a widget and
+   a large folder's anchor share cells, rewrites a folder that no longer fits to 1x1 (never deletes
+   it) and moves a demoted folder out from under a widget. Binding allows the same overlap.
+   Testing found and fixed item deletion when a folder's anchor sat inside a widget.
+2. **Resize handles.** Long-press a Home folder and release in place → `FolderResizeFrame` with four
+   handles; past half a cell it snaps between 1x1 and 2x2 (haptic), the pulled side sets the
+   direction, blocked sides rubber-band. Footer button and TalkBack action remain. Dock folders are
+   always 1x1 (`dragSpan`). Two-panel layouts can shrink but not grow (untested there).
+3. **Animations.** Android 17's spring folder animation assumes a 1x1 preview, so large folders
+   use a tile reveal: the panel starts as the tile's rounded square and apps fly between their tile
+   slot and their cell (`LargeFolderAnimationGeometry`, tests). Size changes morph (300 ms). The
+   drag image is the real tile (the adaptive 1x1 folder icon swap is skipped); hovering apps spring
+   the tile and light up their slot; drops land in the real slot or the "more" slot. App launches
+   and returns use the slot (remote bounds and the clip-reveal fallback).
+
+Validation: app unit suite 452/452, CI contracts 291/291. Emulator (Android 17 QPR2 Beta 5): overlap
+taps/long-press, loader in both orders and across restarts, icon blocking, dock drop + restart,
+frame shrink/grow/blocked, open/close/resize/drop frame captures, animations off. Not verified on
+device: the slot launch origin (this emulator ignores launch origins for this launcher, dock icons
+included), widget removal/reorder under a folder (widget drags couldn't be injected), TalkBack
+actions, landscape and two-panel layouts. No physical-device check.
+
 ## Large Home folders and At a Glance daily messages — 2026-10-01 (candidate 4.0.2 / code 51)
 
 1. **Large 2x2 folders (XDA-014, fc4b6d8 + 2dc3957).** Pixel lets a Home folder take a 2x2 area and

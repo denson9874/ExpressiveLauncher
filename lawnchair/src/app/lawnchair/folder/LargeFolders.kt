@@ -22,6 +22,13 @@ object LargeFolders {
     @JvmStatic
     fun drawsRank(rank: Int): Boolean = rank in 0 until TILE_ICON_COUNT
 
+    /**
+     * Whether folders may grow to 2x2 on a workspace with [panelCount] panels. Two-panel layouts
+     * (foldables, tablets) are not validated yet, so there folders can only shrink.
+     */
+    @JvmStatic
+    fun canGrow(panelCount: Int): Boolean = panelCount == 1
+
     @JvmStatic
     fun isLarge(info: ItemInfo?): Boolean =
         info is FolderInfo && wantsLarge(info.container, info.spanX, info.spanY)

@@ -71,6 +71,7 @@ class FolderResizeFrame(context: Context, attrs: AttributeSet?) : AbstractFloati
     private fun allowed(handle: ResizeHandle): Boolean {
         val layout = cellLayout() ?: return false
         val target = FolderResizeMath.targetFor(current(), handle)
+        if (target.spanX > 1 && !LargeFolders.canGrow(launcher.deviceProfile.panelCount)) return false
         return FolderResizeMath.isAllowed(target, layout.countX, layout.countY) { x, y ->
             LargeFolderLayout.ownerAt(layout, icon, x, y)
         }

@@ -76,4 +76,11 @@ class LargeFoldersTest {
         val anchor = LargeFolders.findLargeAnchor(1, 1, 4, 5) { x, _ -> if (x == 2) CellOwner.WIDGET else CellOwner.EMPTY }
         assertThat(anchor).asList().containsExactly(1, 1).inOrder()
     }
+
+    @Test
+    fun growsOnlyOnSinglePanelLayouts() {
+        assertThat(LargeFolders.canGrow(panelCount = 1)).isTrue()
+        // Two-panel (foldable/tablet) layouts are untested; folders there can shrink but not grow.
+        assertThat(LargeFolders.canGrow(panelCount = 2)).isFalse()
+    }
 }
