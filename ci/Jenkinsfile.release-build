@@ -5,7 +5,7 @@ pipeline {
         string(name: 'VALIDATION_QA_RELEASE_ID', defaultValue: '', description: 'Optional explicit QA selection using current clean HEAD (legacy parameter name). Every successful sealed stable build publishes automatically. Leave empty for Saturday source selection.')
     }
     environment {
-        SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
+        SOURCE_REPOSITORY = '/Users/daryldenson/Developer/ExpressiveLauncher'
         EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
         ANDROID_HOME = '/Users/daryldenson/Library/Android/sdk'
         ANDROID_SDK_ROOT = '/Users/daryldenson/Library/Android/sdk'

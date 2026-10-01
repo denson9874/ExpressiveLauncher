@@ -7,7 +7,7 @@ pipeline {
         booleanParam(name: 'BRIDGE_LEGACY_QA_FEED', defaultValue: false, description: 'One-time migration: point the existing legacy QA manifest at this verified GitHub build')
     }
     environment {
-        SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
+        SOURCE_REPOSITORY = '/Users/daryldenson/Developer/ExpressiveLauncher'
         EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
         PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }

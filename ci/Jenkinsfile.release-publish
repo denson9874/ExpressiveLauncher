@@ -5,7 +5,7 @@ pipeline {
         string(name: 'RELEASE_ID', defaultValue: '', description: 'Sealed stable candidate whose originating Jenkins build completed SUCCESS')
     }
     environment {
-        SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
+        SOURCE_REPOSITORY = '/Users/daryldenson/Developer/ExpressiveLauncher'
         EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
         PROMOTE_RELEASE_FEED = 'true'
         PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'

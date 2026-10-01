@@ -8,7 +8,7 @@ pipeline {
         string(name: 'BASELINE_RELEASE_ID', defaultValue: '', description: 'Optional sealed QA baseline for initial GitHub channel bootstrap')
     }
     environment {
-        SOURCE_REPOSITORY = '/Users/daryldenson/Documents/ChatGPT/New project'
+        SOURCE_REPOSITORY = '/Users/daryldenson/Developer/ExpressiveLauncher'
         EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
         ANDROID_HOME = '/Users/daryldenson/Library/Android/sdk'
         ANDROID_SDK_ROOT = '/Users/daryldenson/Library/Android/sdk'
