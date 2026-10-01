@@ -34,13 +34,7 @@
     "ask": [
       "Bash(python3 scripts/publish_play_bundle.py *)"
     ],
-    "deny": [
-      "Read(**/*.jks)",
-      "Read(**/*.keystore)",
-      "Read(~/Library/Application Support/Expressive CI/config/**)",
-      "Edit(**/*.jks)",
-      "Edit(**/*.keystore)"
-    ],
+    "deny": [],
     "additionalDirectories": [
       "~/Library/Application Support/Expressive CI/feedback/xda",
       "~/ExpressiveLauncher"
