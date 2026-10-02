@@ -3,6 +3,9 @@ package app.lawnchair.folder.widget
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.widget.Toast
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
 import android.content.pm.LauncherApps
 import app.lawnchair.folder.widget.ui.FolderWidgetAppPicker
 import app.lawnchair.preferences2.PreferenceManager2
@@ -129,8 +132,17 @@ object FolderWidgetController {
         info.spanY = target.spanY
         info.setOption(FolderInfo.FLAG_FOLDER_WIDGET, true, null)
         launcher.modelWriter.updateItemInDatabase(info)
+        val oldWidth = icon.width
+        val oldHeight = icon.height
         launcher.workspace.removeWorkspaceItem(icon)
-        addView(launcher, info)
+        val newView = launcher.itemInflater.inflateItem(info) as? FolderWidgetView
+        if (newView != null) {
+            launcher.workspace.addInScreen(newView, info)
+            (newView.parent?.parent as? CellLayout)?.shortcutsAndWidgets?.measureChild(newView)
+            morphMakeWidget(newView, oldWidth, oldHeight, target.x < lp.cellX, target.y < lp.cellY)
+        } else {
+            addView(launcher, info)
+        }
         return true
     }
 
@@ -141,15 +153,83 @@ object FolderWidgetController {
         if (isHomeLocked(launcher) || !FolderWidgets.isFolderWidget(info)) return false
         // Closing the resize frame commits its size while the widget is still on Home (M8).
         AbstractFloatingView.closeAllOpenViews(launcher, false)
-        launcher.workspace.removeWorkspaceItem(widget)
-        info.spanX = 1
-        info.spanY = 1
-        info.setOption(FolderInfo.FLAG_FOLDER_WIDGET, false, null)
-        // One write for the span and the flag: the loader turns any Home folder larger than 1x1
-        // back into a widget.
-        launcher.modelWriter.updateItemInDatabase(info)
-        addView(launcher, info)
+
+        val completeSwap = {
+            launcher.workspace.removeWorkspaceItem(widget)
+            info.spanX = 1
+            info.spanY = 1
+            info.setOption(FolderInfo.FLAG_FOLDER_WIDGET, false, null)
+            // One write for the span and the flag: the loader turns any Home folder larger than 1x1
+            // back into a widget.
+            launcher.modelWriter.updateItemInDatabase(info)
+            addView(launcher, info)
+        }
+
+        val panel = widget.panel
+        if (panel.width <= 0 || panel.height <= 0) {
+            completeSwap()
+            return true
+        }
+
+        val dp = launcher.deviceProfile
+        val targetScaleX = (dp.cellWidthPx.toFloat() / panel.width).coerceIn(0.1f, 1f)
+        val targetScaleY = (dp.cellHeightPx.toFloat() / panel.height).coerceIn(0.1f, 1f)
+        panel.pivotX = 0f
+        panel.pivotY = 0f
+
+        var finished = false
+        val onFinish = {
+            if (!finished) {
+                finished = true
+                completeSwap()
+            }
+        }
+
+        val animX = SpringAnimation(panel, DynamicAnimation.SCALE_X)
+            .setSpring(
+                SpringForce(targetScaleX)
+                    .setStiffness(SpringForce.STIFFNESS_MEDIUM)
+                    .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
+            )
+            .addEndListener { _, _, _, _ -> onFinish() }
+        val animY = SpringAnimation(panel, DynamicAnimation.SCALE_Y)
+            .setSpring(
+                SpringForce(targetScaleY)
+                    .setStiffness(SpringForce.STIFFNESS_MEDIUM)
+                    .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
+            )
+
+        animX.start()
+        animY.start()
         return true
+    }
+
+    private fun morphMakeWidget(
+        widget: FolderWidgetView,
+        oldWidth: Int,
+        oldHeight: Int,
+        fromRight: Boolean,
+        fromBottom: Boolean,
+    ) {
+        val panel = widget.panel
+        panel.post {
+            if (panel.width <= 0 || panel.height <= 0) return@post
+            val scaleX = if (oldWidth > 0) (oldWidth.toFloat() / panel.width).coerceIn(0.1f, 1f) else 0.5f
+            val scaleY = if (oldHeight > 0) (oldHeight.toFloat() / panel.height).coerceIn(0.1f, 1f) else 0.5f
+            panel.pivotX = if (fromRight) panel.width.toFloat() else 0f
+            panel.pivotY = if (fromBottom) panel.height.toFloat() else 0f
+            panel.scaleX = scaleX
+            panel.scaleY = scaleY
+            listOf(DynamicAnimation.SCALE_X, DynamicAnimation.SCALE_Y).forEach { prop ->
+                SpringAnimation(panel, prop)
+                    .setSpring(
+                        SpringForce(1f)
+                            .setStiffness(SpringForce.STIFFNESS_MEDIUM)
+                            .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
+                    )
+                    .start()
+            }
+        }
     }
 
     /** The menu's Remove: asks whether to put the widget's apps back on Home, then removes it. */

@@ -54,6 +54,9 @@ import com.android.launcher3.views.BaseDragLayer;
 
 import java.util.List;
 
+// LC-Note: Folder widget animation support.
+import app.lawnchair.folder.widget.FolderWidgetAnimations;
+import app.lawnchair.folder.widget.FolderWidgetView;
 import app.lawnchair.util.LawnchairUtilsKt;
 
 /**
@@ -136,6 +139,10 @@ public class FolderAnimationManager implements FolderAnimationCreator {
     @NonNull
     @Override
     public AnimatorSet createAnimatorSet(boolean isOpening) {
+        // LC-Note: Folder widget open/close reveal and flight animation.
+        if (mFolderIcon instanceof FolderWidgetView widget) {
+            return FolderWidgetAnimations.create(mFolder, widget, isOpening);
+        }
         mIsOpening = isOpening;
         final BaseDragLayer.LayoutParams lp =
                 (BaseDragLayer.LayoutParams) mFolder.getLayoutParams();

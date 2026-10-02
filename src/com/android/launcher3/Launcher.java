@@ -259,6 +259,7 @@ import app.lawnchair.views.EditModePageStrip;
 // LC-Note: Folder widget support.
 import app.lawnchair.folder.widget.FolderWidgetController;
 import app.lawnchair.folder.widget.FolderWidgetPickerEntry;
+import app.lawnchair.folder.widget.FolderWidgetView;
 import com.android.launcher3.views.ScrimView;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
@@ -2453,9 +2454,20 @@ public class Launcher extends StatefulActivity<LauncherState>
                 op -> mapOverCellLayouts(containerArray, op);
 
         // Order: Preferred item by itself or in folder, then by matching package/user
-        return visibleContainer.getFirstMatch(
+        View match = visibleContainer.getFirstMatch(
                 preferredItem, forFolderMatch(preferredItem),
                 packageAndUserAndApp, forFolderMatch(packageAndUserAndApp));
+        // LC-Note: If closing into a Folder widget, target the visible grid icon when shown.
+        if (match instanceof FolderWidgetView widget) {
+            View icon = widget.visibleIconFor(preferredItem);
+            if (icon == null) {
+                icon = widget.visibleIconFor(packageAndUserAndApp);
+            }
+            if (icon != null) {
+                return icon;
+            }
+        }
+        return match;
     }
 
     private ValueAnimator createNewAppBounceAnimation(View v, int i) {

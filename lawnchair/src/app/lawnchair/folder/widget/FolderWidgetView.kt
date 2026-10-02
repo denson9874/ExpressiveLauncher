@@ -52,7 +52,7 @@ class FolderWidgetView @JvmOverloads constructor(
         private set
 
     private var appsAdapter: FolderWidgetAppsAdapter? = null
-    private var style: ResolvedFolderWidgetStyle? = null
+    internal var style: ResolvedFolderWidgetStyle? = null
     private var appliedSpec: FolderWidgetGridSpec? = null
     private var labelLineHeightPx = -1
     private var boundSpanX = -1

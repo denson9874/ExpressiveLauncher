@@ -241,7 +241,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     private PaginationArrow mLeftArrow;
     private PaginationArrow mRightArrow;
 
-    protected LinearLayout mFooter;
+    // LC-Note: Folder widget animation access.
+    public LinearLayout mFooter;
     private int mFooterHeight;
     // LC-Note: Make widget / Make normal folder for Home folders (Expressive Folder widget).
     @Nullable private ImageButton mWidgetButton;
@@ -2205,7 +2206,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         mFolderName = value;
     }
 
-    FolderNameEditText getFolderName() {
+    // LC-Note: Public for Folder widget animations.
+    public FolderNameEditText getFolderName() {
         return mFolderName;
     }
 
