@@ -1205,4 +1205,8 @@
     <string name="lawnchair_action_failed">Failed to trigger action</string>
 
     <string name="please_wait">Please wait…</string>
+
+    <!-- Folder widget -->
+    <string name="folder_widget_add_apps">Add apps</string>
+    <string name="folder_widget_open_folder">Open folder</string>
 </resources>
