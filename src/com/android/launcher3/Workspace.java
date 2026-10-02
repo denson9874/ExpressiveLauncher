@@ -145,6 +145,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import app.lawnchair.folder.widget.FolderWidgetResizeFrame;
+import app.lawnchair.folder.widget.FolderWidgetView;
 import app.lawnchair.hotseat.HotseatPagedView;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import static app.lawnchair.util.LawnchairUtilsKt.toBitmap;
@@ -2368,6 +2370,10 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                         // in its final location
                         onCompleteRunnable = getWidgetResizeFrameRunnable(options,
                                 (LauncherAppWidgetHostView) cell, dropTargetLayout, forceWidgetResize);
+                    } else if (container != CONTAINER_HOTSEAT
+                            && cell instanceof FolderWidgetView folderWidget) {
+                        // LC-Note: Folder widgets show their resize frame after a drop, as widgets do.
+                        onCompleteRunnable = getFolderWidgetResizeFrameRunnable(options, folderWidget);
                     }
                     mLauncher.getModelWriter().modifyItemInDatabase(info, container, screenId,
                             lp.getCellX(), lp.getCellY(), item.spanX, item.spanY);
@@ -2398,6 +2404,10 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                         onCompleteRunnable = getWidgetResizeFrameRunnable(options,
                                 (LauncherAppWidgetHostView) cell, cellLayout, forceWidgetResize);
                     }
+                } else if (cell instanceof FolderWidgetView folderWidget
+                        && isVisible(getParentCellLayoutForView(cell))) {
+                    // LC-Note: as for widgets, a cancelled drag shows the Folder widget's frame.
+                    onCompleteRunnable = getFolderWidgetResizeFrameRunnable(options, folderWidget);
                 }
             }
 
@@ -2482,6 +2492,19 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
             };
         }
         return null;
+    }
+
+    /** LC-Note: the Folder widget counterpart of {@link #getWidgetResizeFrameRunnable}. */
+    private Runnable getFolderWidgetResizeFrameRunnable(DragOptions options,
+            FolderWidgetView folderWidget) {
+        if (options.isAccessibleDrag) {
+            return null;
+        }
+        return () -> {
+            if (!isPageInTransition()) {
+                FolderWidgetResizeFrame.show(mLauncher, folderWidget);
+            }
+        };
     }
 
     public void onNoCellFound(

@@ -12,6 +12,7 @@ import app.lawnchair.pro.ProManager
 import app.lawnchair.util.resolveFolderBackgroundColor
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.R
+import com.android.launcher3.celllayout.CellLayoutLayoutParams
 import com.android.launcher3.folder.FolderIcon
 import com.android.launcher3.model.data.ItemInfo
 import java.util.function.Predicate
@@ -36,6 +37,10 @@ class FolderWidgetView @JvmOverloads constructor(
     private var style: ResolvedFolderWidgetStyle? = null
     private var appliedSpec: FolderWidgetGridSpec? = null
     private var labelLineHeightPx = -1
+    private var boundSpanX = -1
+
+    /** The panel's corner radius, for the resize frame. */
+    val cornerRadiusPx: Float get() = style?.cornerRadiusPx ?: 0f
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -62,9 +67,14 @@ class FolderWidgetView @JvmOverloads constructor(
         val adapter = appsAdapter
             ?: FolderWidgetAppsAdapter(activity, info, { panel.gridSpec }) { false }.also { appsAdapter = it }
         val style = style ?: defaultStyle().also { style = it }
-        panel.bind(info.title ?: "", adapter, style, metrics(info.spanX))
+        boundSpanX = currentSpanX()
+        panel.bind(info.title ?: "", adapter, style, metrics(boundSpanX))
         setTextVisible(true)
     }
+
+    /** While resizing, the cell span changes before the item's span is committed. */
+    private fun currentSpanX(): Int =
+        (layoutParams as? CellLayoutLayoutParams)?.cellHSpan?.takeIf { it > 0 } ?: mInfo.spanX
 
     private fun openFolder() {
         val folder = folder ?: return
@@ -110,6 +120,7 @@ class FolderWidgetView @JvmOverloads constructor(
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val height = MeasureSpec.getSize(heightMeasureSpec)
         setMeasuredDimension(width, height)
+        if (boundSpanX != -1 && boundSpanX != currentSpanX()) bindPanel()
         val name = folderName ?: return panel.measure(exactly(width), exactly(height))
         (name.layoutParams as LayoutParams).apply {
             // FolderIcon places its label under a 1x1 icon; here it sits under the panel.

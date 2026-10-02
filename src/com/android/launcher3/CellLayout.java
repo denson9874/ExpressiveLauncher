@@ -1579,7 +1579,8 @@ public class CellLayout extends ViewGroup {
         }
     }
 
-    boolean createAreaForResize(int cellX, int cellY, int spanX, int spanY,
+    // LC-Note: public for the Expressive Folder widget resize frame.
+    public boolean createAreaForResize(int cellX, int cellY, int spanX, int spanY,
                                 View dragView, int[] direction, boolean commit) {
         int[] pixelXY = new int[2];
         regionToCenterPoint(cellX, cellY, spanX, spanY, pixelXY);

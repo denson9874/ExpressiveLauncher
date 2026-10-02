@@ -80,8 +80,9 @@ public class MultipageCellLayout extends CellLayout {
         setGridSize(mCountX, mCountY);
     }
 
+    // LC-Note: public, as CellLayout's (Folder widget resize frame).
     @Override
-    boolean createAreaForResize(int cellX, int cellY, int spanX, int spanY, View dragView,
+    public boolean createAreaForResize(int cellX, int cellY, int spanX, int spanY, View dragView,
             int[] direction, boolean commit) {
         // Add seam to x position
         if (cellX >= mCountX / 2) {
