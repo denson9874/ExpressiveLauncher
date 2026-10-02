@@ -80,20 +80,6 @@ public class LauncherDelegate {
                                 mLauncher.getCellPosMapper().mapModelToPresenter(info).screenId);
                         finalItem =  info.getContents().remove(0);
                         newIcon = mLauncher.getItemInflater().inflateItem(finalItem, cellLayout);
-                        // LC-Note: Large folders v2. The last app of a large folder takes an
-                        // empty covered cell, never one under a widget.
-                        if (app.lawnchair.folder.LargeFolders.isLarge(info) && cellLayout != null) {
-                            app.lawnchair.folder.CellRect cell =
-                                    app.lawnchair.folder.LargeFolderOverlap.oneByOneCell(
-                                            new app.lawnchair.folder.CellRect(info.cellX,
-                                                    info.cellY, info.spanX, info.spanY),
-                                            (x, y) -> app.lawnchair.folder.LargeFolderLayout
-                                                    .ownerAt(cellLayout, folder.mFolderIcon, x, y));
-                            if (cell != null) {
-                                info.cellX = cell.getX();
-                                info.cellY = cell.getY();
-                            }
-                        }
                         mLauncher.getModelWriter().addOrMoveItemInDatabase(finalItem,
                                 info.container, info.screenId, info.cellX, info.cellY);
                     }
@@ -106,13 +92,7 @@ public class LauncherDelegate {
                         // We add the child after removing the folder to prevent both from existing
                         // at the same time in the CellLayout.  We need to add the new item with
                         // addInScreenFromBind() to ensure that hotseat items are placed correctly.
-                        // LC-Note: Place it where the folder was, at the item's own 1x1 span; a
-                        // large folder's info spans 2x2.
-                        ItemInfo bindInfo = new ItemInfo();
-                        bindInfo.copyFrom(info);
-                        bindInfo.spanX = finalItem.spanX;
-                        bindInfo.spanY = finalItem.spanY;
-                        mLauncher.getWorkspace().addInScreenFromBind(newIcon, bindInfo);
+                        mLauncher.getWorkspace().addInScreenFromBind(newIcon, info);
 
                         // Focus the newly created child
                         newIcon.requestFocus();

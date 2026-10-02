@@ -191,8 +191,6 @@ import com.android.launcher3.dragndrop.DragView;
 import com.android.launcher3.dragndrop.LauncherDragController;
 import com.android.launcher3.folder.Folder;
 import com.android.launcher3.folder.FolderIcon;
-import app.lawnchair.folder.LargeFolderOverlap;
-import app.lawnchair.folder.LargeFolders;
 import com.android.launcher3.keyboard.ViewGroupFocusHelper;
 import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.logger.LauncherAtom.ContainerInfo;
@@ -2277,15 +2275,8 @@ public class Launcher extends StatefulActivity<LauncherState>
             CellPos presenterPos = getCellPosMapper().mapModelToPresenter(item);
             if (item.container == CONTAINER_DESKTOP) {
                 CellLayout cl = mWorkspace.getScreenWithId(presenterPos.screenId);
-                View occupiedView = cl == null
-                        ? null : cl.getChildAt(presenterPos.cellX, presenterPos.cellY);
-                // LC-Note: Large folders v2. A large folder and a widget may overlap.
-                boolean allowedOverlap = LargeFolderOverlap.isAllowedBindOverlap(
-                        item instanceof LauncherAppWidgetInfo, LargeFolders.isLarge(item),
-                        occupiedView instanceof LauncherAppWidgetHostView,
-                        occupiedView instanceof FolderIcon fi && fi.isLarge());
-                if (cl != null && !allowedOverlap
-                        && cl.isOccupied(presenterPos.cellX, presenterPos.cellY)) {
+                if (cl != null && cl.isOccupied(presenterPos.cellX, presenterPos.cellY)) {
+                    View occupiedView = cl.getChildAt(presenterPos.cellX, presenterPos.cellY);
                     Object tag = occupiedView == null ? null : occupiedView.getTag();
                     String desc = "Collision while binding workspace item: " + item
                             + ". Collides with " + tag;
@@ -2453,22 +2444,9 @@ public class Launcher extends StatefulActivity<LauncherState>
                 op -> mapOverCellLayouts(containerArray, op);
 
         // Order: Preferred item by itself or in folder, then by matching package/user
-        View match = visibleContainer.getFirstMatch(
+        return visibleContainer.getFirstMatch(
                 preferredItem, forFolderMatch(preferredItem),
                 packageAndUserAndApp, forFolderMatch(packageAndUserAndApp));
-        // LC-Note: Large folders v2. An app closing into a large folder lands on its slot (or the
-        // "more" slot when the tile doesn't show it).
-        if (match instanceof FolderIcon fi && fi.isLarge()) {
-            int rank = -1;
-            for (ItemInfo i : fi.getFolder().getInfo().getContents()) {
-                if (preferredItem.test(i) || packageAndUserAndApp.test(i)) {
-                    rank = i.rank;
-                    break;
-                }
-            }
-            fi.setLaunchingRank(rank);
-        }
-        return match;
     }
 
     private ValueAnimator createNewAppBounceAnimation(View v, int i) {

@@ -489,14 +489,6 @@ class LawnchairLauncher : QuickstepLauncher() {
                 width = bounds.width()
                 height = bounds.height()
             }
-        } else if (v is FolderIcon) {
-            // Large folders v2: reveal from the launching app's slot on the tile.
-            v.launchBox?.let { b ->
-                left = b.left.toInt()
-                top = b.top.toInt()
-                width = b.size.toInt()
-                height = b.size.toInt()
-            }
         }
         val options = Utilities.allowBGLaunch(
             ActivityOptions.makeClipRevealAnimation(

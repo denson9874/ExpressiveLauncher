@@ -28,12 +28,6 @@ import android.text.TextUtils
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.SparseArray
-import android.content.ContentValues
-import app.lawnchair.folder.CellRect
-import app.lawnchair.folder.LargeFolderOverlap
-import app.lawnchair.folder.LargeFolders
-import app.lawnchair.folder.LoadItem
-import app.lawnchair.folder.LoadKind
 import com.android.launcher3.Flags
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.LauncherSettings.Favorites
@@ -524,13 +518,8 @@ class WorkspaceItemProcessor(
         c.applyCommonProperties(collection)
         // Do not trim the folder label, as is was set by the user.
         collection.title = c.getString(c.mTitleIndex)
-        // LC-Note: Large folders v2. Every folder loads 1x1 at its anchor; stored 2x2 folders are
-        // promoted in finalizeData once all Home items are known, so load order doesn't matter.
-        val wantsLarge = collection is FolderInfo &&
-            LargeFolders.wantsLarge(collection.container, c.spanX, c.spanY)
         collection.spanX = 1
         collection.spanY = 1
-        if (wantsLarge) c.markLargeFolderCandidate(collection as FolderInfo)
         if (collection is FolderInfo) {
             collection.options = c.options
         } else {
@@ -699,8 +688,6 @@ class WorkspaceItemProcessor(
 
             itemInfo.getContents().sortWith(Folder.ITEM_POS_COMPARATOR)
             verifiers.forEach { it.setFolderInfo(itemInfo) }
-            // LC-Note: a large folder's tile draws more ranks than the 1x1 preview.
-            val isLargeFolder = LargeFolders.isLarge(itemInfo)
 
             // Update ranks here to ensure there are no gaps caused by removed folder items.
             // Ranks are the source of truth for folder items, so cellX and cellY can be
@@ -711,76 +698,10 @@ class WorkspaceItemProcessor(
                     info is WorkspaceItemInfo &&
                         info.matchingLookupFlag.isVisuallyLessThan(Favorites.DESKTOP_ICON_FLAG) &&
                         info.itemType == Favorites.ITEM_TYPE_APPLICATION &&
-                        (
-                            verifiers.any { it.isItemInPreview(info.rank) } ||
-                                (isLargeFolder && LargeFolders.drawsRank(info.rank))
-                            )
+                        verifiers.any { it.isItemInPreview(info.rank) }
                 ) {
                     iconCache.getTitleAndIcon(info, Favorites.DESKTOP_ICON_FLAG)
                 }
-            }
-        }
-    }
-
-    /**
-     * LC-Note: Large folders v2. Decide 2x2 vs 1x1 per page and rewrite rows that no longer fit; a
-     * 1x1 folder left on a widget's cells (it would be hidden) moves to a free cell.
-     */
-    private fun promoteLargeFolders(modelDbController: ModelDbController) {
-        val candidates = c.largeFolderCandidates.filter { loadedItems.get(it.id) === it }
-        val onWidgets = c.foldersToRelocate.filter { loadedItems.get(it.id) === it }
-        if (candidates.isEmpty() && onWidgets.isEmpty()) return
-        val screens = (candidates + onWidgets).map { it.screenId }.toSet()
-        for (screenId in screens) {
-            val onScreen = candidates.filter { it.screenId == screenId }
-            val items = buildList {
-                loadedItems.forEach { info ->
-                    if (info.container != Favorites.CONTAINER_DESKTOP || info.screenId != screenId) {
-                        return@forEach
-                    }
-                    val kind = when {
-                        onScreen.any { it === info } -> LoadKind.LARGE_FOLDER_CANDIDATE
-                        info is LauncherAppWidgetInfo -> LoadKind.WIDGET
-                        else -> LoadKind.OTHER
-                    }
-                    add(LoadItem(info.id, CellRect(info.cellX, info.cellY, info.spanX, info.spanY), kind))
-                }
-            }
-            val blocked = listOfNotNull(c.getSearchBarRect(screenId))
-            val large = LargeFolderOverlap.resolveLargeFolders(c.gridColumns, c.gridRows, blocked, items)
-            for (folder in onScreen) {
-                if (folder.id in large) {
-                    folder.spanX = LargeFolders.SPAN
-                    folder.spanY = LargeFolders.SPAN
-                }
-            }
-            val demoted = onScreen.filter { it.id !in large }
-            val toMove = demoted + onWidgets.filter { it.screenId == screenId && demoted.none { d -> d === it } }
-            if (toMove.isEmpty()) continue
-            val widgets = items.filter { it.kind == LoadKind.WIDGET }.map { it.rect }
-            val taken = blocked + items.filter { item -> toMove.none { it.id == item.id } }.map {
-                if (it.id in large) CellRect(it.rect.x, it.rect.y, LargeFolders.SPAN, LargeFolders.SPAN) else it.rect
-            }
-            val moved = LargeFolderOverlap.relocateAll(
-                toMove.map { CellRect(it.cellX, it.cellY, 1, 1) }, widgets, taken, c.gridColumns, c.gridRows,
-            )
-            toMove.forEachIndexed { i, folder ->
-                val cell = moved[i]
-                val values = ContentValues().apply {
-                    put(Favorites.SPANX, 1)
-                    put(Favorites.SPANY, 1)
-                    if (cell != null) {
-                        put(Favorites.CELLX, cell.x)
-                        put(Favorites.CELLY, cell.y)
-                    }
-                }
-                if (cell != null) {
-                    folder.cellX = cell.x
-                    folder.cellY = cell.y
-                }
-                folder.spanX = 1
-                folder.spanY = 1
-                modelDbController.update(values, "${Favorites._ID} = ?", arrayOf(folder.id.toString()))
             }
         }
     }
@@ -804,7 +725,6 @@ class WorkspaceItemProcessor(
 
         // Remove dead items
         val itemsDeleted = c.commitDeleted()
-        promoteLargeFolders(modelDbController)
 
         processFolderItems()
         // After all items have been processed and added to the BgDataModel, this method

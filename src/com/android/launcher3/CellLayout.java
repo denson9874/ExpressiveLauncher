@@ -67,8 +67,6 @@ import com.android.launcher3.celllayout.ReorderParameters;
 import com.android.launcher3.celllayout.ReorderPreviewAnimation;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dragndrop.DraggableView;
-import com.android.launcher3.folder.FolderIcon;
-import app.lawnchair.folder.LargeFolderLayout;
 import com.android.launcher3.folder.PreviewBackground;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
@@ -951,10 +949,7 @@ public class CellLayout extends ViewGroup {
         if (child instanceof DraggableView) {
             DraggableView draggableChild = (DraggableView) child;
             if (draggableChild.getViewType() == DRAGGABLE_ICON) {
-                // LC-Note: Offset from the icon's own cell; a large (2x2) folder covers cells other
-                // than its top-left one, and its tile center is the same from all of them.
-                CellLayoutLayoutParams childLp = (CellLayoutLayoutParams) child.getLayoutParams();
-                cellToPoint(childLp.getCellX(), childLp.getCellY(), outPoint);
+                cellToPoint(cellX, cellY, outPoint);
                 draggableChild.getWorkspaceVisualDragBounds(mTempRect);
                 mTempRect.offset(outPoint[0], outPoint[1]);
                 outPoint[0] = mTempRect.centerX();
@@ -969,11 +964,6 @@ public class CellLayout extends ViewGroup {
      * Returns the max distance from the center of a cell that can accept a drop to create a folder.
      */
     public float getFolderCreationRadius(int[] targetCell) {
-        if (getChildAt(targetCell[0], targetCell[1]) instanceof FolderIcon folderIcon
-                && folderIcon.isLarge()) {
-            // LC-Note: Dropping anywhere on a large folder's tile adds to it.
-            return folderIcon.getLargeTileRadius();
-        }
         DeviceProfile grid = mActivity.getDeviceProfile();
         float iconVisibleRadius = ICON_VISIBLE_AREA_FACTOR * grid.iconSizePx / 2;
         // Halfway between reorder radius and icon.
@@ -1892,12 +1882,12 @@ public class CellLayout extends ViewGroup {
                 && view.getTag() instanceof LauncherAppWidgetInfo info) {
             CellPos pos = mActivity.getCellPosMapper().mapModelToPresenter(info);
             mOccupied.markCells(pos.cellX, pos.cellY, info.spanX, info.spanY, true);
-            LargeFolderLayout.refresh(this); // LC-Note: large folders v2
             return;
         }
         if (view == null || view.getParent() != mShortcutsAndWidgets) return;
-        markCellsForViewRaw(view, true);
-        LargeFolderLayout.refresh(this); // LC-Note: large folders v2
+        CellLayoutLayoutParams
+                lp = (CellLayoutLayoutParams) view.getLayoutParams();
+        mOccupied.markCells(lp.getCellX(), lp.getCellY(), lp.cellHSpan, lp.cellVSpan, true);
     }
 
     public void markCellsAsUnoccupiedForView(View view) {
@@ -1905,22 +1895,12 @@ public class CellLayout extends ViewGroup {
                 && view.getTag() instanceof LauncherAppWidgetInfo info) {
             CellPos pos = mActivity.getCellPosMapper().mapModelToPresenter(info);
             mOccupied.markCells(pos.cellX, pos.cellY, info.spanX, info.spanY, false);
-            // LC-Note: Large folders v2. A large folder over this widget keeps its cells.
-            LargeFolderLayout.remarkOverlapping(this, view);
-            LargeFolderLayout.refresh(this);
             return;
         }
         if (view == null || view.getParent() != mShortcutsAndWidgets) return;
-        markCellsForViewRaw(view, false);
-        // LC-Note: Large folders v2. Widgets under a large folder keep their cells, and vice versa.
-        LargeFolderLayout.remarkOverlapping(this, view);
-        LargeFolderLayout.refresh(this);
-    }
-
-    /** LC-Note: Marks a child's own cells without touching overlapping items. */
-    public void markCellsForViewRaw(View view, boolean value) {
-        CellLayoutLayoutParams lp = (CellLayoutLayoutParams) view.getLayoutParams();
-        mOccupied.markCells(lp.getCellX(), lp.getCellY(), lp.cellHSpan, lp.cellVSpan, value);
+        CellLayoutLayoutParams
+                lp = (CellLayoutLayoutParams) view.getLayoutParams();
+        mOccupied.markCells(lp.getCellX(), lp.getCellY(), lp.cellHSpan, lp.cellVSpan, false);
     }
 
     public int getDesiredWidth() {

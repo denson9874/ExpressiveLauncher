@@ -63,17 +63,6 @@
             android:elevation="1dp"
             />
 
-        <ImageButton
-            android:id="@+id/folder_size_button"
-            android:layout_width="@dimen/folder_arrow_touchbox_length"
-            android:layout_height="@dimen/folder_arrow_touchbox_length"
-            android:layout_gravity="center_vertical"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/large_folder_make_large"
-            android:scaleType="center"
-            android:src="@drawable/ic_folder_make_large"
-            android:visibility="gone" />
-
     </LinearLayout>
 
 </com.android.launcher3.folder.Folder>

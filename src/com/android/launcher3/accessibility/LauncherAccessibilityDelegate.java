@@ -24,7 +24,6 @@ import android.view.accessibility.AccessibilityEvent;
 
 import androidx.annotation.Nullable;
 
-import app.lawnchair.folder.LargeFolderController;
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.AppWidgetResizeFrame;
 import com.android.launcher3.BubbleTextView;
@@ -41,7 +40,6 @@ import com.android.launcher3.dragndrop.DragOptions.PreDragCondition;
 import com.android.launcher3.dragndrop.DragView;
 import com.android.launcher3.folder.Folder;
 import com.android.launcher3.keyboard.KeyboardDragAndDropView;
-import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.AppPairInfo;
 import com.android.launcher3.model.data.CollectionInfo;
@@ -86,9 +84,6 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
     protected static final int RESIZE = R.id.action_resize;
     public static final int DEEP_SHORTCUTS = R.id.action_deep_shortcuts;
     public static final int CLOSE = R.id.action_close;
-    // LC-Note: Large (2x2) Home screen folders, XDA-014.
-    protected static final int FOLDER_MAKE_LARGE = R.id.action_folder_make_large;
-    protected static final int FOLDER_MAKE_SMALL = R.id.action_folder_make_small;
 
     public LauncherAccessibilityDelegate(Launcher launcher) {
         super(launcher);
@@ -113,10 +108,6 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
                 R.string.action_deep_shortcut, KeyEvent.KEYCODE_S));
         mActions.put(CLOSE, new LauncherAction(CLOSE,
                 R.string.action_close, KeyEvent.KEYCODE_X));
-        mActions.put(FOLDER_MAKE_LARGE, new LauncherAction(FOLDER_MAKE_LARGE,
-                R.string.large_folder_make_large, KeyEvent.KEYCODE_L));
-        mActions.put(FOLDER_MAKE_SMALL, new LauncherAction(FOLDER_MAKE_SMALL,
-                R.string.large_folder_make_small, KeyEvent.KEYCODE_L));
     }
 
     private static boolean isNotInShortcutMenu(@Nullable View view) {
@@ -155,10 +146,6 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
 
         if (host instanceof AppWidgetResizeFrame) {
             out.add(mActions.get(CLOSE));
-        }
-
-        if (host instanceof FolderIcon folderIcon && LargeFolderController.canResize(folderIcon)) {
-            out.add(mActions.get(folderIcon.isLarge() ? FOLDER_MAKE_SMALL : FOLDER_MAKE_LARGE));
         }
 
         if (supportAddToWorkSpace(item)) {
@@ -206,9 +193,6 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
                         : holder.getBubbleText().startLongPressAction();
             }
             return dragCondition != null;
-        } else if ((action == FOLDER_MAKE_LARGE || action == FOLDER_MAKE_SMALL)
-                && host instanceof FolderIcon folderIcon) {
-            return LargeFolderController.toggle(mContext, folderIcon);
         } else if (action == MOVE) {
             final View itemView = (host instanceof AppWidgetResizeFrame)
                     ? ((AppWidgetResizeFrame) host).getViewForAccessibility()

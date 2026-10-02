@@ -646,13 +646,23 @@ public class LoaderCursor extends CursorWrapper {
             return false;
         }
 
-        final GridOccupancy occupancy = getDesktopOccupancy(item.screenId);
+        if (!mOccupied.containsKey(item.screenId)) {
+            GridOccupancy screen = new GridOccupancy(countX + 1, countY + 1);
+            if (item.screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getEnableSmartspace())) {
+                // Mark the first X columns (X is width of the search container) in the first row as
+                // occupied (if the feature is enabled) in order to account for the search
+                // container.
+                int spanX = mIDP.numSearchContainerColumns;
+                int spanY = 1;
+                screen.markCells(0, 0, spanX, spanY, true);
+            }
+            mOccupied.put(item.screenId, screen);
+        }
+        final GridOccupancy occupancy = mOccupied.get(item.screenId);
 
         // Check if any workspace icons overlap with each other
-        // LC-Note: Large folders v2. A widget and a large folder's anchor may share cells.
-        if (isRegionPlaceable(item, occupancy)) {
+        if (occupancy.isRegionVacant(item.cellX, item.cellY, item.spanX, item.spanY)) {
             occupancy.markCells(item, true);
-            markDesktopKinds(item);
             return true;
         } else {
             Log.e(TAG, "Error loading shortcut " + item
@@ -661,123 +671,6 @@ public class LoaderCursor extends CursorWrapper {
                     + ") already occupied");
             return PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getAllowWidgetOverlap());
         }
-    }
-
-    private GridOccupancy getDesktopOccupancy(int screenId) {
-        if (!mOccupied.containsKey(screenId)) {
-            GridOccupancy screen = new GridOccupancy(mIDP.numColumns + 1, mIDP.numRows + 1);
-            if (screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getEnableSmartspace())) {
-                // Mark the first X columns (X is width of the search container) in the first row as
-                // occupied (if the feature is enabled) in order to account for the search
-                // container.
-                int spanX = mIDP.numSearchContainerColumns;
-                int spanY = 1;
-                screen.markCells(0, 0, spanX, spanY, true);
-            }
-            mOccupied.put(screenId, screen);
-        }
-        return mOccupied.get(screenId);
-    }
-
-    // LC-Note: Large folders v2. What holds each loaded Home cell: widget, large-folder anchor or other.
-    private static final int KIND_WIDGET = 1;
-    private static final int KIND_LARGE_ANCHOR = 2;
-    private static final int KIND_OTHER = 3;
-    private final java.util.Map<Integer, int[][]> mDesktopKinds = new java.util.HashMap<>();
-
-    private int[][] getDesktopKinds(int screenId) {
-        return mDesktopKinds.computeIfAbsent(screenId,
-                id -> new int[mIDP.numColumns + 1][mIDP.numRows + 1]);
-    }
-
-    private int kindOf(ItemInfo item) {
-        if (item instanceof com.android.launcher3.model.data.LauncherAppWidgetInfo) {
-            return KIND_WIDGET;
-        }
-        for (FolderInfo f : mLargeFolderCandidates) {
-            if (f == item) return KIND_LARGE_ANCHOR;
-        }
-        return KIND_OTHER;
-    }
-
-    // LC-Note: Large folders v2. 1x1 folders found on a widget's cells; moved, never deleted.
-    private final java.util.List<FolderInfo> mFoldersToRelocate = new java.util.ArrayList<>();
-
-    public java.util.List<FolderInfo> getFoldersToRelocate() {
-        return mFoldersToRelocate;
-    }
-
-    private boolean isRegionPlaceable(ItemInfo item, GridOccupancy occupancy) {
-        if (occupancy.isRegionVacant(item.cellX, item.cellY, item.spanX, item.spanY)) return true;
-        int kind = kindOf(item);
-        int[][] kinds = getDesktopKinds(item.screenId);
-        if (item instanceof FolderInfo folder && kind == KIND_OTHER
-                && isOnlyOnWidgets(item, occupancy, kinds)) {
-            // A folder deleted here takes its apps with it; move it to a free cell instead.
-            mFoldersToRelocate.add(folder);
-            return true;
-        }
-        for (int x = item.cellX; x < item.cellX + item.spanX; x++) {
-            for (int y = item.cellY; y < item.cellY + item.spanY; y++) {
-                if (!occupancy.cells[x][y]) continue;
-                // Occupied cells with no recorded kind (the search bar) block everything.
-                int held = kinds[x][y];
-                if (!app.lawnchair.folder.LargeFolderOverlap.isAllowedBindOverlap(
-                        kind == KIND_WIDGET, kind == KIND_LARGE_ANCHOR,
-                        held == KIND_WIDGET, held == KIND_LARGE_ANCHOR)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    private boolean isOnlyOnWidgets(ItemInfo item, GridOccupancy occupancy, int[][] kinds) {
-        for (int x = item.cellX; x < item.cellX + item.spanX; x++) {
-            for (int y = item.cellY; y < item.cellY + item.spanY; y++) {
-                if (occupancy.cells[x][y] && kinds[x][y] != KIND_WIDGET) return false;
-            }
-        }
-        return true;
-    }
-
-    private void markDesktopKinds(ItemInfo item) {
-        int[][] kinds = getDesktopKinds(item.screenId);
-        int kind = kindOf(item);
-        for (int x = item.cellX; x < item.cellX + item.spanX; x++) {
-            for (int y = item.cellY; y < item.cellY + item.spanY; y++) {
-                if (kinds[x][y] == 0) kinds[x][y] = kind;
-            }
-        }
-    }
-
-    // LC-Note: Large folders v2. Stored 2x2 folders, resolved after all items load.
-    private final java.util.List<FolderInfo> mLargeFolderCandidates = new java.util.ArrayList<>();
-
-    public void markLargeFolderCandidate(FolderInfo info) {
-        mLargeFolderCandidates.add(info);
-    }
-
-    public java.util.List<FolderInfo> getLargeFolderCandidates() {
-        return mLargeFolderCandidates;
-    }
-
-    /** LC-Note: The search/smartspace row reserved on the first screen, or null. */
-    @Nullable
-    public app.lawnchair.folder.CellRect getSearchBarRect(int screenId) {
-        if (screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(
-                preferenceManager2.getEnableSmartspace())) {
-            return new app.lawnchair.folder.CellRect(0, 0, mIDP.numSearchContainerColumns, 1);
-        }
-        return null;
-    }
-
-    public int getGridColumns() {
-        return mIDP.numColumns;
-    }
-
-    public int getGridRows() {
-        return mIDP.numRows;
     }
 
     @AssistedFactory
