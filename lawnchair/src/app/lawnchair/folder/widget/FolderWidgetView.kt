@@ -58,7 +58,9 @@ class FolderWidgetView @JvmOverloads constructor(
     private var boundSpanX = -1
 
     /** The panel's corner radius, for the resize frame. */
-    val cornerRadiusPx: Float get() = style?.cornerRadiusPx ?: 0f
+    val cornerRadiusPx: Float
+        get() = style?.cornerRadiusPx
+            ?: runCatching { resources.getDimension(android.R.dimen.system_app_widget_background_radius) }.getOrDefault(0f)
 
     override fun onFinishInflate() {
         super.onFinishInflate()

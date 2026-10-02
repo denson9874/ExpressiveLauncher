@@ -28,6 +28,7 @@ class FolderWidgetPickerEntry : CustomWidgetPlugin {
             info.minSpanX = 1
             info.minSpanY = 1
         }
+        info.configure = null
         info.resizeMode = AppWidgetProviderInfo.RESIZE_BOTH
         info.previewImage = R.drawable.folder_widget_preview
     }

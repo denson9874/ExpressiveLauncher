@@ -219,16 +219,24 @@ object FolderWidgetController {
             panel.pivotX = if (fromRight) panel.width.toFloat() else 0f
             panel.pivotY = if (fromBottom) panel.height.toFloat() else 0f
             panel.scaleX = scaleX
-            panel.scaleY = scaleY
-            listOf(DynamicAnimation.SCALE_X, DynamicAnimation.SCALE_Y).forEach { prop ->
-                SpringAnimation(panel, prop)
-                    .setSpring(
-                        SpringForce(1f)
-                            .setStiffness(SpringForce.STIFFNESS_MEDIUM)
-                            .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
-                    )
-                    .start()
-            }
+            val animX = SpringAnimation(panel, DynamicAnimation.SCALE_X)
+                .setSpring(
+                    SpringForce(1f)
+                        .setStiffness(SpringForce.STIFFNESS_MEDIUM)
+                        .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
+                )
+                .addEndListener { _, _, _, _ ->
+                    panel.pivotX = panel.width / 2f
+                    panel.pivotY = panel.height / 2f
+                }
+            val animY = SpringAnimation(panel, DynamicAnimation.SCALE_Y)
+                .setSpring(
+                    SpringForce(1f)
+                        .setStiffness(SpringForce.STIFFNESS_MEDIUM)
+                        .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
+                )
+            animX.start()
+            animY.start()
         }
     }
 
@@ -286,7 +294,7 @@ object FolderWidgetController {
             if (chosen) return@setOnDismissListener
             // Cancelled: nothing was deleted; the widget goes back where it was, unless Home was
             // rebound meanwhile and shows it already.
-            launcher.modelWriter.commitDelete()
+            launcher.modelWriter.abortDelete()
             if (launcher.workspace.getViewByItemId(info.id) == null) {
                 ensureScreen(launcher.workspace, info.screenId)
                 addView(launcher, info)
@@ -385,6 +393,7 @@ object FolderWidgetController {
         if (view != null) {
             launcher.workspace.addInScreen(view, folderInfo)
             (view.parent?.parent as? CellLayout)?.shortcutsAndWidgets?.measureChild(view)
+            launcher.workspace.removeExtraEmptyScreenDelayed(0, false, null)
             showAppPicker(launcher, view)
         }
     }
@@ -415,7 +424,8 @@ object FolderWidgetController {
         }
     }
 
-    private fun applyAppPickerResult(
+    @androidx.annotation.VisibleForTesting
+    internal fun applyAppPickerResult(
         launcher: Launcher,
         widget: FolderWidgetView,
         title: String,
@@ -451,9 +461,22 @@ object FolderWidgetController {
             }
         }
 
-        val cleanTitle = title.trim()
-        if ((widget.mInfo.title?.toString() ?: "") != cleanTitle) {
-            widget.mInfo.setTitle(cleanTitle, launcher.modelWriter)
+        updateWidgetTitle(widget.mInfo, launcher.modelWriter, widget::onTitleChanged, title)
+    }
+
+    @androidx.annotation.VisibleForTesting
+    internal fun updateWidgetTitle(
+        info: FolderInfo,
+        modelWriter: com.android.launcher3.model.ModelWriter?,
+        onTitleChanged: (CharSequence) -> Unit,
+        newTitle: String,
+    ): Boolean {
+        val cleanTitle = newTitle.trim()
+        if ((info.title?.toString() ?: "") != cleanTitle) {
+            info.setTitle(cleanTitle, modelWriter)
+            onTitleChanged(cleanTitle)
+            return true
         }
+        return false
     }
 }

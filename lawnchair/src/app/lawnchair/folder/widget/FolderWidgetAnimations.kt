@@ -46,6 +46,13 @@ object FolderWidgetAnimations {
     }
 
     @JvmStatic
+    fun flightDelta(
+        widgetChildCoordInDragLayer: Float,
+        panelOriginInDragLayer: Float,
+        folderItemCoordInFolder: Float,
+    ): Float = widgetChildCoordInDragLayer - panelOriginInDragLayer - folderItemCoordInFolder
+
+    @JvmStatic
     fun create(folder: Folder, widget: FolderWidgetView, opening: Boolean): AnimatorSet {
         val context = folder.context
         val res = context.resources
@@ -79,7 +86,7 @@ object FolderWidgetAnimations {
         val widgetRectF = RectF(0f, 0f, panelRect.width().toFloat(), panelRect.height().toFloat())
         val folderRectF = RectF(0f, 0f, lp.width.toFloat(), lp.height.toFloat())
         val (startRR, endRR) = revealEndpoints(widgetRectF, folderRectF, widgetRadius, folderRadius, opening)
-        val revealAnimator = RoundRectRevealAnimator(folder, startRR, endRR, !opening).create()
+        val revealAnimator = RoundRectRevealAnimator(folder, startRR, endRR, reversed = false).create()
         asSet.play(revealAnimator)
 
         // Translation of the folder view from/to the widget's location in DragLayer
@@ -161,14 +168,11 @@ object FolderWidgetAnimations {
 
                 val ptWidget = floatArrayOf(widgetBounds.left.toFloat(), widgetBounds.top.toFloat())
                 Utilities.getDescendantCoordRelativeToAncestor(widgetChild, dragLayer, ptWidget, false)
-                val startXInFolder = ptWidget[0] - lp.x
-                val startYInFolder = ptWidget[1] - lp.y
-
                 val ptFolder = floatArrayOf(folderBounds.left.toFloat(), folderBounds.top.toFloat())
                 Utilities.getDescendantCoordRelativeToAncestor(v, folder, ptFolder, false)
 
-                val deltaX = startXInFolder - ptFolder[0]
-                val deltaY = startYInFolder - ptFolder[1]
+                val deltaX = flightDelta(ptWidget[0], panelRect.left.toFloat(), ptFolder[0])
+                val deltaY = flightDelta(ptWidget[1], panelRect.top.toFloat(), ptFolder[1])
                 val startScale = if (folderBounds.width() > 0 && widgetBounds.width() > 0) {
                     widgetBounds.width().toFloat() / folderBounds.width().toFloat()
                 } else 1f

@@ -38,4 +38,37 @@ class FolderWidgetAppSelectionTest {
         assertThat(add).isEmpty()
         assertThat(remove).containsExactly(key("a"), key("b")).inOrder()
     }
+
+    @Test
+    fun updateWidgetTitle_syncsHeaderAndDatabase() {
+        val folderInfo = com.android.launcher3.model.data.FolderInfo().apply {
+            title = "Old Title"
+        }
+        var headerText: CharSequence? = "Old Title"
+        val updated = FolderWidgetController.updateWidgetTitle(
+            folderInfo,
+            null,
+            { headerText = it },
+            "New Title",
+        )
+        assertThat(updated).isTrue()
+        assertThat(headerText.toString()).isEqualTo("New Title")
+        assertThat(folderInfo.title?.toString()).isEqualTo("New Title")
+    }
+
+    @Test
+    fun updateWidgetTitle_unchangedTitle_noUpdate() {
+        val folderInfo = com.android.launcher3.model.data.FolderInfo().apply {
+            title = "Same Title"
+        }
+        var headerUpdated = false
+        val updated = FolderWidgetController.updateWidgetTitle(
+            folderInfo,
+            null,
+            { headerUpdated = true },
+            "  Same Title  ",
+        )
+        assertThat(updated).isFalse()
+        assertThat(headerUpdated).isFalse()
+    }
 }

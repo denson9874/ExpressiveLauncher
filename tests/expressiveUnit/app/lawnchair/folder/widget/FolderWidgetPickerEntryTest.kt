@@ -42,4 +42,15 @@ class FolderWidgetPickerEntryTest {
         assertThat(info.resizeMode).isEqualTo(AppWidgetProviderInfo.RESIZE_BOTH)
         assertThat(info.previewImage).isEqualTo(R.drawable.folder_widget_preview)
     }
+
+    @Test
+    fun updateWidgetInfo_clearsConfigureActivity() {
+        val entry = FolderWidgetPickerEntry()
+        val info = CustomAppWidgetProviderInfo().apply {
+            configure = ComponentName("com.example", "ConfigActivity")
+        }
+        entry.updateWidgetInfo(info, context)
+
+        assertThat(info.configure).isNull()
+    }
 }
