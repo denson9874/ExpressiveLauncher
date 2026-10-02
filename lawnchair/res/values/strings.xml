@@ -1219,4 +1219,12 @@
     <string name="folder_widget_remove_all">Remove all</string>
     <string name="folder_widget_label">Folder</string>
     <string name="folder_widget_save">Save</string>
+    <string name="folder_widget_wider">Make wider</string>
+    <string name="folder_widget_narrower">Make narrower</string>
+    <string name="folder_widget_taller">Make taller</string>
+    <string name="folder_widget_shorter">Make shorter</string>
+    <plurals name="folder_widget_description">
+        <item quantity="one">Folder widget, %1$s, %2$d app</item>
+        <item quantity="other">Folder widget, %1$s, %2$d apps</item>
+    </plurals>
 </resources>

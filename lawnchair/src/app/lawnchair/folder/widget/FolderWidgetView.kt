@@ -97,6 +97,7 @@ class FolderWidgetView @JvmOverloads constructor(
         val style = style ?: defaultStyle().also { style = it }
         boundSpanX = currentSpanX()
         panel.bind(info.title ?: "", adapter, style, metrics(boundSpanX))
+        contentDescription = getAccessiblityTitle(info.title)
         setTextVisible(true)
     }
 
@@ -262,7 +263,7 @@ class FolderWidgetView @JvmOverloads constructor(
 
     private fun springPanelTo(scale: Float) = panelSprings.forEach { it.animateToFinalPosition(scale) }
 
-    private fun openFolder() {
+    fun openFolder() {
         if (mInfo.getContents().isEmpty()) {
             (mActivity as? Launcher)?.let { launcher ->
                 FolderWidgetController.showAppPicker(launcher, this)
@@ -385,6 +386,12 @@ class FolderWidgetView @JvmOverloads constructor(
     override fun onTitleChanged(title: CharSequence?) {
         super.onTitleChanged(title)
         panel.header.text = title ?: ""
+    }
+
+    override fun getAccessiblityTitle(title: CharSequence?): String {
+        val name = if (title.isNullOrBlank()) context.getString(R.string.unnamed_folder) else title
+        val size = mInfo?.getContents()?.size ?: 0
+        return resources.getQuantityString(R.plurals.folder_widget_description, size, name, size)
     }
 
     /** The folder name under the panel shows only with "Show name below". */

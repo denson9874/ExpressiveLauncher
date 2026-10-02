@@ -63,6 +63,17 @@ import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.PendingAddWidgetInfo;
 import com.android.launcher3.widget.util.WidgetSizes;
 
+// LC-Note: Folder widget accessibility support
+import app.lawnchair.folder.widget.FolderWidgetAccessibility;
+import app.lawnchair.folder.widget.FolderWidgetController;
+import app.lawnchair.folder.widget.FolderWidgetMenus;
+import app.lawnchair.folder.widget.FolderWidgetResizeMath;
+import app.lawnchair.folder.widget.FolderWidgetView;
+import app.lawnchair.folder.widget.FolderWidgets;
+import app.lawnchair.folder.widget.GridRect;
+import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.folder.FolderIcon;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -84,6 +95,16 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
     protected static final int RESIZE = R.id.action_resize;
     public static final int DEEP_SHORTCUTS = R.id.action_deep_shortcuts;
     public static final int CLOSE = R.id.action_close;
+
+    // LC-Note: Folder widget accessibility actions
+    protected static final int FOLDER_WIDGET_OPEN = R.id.action_folder_widget_open;
+    protected static final int FOLDER_WIDGET_CUSTOMIZE = R.id.action_folder_widget_customize;
+    protected static final int FOLDER_WIDGET_WIDER = R.id.action_folder_widget_wider;
+    protected static final int FOLDER_WIDGET_NARROWER = R.id.action_folder_widget_narrower;
+    protected static final int FOLDER_WIDGET_TALLER = R.id.action_folder_widget_taller;
+    protected static final int FOLDER_WIDGET_SHORTER = R.id.action_folder_widget_shorter;
+    protected static final int FOLDER_WIDGET_MAKE_FOLDER = R.id.action_folder_widget_make_folder;
+    protected static final int FOLDER_WIDGET_MAKE_WIDGET = R.id.action_folder_widget_make_widget;
 
     public LauncherAccessibilityDelegate(Launcher launcher) {
         super(launcher);
@@ -108,6 +129,24 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
                 R.string.action_deep_shortcut, KeyEvent.KEYCODE_S));
         mActions.put(CLOSE, new LauncherAction(CLOSE,
                 R.string.action_close, KeyEvent.KEYCODE_X));
+
+        // LC-Note: Folder widget accessibility actions registration
+        mActions.put(FOLDER_WIDGET_OPEN, new LauncherAction(
+                FOLDER_WIDGET_OPEN, R.string.folder_widget_open_folder, KeyEvent.KEYCODE_UNKNOWN));
+        mActions.put(FOLDER_WIDGET_CUSTOMIZE, new LauncherAction(
+                FOLDER_WIDGET_CUSTOMIZE, R.string.folder_widget_customize, KeyEvent.KEYCODE_UNKNOWN));
+        mActions.put(FOLDER_WIDGET_WIDER, new LauncherAction(
+                FOLDER_WIDGET_WIDER, R.string.folder_widget_wider, KeyEvent.KEYCODE_UNKNOWN));
+        mActions.put(FOLDER_WIDGET_NARROWER, new LauncherAction(
+                FOLDER_WIDGET_NARROWER, R.string.folder_widget_narrower, KeyEvent.KEYCODE_UNKNOWN));
+        mActions.put(FOLDER_WIDGET_TALLER, new LauncherAction(
+                FOLDER_WIDGET_TALLER, R.string.folder_widget_taller, KeyEvent.KEYCODE_UNKNOWN));
+        mActions.put(FOLDER_WIDGET_SHORTER, new LauncherAction(
+                FOLDER_WIDGET_SHORTER, R.string.folder_widget_shorter, KeyEvent.KEYCODE_UNKNOWN));
+        mActions.put(FOLDER_WIDGET_MAKE_FOLDER, new LauncherAction(
+                FOLDER_WIDGET_MAKE_FOLDER, R.string.folder_widget_make_folder, KeyEvent.KEYCODE_UNKNOWN));
+        mActions.put(FOLDER_WIDGET_MAKE_WIDGET, new LauncherAction(
+                FOLDER_WIDGET_MAKE_WIDGET, R.string.folder_widget_make_widget, KeyEvent.KEYCODE_UNKNOWN));
     }
 
     private static boolean isNotInShortcutMenu(@Nullable View view) {
@@ -150,6 +189,47 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
 
         if (supportAddToWorkSpace(item)) {
             out.add(mActions.get(ADD_TO_WORKSPACE));
+        }
+
+        // LC-Note: Actions for Folder widgets and desktop folders
+        if (host instanceof FolderWidgetView widget && item instanceof FolderInfo folderInfo) {
+            if (FolderWidgets.canOpen(folderInfo, folderInfo.getContents().size())) {
+                out.add(mActions.get(FOLDER_WIDGET_OPEN));
+            }
+            if (!FolderWidgetController.isHomeLocked(mContext)) {
+                out.add(mActions.get(FOLDER_WIDGET_CUSTOMIZE));
+
+                if (host.getParent() != null && host.getParent().getParent() instanceof CellLayout layout) {
+                    DeviceProfile dp = mContext.getDeviceProfile();
+                    GridRect rect = new GridRect(folderInfo.cellX, folderInfo.cellY, folderInfo.spanX, folderInfo.spanY);
+                    List<Integer> resizeResIds = FolderWidgetAccessibility.resizeActions(
+                            rect, dp.inv.numColumns, dp.inv.numRows,
+                            targetRect -> layout.isRegionVacant(targetRect.getX(), targetRect.getY(), targetRect.getSpanX(), targetRect.getSpanY()));
+                    for (int resId : resizeResIds) {
+                        if (resId == R.string.folder_widget_wider) {
+                            out.add(mActions.get(FOLDER_WIDGET_WIDER));
+                        } else if (resId == R.string.folder_widget_narrower) {
+                            out.add(mActions.get(FOLDER_WIDGET_NARROWER));
+                        } else if (resId == R.string.folder_widget_taller) {
+                            out.add(mActions.get(FOLDER_WIDGET_TALLER));
+                        } else if (resId == R.string.folder_widget_shorter) {
+                            out.add(mActions.get(FOLDER_WIDGET_SHORTER));
+                        }
+                    }
+                }
+
+                out.add(mActions.get(FOLDER_WIDGET_MAKE_FOLDER));
+                if (out.remove(mActions.get(REMOVE))) {
+                    out.add(mActions.get(REMOVE));
+                } else {
+                    out.add(mActions.get(REMOVE));
+                }
+            }
+        } else if (host instanceof FolderIcon && !(host instanceof FolderWidgetView)
+                && item.container == LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+            if (!FolderWidgetController.isHomeLocked(mContext)) {
+                out.add(mActions.get(FOLDER_WIDGET_MAKE_WIDGET));
+            }
         }
     }
 
@@ -230,6 +310,33 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
                 AbstractFloatingView.closeOpenViews(mContext, /* animate= */ false,
                         AbstractFloatingView.TYPE_WIDGET_RESIZE_FRAME);
             }
+        // LC-Note: Folder widget accessibility action handling
+        } else if (action == FOLDER_WIDGET_OPEN) {
+            if (host instanceof FolderWidgetView widget) {
+                widget.openFolder();
+                return true;
+            }
+        } else if (action == FOLDER_WIDGET_CUSTOMIZE) {
+            if (host instanceof FolderWidgetView widget) {
+                FolderWidgetMenus.runAction(mContext, widget, R.string.folder_widget_customize);
+                return true;
+            }
+        } else if (action == FOLDER_WIDGET_MAKE_FOLDER) {
+            if (host instanceof FolderWidgetView widget) {
+                return FolderWidgetController.makeNormalFolder(mContext, widget);
+            }
+        } else if (action == FOLDER_WIDGET_MAKE_WIDGET) {
+            if (host instanceof FolderIcon icon) {
+                return FolderWidgetController.makeWidget(mContext, icon);
+            }
+        } else if (action == FOLDER_WIDGET_WIDER || action == FOLDER_WIDGET_NARROWER
+                || action == FOLDER_WIDGET_TALLER || action == FOLDER_WIDGET_SHORTER) {
+            if (host instanceof FolderWidgetView widget && item instanceof FolderInfo folderInfo) {
+                return performFolderWidgetResize(widget, folderInfo, action);
+            }
+        } else if (action == REMOVE && host instanceof FolderWidgetView widget) {
+            FolderWidgetController.confirmRemove(mContext, widget);
+            return true;
         } else {
             for (ButtonDropTarget dropTarget : mContext.getDropTargetBar().getDropTargets()) {
                 int dropTargetAction = dropTarget.getSupportedAccessibilityAction(item, host);
@@ -333,6 +440,67 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
                 info.spanX, info.spanY);
         host.requestLayout();
         mContext.getModelWriter().updateItemInDatabase(info);
+        return true;
+    }
+
+    // LC-Note: Accessibility resize execution for FolderWidgetView
+    private boolean performFolderWidgetResize(FolderWidgetView widget, FolderInfo info, int action) {
+        if (widget.getParent() == null || !(widget.getParent().getParent() instanceof CellLayout)) {
+            return false;
+        }
+        CellLayout layout = (CellLayout) widget.getParent().getParent();
+        DeviceProfile dp = mContext.getDeviceProfile();
+        GridRect rect = new GridRect(info.cellX, info.cellY, info.spanX, info.spanY);
+
+        int hDelta = 0;
+        int vDelta = 0;
+        boolean right = false;
+        boolean bottom = false;
+        int confirmationResId = 0;
+
+        if (action == FOLDER_WIDGET_WIDER) {
+            right = true;
+            hDelta = 1;
+            confirmationResId = R.string.folder_widget_wider;
+        } else if (action == FOLDER_WIDGET_NARROWER) {
+            right = true;
+            hDelta = -1;
+            confirmationResId = R.string.folder_widget_narrower;
+        } else if (action == FOLDER_WIDGET_TALLER) {
+            bottom = true;
+            vDelta = 1;
+            confirmationResId = R.string.folder_widget_taller;
+        } else if (action == FOLDER_WIDGET_SHORTER) {
+            bottom = true;
+            vDelta = -1;
+            confirmationResId = R.string.folder_widget_shorter;
+        }
+
+        GridRect target = FolderWidgetResizeMath.step(
+                rect, false, false, right, bottom, hDelta, vDelta,
+                dp.inv.numColumns, dp.inv.numRows);
+        if (target.equals(rect)) {
+            return false;
+        }
+
+        CellLayoutLayoutParams lp = (CellLayoutLayoutParams) widget.getLayoutParams();
+        layout.markCellsAsUnoccupiedForView(widget);
+        lp.setCellX(target.getX());
+        lp.setCellY(target.getY());
+        lp.cellHSpan = target.getSpanX();
+        lp.cellVSpan = target.getSpanY();
+        info.cellX = target.getX();
+        info.cellY = target.getY();
+        info.spanX = target.getSpanX();
+        info.spanY = target.getSpanY();
+        layout.markCellsAsOccupiedForView(widget);
+
+        layout.getShortcutsAndWidgets().measureChild(widget);
+        widget.requestLayout();
+        mContext.getModelWriter().updateItemInDatabase(info);
+        if (confirmationResId != 0) {
+            announceConfirmation(confirmationResId);
+        }
         return true;
     }
 
