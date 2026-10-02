@@ -147,6 +147,7 @@ import java.util.stream.Collectors;
 
 import app.lawnchair.folder.widget.FolderWidgetResizeFrame;
 import app.lawnchair.folder.widget.FolderWidgetView;
+import app.lawnchair.folder.widget.FolderWidgets;
 import app.lawnchair.hotseat.HotseatPagedView;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import static app.lawnchair.util.LawnchairUtilsKt.toBitmap;
@@ -2703,8 +2704,10 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
     }
 
     private boolean isDragWidget(DragObject d) {
+        // LC-Note: Folder widgets, like widgets, never go into the dock.
         return (d.dragInfo instanceof LauncherAppWidgetInfo ||
-                d.dragInfo instanceof PendingAddWidgetInfo);
+                d.dragInfo instanceof PendingAddWidgetInfo
+                || FolderWidgets.isFolderWidget(d.dragInfo));
     }
 
     public void onDragOver(DragObject d) {

@@ -79,6 +79,7 @@ import com.android.launcher3.util.Themes;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
+import app.lawnchair.folder.widget.FolderWidgetView;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 
 import com.google.android.msdl.data.model.MSDLToken;
@@ -964,6 +965,10 @@ public class CellLayout extends ViewGroup {
      * Returns the max distance from the center of a cell that can accept a drop to create a folder.
      */
     public float getFolderCreationRadius(int[] targetCell) {
+        // LC-Note: an app dropped anywhere over a Folder widget's cells goes into the widget.
+        if (getChildAt(targetCell[0], targetCell[1]) instanceof FolderWidgetView) {
+            return Float.MAX_VALUE;
+        }
         DeviceProfile grid = mActivity.getDeviceProfile();
         float iconVisibleRadius = ICON_VISIBLE_AREA_FACTOR * grid.iconSizePx / 2;
         // Halfway between reorder radius and icon.

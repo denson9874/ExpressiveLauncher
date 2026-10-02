@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import app.lawnchair.folder.widget.FolderWidgetView;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 
 /**
@@ -133,8 +134,9 @@ public class ReorderAlgorithm {
         ArrayList<View> intersectingViews = new ArrayList<>();
         Rect occupiedRect = new Rect(cellX, cellY, cellX + spanX, cellY + spanY);
 
-        // Lawnchair: Widget overlap
-        if (PreferenceCacheExtensionsKt.firstCached(mCellLayout.pref.getAllowWidgetOverlap(), mCellLayout.pref)) {
+        // Lawnchair: Widget overlap. LC-Note: Folder widgets never cover other items.
+        if (PreferenceCacheExtensionsKt.firstCached(mCellLayout.pref.getAllowWidgetOverlap(), mCellLayout.pref)
+                && !(ignoreView instanceof FolderWidgetView)) {
             solution.intersectingViews = new ArrayList<>(intersectingViews);
             return true;
         }

@@ -485,6 +485,25 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         return super.verifyDrawable(who) || (who == mBackground);
     }
 
+    /**
+     * LC-Note: starts dragging an app out of a closed Folder widget. The widget's grid icon is the
+     * drag preview; the folder's own content view for the item (content bound first if needed) is
+     * the dragged view, so a failed drop returns the app exactly as for an open folder.
+     */
+    public boolean startDragFromWidget(View gridIcon, DragOptions options) {
+        if (!(gridIcon.getTag() instanceof ItemInfo item)) {
+            return false;
+        }
+        if (!mContent.areViewsBound()) {
+            mContent.bindItems(mInfo.getContents());
+        }
+        mEmptyCellRank = item.rank;
+        mCurrentDragView = getViewForInfo(item);
+        addDragListener(options);
+        callBeginDragShared(gridIcon, options);
+        return true;
+    }
+
     void callBeginDragShared(View v, DragOptions options) {
         mLauncherDelegate.beginDragShared(v, this, options);
     }

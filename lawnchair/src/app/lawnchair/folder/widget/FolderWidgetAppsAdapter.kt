@@ -10,6 +10,7 @@ import com.android.launcher3.R
 import com.android.launcher3.apppairs.AppPairIcon
 import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.FolderInfo
+import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.ItemInfoWithIcon
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.views.ActivityContext
@@ -28,6 +29,17 @@ class FolderWidgetAppsAdapter(
 
     class Holder(view: View) : RecyclerView.ViewHolder(view)
 
+    /** An app whose grid icon stays hidden while a dropped icon animates into its cell. */
+    var hiddenItem: ItemInfo? = null
+        set(value) {
+            val old = field
+            field = value
+            listOf(old, value).forEach { item ->
+                val index = if (item == null) -1 else folder.getContents().indexOf(item)
+                if (index >= 0) notifyItemChanged(index)
+            }
+        }
+
     override fun getItemCount(): Int = folder.getContents().size
 
     override fun getItemViewType(position: Int): Int =
@@ -43,6 +55,7 @@ class FolderWidgetAppsAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = folder.getContents()[position]
+        holder.itemView.visibility = if (item === hiddenItem) View.INVISIBLE else View.VISIBLE
         if (item is AppPairInfo) {
             val container = holder.itemView as FrameLayout
             container.removeAllViews()

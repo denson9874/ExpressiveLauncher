@@ -1209,4 +1209,8 @@
     <!-- Folder widget -->
     <string name="folder_widget_add_apps">Add apps</string>
     <string name="folder_widget_open_folder">Open folder</string>
+    <string name="folder_widget_make_widget">Make widget</string>
+    <string name="folder_widget_make_folder">Make normal folder</string>
+    <string name="folder_widget_customize">Customize</string>
+    <string name="folder_widget_remove">Remove</string>
 </resources>

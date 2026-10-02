@@ -37,6 +37,7 @@ import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.folder.Folder;
+import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.logging.StatsLogManager.StatsLogger;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.PrivateSpaceInstallAppButtonInfo;
@@ -48,6 +49,8 @@ import com.android.launcher3.widget.NavigableAppWidgetHostView;
 import com.android.launcher3.widget.PendingItemDragHelper;
 import com.android.launcher3.widget.WidgetCell;
 import com.android.launcher3.widget.WidgetImageView;
+
+import app.lawnchair.folder.widget.FolderWidgetMenus;
 
 /**
  * Class to handle long-clicks on workspace items and start drag as a result.
@@ -76,7 +79,14 @@ public class ItemLongClickListener {
         if (!(v.getTag() instanceof ItemInfo)) return false;
 
         launcher.setWaitingForResult(null);
-        beginDrag(v, launcher, (ItemInfo) v.getTag(), new DragOptions());
+        DragOptions options = new DragOptions();
+        // LC-Note: Home folders and Folder widgets show their menu while picked up; moving starts
+        // the usual drag.
+        if (v instanceof FolderIcon folderIcon
+                && !FolderWidgetMenus.itemsFor(folderIcon.mInfo).isEmpty()) {
+            options.preDragCondition = FolderWidgetMenus.show(launcher, folderIcon);
+        }
+        beginDrag(v, launcher, (ItemInfo) v.getTag(), options);
         return true;
     }
 

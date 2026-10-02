@@ -4,17 +4,35 @@ import android.content.Context
 import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
+import androidx.recyclerview.widget.RecyclerView
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.pro.ProManager
 import app.lawnchair.util.resolveFolderBackgroundColor
+import com.android.app.animation.Interpolators
 import com.android.launcher3.BubbleTextView
+import com.android.launcher3.DropTarget.DragObject
+import com.android.launcher3.Launcher
+import com.android.launcher3.LauncherState.NORMAL
 import com.android.launcher3.R
+import com.android.launcher3.allapps.ActivityAllAppsContainerView
 import com.android.launcher3.celllayout.CellLayoutLayoutParams
+import com.android.launcher3.dragndrop.BaseItemDragListener
+import com.android.launcher3.dragndrop.DragLayer
+import com.android.launcher3.dragndrop.DragOptions
 import com.android.launcher3.folder.FolderIcon
+import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.model.data.WorkspaceItemFactory
+import com.android.launcher3.model.data.WorkspaceItemInfo
+import com.android.launcher3.touch.ItemLongClickListener
 import java.util.function.Predicate
 import kotlin.math.ceil
 import kotlin.math.max
@@ -65,7 +83,10 @@ class FolderWidgetView @JvmOverloads constructor(
         val info = mInfo ?: return
         val activity = mActivity ?: return
         val adapter = appsAdapter
-            ?: FolderWidgetAppsAdapter(activity, info, { panel.gridSpec }) { false }.also { appsAdapter = it }
+            ?: FolderWidgetAppsAdapter(activity, info, { panel.gridSpec }, ::onAppLongClick).also {
+                appsAdapter = it
+                installTouchHandling()
+            }
         val style = style ?: defaultStyle().also { style = it }
         boundSpanX = currentSpanX()
         panel.bind(info.title ?: "", adapter, style, metrics(boundSpanX))
@@ -75,6 +96,162 @@ class FolderWidgetView @JvmOverloads constructor(
     /** While resizing, the cell span changes before the item's span is committed. */
     private fun currentSpanX(): Int =
         (layoutParams as? CellLayoutLayoutParams)?.cellHSpan?.takeIf { it > 0 } ?: mInfo.spanX
+
+    /**
+     * Long-press on empty grid space or the header picks up the widget; a vertical drag in a grid
+     * that scrolls stays with the grid (Home's swipe controllers don't take it), as for
+     * scrollable app widgets.
+     */
+    private fun installTouchHandling() {
+        val pickUp = GestureDetector(
+            context,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onLongPress(e: MotionEvent) {
+                    if (panel.recyclerView.findChildViewUnder(e.x, e.y) == null) pickUpWidget()
+                }
+            },
+        )
+        panel.recyclerView.addOnItemTouchListener(
+            object : RecyclerView.SimpleOnItemTouchListener() {
+                override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                    if (e.actionMasked == MotionEvent.ACTION_DOWN && panel.isScrollable) {
+                        mActivity.dragLayer.requestDisallowInterceptTouchEvent(true)
+                    }
+                    pickUp.onTouchEvent(e)
+                    return false
+                }
+            },
+        )
+        panel.header.setOnLongClickListener { pickUpWidget() }
+    }
+
+    /** The widget's own long-press: its menu and a drag of the whole widget. */
+    private fun pickUpWidget(): Boolean {
+        // The drag layer must see the rest of the gesture to move the drag.
+        mActivity.dragLayer.requestDisallowInterceptTouchEvent(false)
+        return performLongClick()
+    }
+
+    /** Long-press on an app: its shortcuts menu, and dragging takes it out of the widget. */
+    private fun onAppLongClick(icon: BubbleTextView): Boolean {
+        val launcher = mActivity as? Launcher ?: return false
+        if (!ItemLongClickListener.canStartDrag(launcher) || !launcher.isInState(NORMAL)) return false
+        val folder = folder ?: return false
+        mActivity.dragLayer.requestDisallowInterceptTouchEvent(false)
+        // Workspace.beginDragShared adds the shortcuts popup as the pre-drag condition.
+        return folder.startDragFromWidget(icon, DragOptions())
+    }
+
+    override fun acceptDrop(dragInfo: ItemInfo): Boolean {
+        val folder = folder ?: return false
+        return !folder.isDestroyed && !folder.isOpen && dragInfo !== mInfo && FolderWidgets.acceptsDrop(dragInfo)
+    }
+
+    /** An app being dragged out of this widget (it keeps the folder as container until dropped). */
+    private fun isOwnApp(dragInfo: ItemInfo) = dragInfo.container == mInfo.id
+
+    override fun onDragEnter(dragInfo: ItemInfo) {
+        // Hovering an app being dragged out of this widget adds nothing, so shows nothing.
+        if (!acceptDrop(dragInfo) || isOwnApp(dragInfo)) return
+        panel.dropOutlineVisible = true
+        springPanelTo(DROP_HOVER_SCALE)
+        panel.scrollToEnd()
+    }
+
+    override fun onDragExit() {
+        panel.dropOutlineVisible = false
+        springPanelTo(1f)
+    }
+
+    /**
+     * Appends a dropped app, its drag view animating into the app's cell. An app dragged out of
+     * this widget and dropped back on it goes back to its place (the drop is a cancel).
+     */
+    override fun onDrop(d: DragObject, itemReturnedOnFailedDrop: Boolean) {
+        val folder = folder ?: return
+        val dragInfo = d.dragInfo
+        val returning = itemReturnedOnFailedDrop || isOwnApp(dragInfo)
+        val item: ItemInfo = when {
+            dragInfo is WorkspaceItemFactory -> dragInfo.makeWorkspaceItem(context)
+            d.dragSource is BaseItemDragListener ->
+                if (dragInfo is AppPairInfo) AppPairInfo(dragInfo) else WorkspaceItemInfo(dragInfo as WorkspaceItemInfo)
+            else -> dragInfo
+        }
+        folder.notifyDrop()
+        item.cellX = -1
+        item.cellY = -1
+        panel.dropOutlineVisible = false
+        springPanelTo(1f)
+        val index = if (returning) item.rank else mInfo.getContents().size
+        val launcher = mActivity as? Launcher
+        val dragView = d.dragView
+        if (itemReturnedOnFailedDrop || dragView == null || launcher == null) {
+            folder.addFolderContent(item, index, !itemReturnedOnFailedDrop)
+            return
+        }
+        val to = Rect()
+        val scaleToDragLayer = launcher.dragLayer.getDescendantRectRelativeToSelf(this, to)
+        val center: IntArray
+        val finalAlpha: Float
+        var finalScale: Float
+        if (returning) {
+            // Back in place: the drag view fades into the panel; the grid shows the app at once.
+            folder.addFolderContent(item, index, true)
+            center = intArrayOf(panel.left + panel.width / 2, panel.top + panel.height / 2)
+            finalAlpha = 0f
+            finalScale = RETURN_SCALE * scaleToDragLayer
+        } else {
+            appsAdapter?.hiddenItem = item
+            folder.addFolderContent(item, index, true)
+            // Instant, so the cell matches where the drag view lands.
+            panel.scrollToEnd(smooth = false)
+            center = iconCenterFor(index)
+            finalAlpha = 1f
+            val dp = launcher.deviceProfile
+            finalScale = panel.gridSpec.iconSizePx.toFloat() / dp.iconSizePx * scaleToDragLayer
+            if (d.dragSource is ActivityAllAppsContainerView<*>) {
+                finalScale *= dp.iconSizePx.toFloat() / dp.allAppsProfile.iconSizePx
+            }
+        }
+        to.offset(
+            (center[0] * scaleToDragLayer).roundToInt() - dragView.measuredWidth / 2,
+            (center[1] * scaleToDragLayer).roundToInt() - dragView.measuredHeight / 2,
+        )
+        launcher.dragLayer.animateView(
+            dragView, to, finalAlpha, finalScale, finalScale, DROP_IN_ANIMATION_DURATION,
+            Interpolators.DECELERATE_2, { appsAdapter?.hiddenItem = null },
+            DragLayer.ANIMATION_END_DISAPPEAR, null,
+        )
+    }
+
+    /** Where the icon of the app at [index] will be, in this view's coordinates, with the grid scrolled to the end. */
+    private fun iconCenterFor(index: Int): IntArray {
+        val spec = panel.gridSpec
+        val grid = panel.recyclerView
+        val columns = spec.columns.coerceAtLeast(1)
+        val column = index % columns
+        val row = index / columns
+        val contentHeight = (row + 1) * spec.rowHeightPx
+        val rowTop = if (contentHeight > grid.height) grid.height - spec.rowHeightPx else row * spec.rowHeightPx
+        val rowSpacing = metrics(boundSpanX).rowSpacingPx
+        val iconTop = if (spec.labelsVisible) rowSpacing / 2 else (spec.rowHeightPx - spec.iconSizePx) / 2
+        return intArrayOf(
+            panel.left + grid.left + column * spec.columnWidthPx + spec.columnWidthPx / 2,
+            panel.top + grid.top + rowTop + iconTop + spec.iconSizePx / 2,
+        )
+    }
+
+    private val panelSprings by lazy {
+        listOf(DynamicAnimation.SCALE_X, DynamicAnimation.SCALE_Y).map { property ->
+            SpringAnimation(panel, property).setSpring(
+                SpringForce(1f)
+                    .setStiffness(SpringForce.STIFFNESS_MEDIUM)
+                    .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
+            )
+        }
+    }
+
+    private fun springPanelTo(scale: Float) = panelSprings.forEach { it.animateToFinalPosition(scale) }
 
     private fun openFolder() {
         val folder = folder ?: return
@@ -223,6 +400,12 @@ class FolderWidgetView @JvmOverloads constructor(
     }
 
     private companion object {
+        const val DROP_HOVER_SCALE = 1.03f
+        const val RETURN_SCALE = 0.5f
+
+        /** As FolderIcon's drop-in animation. */
+        const val DROP_IN_ANIMATION_DURATION = 400
+
         fun exactly(size: Int) = MeasureSpec.makeMeasureSpec(max(0, size), MeasureSpec.EXACTLY)
     }
 }

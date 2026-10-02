@@ -355,6 +355,9 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
 
     override fun onControllerInterceptTouchEvent(ev: MotionEvent): Boolean {
         if (ev.action == MotionEvent.ACTION_DOWN && handleTouchDown(ev)) return true
+        // A touch elsewhere closes the frame, and the widget's menu too unless the touch is on it.
+        val menu = AbstractFloatingView.getOpenView<AbstractFloatingView>(launcher, AbstractFloatingView.TYPE_OPTIONS_POPUP)
+        if (menu != null && !dragLayer.isEventOverView(menu, ev)) menu.close(true)
         close(false)
         return false
     }
@@ -408,7 +411,12 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
         fun show(launcher: Launcher, widget: FolderWidgetView) {
             // Without a parent the frame can't be placed around the widget.
             val layout = widget.parent?.parent as? CellLayout ?: return
-            AbstractFloatingView.closeAllOpenViews(launcher)
+            // The widget's long-press menu stays open with the frame.
+            AbstractFloatingView.closeOpenViews(
+                launcher,
+                true,
+                AbstractFloatingView.TYPE_ALL and AbstractFloatingView.TYPE_OPTIONS_POPUP.inv(),
+            )
             val dl = launcher.dragLayer
             val frame = launcher.layoutInflater
                 .inflate(R.layout.folder_widget_resize_frame, dl, false) as FolderWidgetResizeFrame

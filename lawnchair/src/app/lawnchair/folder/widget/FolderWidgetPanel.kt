@@ -2,6 +2,8 @@ package app.lawnchair.folder.widget
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.util.AttributeSet
@@ -14,6 +16,7 @@ import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import app.lawnchair.theme.color.tokens.ColorTokens
 import com.android.launcher3.R
 import com.android.launcher3.util.Themes
 import kotlin.math.max
@@ -95,6 +98,23 @@ class FolderWidgetPanel @JvmOverloads constructor(
         visibility = GONE
     }
 
+    // Resolved on first use: the accent color needs the app's theme provider.
+    private val dropOutlinePaint by lazy {
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = context.dp(2).toFloat()
+            color = ColorTokens.WorkspaceAccentColor.resolveColor(context)
+        }
+    }
+
+    /** The outline shown while an app is dragged over the widget. */
+    var dropOutlineVisible: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
     var onOpenFolder: (() -> Unit)? = null
     var onAddApps: (() -> Unit)? = null
 
@@ -161,9 +181,13 @@ class FolderWidgetPanel @JvmOverloads constructor(
             addAppsButton.alpha = alpha
         }
 
-    fun scrollToEnd() {
-        val count = recyclerView.adapter?.itemCount ?: 0
-        if (count > 0) recyclerView.smoothScrollToPosition(count - 1)
+    /** Scrolls so the last app shows; posted so an app that was just added is laid out first. */
+    fun scrollToEnd(smooth: Boolean = true) {
+        recyclerView.post {
+            val count = recyclerView.adapter?.itemCount ?: 0
+            if (count == 0) return@post
+            if (smooth) recyclerView.smoothScrollToPosition(count - 1) else recyclerView.scrollToPosition(count - 1)
+        }
     }
 
     private fun onContentChanged() {
@@ -207,6 +231,15 @@ class FolderWidgetPanel @JvmOverloads constructor(
             MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.AT_MOST),
             MeasureSpec.makeMeasureSpec(max(0, spec.viewportHeightPx), MeasureSpec.AT_MOST),
         )
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        if (dropOutlineVisible) {
+            val inset = dropOutlinePaint.strokeWidth / 2
+            val radius = style?.cornerRadiusPx ?: 0f
+            canvas.drawRoundRect(inset, inset, width - inset, height - inset, radius, radius, dropOutlinePaint)
+        }
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
