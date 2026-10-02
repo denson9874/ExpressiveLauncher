@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Expressive Folder widget: a Home folder shown as a grid of its apps. The name label below
+     the panel is the folder icon's label (folder_icon.xml), hidden unless "Show name below". -->
+<app.lawnchair.folder.widget.FolderWidgetView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:defaultFocusHighlightEnabled="false">
+
+    <app.lawnchair.folder.widget.FolderWidgetPanel
+        android:id="@+id/folder_widget_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.android.launcher3.views.DoubleShadowBubbleTextView
+        style="@style/BaseIcon.Workspace"
+        android:id="@+id/folder_icon_name"
+        android:focusable="false"
+        android:layout_gravity="bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+</app.lawnchair.folder.widget.FolderWidgetView>

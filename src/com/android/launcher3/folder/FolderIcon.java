@@ -99,7 +99,8 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         DraggableView, Reorderable {
 
     private final MultiTranslateDelegate mTranslateDelegate = new MultiTranslateDelegate(this);
-    @Thunk ActivityContext mActivity;
+    // LC-Note: protected for the Expressive Folder widget (app.lawnchair.folder.widget).
+    @Thunk protected ActivityContext mActivity;
     @Thunk Folder mFolder;
     public FolderInfo mInfo;
 

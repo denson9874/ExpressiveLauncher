@@ -23,6 +23,7 @@ import android.view.View
 import android.view.View.OnClickListener
 import android.view.View.OnFocusChangeListener
 import android.view.ViewGroup
+import app.lawnchair.folder.widget.FolderWidgets
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherSettings.Favorites
@@ -80,7 +81,12 @@ class ItemInflater<T>(
             }
             Favorites.ITEM_TYPE_FOLDER ->
                 return FolderIcon.inflateFolderAndIcon(
-                        R.layout.folder_icon,
+                        // LC-Note: Folder widgets show their apps as a grid on Home.
+                        if (FolderWidgets.isFolderWidget(item)) {
+                            R.layout.folder_widget
+                        } else {
+                            R.layout.folder_icon
+                        },
                         context,
                         parent,
                         item as FolderInfo,

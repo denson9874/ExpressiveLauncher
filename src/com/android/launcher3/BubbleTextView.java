@@ -194,7 +194,8 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     private boolean mLayoutHorizontal;
     private final boolean mIsRtl;
-    private final int mIconSize;
+    // LC-Note: not final, so a Folder widget grid can size its icons (setIconSizeOverridePx).
+    private int mIconSize;
 
     @ViewDebug.ExportedProperty(category = "launcher")
     private boolean mHideBadge = false;
@@ -1552,6 +1553,20 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     public int getIconSize() {
         return mIconSize;
+    }
+
+    /**
+     * LC-Note: sizes the icon for an Expressive Folder widget grid and re-applies its bounds.
+     */
+    public void setIconSizeOverridePx(int iconSizePx) {
+        if (mIconSize == iconSizePx) {
+            return;
+        }
+        mIconSize = iconSizePx;
+        if (mIcon != null) {
+            applyCompoundDrawables(getIconOrTransparentColor());
+        }
+        requestLayout();
     }
 
     public boolean isDisplaySearchResult() {

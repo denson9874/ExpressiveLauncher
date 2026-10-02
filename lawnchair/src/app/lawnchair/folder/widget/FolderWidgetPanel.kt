@@ -147,6 +147,20 @@ class FolderWidgetPanel @JvmOverloads constructor(
         onContentChanged()
     }
 
+    /**
+     * Shows or hides everything but the panel background (header, grid and buttons), e.g. while
+     * the full folder is open over the widget.
+     */
+    var contentVisible: Boolean = true
+        set(value) {
+            field = value
+            val alpha = if (value) 1f else 0f
+            header.alpha = alpha
+            recyclerView.alpha = alpha
+            openButton.alpha = alpha
+            addAppsButton.alpha = alpha
+        }
+
     fun scrollToEnd() {
         val count = recyclerView.adapter?.itemCount ?: 0
         if (count > 0) recyclerView.smoothScrollToPosition(count - 1)

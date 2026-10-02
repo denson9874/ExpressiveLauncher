@@ -43,6 +43,7 @@ import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.NavigableAppWidgetHostView;
+import app.lawnchair.folder.widget.FolderWidgetView;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 
 import app.lawnchair.preferences2.PreferenceManager2;
@@ -176,6 +177,11 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
             final PointF appWidgetScale = dp.getAppWidgetScale((ItemInfo) child.getTag());
             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
                     appWidgetScale.x, appWidgetScale.y, mBorderSpace, dp.widgetPadding);
+        } else if (child instanceof FolderWidgetView) {
+            // LC-Note: a Folder widget fills its cells with the same insets as app widgets.
+            lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
+                    1f, 1f, mBorderSpace, dp.widgetPadding);
+            child.setPadding(0, 0, 0, 0);
         } else if (isChildQsb(child)) {
             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX, mCountY,
                     mBorderSpace);
