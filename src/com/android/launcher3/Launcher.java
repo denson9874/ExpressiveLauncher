@@ -256,6 +256,9 @@ import com.android.launcher3.views.FloatingIconView;
 import com.android.launcher3.views.FloatingSurfaceView;
 import com.android.launcher3.views.OptionsPopupView;
 import app.lawnchair.views.EditModePageStrip;
+// LC-Note: Folder widget support.
+import app.lawnchair.folder.widget.FolderWidgetController;
+import app.lawnchair.folder.widget.FolderWidgetPickerEntry;
 import com.android.launcher3.views.ScrimView;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
@@ -1932,7 +1935,13 @@ public class Launcher extends StatefulActivity<LauncherState>
         info.spanY = spanY;
 
         if (info instanceof PendingAddWidgetInfo) {
-            addAppWidgetFromDrop((PendingAddWidgetInfo) info);
+            PendingAddWidgetInfo widgetInfo = (PendingAddWidgetInfo) info;
+            // LC-Note: Folder widget picker drop creates a flagged FolderInfo rather than an app widget.
+            if (FolderWidgetPickerEntry.isFolderWidget(widgetInfo.componentName)) {
+                FolderWidgetController.createFromPicker(this, widgetInfo);
+                return;
+            }
+            addAppWidgetFromDrop(widgetInfo);
         } else { // info can only be PendingAddShortcutInfo
             processShortcutFromDrop((PendingAddShortcutInfo) info);
         }

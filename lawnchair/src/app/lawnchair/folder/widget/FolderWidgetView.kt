@@ -64,6 +64,11 @@ class FolderWidgetView @JvmOverloads constructor(
         super.onFinishInflate()
         panel = findViewById(R.id.folder_widget_panel)
         panel.onOpenFolder = ::openFolder
+        panel.onAddApps = {
+            (mActivity as? Launcher)?.let { launcher ->
+                FolderWidgetController.showAppPicker(launcher, this)
+            }
+        }
         // FolderIcon draws its 1x1 preview, background and dot only while its icon is visible.
         super.setIconVisible(false)
     }
@@ -256,6 +261,12 @@ class FolderWidgetView @JvmOverloads constructor(
     private fun springPanelTo(scale: Float) = panelSprings.forEach { it.animateToFinalPosition(scale) }
 
     private fun openFolder() {
+        if (mInfo.getContents().isEmpty()) {
+            (mActivity as? Launcher)?.let { launcher ->
+                FolderWidgetController.showAppPicker(launcher, this)
+            }
+            return
+        }
         val folder = folder ?: return
         if (!folder.isOpen && !folder.isDestroyed) folder.animateOpen()
     }

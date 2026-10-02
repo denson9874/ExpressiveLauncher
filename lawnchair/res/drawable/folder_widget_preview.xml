@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+    <!-- Panel background -->
+    <path
+        android:fillColor="#33808080"
+        android:pathData="M 36,8 L 124,8 A 28,28 0 0 1 152,36 L 152,124 A 28,28 0 0 1 124,152 L 36,152 A 28,28 0 0 1 8,124 L 8,36 A 28,28 0 0 1 36,8 Z" />
+    <!-- Row 1: 3 icons -->
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M 32,56 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0" />
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M 80,56 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0" />
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M 128,56 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0" />
+    <!-- Row 2: 3 icons -->
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M 32,104 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0" />
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M 80,104 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0" />
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M 128,104 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0" />
+</vector>

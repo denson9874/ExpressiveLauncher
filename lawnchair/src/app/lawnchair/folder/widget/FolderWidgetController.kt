@@ -3,18 +3,24 @@ package app.lawnchair.folder.widget
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.widget.Toast
+import android.content.pm.LauncherApps
+import app.lawnchair.folder.widget.ui.FolderWidgetAppPicker
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
+import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.CellLayout
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherSettings.Favorites
+import com.android.launcher3.PendingAddItemInfo
 import com.android.launcher3.R
 import com.android.launcher3.Workspace
 import com.android.launcher3.celllayout.CellLayoutLayoutParams
 import com.android.launcher3.folder.FolderIcon
+import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.util.ComponentKey
 
 /** Creates, converts and removes Folder widgets on Home. */
 object FolderWidgetController {
@@ -267,5 +273,107 @@ object FolderWidgetController {
     private fun addView(launcher: Launcher, info: ItemInfo) {
         val view = launcher.itemInflater.inflateItem(info) ?: return
         launcher.workspace.addInScreen(view, info)
+    }
+
+    /**
+     * Creates a Folder widget dropped from the widget picker, saves it, adds it to Home,
+     * and shows the app picker to select its apps and title.
+     */
+    @JvmStatic
+    fun createFromPicker(launcher: Launcher, info: PendingAddItemInfo) {
+        val idp = launcher.deviceProfile.inv
+        val (spanX, spanY) = FolderWidgetPlacement.normalizeSpan(info.spanX, info.spanY, idp.numColumns, idp.numRows)
+        val folderInfo = FolderInfo().apply {
+            title = launcher.getString(R.string.folder_widget_label)
+            container = Favorites.CONTAINER_DESKTOP
+            screenId = info.screenId
+            cellX = info.cellX
+            cellY = info.cellY
+            this.spanX = spanX
+            this.spanY = spanY
+            setOption(FolderInfo.FLAG_FOLDER_WIDGET, true, null)
+        }
+        launcher.modelWriter.addItemToDatabase(
+            folderInfo,
+            folderInfo.container,
+            folderInfo.screenId,
+            folderInfo.cellX,
+            folderInfo.cellY,
+        )
+        ensureScreen(launcher.workspace, folderInfo.screenId)
+        val view = launcher.itemInflater.inflateItem(folderInfo) as? FolderWidgetView
+        if (view != null) {
+            launcher.workspace.addInScreen(view, folderInfo)
+            (view.parent?.parent as? CellLayout)?.shortcutsAndWidgets?.measureChild(view)
+            showAppPicker(launcher, view)
+        }
+    }
+
+    /**
+     * Opens the app picker sheet for [widget] to pick its apps and name.
+     */
+    @JvmStatic
+    fun showAppPicker(launcher: Launcher, widget: FolderWidgetView) {
+        if (isHomeLocked(launcher)) return
+        AbstractFloatingView.closeAllOpenViews(launcher, false)
+        val currentKeys = widget.mInfo.getContents().mapNotNull { item ->
+            val cn = item.targetComponent ?: item.intent?.component ?: return@mapNotNull null
+            ComponentKey(cn, item.user)
+        }
+        ComposeBottomSheet.show(launcher) {
+            FolderWidgetAppPicker(
+                initialTitle = widget.mInfo.title?.toString() ?: "",
+                initialSelectedKeys = currentKeys,
+                onSave = { newTitle, selectedKeys ->
+                    close(true)
+                    applyAppPickerResult(launcher, widget, newTitle, selectedKeys)
+                },
+                onCancel = {
+                    close(true)
+                },
+            )
+        }
+    }
+
+    private fun applyAppPickerResult(
+        launcher: Launcher,
+        widget: FolderWidgetView,
+        title: String,
+        selectedKeys: List<ComponentKey>,
+    ) {
+        val currentItems = widget.mInfo.getContents().toList()
+        val currentKeys = currentItems.mapNotNull { item ->
+            val cn = item.targetComponent ?: item.intent?.component ?: return@mapNotNull null
+            ComponentKey(cn, item.user)
+        }
+        val (toAdd, toRemove) = FolderWidgetAppSelection.diff(currentKeys, selectedKeys)
+
+        toRemove.forEach { key ->
+            val item = widget.mInfo.getContents().firstOrNull { item ->
+                val cn = item.targetComponent ?: item.intent?.component
+                cn != null && ComponentKey(cn, item.user) == key
+            }
+            if (item != null) {
+                widget.folder.removeFolderContent(false, item)
+                launcher.modelWriter.deleteItemFromDatabase(item, "removed via folder widget app picker")
+            }
+        }
+
+        val launcherApps = launcher.getSystemService(LauncherApps::class.java)
+        toAdd.forEach { key ->
+            val appInfo = launcher.appsView?.appsStore?.getApp(key)
+                ?: launcherApps?.getActivityList(key.componentName.packageName, key.user)
+                    ?.firstOrNull { it.componentName == key.componentName }
+                    ?.let { AppInfo(launcher, it, key.user) }
+            val workspaceItem = appInfo?.makeWorkspaceItem(launcher)
+            if (workspaceItem != null) {
+                widget.folder.addFolderContent(workspaceItem)
+            }
+        }
+
+        val cleanTitle = title.trim()
+        if ((widget.mInfo.title?.toString() ?: "") != cleanTitle) {
+            widget.mInfo.setTitle(cleanTitle, launcher.modelWriter)
+        }
     }
 }

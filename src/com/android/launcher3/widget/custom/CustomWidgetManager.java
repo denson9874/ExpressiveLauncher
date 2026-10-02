@@ -100,6 +100,16 @@ public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
         }
     }
 
+    // LC-Note: Built-in custom widgets (e.g. Folder widget) registered in-process.
+    public void addBuiltInWidget(ComponentName provider, CustomWidgetPlugin plugin) {
+        CustomAppWidgetProviderInfo info = getAndAddInfo(provider);
+        if (info != null) {
+            plugin.updateWidgetInfo(info, mContext);
+            mPlugins.put(info.provider, plugin);
+            mWidgetRefreshCallbacks.forEach(MAIN_EXECUTOR::execute);
+        }
+    }
+
     @Override
     public void onPluginDisconnected(CustomWidgetPlugin plugin) {
         // Leave the providerInfo as plugins can get disconnected/reconnected multiple times
@@ -171,7 +181,13 @@ public class CustomWidgetManager implements PluginListener<CustomWidgetPlugin> {
 
         List<AppWidgetProviderInfo> providers = mAppWidgetManager
                 .getInstalledProvidersForProfile(Process.myUserHandle());
-        if (providers.isEmpty()) return null;
+        if (providers.isEmpty()) {
+            CustomAppWidgetProviderInfo info = new CustomAppWidgetProviderInfo();
+            info.provider = cn;
+            info.initialLayout = 0;
+            mCustomWidgets.add(info);
+            return info;
+        }
         Parcel parcel = Parcel.obtain();
         providers.get(0).writeToParcel(parcel, 0);
         parcel.setDataPosition(0);

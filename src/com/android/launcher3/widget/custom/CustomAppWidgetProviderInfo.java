@@ -53,8 +53,9 @@ public class CustomAppWidgetProviderInfo extends LauncherAppWidgetProviderInfo
         }
     }
 
+    // LC-Note: Public constructor for built-in custom widgets and unit tests.
     @VisibleForTesting
-    CustomAppWidgetProviderInfo() {}
+    public CustomAppWidgetProviderInfo() {}
 
     @Override
     public void initSpans(Context context, InvariantDeviceProfile idp) {

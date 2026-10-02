@@ -1217,4 +1217,6 @@
     <string name="folder_widget_remove_title">Remove %1$s?</string>
     <string name="folder_widget_put_back">Put apps back on Home</string>
     <string name="folder_widget_remove_all">Remove all</string>
+    <string name="folder_widget_label">Folder</string>
+    <string name="folder_widget_save">Save</string>
 </resources>

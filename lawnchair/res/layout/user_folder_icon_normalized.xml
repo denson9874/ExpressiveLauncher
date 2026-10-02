@@ -73,6 +73,18 @@
             android:tint="?attr/folderTextColor"
             android:visibility="gone" />
 
+        <ImageButton
+            android:id="@+id/folder_add_apps_button"
+            android:layout_width="@dimen/folder_arrow_touchbox_length"
+            android:layout_height="@dimen/folder_arrow_touchbox_length"
+            android:layout_gravity="center_vertical"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:scaleType="center"
+            android:tint="?attr/folderTextColor"
+            android:src="@drawable/ic_add"
+            android:contentDescription="@string/folder_widget_add_apps"
+            android:visibility="gone" />
+
     </LinearLayout>
 
 </com.android.launcher3.folder.Folder>

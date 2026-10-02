@@ -142,6 +142,7 @@ import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.folder.widget.FolderWidgetController;
 import app.lawnchair.folder.widget.FolderWidgetMenus;
 import app.lawnchair.folder.widget.FolderWidgets;
+import app.lawnchair.folder.widget.FolderWidgetView;
 import app.lawnchair.preferences2.PreferenceManager2;
 import app.lawnchair.theme.color.ColorOption;
 import app.lawnchair.theme.color.tokens.ColorTokens;
@@ -244,6 +245,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     private int mFooterHeight;
     // LC-Note: Make widget / Make normal folder for Home folders (Expressive Folder widget).
     @Nullable private ImageButton mWidgetButton;
+    @Nullable private ImageButton mAddAppsButton;
 
     // Cell ranks used for drag and drop
     @Thunk
@@ -360,6 +362,14 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
                 if (mActivityContext instanceof Launcher launcher && mFolderIcon != null
                         && v.getTag() instanceof Integer action) {
                     FolderWidgetMenus.runAction(launcher, mFolderIcon, action);
+                }
+            });
+        }
+        mAddAppsButton = findViewById(R.id.folder_add_apps_button);
+        if (mAddAppsButton != null) {
+            mAddAppsButton.setOnClickListener(v -> {
+                if (mActivityContext instanceof Launcher launcher && mFolderIcon instanceof FolderWidgetView widget) {
+                    FolderWidgetController.showAppPicker(launcher, widget);
                 }
             });
         }
@@ -874,15 +884,23 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
      * Folder widget (none in the dock or while Home is locked).
      */
     private void updateWidgetButton() {
-        if (mWidgetButton == null) return;
-        Integer action = mActivityContext instanceof Launcher launcher && mFolderIcon != null
-                ? FolderWidgetMenus.footerActionFor(mInfo, FolderWidgetController.isHomeLocked(launcher))
-                : null;
-        mWidgetButton.setVisibility(action == null ? GONE : VISIBLE);
-        mWidgetButton.setTag(action);
-        if (action == null) return;
-        mWidgetButton.setImageResource(FolderWidgetMenus.iconFor(action));
-        mWidgetButton.setContentDescription(getContext().getString(action));
+        if (mWidgetButton != null) {
+            Integer action = mActivityContext instanceof Launcher launcher && mFolderIcon != null
+                    ? FolderWidgetMenus.footerActionFor(mInfo, FolderWidgetController.isHomeLocked(launcher))
+                    : null;
+            mWidgetButton.setVisibility(action == null ? GONE : VISIBLE);
+            mWidgetButton.setTag(action);
+            if (action != null) {
+                mWidgetButton.setImageResource(FolderWidgetMenus.iconFor(action));
+                mWidgetButton.setContentDescription(getContext().getString(action));
+            }
+        }
+        if (mAddAppsButton != null) {
+            boolean showAddApps = mActivityContext instanceof Launcher launcher
+                    && mFolderIcon instanceof FolderWidgetView
+                    && !FolderWidgetController.isHomeLocked(launcher);
+            mAddAppsButton.setVisibility(showAddApps ? VISIBLE : GONE);
+        }
     }
 
     /**
