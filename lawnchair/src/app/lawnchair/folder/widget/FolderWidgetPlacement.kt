@@ -37,19 +37,7 @@ object FolderWidgetPlacement {
         rows: Int,
         isVacant: (Int, GridRect) -> Boolean,
     ): Placement {
-        fun fits(r: GridRect) = FolderWidgets.isValidSpan(r.spanX, r.spanY) &&
-            r.x >= 0 && r.y >= 0 && r.x + r.spanX <= columns && r.y + r.spanY <= rows &&
-            isVacant(screenId, r)
-
-        if (fits(wanted)) return Placement(screenId, wanted)
-
-        val shrunk = GridRect(
-            wanted.x,
-            wanted.y,
-            minOf(wanted.spanX, columns - wanted.x),
-            minOf(wanted.spanY, rows - wanted.y),
-        )
-        if (fits(shrunk)) return Placement(screenId, shrunk)
+        keepInPlace(wanted, screenId, columns, rows, isVacant)?.let { return it }
 
         val (spanX, spanY) = normalizeSpan(wanted.spanX, wanted.spanY, columns, rows)
         nearestVacant(screenId, wanted.x, wanted.y, spanX, spanY, columns, rows, isVacant)
@@ -64,8 +52,10 @@ object FolderWidgetPlacement {
     }
 
     /**
-     * Places several widgets in order with [place]; each one sees the cells of the widgets placed
-     * before it, and a new screen opened for one is offered to the next.
+     * Places several widgets, returning their placements in the same order. Widgets whose own
+     * cells (or their shrunk-in-place cells) are free keep them first, so a widget that has to move
+     * never takes the cells of one that didn't; the rest then move in order with [place], each
+     * seeing every widget kept or placed before it, including on a new screen.
      */
     @JvmStatic
     fun placeAll(
@@ -75,19 +65,55 @@ object FolderWidgetPlacement {
         rows: Int,
         isVacant: (Int, GridRect) -> Boolean,
     ): List<Placement> {
-        val placed = ArrayList<Placement>(wanted.size)
-        val knownScreens = screens.sorted().toMutableList()
-        for (w in wanted) {
-            val p = place(w.rect, w.screenId, knownScreens, columns, rows) { s, r ->
-                isVacant(s, r) && placed.none { it.screenId == s && it.rect.overlaps(r) }
+        val result = arrayOfNulls<Placement>(wanted.size)
+        val taken = ArrayList<Placement>(wanted.size)
+        fun free(s: Int, r: GridRect) = isVacant(s, r) && taken.none { it.screenId == s && it.rect.overlaps(r) }
+
+        wanted.forEachIndexed { i, w ->
+            keepInPlace(w.rect, w.screenId, columns, rows, ::free)?.let {
+                result[i] = it
+                taken += it
             }
-            placed += p
+        }
+        val knownScreens = screens.sorted().toMutableList()
+        wanted.forEachIndexed { i, w ->
+            if (result[i] != null) return@forEachIndexed
+            val p = place(w.rect, w.screenId, knownScreens, columns, rows, ::free)
+            result[i] = p
+            taken += p
             if (p.screenId !in knownScreens) {
                 knownScreens += p.screenId
                 knownScreens.sort()
             }
         }
-        return placed
+        return result.map { it!! }
+    }
+
+    /** Whether a placed widget's row must be rewritten: its screen, cells, span or options changed. */
+    @JvmStatic
+    fun needsRewrite(row: Placement, rowOptions: Int, placed: Placement, options: Int): Boolean =
+        row != placed || rowOptions != options
+
+    /** Steps 1–2 of [place]: [wanted] itself, or shrunk in place to fit the grid, when free. */
+    private fun keepInPlace(
+        wanted: GridRect,
+        screenId: Int,
+        columns: Int,
+        rows: Int,
+        isVacant: (Int, GridRect) -> Boolean,
+    ): Placement? {
+        fun fits(r: GridRect) = FolderWidgets.isValidSpan(r.spanX, r.spanY) &&
+            r.x >= 0 && r.y >= 0 && r.x + r.spanX <= columns && r.y + r.spanY <= rows &&
+            isVacant(screenId, r)
+
+        if (fits(wanted)) return Placement(screenId, wanted)
+        val shrunk = GridRect(
+            wanted.x,
+            wanted.y,
+            minOf(wanted.spanX, columns - wanted.x),
+            minOf(wanted.spanY, rows - wanted.y),
+        )
+        return if (fits(shrunk)) Placement(screenId, shrunk) else null
     }
 
     private fun GridRect.overlaps(o: GridRect) =

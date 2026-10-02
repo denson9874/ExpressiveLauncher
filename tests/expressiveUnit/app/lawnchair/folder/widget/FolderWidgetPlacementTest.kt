@@ -65,6 +65,27 @@ class FolderWidgetPlacementTest {
             .inOrder()
     }
 
+    @Test fun placeAll_movingWidgetNeverDisplacesAValidOne() {
+        // A 4.0.3 folder over the clock loads before a widget that already sits validly at (0, 3).
+        val placed = FolderWidgetPlacement.placeAll(
+            listOf(Placement(0, GridRect(0, 1, 2, 2)), Placement(0, GridRect(0, 3, 2, 2))),
+            listOf(0), cols, rows, occupancy(0 to GridRect(1, 1, 2, 2)),
+        )
+        assertThat(placed).containsExactly(Placement(0, GridRect(2, 3, 2, 2)), Placement(0, GridRect(0, 3, 2, 2)))
+            .inOrder()
+    }
+
+    @Test fun needsRewrite_onlyWhenTheRowDiffers() {
+        val flag = 0x00100000
+        val row = Placement(0, GridRect(0, 3, 2, 2))
+        assertThat(FolderWidgetPlacement.needsRewrite(row, flag, row, flag)).isFalse()
+        // A 4.0.3 large folder converting in place: the flag must reach the database.
+        assertThat(FolderWidgetPlacement.needsRewrite(row, 0, row, flag)).isTrue()
+        assertThat(FolderWidgetPlacement.needsRewrite(Placement(0, GridRect(0, 3, 1, 1)), flag, row, flag)).isTrue()
+        assertThat(FolderWidgetPlacement.needsRewrite(Placement(0, GridRect(0, 1, 2, 2)), flag, row, flag)).isTrue()
+        assertThat(FolderWidgetPlacement.needsRewrite(Placement(1, GridRect(0, 3, 2, 2)), flag, row, flag)).isTrue()
+    }
+
     @Test fun normalizeSpan_neverOneCellAndFitsGrid() {
         assertThat(FolderWidgetPlacement.normalizeSpan(1, 1, 4, 5)).isEqualTo(2 to 2)
         assertThat(FolderWidgetPlacement.normalizeSpan(6, 9, 4, 5)).isEqualTo(4 to 5)

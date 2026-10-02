@@ -33,6 +33,16 @@ class FolderWidgetsTest {
         assertThat(FolderWidgets.wantsWidget(Favorites.CONTAINER_HOTSEAT, 0, 2, 2)).isFalse()
     }
 
+    @Test fun loadedOptions_flagOnlyOnHome() {
+        val flag = FolderInfo.FLAG_FOLDER_WIDGET
+        val named = FolderInfo.FLAG_MANUAL_FOLDER_NAME
+        val desk = Favorites.CONTAINER_DESKTOP
+        assertThat(FolderWidgets.loadedOptions(desk, named, 2, 2)).isEqualTo(named or flag)
+        assertThat(FolderWidgets.loadedOptions(desk, flag, 1, 1)).isEqualTo(flag)
+        assertThat(FolderWidgets.loadedOptions(desk, named, 1, 1)).isEqualTo(named)
+        assertThat(FolderWidgets.loadedOptions(Favorites.CONTAINER_HOTSEAT, named or flag, 1, 1)).isEqualTo(named)
+    }
+
     @Test fun span_needsAtLeastTwoCells() {
         assertThat(FolderWidgets.isValidSpan(1, 1)).isFalse()
         assertThat(FolderWidgets.isValidSpan(2, 1)).isTrue()

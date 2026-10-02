@@ -49,6 +49,7 @@ import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.logging.StatsLogManager;
+import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.provider.LauncherDbUtils.SQLiteTransaction;
 import com.android.launcher3.util.GridOccupancy;
 import com.android.launcher3.util.IntArray;
@@ -578,7 +579,8 @@ public class GridSizeMigrationDBController {
                             LauncherSettings.Favorites.SPANY,                // 6
                             LauncherSettings.Favorites.INTENT,               // 7
                             LauncherSettings.Favorites.APPWIDGET_PROVIDER,   // 8
-                            LauncherSettings.Favorites.APPWIDGET_ID},        // 9
+                            LauncherSettings.Favorites.APPWIDGET_ID,         // 9
+                            LauncherSettings.Favorites.OPTIONS},             // 10
                     LauncherSettings.Favorites.CONTAINER + " = "
                             + LauncherSettings.Favorites.CONTAINER_DESKTOP);
             final int indexId = c.getColumnIndexOrThrow(LauncherSettings.Favorites._ID);
@@ -593,6 +595,7 @@ public class GridSizeMigrationDBController {
                     LauncherSettings.Favorites.APPWIDGET_PROVIDER);
             final int indexAppWidgetId = c.getColumnIndexOrThrow(
                     LauncherSettings.Favorites.APPWIDGET_ID);
+            final int indexOptions = c.getColumnIndexOrThrow(LauncherSettings.Favorites.OPTIONS);
 
             IntArray entriesToRemove = new IntArray();
             WidgetManagerHelper widgetManagerHelper = new WidgetManagerHelper(mContext);
@@ -638,7 +641,10 @@ public class GridSizeMigrationDBController {
                         }
                         case LauncherSettings.Favorites.ITEM_TYPE_FOLDER: {
                             int total = getFolderItemsCount(entry);
-                            if (total == 0) {
+                            // LC-Note: an empty Folder widget is kept (it shows "Add apps").
+                            boolean isFolderWidget =
+                                    (c.getInt(indexOptions) & FolderInfo.FLAG_FOLDER_WIDGET) != 0;
+                            if (total == 0 && !isFolderWidget) {
                                 throw new Exception("Folder is empty");
                             }
                             break;

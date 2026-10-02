@@ -22,6 +22,15 @@ object FolderWidgets {
         container == Favorites.CONTAINER_DESKTOP &&
             ((options and FolderInfo.FLAG_FOLDER_WIDGET) != 0 || spanX * spanY > 1)
 
+    /** The options a loaded folder row gets: the widget flag exactly when it [wantsWidget]. */
+    @JvmStatic
+    fun loadedOptions(container: Int, options: Int, spanX: Int, spanY: Int): Int =
+        if (wantsWidget(container, options, spanX, spanY)) {
+            options or FolderInfo.FLAG_FOLDER_WIDGET
+        } else {
+            options and FolderInfo.FLAG_FOLDER_WIDGET.inv()
+        }
+
     @JvmStatic
     fun isValidSpan(spanX: Int, spanY: Int): Boolean =
         spanX >= 1 && spanY >= 1 && spanX * spanY >= MIN_CELLS

@@ -504,7 +504,9 @@ public class LoaderTask implements Runnable {
 
             mBgDataModel.stringCache.loadStrings(mContext);
             mBgDataModel.dataLoadComplete(
-                    itemProcessor.finalizeData(mModelDelegate, mModel.getModelDbController()));
+                    itemProcessor.finalizeData(mModelDelegate, mModel.getModelDbController(),
+                            // LC-Note: Folder widget rows are rewritten only by a full main load.
+                            Objects.equals(mIDP.dbFile, mDbName) && mParams.getSanitizeData()));
         }
     }
 

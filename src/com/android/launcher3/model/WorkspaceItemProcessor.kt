@@ -524,11 +524,11 @@ class WorkspaceItemProcessor(
         collection.spanX = 1
         collection.spanY = 1
         if (collection is FolderInfo) {
-            collection.options = c.options
             // LC-Note: flagged folders and larger-than-1x1 Home folders (4.0.2/4.0.3 large folders)
-            // load as Folder widgets. They claim their cells after every other item.
-            if (FolderWidgets.wantsWidget(c.container, c.options, c.spanX, c.spanY)) {
-                collection.options = collection.options or FolderInfo.FLAG_FOLDER_WIDGET
+            // load as Folder widgets and claim their cells after every other item. A flag found
+            // outside Home is cleared, so only Home holds Folder widgets.
+            collection.options = FolderWidgets.loadedOptions(c.container, c.options, c.spanX, c.spanY)
+            if (FolderWidgets.isFolderWidget(collection)) {
                 val (spanX, spanY) =
                     FolderWidgetPlacement.normalizeSpan(c.spanX, c.spanY, idp.numColumns, idp.numRows)
                 collection.spanX = spanX
@@ -536,6 +536,9 @@ class WorkspaceItemProcessor(
                 c.markRestored()
                 c.deferFolderWidget(collection)
                 return
+            }
+            if (collection.options != c.options) {
+                c.updater().put(Favorites.OPTIONS, collection.options).commit()
             }
         } else {
             // An app pair may be inside another folder, so it needs to preserve rank information.
@@ -736,6 +739,7 @@ class WorkspaceItemProcessor(
     fun finalizeData(
         delegate: ModelDelegate,
         modelDbController: ModelDbController,
+        persistFolderWidgetMoves: Boolean,
     ): SparseArray<ItemInfo> {
         delegate.loadAndAddExtraModelItems(loadedItems)
         delegate.markActive()
@@ -743,8 +747,10 @@ class WorkspaceItemProcessor(
         // Remove dead items
         val itemsDeleted = c.commitDeleted()
 
-        // LC-Note: Folder widgets take their cells after every other item; moved rows are rewritten.
+        // LC-Note: Folder widgets take their cells after every other item. Changed rows are
+        // rewritten only by a full load of the main database, never by a partial preview load.
         c.placeDeferredFolderWidgets(loadedItems) { folder ->
+            if (!persistFolderWidgetMoves) return@placeDeferredFolderWidgets
             val values = ContentValues().apply {
                 put(Favorites.SCREEN, folder.screenId)
                 put(Favorites.CELLX, folder.cellX)

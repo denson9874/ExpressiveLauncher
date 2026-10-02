@@ -116,9 +116,9 @@ public class LoaderCursor extends CursorWrapper {
     private final IntSparseArrayMap<CollectionInfo> mPendingCollectionInfo =
             new IntSparseArrayMap<>();
 
-    // LC-Note: Folder widgets claim their cells after every other item, in load order. The
-    // database span and options are kept to know whether a widget's row must be rewritten.
-    private record DeferredFolderWidget(FolderInfo info, int dbSpanX, int dbSpanY, int dbOptions) {}
+    // LC-Note: Folder widgets claim their cells after every other item, in load order. The row's
+    // own placement and options are kept to know whether it must be rewritten.
+    private record DeferredFolderWidget(FolderInfo info, Placement row, int rowOptions) {}
     private final ArrayList<DeferredFolderWidget> mDeferredFolderWidgets = new ArrayList<>();
 
     private final int mIconIndex;
@@ -697,8 +697,9 @@ public class LoaderCursor extends CursorWrapper {
      * {@link #placeDeferredFolderWidgets}). Called while the cursor is on the folder's row.
      */
     public void deferFolderWidget(FolderInfo info) {
-        mDeferredFolderWidgets.add(
-                new DeferredFolderWidget(info, getSpanX(), getSpanY(), getOptions()));
+        Placement row = new Placement(getScreen(),
+                new GridRect(getInt(mCellXIndex), getInt(mCellYIndex), getSpanX(), getSpanY()));
+        mDeferredFolderWidgets.add(new DeferredFolderWidget(info, row, getOptions()));
     }
 
     /**
@@ -735,10 +736,8 @@ public class LoaderCursor extends CursorWrapper {
             DeferredFolderWidget deferred = mDeferredFolderWidgets.get(i);
             FolderInfo f = deferred.info();
             Placement p = placed.get(i);
-            boolean changed = f.screenId != p.getScreenId() || f.cellX != p.getRect().getX()
-                    || f.cellY != p.getRect().getY() || p.getRect().getSpanX() != deferred.dbSpanX()
-                    || p.getRect().getSpanY() != deferred.dbSpanY()
-                    || f.options != deferred.dbOptions();
+            boolean changed = FolderWidgetPlacement.needsRewrite(
+                    deferred.row(), deferred.rowOptions(), p, f.options);
             f.screenId = p.getScreenId();
             f.cellX = p.getRect().getX();
             f.cellY = p.getRect().getY();
