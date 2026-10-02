@@ -59,6 +59,12 @@ public class FolderInfo extends CollectionInfo {
     public static final int FLAG_MANUAL_FOLDER_NAME = 0x00000008;
 
     /**
+     * LC-Note: Expressive Folder widget. A desktop folder shown as a resizable app grid
+     * (app.lawnchair.folder.widget). A high bit, away from AOSP's low option bits.
+     */
+    public static final int FLAG_FOLDER_WIDGET = 0x00100000;
+
+    /**
      * Different states of folder label.
      */
     public enum LabelState {

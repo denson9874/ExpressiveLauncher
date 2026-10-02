@@ -75,6 +75,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import app.lawnchair.LawnchairApp;
+import app.lawnchair.folder.widget.FolderWidgets;
 import app.lawnchair.LawnchairAppKt;
 
 /**
@@ -520,11 +521,8 @@ public class ModelDbController {
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         try (SQLiteTransaction t = new SQLiteTransaction(db)) {
             // Select folders whose id do not match any container value.
-            String selection = LauncherSettings.Favorites.ITEM_TYPE + " = "
-                    + LauncherSettings.Favorites.ITEM_TYPE_FOLDER + " AND "
-                    + LauncherSettings.Favorites._ID +  " NOT IN (SELECT "
-                    + LauncherSettings.Favorites.CONTAINER + " FROM "
-                    + Favorites.TABLE_NAME + ")";
+            // LC-Note: Folder widgets are kept even when empty.
+            String selection = FolderWidgets.emptyFoldersSelection();
 
             IntArray folderIds = LauncherDbUtils.queryIntArray(false, db, Favorites.TABLE_NAME,
                     Favorites._ID, selection, null, null);

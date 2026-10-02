@@ -138,6 +138,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.folder.widget.FolderWidgets;
 import app.lawnchair.preferences2.PreferenceManager2;
 import app.lawnchair.theme.color.ColorOption;
 import app.lawnchair.theme.color.tokens.ColorTokens;
@@ -694,7 +695,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         reapplyItemInfo();
         // In case any children didn't come across during loading, clean up the folder accordingly
         mFolderIcon.post(() -> {
-            if (getItemCount() <= 1) {
+            // LC-Note: Folder widgets stay with one app or none.
+            if (getItemCount() <= 1 && FolderWidgets.canDissolve(mInfo)) {
                 replaceFolderWithFinalItem();
             }
         });
@@ -1124,7 +1126,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             rearrangeChildren();
             mRearrangeOnClose = false;
         }
-        if (getItemCount() <= 1) {
+        // LC-Note: Folder widgets stay with one app or none.
+        if (getItemCount() <= 1 && FolderWidgets.canDissolve(mInfo)) {
             if (!mIsDragInProgress && !mSuppressFolderDeletion) {
                 replaceFolderWithFinalItem();
             } else if (mIsDragInProgress) {
@@ -1323,7 +1326,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     public void onDropCompleted(final View target, final DragObject d,
             final boolean success) {
         if (success) {
-            if (getItemCount() <= 1) {
+            // LC-Note: Folder widgets stay with one app or none.
+            if (getItemCount() <= 1 && FolderWidgets.canDissolve(mInfo)) {
                 mDeleteFolderOnDropCompleted = true;
             }
             if (mDeleteFolderOnDropCompleted && !mItemAddedBackToSelfViaIcon
@@ -1750,7 +1754,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             } else {
                 rearrangeChildren();
             }
-            if (getItemCount() <= 1) {
+            // LC-Note: Folder widgets stay with one app or none.
+            if (getItemCount() <= 1 && FolderWidgets.canDissolve(mInfo)) {
                 if (mIsOpen) {
                     close(true);
                 } else {
