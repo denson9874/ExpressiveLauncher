@@ -182,6 +182,8 @@ class FolderWidgetView @JvmOverloads constructor(
         item.cellY = -1
         panel.dropOutlineVisible = false
         springPanelTo(1f)
+        // An app returned after a failed drop that never left the folder isn't added twice.
+        if (itemReturnedOnFailedDrop && FolderWidgets.isInFolder(mInfo, item)) return
         val index = if (returning) item.rank else mInfo.getContents().size
         val launcher = mActivity as? Launcher
         val dragView = d.dragView
@@ -351,6 +353,15 @@ class FolderWidgetView @JvmOverloads constructor(
             if (match.test(info) && child.top >= 0 && child.bottom <= grid.height) return child
         }
         return null
+    }
+
+    /** Updated apps (icons, labels, suspended or disabled states) refresh their grid icons too. */
+    override fun updatePreviewItems(itemCheck: Predicate<ItemInfo>) {
+        super.updatePreviewItems(itemCheck)
+        val adapter = appsAdapter ?: return
+        mInfo.getContents().forEachIndexed { index, item ->
+            if (itemCheck.test(item)) adapter.notifyItemChanged(index)
+        }
     }
 
     override fun onItemsChanged(animate: Boolean) {

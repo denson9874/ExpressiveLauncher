@@ -48,6 +48,22 @@ object FolderWidgets {
         else -> false
     }
 
+    /** Whether [item] (this very object) is already one of the folder's apps. */
+    @JvmStatic
+    fun isInFolder(folder: FolderInfo, item: ItemInfo): Boolean = folder.getContents().any { it === item }
+
+    /** The smallest span a drag may shrink an item to; a Folder widget always keeps its size. */
+    @JvmStatic
+    fun dragMinSpan(item: ItemInfo): IntArray = when {
+        isFolderWidget(item) -> intArrayOf(item.spanX, item.spanY)
+        item.minSpanX > 0 && item.minSpanY > 0 -> intArrayOf(item.minSpanX, item.minSpanY)
+        else -> intArrayOf(item.spanX, item.spanY)
+    }
+
+    /** Whether the full folder opens with [itemCount] apps; a Folder widget opens with one. */
+    @JvmStatic
+    fun canOpen(info: FolderInfo, itemCount: Int): Boolean = itemCount >= if (isFolderWidget(info)) 1 else 2
+
     /** The loader's empty-folder clean-up: folders that no item points to, except Folder widgets. */
     @JvmStatic
     fun emptyFoldersSelection(): String =

@@ -57,7 +57,12 @@ object FolderWidgetMenus {
             override fun onPreDragEnd(dragObject: DropTarget.DragObject, dragStarted: Boolean) {
                 if (dragStarted) {
                     menu?.close(true)
-                } else if (icon is FolderWidgetView) {
+                    return
+                }
+                // Workspace.startDrag hid the icon; a cancelled pre-drag (pause, back, cancel)
+                // has no drop to show it again.
+                icon.visibility = View.VISIBLE
+                if (icon is FolderWidgetView && launcher.hasBeenResumed()) {
                     FolderWidgetResizeFrame.show(launcher, icon)
                 }
             }

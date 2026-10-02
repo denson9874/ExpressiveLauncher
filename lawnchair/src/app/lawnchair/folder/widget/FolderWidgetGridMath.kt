@@ -63,7 +63,8 @@ object FolderWidgetGridMath {
         val rowHeight = (if (labelsVisible) labeledRow else icon) + rowSpacingPx
         val rows = (max(0, itemCount) + columns - 1) / columns
         val content = rows * rowHeight
-        val scrollable = content > viewport
+        // The last row's spacing isn't content: a single row that fits doesn't scroll.
+        val scrollable = content - rowSpacingPx > viewport
         val gridWidth = columns * columnWidth
         FolderWidgetGridSpec(
             columns = columns,

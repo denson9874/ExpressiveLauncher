@@ -107,6 +107,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import app.lawnchair.folder.widget.FolderWidgets;
 import app.lawnchair.icons.ExtendedBitmapDrawable;
 import app.lawnchair.preferences.PreferenceManager;
 
@@ -236,7 +237,9 @@ public final class Utilities {
                     context, appState.getIconCache(), new CacheableShortcutInfo(si.get(0), context));
                 return bi.newIcon(context);
             }
-        } else if (info.itemType == LauncherSettings.Favorites.ITEM_TYPE_FOLDER) {
+        } else if (info.itemType == LauncherSettings.Favorites.ITEM_TYPE_FOLDER
+                // LC-Note: a Folder widget drags as its panel, not as a 1x1 folder icon.
+                && !FolderWidgets.isFolderWidget(info)) {
             FolderAdaptiveIcon icon = FolderAdaptiveIcon.createFolderAdaptiveIcon(
                     activity, info.id, new Point(width, height));
             if (icon == null) {
@@ -808,7 +811,9 @@ public final class Utilities {
                     );
                 }
             }
-        } else if (info.itemType == LauncherSettings.Favorites.ITEM_TYPE_FOLDER) {
+        } else if (info.itemType == LauncherSettings.Favorites.ITEM_TYPE_FOLDER
+                // LC-Note: a Folder widget drags as its panel, not as a 1x1 folder icon.
+                && !FolderWidgets.isFolderWidget(info)) {
             FolderAdaptiveIcon icon = FolderAdaptiveIcon.createFolderAdaptiveIcon(
                     context, info.id, new Point(width, height));
             if (icon == null) {

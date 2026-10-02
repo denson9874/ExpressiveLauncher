@@ -85,6 +85,9 @@ class FolderWidgetAppsAdapter(
         icon.setIconSizeOverridePx(spec.iconSizePx)
         icon.setTextVisibility(spec.labelsVisible)
         icon.setCenterVertically(spec.labelsVisible)
+        // Without labels the text is cleared too: the shortcuts popup restores text visibility
+        // when it closes. The content description keeps the app's name.
+        if (!spec.labelsVisible) icon.text = ""
         if (!spec.labelsVisible) {
             icon.setPadding(icon.paddingLeft, max(0, (spec.rowHeightPx - spec.iconSizePx) / 2), icon.paddingRight, 0)
         }

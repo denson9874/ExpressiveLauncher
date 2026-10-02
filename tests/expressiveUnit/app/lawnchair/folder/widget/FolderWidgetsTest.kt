@@ -2,6 +2,7 @@ package app.lawnchair.folder.widget
 
 import android.app.Application
 import android.content.ContentValues
+import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import com.android.launcher3.LauncherSettings.Favorites
 import com.android.launcher3.model.data.FolderInfo
@@ -41,6 +42,30 @@ class FolderWidgetsTest {
         assertThat(FolderWidgets.loadedOptions(desk, flag, 1, 1)).isEqualTo(flag)
         assertThat(FolderWidgets.loadedOptions(desk, named, 1, 1)).isEqualTo(named)
         assertThat(FolderWidgets.loadedOptions(Favorites.CONTAINER_HOTSEAT, named or flag, 1, 1)).isEqualTo(named)
+    }
+
+    @Test fun returnedApp_isNotAddedTwice() {
+        val app = WorkspaceItemInfo().apply {
+            itemType = Favorites.ITEM_TYPE_APPLICATION
+            intent = Intent(Intent.ACTION_MAIN)
+        }
+        val widget = folder(FolderInfo.FLAG_FOLDER_WIDGET).apply { add(app) }
+        assertThat(FolderWidgets.isInFolder(widget, app)).isTrue()
+        assertThat(FolderWidgets.isInFolder(widget, WorkspaceItemInfo(app))).isFalse()
+    }
+
+    @Test fun dragMinSpan_folderWidgetsNeverShrinkWhileDragged() {
+        val widget = folder(FolderInfo.FLAG_FOLDER_WIDGET).apply { spanX = 3; spanY = 2 }
+        assertThat(FolderWidgets.dragMinSpan(widget).toList()).containsExactly(3, 2).inOrder()
+        val appWidget = LauncherAppWidgetInfo().apply { spanX = 4; spanY = 2; minSpanX = 2; minSpanY = 1 }
+        assertThat(FolderWidgets.dragMinSpan(appWidget).toList()).containsExactly(2, 1).inOrder()
+    }
+
+    @Test fun canOpen_widgetsWithOneApp() {
+        assertThat(FolderWidgets.canOpen(folder(FolderInfo.FLAG_FOLDER_WIDGET), 1)).isTrue()
+        assertThat(FolderWidgets.canOpen(folder(FolderInfo.FLAG_FOLDER_WIDGET), 0)).isFalse()
+        assertThat(FolderWidgets.canOpen(folder(), 1)).isFalse()
+        assertThat(FolderWidgets.canOpen(folder(), 2)).isTrue()
     }
 
     @Test fun span_needsAtLeastTwoCells() {

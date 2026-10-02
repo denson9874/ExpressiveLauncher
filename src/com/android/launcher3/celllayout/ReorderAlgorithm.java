@@ -126,6 +126,20 @@ public class ReorderAlgorithm {
         return solution;
     }
 
+    /** LC-Note: whether {@code rect} covers a Folder widget other than {@code ignoreView}. */
+    private static boolean coversFolderWidget(Rect rect, View ignoreView,
+            ItemConfiguration solution) {
+        for (java.util.Map.Entry<View, CellAndSpan> entry : solution.map.entrySet()) {
+            CellAndSpan c = entry.getValue();
+            if (entry.getKey() instanceof FolderWidgetView && entry.getKey() != ignoreView
+                    && Rect.intersects(rect,
+                            new Rect(c.cellX, c.cellY, c.cellX + c.spanX, c.cellY + c.spanY))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean rearrangementExists(int cellX, int cellY, int spanX, int spanY, int[] direction,
             View ignoreView, ItemConfiguration solution) {
         // Return early if get invalid cell positions
@@ -134,9 +148,11 @@ public class ReorderAlgorithm {
         ArrayList<View> intersectingViews = new ArrayList<>();
         Rect occupiedRect = new Rect(cellX, cellY, cellX + spanX, cellY + spanY);
 
-        // Lawnchair: Widget overlap. LC-Note: Folder widgets never cover other items.
+        // Lawnchair: Widget overlap. LC-Note: Folder widgets never cover other items, and no
+        // item covers a Folder widget.
         if (PreferenceCacheExtensionsKt.firstCached(mCellLayout.pref.getAllowWidgetOverlap(), mCellLayout.pref)
-                && !(ignoreView instanceof FolderWidgetView)) {
+                && !(ignoreView instanceof FolderWidgetView)
+                && !coversFolderWidget(occupiedRect, ignoreView, solution)) {
             solution.intersectingViews = new ArrayList<>(intersectingViews);
             return true;
         }

@@ -2289,12 +2289,10 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                 // Aside from the special case where we're dropping a shortcut onto a shortcut,
                 // we need to find the nearest cell location that is vacant
                 ItemInfo item = d.dragInfo;
-                int minSpanX = item.spanX;
-                int minSpanY = item.spanY;
-                if (item.minSpanX > 0 && item.minSpanY > 0) {
-                    minSpanX = item.minSpanX;
-                    minSpanY = item.minSpanY;
-                }
+                // LC-Note: a Folder widget keeps its full size while dragged (it never overlaps).
+                int[] minSpan = FolderWidgets.dragMinSpan(item);
+                int minSpanX = minSpan[0];
+                int minSpanY = minSpan[1];
 
                 CellPos originalPresenterPos = getCellPosMapper().mapModelToPresenter(item);
                 droppedOnOriginalCell = originalPresenterPos.screenId == screenId
@@ -2740,12 +2738,10 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
             // We want the point to be mapped to the dragTarget.
             mapPointFromDropLayout(mDragTargetLayout, mDragViewVisualCenter);
 
-            int minSpanX = item.spanX;
-            int minSpanY = item.spanY;
-            if (item.minSpanX > 0 && item.minSpanY > 0) {
-                minSpanX = item.minSpanX;
-                minSpanY = item.minSpanY;
-            }
+            // LC-Note: a Folder widget keeps its full size while dragged (it never overlaps).
+            int[] minSpan = FolderWidgets.dragMinSpan(item);
+            int minSpanX = minSpan[0];
+            int minSpanY = minSpan[1];
 
             mTargetCell = findNearestArea((int) mDragViewVisualCenter[0],
                     (int) mDragViewVisualCenter[1], item.spanX, item.spanY,
@@ -3111,12 +3107,10 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
             final ItemInfo item = d.dragInfo;
             boolean updateWidgetSize = false;
             if (findNearestVacantCell) {
-                int minSpanX = item.spanX;
-                int minSpanY = item.spanY;
-                if (item.minSpanX > 0 && item.minSpanY > 0) {
-                    minSpanX = item.minSpanX;
-                    minSpanY = item.minSpanY;
-                }
+                // LC-Note: a Folder widget keeps its full size while dragged (it never overlaps).
+                int[] minSpan = FolderWidgets.dragMinSpan(item);
+                int minSpanX = minSpan[0];
+                int minSpanY = minSpan[1];
                 int[] resultSpan = new int[2];
                 mTargetCell = cellLayout.performReorder((int) mDragViewVisualCenter[0],
                         (int) mDragViewVisualCenter[1], minSpanX, minSpanY, info.spanX, info.spanY,

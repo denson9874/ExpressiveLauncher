@@ -29,6 +29,13 @@ class FolderWidgetGridMathTest {
         assertThat(s.gridTopPx).isEqualTo(120)
     }
 
+    @Test fun singleRowThatFits_doesNotScroll() {
+        // viewport = 343 - 2*24 - 96 = 199 = one labeled row (142 + 12 + 45); the row's spacing isn't content.
+        val s = FolderWidgetGridMath.compute(base.copy(heightPx = 343, itemCount = 3))
+        assertThat(s.labelsVisible).isTrue()
+        assertThat(s.scrollable).isFalse()
+    }
+
     @Test fun autoColumns_followOneAndAHalfPerCell() {
         assertThat((1..5).map(FolderWidgetGridMath::autoColumns)).containsExactly(2, 3, 5, 6, 6).inOrder()
     }

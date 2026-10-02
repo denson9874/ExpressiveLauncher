@@ -497,6 +497,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         if (!mContent.areViewsBound()) {
             mContent.bindItems(mInfo.getContents());
         }
+        // The cached reading order may still hold views unbound (and recycled) at the last close.
+        mItemsInvalidated = true;
         mEmptyCellRank = item.rank;
         mCurrentDragView = getViewForInfo(item);
         addDragListener(options);
@@ -984,7 +986,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
      * Determines whether we should animate the folder opening.
      */
     boolean shouldAnimateOpen(List<ItemInfo> items) {
-        if (items == null || items.size() <= 1) {
+        // LC-Note: a Folder widget with one app still opens its full folder.
+        if (items == null || !FolderWidgets.canOpen(mInfo, items.size())) {
             Log.d(TAG, "Couldn't animate folder open because items is: " + items);
             return false;
         }
@@ -1154,6 +1157,9 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             }
         } else if (!mIsDragInProgress) {
             mContent.unbindItems();
+            // LC-Note: the unbound views go back to the view cache; don't keep them in the
+            // reading order (a Folder widget can start a drag while the folder is closed).
+            mItemsInvalidated = true;
         }
         mSuppressFolderDeletion = false;
         clearDragInfo();

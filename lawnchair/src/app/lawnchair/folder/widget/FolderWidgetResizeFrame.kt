@@ -58,11 +58,11 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
 
     private var directionVector = IntArray(2)
     private var lastDirectionVector = IntArray(2)
-    private val tempRange = IntRange()
-    private val deltaXRange = IntRange()
-    private val baselineX = IntRange()
-    private val deltaYRange = IntRange()
-    private val baselineY = IntRange()
+    private val tempRange = CellRange()
+    private val deltaXRange = CellRange()
+    private val baselineX = CellRange()
+    private val deltaYRange = CellRange()
+    private val baselineY = CellRange()
 
     private var leftBorderActive = false
     private var rightBorderActive = false
@@ -373,7 +373,7 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
     private fun markOpen(): FolderWidgetResizeFrame = apply { mIsOpen = true }
 
     /** A mutable [start, end) range, as AppWidgetResizeFrame.IntRange. */
-    private class IntRange {
+    private class CellRange {
         var start = 0
         var end = 0
 
@@ -386,7 +386,7 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
 
         fun size() = end - start
 
-        fun applyDelta(moveStart: Boolean, moveEnd: Boolean, delta: Int, out: IntRange) {
+        fun applyDelta(moveStart: Boolean, moveEnd: Boolean, delta: Int, out: CellRange) {
             out.start = if (moveStart) start + delta else start
             out.end = if (moveEnd) end + delta else end
         }
@@ -421,9 +421,9 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
             val frame = launcher.layoutInflater
                 .inflate(R.layout.folder_widget_resize_frame, dl, false) as FolderWidgetResizeFrame
             frame.setupFor(widget, layout, dl)
-            // The item as tag lets the accessibility delegate offer the item's actions here too.
-            frame.tag = widget.tag
-            frame.accessibilityDelegate = launcher.accessibilityDelegate
+            // No item tag or launcher accessibility delegate here (unlike AppWidgetResizeFrame):
+            // the delegate maps only app-widget frames to their widget, so its Move and Remove
+            // would act on this frame. Folder widget accessibility actions live on the widget.
             frame.contentDescription = launcher.getString(R.string.widget_frame_name, widget.contentDescription)
             (frame.layoutParams as BaseDragLayer.LayoutParams).customPosition = true
             dl.addView(frame)
