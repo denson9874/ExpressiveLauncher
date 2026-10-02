@@ -21,10 +21,14 @@ import com.android.launcher3.views.OptionsPopupView.OptionItem
  */
 object FolderWidgetMenus {
 
-    /** Menu entries (string resources) for a folder: Make widget for Home folders, widget actions for widgets. */
+    /**
+     * Menu entries (string resources) for a folder: Make widget for Home folders, widget actions for
+     * widgets, nothing while Home is locked (every entry changes the layout or its look).
+     */
     @JvmStatic
-    fun itemsFor(info: FolderInfo): List<Int> = when {
-        info.container != Favorites.CONTAINER_DESKTOP -> emptyList()
+    @JvmOverloads
+    fun itemsFor(info: FolderInfo, homeLocked: Boolean = false): List<Int> = when {
+        homeLocked || info.container != Favorites.CONTAINER_DESKTOP -> emptyList()
         FolderWidgets.isFolderWidget(info) -> listOf(
             R.string.folder_widget_customize,
             R.string.folder_widget_make_folder,
@@ -32,6 +36,18 @@ object FolderWidgetMenus {
         )
         else -> listOf(R.string.folder_widget_make_widget)
     }
+
+    /** Whether a long-press on this folder shows its menu. */
+    @JvmStatic
+    fun hasMenu(launcher: Launcher, info: FolderInfo): Boolean =
+        itemsFor(info, FolderWidgetController.isHomeLocked(launcher)).isNotEmpty()
+
+    /** The open folder's footer button: the other kind (Make widget or Make normal folder), or none. */
+    @JvmStatic
+    fun footerActionFor(info: FolderInfo, homeLocked: Boolean): Int? =
+        itemsFor(info, homeLocked).firstOrNull {
+            it == R.string.folder_widget_make_widget || it == R.string.folder_widget_make_folder
+        }
 
     /**
      * Shows the menu for [icon] and returns the pre-drag condition for its drag: moving past the
@@ -44,7 +60,8 @@ object FolderWidgetMenus {
         launcher.dragLayer.getDescendantRectRelativeToSelf(icon, bounds)
         val items = itemsFor(icon.mInfo).map { labelRes ->
             OptionItem(launcher, labelRes, iconFor(labelRes), LauncherEvent.IGNORE) { _: View ->
-                onItemClick(launcher, icon, labelRes)
+                runAction(launcher, icon, labelRes)
+                true
             }
         }
         val menu = OptionsPopupView.show<Launcher>(launcher, RectF(bounds), items, true)
@@ -69,10 +86,20 @@ object FolderWidgetMenus {
         }
     }
 
-    /** Runs a menu entry; returns true so the menu closes. */
-    private fun onItemClick(launcher: Launcher, icon: FolderIcon, labelRes: Int): Boolean = true
+    /** Runs a menu or footer entry. Customize opens the widget settings once they exist (Task 14). */
+    @JvmStatic
+    fun runAction(launcher: Launcher, icon: FolderIcon, labelRes: Int) {
+        when (labelRes) {
+            R.string.folder_widget_make_widget -> FolderWidgetController.makeWidget(launcher, icon)
+            R.string.folder_widget_make_folder ->
+                (icon as? FolderWidgetView)?.let { FolderWidgetController.makeNormalFolder(launcher, it) }
+            R.string.folder_widget_remove ->
+                (icon as? FolderWidgetView)?.let { FolderWidgetController.confirmRemove(launcher, it) }
+        }
+    }
 
-    private fun iconFor(labelRes: Int): Int = when (labelRes) {
+    @JvmStatic
+    fun iconFor(labelRes: Int): Int = when (labelRes) {
         R.string.folder_widget_make_widget -> R.drawable.ic_widget
         R.string.folder_widget_customize -> R.drawable.ic_palette
         R.string.folder_widget_make_folder -> R.drawable.ic_folder

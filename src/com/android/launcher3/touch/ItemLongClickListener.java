@@ -80,10 +80,10 @@ public class ItemLongClickListener {
 
         launcher.setWaitingForResult(null);
         DragOptions options = new DragOptions();
-        // LC-Note: Home folders and Folder widgets show their menu while picked up; moving starts
-        // the usual drag.
+        // LC-Note: Home folders and Folder widgets show their menu while picked up (not while Home
+        // is locked); moving starts the usual drag.
         if (v instanceof FolderIcon folderIcon
-                && !FolderWidgetMenus.itemsFor(folderIcon.mInfo).isEmpty()) {
+                && FolderWidgetMenus.hasMenu(launcher, folderIcon.mInfo)) {
             options.preDragCondition = FolderWidgetMenus.show(launcher, folderIcon);
         }
         beginDrag(v, launcher, (ItemInfo) v.getTag(), options);

@@ -70,6 +70,7 @@ import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -138,6 +139,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.folder.widget.FolderWidgetController;
+import app.lawnchair.folder.widget.FolderWidgetMenus;
 import app.lawnchair.folder.widget.FolderWidgets;
 import app.lawnchair.preferences2.PreferenceManager2;
 import app.lawnchair.theme.color.ColorOption;
@@ -239,6 +242,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
     protected LinearLayout mFooter;
     private int mFooterHeight;
+    // LC-Note: Make widget / Make normal folder for Home folders (Expressive Folder widget).
+    @Nullable private ImageButton mWidgetButton;
 
     // Cell ranks used for drag and drop
     @Thunk
@@ -349,6 +354,15 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         mPageIndicator = findViewById(R.id.folder_page_indicator);
         mFooter = findViewById(R.id.folder_footer);
+        mWidgetButton = findViewById(R.id.folder_widget_button);
+        if (mWidgetButton != null) {
+            mWidgetButton.setOnClickListener(v -> {
+                if (mActivityContext instanceof Launcher launcher && mFolderIcon != null
+                        && v.getTag() instanceof Integer action) {
+                    FolderWidgetMenus.runAction(launcher, mFolderIcon, action);
+                }
+            });
+        }
         mFooterHeight = dp.folderFooterHeightPx;
         mFolderName = findViewById(R.id.folder_name);
         if (Flags.enableLauncherVisualRefresh()) {
@@ -856,6 +870,22 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     }
 
     /**
+     * LC-Note: Shows the footer button of Home folders: Make widget, or Make normal folder for a
+     * Folder widget (none in the dock or while Home is locked).
+     */
+    private void updateWidgetButton() {
+        if (mWidgetButton == null) return;
+        Integer action = mActivityContext instanceof Launcher launcher && mFolderIcon != null
+                ? FolderWidgetMenus.footerActionFor(mInfo, FolderWidgetController.isHomeLocked(launcher))
+                : null;
+        mWidgetButton.setVisibility(action == null ? GONE : VISIBLE);
+        mWidgetButton.setTag(action);
+        if (action == null) return;
+        mWidgetButton.setImageResource(FolderWidgetMenus.iconFor(action));
+        mWidgetButton.setContentDescription(getContext().getString(action));
+    }
+
+    /**
      * Opens the user folder described by the specified tag. The opening of the folder
      * is animated relative to the specified View. If the View is null, no animation
      * is played.
@@ -869,6 +899,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         mContent.bindItems(items);
         mContent.setCanAnnouncePageDescriptionForFolder(true);
+        updateWidgetButton();
         centerAboutIcon();
         mItemsInvalidated = true;
         updateTextViewFocus();

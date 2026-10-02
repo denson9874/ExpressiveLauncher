@@ -1213,4 +1213,8 @@
     <string name="folder_widget_make_folder">Make normal folder</string>
     <string name="folder_widget_customize">Customize</string>
     <string name="folder_widget_remove">Remove</string>
+    <string name="folder_widget_no_room">No room for a widget here.</string>
+    <string name="folder_widget_remove_title">Remove %1$s?</string>
+    <string name="folder_widget_put_back">Put apps back on Home</string>
+    <string name="folder_widget_remove_all">Remove all</string>
 </resources>

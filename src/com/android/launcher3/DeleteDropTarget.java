@@ -29,10 +29,13 @@ import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
 import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.logging.StatsLogManager;
 import com.android.launcher3.model.data.CollectionInfo;
+import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.Preconditions;
+import app.lawnchair.folder.widget.FolderWidgetController;
+import app.lawnchair.folder.widget.FolderWidgets;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 
 import app.lawnchair.preferences2.PreferenceManager2;
@@ -151,6 +154,13 @@ public class DeleteDropTarget extends ButtonDropTarget {
     public void completeDrop(DragObject d) {
         ItemInfo item = d.dragInfo;
         if (canRemove(item)) {
+            // LC-Note: a Folder widget with apps first asks whether to put them back on Home.
+            if (FolderWidgets.isFolderWidget(item) && item instanceof FolderInfo folder
+                    && mActivityContext instanceof Launcher launcher
+                    && FolderWidgetController.confirmRemoveAfterDrop(launcher, folder,
+                            () -> mDropTargetHandler.onDeleteComplete(item, /* view */ null))) {
+                return;
+            }
             mDropTargetHandler.onDeleteComplete(item, /* view */ null);
         } else if (mText == getResources().getText(R.string.remove_drop_target_label)) {
             Log.wtf("b/379606516", "If the drop target text is 'remove', then"

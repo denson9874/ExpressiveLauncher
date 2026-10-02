@@ -30,4 +30,21 @@ class FolderWidgetMenusTest {
     @Test fun dockFolder_offersNothing() {
         assertThat(FolderWidgetMenus.itemsFor(FolderInfo().apply { container = Favorites.CONTAINER_HOTSEAT })).isEmpty()
     }
+
+    @Test fun lockedHome_offersNothing() {
+        val folder = FolderInfo().apply { container = Favorites.CONTAINER_DESKTOP }
+        val widget = FolderInfo().apply { container = Favorites.CONTAINER_DESKTOP; options = FolderInfo.FLAG_FOLDER_WIDGET }
+        assertThat(FolderWidgetMenus.itemsFor(folder, homeLocked = true)).isEmpty()
+        assertThat(FolderWidgetMenus.itemsFor(widget, homeLocked = true)).isEmpty()
+    }
+
+    @Test fun footer_offersTheOtherKind() {
+        val folder = FolderInfo().apply { container = Favorites.CONTAINER_DESKTOP }
+        val widget = FolderInfo().apply { container = Favorites.CONTAINER_DESKTOP; options = FolderInfo.FLAG_FOLDER_WIDGET }
+        val dock = FolderInfo().apply { container = Favorites.CONTAINER_HOTSEAT }
+        assertThat(FolderWidgetMenus.footerActionFor(folder, homeLocked = false)).isEqualTo(R.string.folder_widget_make_widget)
+        assertThat(FolderWidgetMenus.footerActionFor(widget, homeLocked = false)).isEqualTo(R.string.folder_widget_make_folder)
+        assertThat(FolderWidgetMenus.footerActionFor(dock, homeLocked = false)).isNull()
+        assertThat(FolderWidgetMenus.footerActionFor(folder, homeLocked = true)).isNull()
+    }
 }
