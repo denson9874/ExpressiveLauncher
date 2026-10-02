@@ -17,6 +17,7 @@ package com.android.launcher3.model
 
 import android.annotation.SuppressLint
 import android.content.ComponentName
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -43,6 +44,8 @@ import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.IconRequestInfo
+import app.lawnchair.folder.widget.FolderWidgetPlacement
+import app.lawnchair.folder.widget.FolderWidgets
 import app.lawnchair.preferences.PreferenceManager
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.ItemInfoWithIcon
@@ -522,6 +525,18 @@ class WorkspaceItemProcessor(
         collection.spanY = 1
         if (collection is FolderInfo) {
             collection.options = c.options
+            // LC-Note: flagged folders and larger-than-1x1 Home folders (4.0.2/4.0.3 large folders)
+            // load as Folder widgets. They claim their cells after every other item.
+            if (FolderWidgets.wantsWidget(c.container, c.options, c.spanX, c.spanY)) {
+                collection.options = collection.options or FolderInfo.FLAG_FOLDER_WIDGET
+                val (spanX, spanY) =
+                    FolderWidgetPlacement.normalizeSpan(c.spanX, c.spanY, idp.numColumns, idp.numRows)
+                collection.spanX = spanX
+                collection.spanY = spanY
+                c.markRestored()
+                c.deferFolderWidget(collection)
+                return
+            }
         } else {
             // An app pair may be inside another folder, so it needs to preserve rank information.
             collection.rank = c.rank
@@ -688,6 +703,8 @@ class WorkspaceItemProcessor(
 
             itemInfo.getContents().sortWith(Folder.ITEM_POS_COMPARATOR)
             verifiers.forEach { it.setFolderInfo(itemInfo) }
+            // LC-Note: a Folder widget shows every app at full size.
+            val showsEveryIcon = FolderWidgets.isFolderWidget(itemInfo)
 
             // Update ranks here to ensure there are no gaps caused by removed folder items.
             // Ranks are the source of truth for folder items, so cellX and cellY can be
@@ -698,7 +715,7 @@ class WorkspaceItemProcessor(
                     info is WorkspaceItemInfo &&
                         info.matchingLookupFlag.isVisuallyLessThan(Favorites.DESKTOP_ICON_FLAG) &&
                         info.itemType == Favorites.ITEM_TYPE_APPLICATION &&
-                        verifiers.any { it.isItemInPreview(info.rank) }
+                        (showsEveryIcon || verifiers.any { it.isItemInPreview(info.rank) })
                 ) {
                     iconCache.getTitleAndIcon(info, Favorites.DESKTOP_ICON_FLAG)
                 }
@@ -725,6 +742,19 @@ class WorkspaceItemProcessor(
 
         // Remove dead items
         val itemsDeleted = c.commitDeleted()
+
+        // LC-Note: Folder widgets take their cells after every other item; moved rows are rewritten.
+        c.placeDeferredFolderWidgets(loadedItems) { folder ->
+            val values = ContentValues().apply {
+                put(Favorites.SCREEN, folder.screenId)
+                put(Favorites.CELLX, folder.cellX)
+                put(Favorites.CELLY, folder.cellY)
+                put(Favorites.SPANX, folder.spanX)
+                put(Favorites.SPANY, folder.spanY)
+                put(Favorites.OPTIONS, folder.options)
+            }
+            modelDbController.update(values, "${Favorites._ID}=?", arrayOf(folder.id.toString()))
+        }
 
         processFolderItems()
         // After all items have been processed and added to the BgDataModel, this method

@@ -79,7 +79,14 @@ import dagger.assisted.AssistedInject;
 
 import java.net.URISyntaxException;
 import java.security.InvalidParameterException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.function.Consumer;
 
+import app.lawnchair.folder.widget.FolderWidgetPlacement;
+import app.lawnchair.folder.widget.GridRect;
+import app.lawnchair.folder.widget.Placement;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import app.lawnchair.LawnchairApp;
 import app.lawnchair.preferences2.PreferenceManager2;
@@ -108,6 +115,11 @@ public class LoaderCursor extends CursorWrapper {
     // found eventually as the loading progresses
     private final IntSparseArrayMap<CollectionInfo> mPendingCollectionInfo =
             new IntSparseArrayMap<>();
+
+    // LC-Note: Folder widgets claim their cells after every other item, in load order. The
+    // database span and options are kept to know whether a widget's row must be rewritten.
+    private record DeferredFolderWidget(FolderInfo info, int dbSpanX, int dbSpanY, int dbOptions) {}
+    private final ArrayList<DeferredFolderWidget> mDeferredFolderWidgets = new ArrayList<>();
 
     private final int mIconIndex;
     public final int mTitleIndex;
@@ -646,19 +658,8 @@ public class LoaderCursor extends CursorWrapper {
             return false;
         }
 
-        if (!mOccupied.containsKey(item.screenId)) {
-            GridOccupancy screen = new GridOccupancy(countX + 1, countY + 1);
-            if (item.screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getEnableSmartspace())) {
-                // Mark the first X columns (X is width of the search container) in the first row as
-                // occupied (if the feature is enabled) in order to account for the search
-                // container.
-                int spanX = mIDP.numSearchContainerColumns;
-                int spanY = 1;
-                screen.markCells(0, 0, spanX, spanY, true);
-            }
-            mOccupied.put(item.screenId, screen);
-        }
-        final GridOccupancy occupancy = mOccupied.get(item.screenId);
+        // LC-Note: shared with placeDeferredFolderWidgets.
+        final GridOccupancy occupancy = getOrCreateOccupancy(item.screenId);
 
         // Check if any workspace icons overlap with each other
         if (occupancy.isRegionVacant(item.cellX, item.cellY, item.spanX, item.spanY)) {
@@ -671,6 +672,85 @@ public class LoaderCursor extends CursorWrapper {
                     + ") already occupied");
             return PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getAllowWidgetOverlap());
         }
+    }
+
+    /** LC-Note: the occupancy of a desktop screen, created as checkItemPlacement always did. */
+    private GridOccupancy getOrCreateOccupancy(int screenId) {
+        GridOccupancy occupancy = mOccupied.get(screenId);
+        if (occupancy == null) {
+            occupancy = new GridOccupancy(mIDP.numColumns + 1, mIDP.numRows + 1);
+            if (screenId == Workspace.FIRST_SCREEN_ID && PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getEnableSmartspace())) {
+                // Mark the first X columns (X is width of the search container) in the first row as
+                // occupied (if the feature is enabled) in order to account for the search
+                // container.
+                int spanX = mIDP.numSearchContainerColumns;
+                int spanY = 1;
+                occupancy.markCells(0, 0, spanX, spanY, true);
+            }
+            mOccupied.put(screenId, occupancy);
+        }
+        return occupancy;
+    }
+
+    /**
+     * LC-Note: Folder widgets wait for their cells until every other item is loaded (see
+     * {@link #placeDeferredFolderWidgets}). Called while the cursor is on the folder's row.
+     */
+    public void deferFolderWidget(FolderInfo info) {
+        mDeferredFolderWidgets.add(
+                new DeferredFolderWidget(info, getSpanX(), getSpanY(), getOptions()));
+    }
+
+    /**
+     * LC-Note: Places the deferred Folder widgets in load order after all other items: each keeps
+     * its cells when they are free, otherwise shrinks to fit the grid or moves to free cells, a
+     * later page or a new page ({@link FolderWidgetPlacement}). Folder widgets are never deleted.
+     * {@code onMoved} receives each widget whose cells, span or options differ from its row.
+     */
+    public void placeDeferredFolderWidgets(
+            IntSparseArrayMap<ItemInfo> loadedItems, Consumer<FolderInfo> onMoved) {
+        if (mDeferredFolderWidgets.isEmpty()) {
+            return;
+        }
+        final int countX = mIDP.numColumns;
+        final int countY = mIDP.numRows;
+        TreeSet<Integer> screens = new TreeSet<>();
+        for (ItemInfo item : loadedItems) {
+            if (item.container == CONTAINER_DESKTOP) {
+                screens.add(item.screenId);
+            }
+        }
+        List<Placement> wanted = new ArrayList<>();
+        for (DeferredFolderWidget deferred : mDeferredFolderWidgets) {
+            FolderInfo f = deferred.info();
+            screens.add(f.screenId);
+            wanted.add(new Placement(f.screenId, new GridRect(f.cellX, f.cellY, f.spanX, f.spanY)));
+        }
+        List<Placement> placed = FolderWidgetPlacement.placeAll(wanted, new ArrayList<>(screens),
+                countX, countY, (screen, r) -> r.getX() >= 0 && r.getY() >= 0
+                        && r.getX() + r.getSpanX() <= countX && r.getY() + r.getSpanY() <= countY
+                        && getOrCreateOccupancy(screen).isRegionVacant(
+                                r.getX(), r.getY(), r.getSpanX(), r.getSpanY()));
+        for (int i = 0; i < placed.size(); i++) {
+            DeferredFolderWidget deferred = mDeferredFolderWidgets.get(i);
+            FolderInfo f = deferred.info();
+            Placement p = placed.get(i);
+            boolean changed = f.screenId != p.getScreenId() || f.cellX != p.getRect().getX()
+                    || f.cellY != p.getRect().getY() || p.getRect().getSpanX() != deferred.dbSpanX()
+                    || p.getRect().getSpanY() != deferred.dbSpanY()
+                    || f.options != deferred.dbOptions();
+            f.screenId = p.getScreenId();
+            f.cellX = p.getRect().getX();
+            f.cellY = p.getRect().getY();
+            f.spanX = p.getRect().getSpanX();
+            f.spanY = p.getRect().getSpanY();
+            getOrCreateOccupancy(f.screenId).markCells(f, true);
+            loadedItems.put(f.id, f);
+            if (changed) {
+                onMoved.accept(f);
+            }
+        }
+        mDeferredFolderWidgets.clear();
     }
 
     @AssistedFactory
