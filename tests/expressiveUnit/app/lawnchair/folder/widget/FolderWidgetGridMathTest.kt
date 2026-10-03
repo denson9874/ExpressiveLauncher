@@ -117,5 +117,21 @@ class FolderWidgetGridMathTest {
         val vMargin = (s.rowHeightPx - s.cellContentHeightPx) / 2
         assertThat(vMargin).isAtLeast(10)
     }
+
+    @Test fun fourByFour_reducesHorizontalSpacingAndSpansColumns() {
+        val p8p4x4 = FolderWidgetGridInput(
+            widthPx = 1260, heightPx = 1260, spanX = 4, spanY = 4, itemCount = 4,
+            paddingPx = 24, headerHeightPx = 66,
+            folderCellWidthPx = 249, folderCellHeightPx = 283,
+            folderChildIconSizePx = 195, folderChildDrawablePaddingPx = 4,
+            folderBorderSpacePx = Point(0, 0), numFolderColumns = 4, numFolderRows = 4,
+            labelHeightPx = 45, minTouchPx = 144,
+        )
+        val s = FolderWidgetGridMath.compute(p8p4x4)
+        assertThat(s.columns).isEqualTo(4)
+        assertThat(s.columnWidthPx).isEqualTo(303)
+        assertThat(s.gridLeftPx).isEqualTo(24)
+        assertThat(s.labelsVisible).isTrue()
+    }
 }
 

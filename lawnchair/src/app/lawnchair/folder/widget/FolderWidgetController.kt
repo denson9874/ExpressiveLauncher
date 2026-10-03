@@ -137,11 +137,13 @@ object FolderWidgetController {
         info.spanY = target.spanY
         info.setOption(FolderInfo.FLAG_FOLDER_WIDGET, true, null)
         launcher.modelWriter.updateItemInDatabase(info)
+        deleteStyle(launcher, info.id)
         val oldWidth = icon.width
         val oldHeight = icon.height
         launcher.workspace.removeWorkspaceItem(icon)
         val newView = launcher.itemInflater.inflateItem(info) as? FolderWidgetView
         if (newView != null) {
+            newView.setTextVisible(false)
             launcher.workspace.addInScreen(newView, info)
             (newView.parent?.parent as? CellLayout)?.shortcutsAndWidgets?.measureChild(newView)
             morphMakeWidget(newView, oldWidth, oldHeight, target.x < lp.cellX, target.y < lp.cellY)

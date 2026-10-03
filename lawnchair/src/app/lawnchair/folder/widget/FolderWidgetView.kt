@@ -83,6 +83,7 @@ class FolderWidgetView @JvmOverloads constructor(
         }
         // FolderIcon draws its 1x1 preview, background and dot only while its icon is visible.
         super.setIconVisible(false)
+        findViewById<View?>(R.id.folder_icon_name)?.visibility = GONE
     }
 
     private var styleObservationJob: Job? = null

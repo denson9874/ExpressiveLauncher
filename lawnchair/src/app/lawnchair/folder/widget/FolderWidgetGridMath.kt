@@ -72,6 +72,10 @@ object FolderWidgetGridMath {
                 else -> maxColsForSpan
             }
         }
+        // 4x4 widget: lay out across all 4 columns to match span and reduce empty side spacing
+        if (spanX >= 4 && spanY >= 4) {
+            return 4.coerceIn(1, MAX_COLUMNS)
+        }
         // Multi-row widget (e.g. 2x2, 3x2, 4x2): adapt dynamically to app count,
         // matching FolderGridOrganizer
         return when {
@@ -125,10 +129,15 @@ object FolderWidgetGridMath {
         }
         var icon = (folderChildIconSizePx * heightScale * iconScale).roundToInt()
 
+        val isFourByFour = spanX >= 4 && spanY >= 4
+
         // Column width:
-        // Match normal folderCellWidthPx when available width allows, avoiding artificial horizontal stretching.
+        // When 4x4, distribute columns across available inner width so left and right spacing is tight.
+        // For other spans, match normal folderCellWidthPx when available width allows, avoiding artificial horizontal stretching.
         val normalWidthWithGutters = columns * folderCellWidthPx + (columns - 1) * borderX
-        val columnWidth = if (normalWidthWithGutters in 1..innerWidth) {
+        val columnWidth = if (isFourByFour) {
+            max(1, (innerWidth - (columns - 1) * borderX) / columns)
+        } else if (normalWidthWithGutters in 1..innerWidth) {
             folderCellWidthPx
         } else {
             max(1, (innerWidth - (columns - 1) * borderX) / columns)
