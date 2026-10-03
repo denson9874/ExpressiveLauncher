@@ -1,14 +1,23 @@
-<b>Expressive Launcher 4.0.6 (Build 55)</b>
+<b>Expressive Launcher 4.0.7 (Build 56)</b>
 
 <b>✨ What's New & Improved</b>
-• <b>App Drawer Icon Scaling</b>: Fixed app screen icon size slider not applying on devices with responsive grid (Pixel handhelds and foldables). Icons now scale cleanly with their surrounding cell height expanding smoothly to prevent downscaling or clipping.
-• <b>App Drawer Horizontal Padding</b>: Fixed drawer horizontal padding slider calculation on responsive grids, replacing the legacy 100x multiplier with smooth 1:1 proportional scaling.
-• <b>Tab Strip & Header Alignment</b>: Fixed <code>FloatingHeaderView</code> tab strip insets so Personal and Work profile tabs align precisely with app drawer columns without double padding.
+
+1. <b>App Drawer Style Choice (Full-Screen vs Bottom Sheet)</b>:
+• Added user setting (<b>Settings → App Drawer → General → Bottom sheet drawer</b>) letting users choose between the default edge-to-edge full-screen App Drawer and the classic Pixel Launcher floating bottom sheet presentation.
+• Enabling the bottom sheet restores the top drag handle pill (<code>—</code>) and subtle background wallpaper scaling while preserving smooth edge-to-edge column spacing.
+
+2. <b>Folder Widget Closing Animation Polish</b>:
+• Reworked the closing animation when collapsing the expanded full folder view back into its Home folder widget.
+• Smoothly cross-fades the folder panel into the resting widget tile during the final transition, eliminating visual edge clipping and the flash artifact where the folder briefly popped back up in the center of the screen.
+
+3. <b>Android Developer Verification & Play Protect Clearance</b>:
+• Integrated automated developer identity and certificate validation for off-Play build distributions (GitHub Releases & Obtainium) targeting Google Play Console Android Developer Verification (Developer ID <code>5547708187557586870</code>).
+• Ensures standalone packages clear Play Protect developer accountability checks.
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>4.0.6</code> (Build <code>55</code>)
+• <b>Launcher Version</b>: <code>4.0.7</code> (Build <code>56</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
