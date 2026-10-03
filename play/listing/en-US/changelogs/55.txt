@@ -1,0 +1,1 @@
+Fix app drawer icon scaling in responsive grid layout. Fix app drawer horizontal padding and align header tabs with app columns.

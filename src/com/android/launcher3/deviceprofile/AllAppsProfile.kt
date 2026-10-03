@@ -32,6 +32,7 @@ import com.android.launcher3.util.CellContentDimensions
 import com.android.launcher3.util.IconSizeSteps
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 data class AllAppsProfile(
     val borderSpacePx: Point,
@@ -156,24 +157,35 @@ data class AllAppsProfile(
             )
         }
 
+        @JvmOverloads
         fun createAllAppsWithResponsive(
             responsiveAllAppsCellSpec: CalculatedCellSpec,
             responsiveAllAppsWidthSpec: CalculatedResponsiveSpec,
             responsiveAllAppsHeightSpec: CalculatedResponsiveSpec,
             iconSizeSteps: IconSizeSteps,
             isVerticalBarLayout: Boolean,
+            allAppsIconSizeFactor: Float = 1f,
+            allAppsIconTextSizeFactor: Float = 1f,
+            allAppsCellHeightMultiplier: Float = 1f,
         ): AllAppsProfile {
-            var allAppsIconSizePx = responsiveAllAppsCellSpec.iconSize
-            var allAppsIconTextSizePx: Float = responsiveAllAppsCellSpec.iconTextSize.toFloat()
+            var allAppsIconSizePx =
+                (responsiveAllAppsCellSpec.iconSize * allAppsIconSizeFactor).roundToInt()
+            var allAppsIconTextSizePx: Float =
+                responsiveAllAppsCellSpec.iconTextSize * allAppsIconTextSizeFactor
             var allAppsIconDrawablePaddingPx =
-                getNormalizedIconDrawablePadding(
-                    allAppsIconSizePx,
-                    responsiveAllAppsCellSpec.iconDrawablePadding,
-                )
-            var maxAllAppsTextLineCount = responsiveAllAppsCellSpec.iconTextMaxLineCount
+                if (allAppsIconTextSizeFactor == 0f) 0
+                else
+                    getNormalizedIconDrawablePadding(
+                        allAppsIconSizePx,
+                        responsiveAllAppsCellSpec.iconDrawablePadding,
+                    )
+            var maxAllAppsTextLineCount =
+                if (allAppsIconTextSizeFactor == 0f) 0
+                else responsiveAllAppsCellSpec.iconTextMaxLineCount
             val allAppsBorderSpacePx =
                 Point(responsiveAllAppsWidthSpec.gutterPx, responsiveAllAppsHeightSpec.gutterPx)
-            var allAppsCellHeightPx = responsiveAllAppsHeightSpec.cellSizePx
+            var allAppsCellHeightPx =
+                (responsiveAllAppsHeightSpec.cellSizePx * allAppsCellHeightMultiplier).roundToInt()
             var allAppsCellWidthPx = responsiveAllAppsWidthSpec.cellSizePx
 
             // Reduce the size of the app icon if it doesn't fit
@@ -190,7 +202,9 @@ data class AllAppsProfile(
                     maxAllAppsTextLineCount,
                 )
             if (allAppsCellHeightPx < cellContentDimensions.getCellContentHeight()) {
-                if (isVerticalBarLayout) {
+                if (allAppsIconSizeFactor > 1f) {
+                    allAppsCellHeightPx = cellContentDimensions.getCellContentHeight()
+                } else if (isVerticalBarLayout) {
                     if (allAppsCellHeightPx < allAppsIconSizePx) {
                         cellContentDimensions.iconSizePx =
                             iconSizeSteps.getIconSmallerThan(allAppsCellHeightPx)

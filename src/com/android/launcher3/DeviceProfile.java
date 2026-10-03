@@ -350,6 +350,7 @@ public class DeviceProfile {
     private float workspacePaddingVerticalFactor;
     private float widgetPaddingFactor;
     private float drawerPaddingTopFactor;
+    private float drawerLeftRightMarginFactor;
     private PreferenceManager2 preferenceManager2 = null;
 
     /** TODO: Once we fully migrate to staged split, remove "isMultiWindowMode" */
@@ -375,6 +376,11 @@ public class DeviceProfile {
                 .firstCached(preferenceManager2.getWidgetPaddingFactor()), 0f, 2f);
         drawerPaddingTopFactor = Utilities.boundToRange(PreferenceCacheExtensionsKt
                 .firstCached(preferenceManager2.getDrawerPaddingTopFactor()), 1f, 2f);
+        drawerLeftRightMarginFactor = Utilities.boundToRange(PreferenceCacheExtensionsKt
+                .firstCached(preferenceManager2.getDrawerLeftRightMarginFactor()), 0f, 2f);
+        if (Math.abs(drawerLeftRightMarginFactor - 0.1f) < 0.001f) {
+            drawerLeftRightMarginFactor = 1.0f;
+        }
         this.inv = inv;
 
         mDeviceProperties = DeviceProperties.Factory.createDeviceProperties(
@@ -1138,7 +1144,9 @@ public class DeviceProfile {
         iconCenterVertically = (mIsScalableGrid || mIsResponsiveGrid) && isVerticalBarLayout();
 
         if (mIsResponsiveGrid) {
-            iconSizePx = mResponsiveWorkspaceCellSpec.getIconSize();
+            float homeIconSizeFactor = Utilities.boundToRange(PreferenceCacheExtensionsKt
+                    .firstCached(preferenceManager2.getHomeIconSizeFactor()), 0.1f, 2f);
+            iconSizePx = Math.round(mResponsiveWorkspaceCellSpec.getIconSize() * homeIconSizeFactor);
             iconTextSizePx = mResponsiveWorkspaceCellSpec.getIconTextSize();
             mIconDrawablePaddingOriginalPx = mResponsiveWorkspaceCellSpec.getIconDrawablePadding();
             maxIconTextLineCount = mResponsiveWorkspaceCellSpec.getIconTextMaxLineCount();
@@ -1350,12 +1358,18 @@ public class DeviceProfile {
 
         // All apps
         if (mIsResponsiveGrid) {
+            float allAppsIconSizeFactor = Utilities.boundToRange(PreferenceCacheExtensionsKt
+                    .firstCached(preferenceManager2.getDrawerIconSizeFactor()), 0.1f, 2f);
+            float allAppsIconTextSizeFactor = mTextFactors.getAllAppsIconTextSizeFactor();
             mAllAppsProfile = AllAppsProfile.Factory.createAllAppsWithResponsive(
                     mResponsiveAllAppsCellSpec,
                     mResponsiveAllAppsWidthSpec,
                     mResponsiveAllAppsHeightSpec,
                     mIconSizeSteps,
-                    isVerticalBarLayout()
+                    isVerticalBarLayout(),
+                    allAppsIconSizeFactor,
+                    allAppsIconTextSizeFactor,
+                    allAppsCellHeightMultiplier
             );
             updateAllAppsWithResponsiveMeasures();
         } else {
@@ -1445,18 +1459,9 @@ public class DeviceProfile {
                     Math.max(0, desiredWorkspaceHorizontalMarginPx + cellLayoutHorizontalPadding
                             - (getAllAppsProfile().getBorderSpacePx().x / 2));
         }
-        var allAppLeftRightMarginMultiplier = PreferenceCacheExtensionsKt
-                .firstCached(preferenceManager2.getDrawerLeftRightMarginFactor());
-        var marginMultiplier = allAppLeftRightMarginMultiplier * (!getDeviceProperties().isTablet() ? 100 : 10);
-        allAppsLeftRightMargin = (int) (allAppsLeftRightMargin * marginMultiplier);
-
-        // todo fix how drawer padding values are calculated in responsive grid type
-        int leftPadding = (int) (allAppsPadding.left != 0 ? allAppsPadding.left * marginMultiplier : marginMultiplier);
-        int rightPadding = (int) (allAppsPadding.right != 0 ? allAppsPadding.right * marginMultiplier
-                : marginMultiplier);
-
-        allAppsPadding.left = leftPadding;
-        allAppsPadding.right = rightPadding;
+        allAppsLeftRightMargin = Math.round(allAppsLeftRightMargin * drawerLeftRightMarginFactor);
+        allAppsPadding.left = Math.round(allAppsPadding.left * drawerLeftRightMarginFactor);
+        allAppsPadding.right = Math.round(allAppsPadding.right * drawerLeftRightMarginFactor);
     }
 
     /** Whether All Apps should be presented on a bottom sheet. */
@@ -1507,7 +1512,7 @@ public class DeviceProfile {
     private void updateFolderCellSize(float scale, Resources res) {
         int minLabelTextSize = pxFromSp(MIN_FOLDER_TEXT_SIZE_SP, mMetrics, scale);
         if (mIsResponsiveGrid) {
-            folderChildIconSizePx = mResponsiveWorkspaceCellSpec.getIconSize();
+            folderChildIconSizePx = iconSizePx;
             folderChildTextSizePx = mResponsiveWorkspaceCellSpec.getIconTextSize();
             folderLabelTextSizePx = Math.max(minLabelTextSize,
                     (int) (folderChildTextSizePx * folderLabelTextScale));
