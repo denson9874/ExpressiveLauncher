@@ -244,9 +244,10 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     // LC-Note: Folder widget animation access.
     public LinearLayout mFooter;
     private int mFooterHeight;
-    // LC-Note: Make widget / Make normal folder for Home folders (Expressive Folder widget).
+    // LC-Note: Make widget / Make normal folder / customize for Home folders (Expressive Folder widget).
     @Nullable private ImageButton mWidgetButton;
     @Nullable private ImageButton mAddAppsButton;
+    @Nullable private ImageButton mCustomizeButton;
 
     // Cell ranks used for drag and drop
     @Thunk
@@ -371,6 +372,15 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             mAddAppsButton.setOnClickListener(v -> {
                 if (mActivityContext instanceof Launcher launcher && mFolderIcon instanceof FolderWidgetView widget) {
                     FolderWidgetController.showAppPicker(launcher, widget);
+                }
+            });
+        }
+        // LC-Note: Folder widget customize settings button
+        mCustomizeButton = findViewById(R.id.folder_customize_button);
+        if (mCustomizeButton != null) {
+            mCustomizeButton.setOnClickListener(v -> {
+                if (mActivityContext instanceof Launcher launcher && mFolderIcon instanceof FolderWidgetView widget) {
+                    FolderWidgetController.showSettingsSheet(launcher, widget);
                 }
             });
         }
@@ -901,6 +911,13 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
                     && mFolderIcon instanceof FolderWidgetView
                     && !FolderWidgetController.isHomeLocked(launcher);
             mAddAppsButton.setVisibility(showAddApps ? VISIBLE : GONE);
+        }
+        // LC-Note: Folder widget customize settings button visibility
+        if (mCustomizeButton != null) {
+            boolean showCustomize = mActivityContext instanceof Launcher launcher
+                    && mFolderIcon instanceof FolderWidgetView
+                    && !FolderWidgetController.isHomeLocked(launcher);
+            mCustomizeButton.setVisibility(showCustomize ? VISIBLE : GONE);
         }
     }
 

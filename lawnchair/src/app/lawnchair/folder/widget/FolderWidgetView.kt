@@ -147,7 +147,7 @@ class FolderWidgetView @JvmOverloads constructor(
     }
 
     /** While resizing, the cell span changes before the item's span is committed. */
-    private fun currentSpanX(): Int =
+    internal fun currentSpanX(): Int =
         (layoutParams as? CellLayoutLayoutParams)?.cellHSpan?.takeIf { it > 0 } ?: mInfo.spanX
 
     /**
@@ -328,7 +328,7 @@ class FolderWidgetView @JvmOverloads constructor(
         return FolderWidgetStyle().resolve(ProManager.INSTANCE.get(context).isPro.value, defaults)
     }
 
-    private fun metrics(spanX: Int): FolderWidgetMetrics {
+    internal fun metrics(spanX: Int): FolderWidgetMetrics {
         val dp = mActivity.deviceProfile
         val density = resources.displayMetrics.density
         fun px(value: Int) = (value * density).roundToInt()

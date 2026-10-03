@@ -10,6 +10,7 @@ import androidx.dynamicanimation.animation.SpringForce
 import android.content.pm.LauncherApps
 import app.lawnchair.data.folderwidget.FolderWidgetStyleRepository
 import app.lawnchair.folder.widget.ui.FolderWidgetAppPicker
+import app.lawnchair.folder.widget.ui.FolderWidgetSettingsSheet
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.views.ComposeBottomSheet
@@ -436,6 +437,22 @@ object FolderWidgetController {
                 onCancel = {
                     close(true)
                 },
+            )
+        }
+    }
+
+    /**
+     * Opens the settings sheet for [widget] to configure its layout and styling.
+     */
+    @JvmStatic
+    fun showSettingsSheet(launcher: Launcher, widget: FolderWidgetView) {
+        if (isHomeLocked(launcher)) return
+        AbstractFloatingView.closeAllOpenViews(launcher, false)
+        ComposeBottomSheet.show(launcher) {
+            FolderWidgetSettingsSheet(
+                launcher = launcher,
+                widget = widget,
+                onDismiss = { close(true) },
             )
         }
     }

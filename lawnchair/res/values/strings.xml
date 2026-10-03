@@ -1227,4 +1227,15 @@
         <item quantity="one">Folder widget, %1$s, %2$d app</item>
         <item quantity="other">Folder widget, %1$s, %2$d apps</item>
     </plurals>
+    <string name="folder_widget_columns">Columns</string>
+    <string name="folder_widget_columns_auto">Auto</string>
+    <string name="folder_widget_show_names">Show app names</string>
+    <string name="folder_widget_show_header">Show header</string>
+    <string name="folder_widget_show_name_below">Show name below</string>
+    <string name="folder_widget_background_color">Background color</string>
+    <string name="folder_widget_background_opacity">Background opacity</string>
+    <string name="folder_widget_corner_radius">Corner radius</string>
+    <string name="folder_widget_icon_size">Icon size</string>
+    <string name="folder_widget_reset">Reset</string>
+    <string name="folder_widget_default">Default</string>
 </resources>

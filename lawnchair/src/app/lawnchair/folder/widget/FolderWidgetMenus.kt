@@ -95,6 +95,8 @@ object FolderWidgetMenus {
                 (icon as? FolderWidgetView)?.let { FolderWidgetController.makeNormalFolder(launcher, it) }
             R.string.folder_widget_remove ->
                 (icon as? FolderWidgetView)?.let { FolderWidgetController.confirmRemove(launcher, it) }
+            R.string.folder_widget_customize ->
+                (icon as? FolderWidgetView)?.let { FolderWidgetController.showSettingsSheet(launcher, it) }
         }
     }
 
