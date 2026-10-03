@@ -199,6 +199,22 @@ object FolderWidgetAnimations {
             asSet.play(flight)
         }
 
+        if (!opening) {
+            val closeFade = ValueAnimator.ofFloat(0f, 1f).apply {
+                addUpdateListener { anim ->
+                    val p = anim.animatedValue as Float
+                    // Smoothly fade out the closing folder over the final 25% of the transition
+                    folder.alpha = if (p < 0.75f) 1f else (1f - (p - 0.75f) / 0.25f)
+                    // Smoothly fade in the resting widget panel contents over the final 30%
+                    val widgetAlpha = if (p < 0.70f) 0f else ((p - 0.70f) / 0.30f)
+                    widget.panel.header.alpha = widgetAlpha
+                    widget.panel.recyclerView.alpha = widgetAlpha
+                    widget.panel.openButton.alpha = widgetAlpha
+                }
+            }
+            asSet.play(closeFade)
+        }
+
         asSet.addListener(object : AnimatorListenerAdapter() {
             private var cellLayout: CellLayout? = null
             private var contentClipChildren = false
@@ -214,6 +230,8 @@ object FolderWidgetAnimations {
                 widget.panel.contentVisible = false
 
                 if (opening) {
+                    folder.visibility = View.VISIBLE
+                    folder.alpha = 1f
                     folder.translationX = xDistance
                     folder.translationY = yDistance
                     folder.getFolderName().alpha = 0f
@@ -228,23 +246,29 @@ object FolderWidgetAnimations {
             }
 
             override fun onAnimationEnd(animation: Animator) {
-                folder.translationX = 0f
-                folder.translationY = 0f
-                folder.getFolderName().alpha = 1f
-                folder.mFooter.alpha = 1f
-                for (v in folderItems) {
-                    v.alpha = 1f
-                    v.translationX = 0f
-                    v.translationY = 0f
-                    v.scaleX = 1f
-                    v.scaleY = 1f
-                    getBubbleTextView(v)?.setTextVisibility(true)
-                }
                 folder.getContent().clipChildren = contentClipChildren
                 cellLayout?.clipChildren = cellLayoutClipChildren
 
                 if (!opening) {
+                    folder.visibility = View.GONE
+                    folder.alpha = 0f
                     widget.panel.contentVisible = true
+                    widget.panel.header.alpha = 1f
+                    widget.panel.recyclerView.alpha = 1f
+                    widget.panel.openButton.alpha = 1f
+                } else {
+                    folder.translationX = 0f
+                    folder.translationY = 0f
+                    folder.getFolderName().alpha = 1f
+                    folder.mFooter.alpha = 1f
+                    for (v in folderItems) {
+                        v.alpha = 1f
+                        v.translationX = 0f
+                        v.translationY = 0f
+                        v.scaleX = 1f
+                        v.scaleY = 1f
+                        getBubbleTextView(v)?.setTextVisibility(true)
+                    }
                 }
             }
         })

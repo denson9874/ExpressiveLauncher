@@ -16,10 +16,15 @@ public final class FeatureFlagsImpl implements FeatureFlags {
         return true;
     }
 
+    public static java.util.function.BooleanSupplier sAllAppsSheetForHandheldSupplier = null;
+
     @Override
 
 
     public boolean allAppsSheetForHandheld() {
+        if (sAllAppsSheetForHandheldSupplier != null) {
+            return sAllAppsSheetForHandheldSupplier.getAsBoolean();
+        }
         return false;
     }
 

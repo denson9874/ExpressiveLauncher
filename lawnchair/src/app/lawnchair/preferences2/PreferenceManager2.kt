@@ -471,6 +471,12 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.recreate() },
     )
 
+    val allAppsSheetForHandheld = preference(
+        key = booleanPreferencesKey(name = "all_apps_sheet_for_handheld"),
+        defaultValue = false,
+        onSet = { reloadHelper.recreate() },
+    )
+
     val appDrawerHapticFeedback = preference(
         key = booleanPreferencesKey(name = "app_drawer_haptic_feedback"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_app_drawer_haptic_feedback),

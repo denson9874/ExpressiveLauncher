@@ -46,4 +46,11 @@ class FolderWidgetAnimationsTest {
         animator.setCurrentFraction(1f)
         assertThat(animator.animatedValue).isEqualTo(1f)
     }
+
+    @Test
+    fun revealEndpoints_closing_preservesRadiusAcrossEndpoints() {
+        val (start, end) = FolderWidgetAnimations.revealEndpoints(widget, panel, 84f, 60f, opening = false)
+        assertThat(start.radius).isEqualTo(60f)
+        assertThat(end.radius).isEqualTo(84f)
+    }
 }

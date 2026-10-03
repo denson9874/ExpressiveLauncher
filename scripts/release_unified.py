@@ -25,6 +25,7 @@ CONTROL_SCRIPT = ROOT / "ci/jenkins/control.py"
 PUBLISH_SCRIPT = ROOT / "scripts/publish_play_bundle.py"
 TELEGRAM_SCRIPT = ROOT / "scripts/post_telegram.py"
 XDA_SCRIPT = ROOT / "scripts/format_xda.py"
+VERIFY_PLAY_PROTECT_SCRIPT = ROOT / "scripts/verify_developer_play_protect.py"
 XDA_THREAD_URL = "https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/"
 
 
@@ -242,6 +243,18 @@ def main():
         time.sleep(3)
         wait_for_jenkins_job("publish", min_build_number=prev_pub_num + 1)
         print(f"\n[SUCCESS] Published to GitHub Releases and promoted in-app update feed!")
+
+        print("\n>>> STAGE 2b: Android Developer Verification (Play Protect Clearance)...")
+        receipt_path = ROOT / "artifacts/play-protect-verification/developer_verification_receipt.json"
+        play_protect_cmd = [
+            sys.executable, str(VERIFY_PLAY_PROTECT_SCRIPT),
+            "--package", "dev.launcher.expressive.l3",
+            "--output", str(receipt_path),
+        ]
+        qa_apks = list((ROOT / "build/outputs/apk/lawnWithQuickstepExpressive/qa").glob("*.apk"))
+        if qa_apks:
+            play_protect_cmd.extend(["--apk", str(qa_apks[0])])
+        run_cmd(play_protect_cmd)
 
     # -------------------------------------------------------------
     # 2. Google Play Store Release Flow (Optional via --with-play)

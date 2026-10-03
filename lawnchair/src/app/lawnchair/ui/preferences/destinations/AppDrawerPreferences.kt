@@ -107,6 +107,11 @@ fun AppDrawerPreferences(
                 label = stringResource(R.string.suggestion_pref_screen_title),
                 destination = Predictions,
             )
+            SwitchPreference(
+                adapter = prefs2.allAppsSheetForHandheld.getAdapter(),
+                label = stringResource(id = R.string.pref_all_apps_sheet_title),
+                description = stringResource(id = R.string.pref_all_apps_sheet_description),
+            )
             AppDrawerHapticFeedbackPreference()
         }
         ProGate(

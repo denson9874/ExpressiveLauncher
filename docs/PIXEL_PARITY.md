@@ -4,6 +4,36 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Bottom sheet drawer, folder closing polish, and developer verification — 2026-10-03 (candidate 4.0.7 / code 56)
+
+1. **App Drawer presentation mode: Full-screen vs Bottom sheet drawer.** Pixel Launcher uses a floating
+   bottom sheet presentation with a top drag handle (`—`) on handhelds, while Expressive's default presentation
+   is edge-to-edge full-screen. A new user preference (**Settings → App Drawer → General → Bottom sheet drawer**,
+   `all_apps_sheet_for_handheld`, default `false`) gives users the choice between the edge-to-edge full-screen
+   drawer and the classic Pixel floating bottom sheet with top pill handle and subtle wallpaper scaling.
+   Backed by `FeatureFlagsImpl.sAllAppsSheetForHandheldSupplier` hooked into `PreferenceManager2` during
+   `LawnchairApp.onCreate()`. Changing the toggle triggers launcher activity recreation via `reloadHelper.recreate()`.
+2. **Folder Widget expanded panel closing animation polish.** Closing an expanded folder widget back to its
+   resting Home widget container previously produced visual glitches: the full folder snapped back to the center
+   at full opacity at the end of the reveal animation, causing an unsightly flash artifact and edge clipping.
+   `FolderWidgetAnimations.playRevealAnimation()` now includes a dedicated closing cross-fade (`closeFade`):
+   smoothly fading out the closing folder over the final 25% of the transition (`p >= 0.75f`) while fading in the
+   resting widget panel elements (`panel.header`, `panel.recyclerView`, `panel.openButton`) over the final 30%
+   (`p >= 0.70f`). `onAnimationEnd` cleanly hides the folder (`GONE`, `alpha = 0f`), restores widget panel content
+   visibility and full alpha, and prevents stale translation/scale states from leaking.
+3. **Android Developer Verification & Play Protect clearance.** Integrated developer identity and public certificate
+   validation targeting Google Play Console Android Developer Verification (Developer ID `5547708187557586870`,
+   Developer Name `Daryl Denson`, Verification URL `https://play.google.com/console/u/0/developers/5547708187557586870/android-developer-verification`).
+   New tooling (`scripts/verify_developer_play_protect.py`) verifies the release APK against certificate SHA-256
+   (`C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2`) via `apksigner`
+   or `keytool` and emits `artifacts/play-protect-verification/developer_verification_receipt.json`. Integrated as
+   automated Stage 2b in `scripts/release_unified.py` to ensure off-Play standalone distributions (GitHub Releases,
+   Obtainium) clear Google Play Protect developer accountability checks.
+
+Validation: `ci/tests/test_play_protect_verification.py` (3/3 PASS); `FolderWidgetAnimationsTest`
+(`revealEndpoints_closing_preservesRadiusAcrossEndpoints`) and `FloatingHeaderViewScrollTest`
+(`allAppsSheetForHandheld_obeysSupplierWhenConfigured`).
+
 ## Folder widget — 2026-10-02 (candidate 4.0.4 / code 53)
 
 User and tester feedback on 4.0.3 (Adriano: "Folders are not centered"; covering tiles awkward over widgets).

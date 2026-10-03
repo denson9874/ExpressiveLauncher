@@ -24,8 +24,20 @@ class FloatingHeaderViewScrollTest {
 
     @Test
     fun allAppsSheetForHandheld_returnsFalseForFullScreenDrawer() {
+        FeatureFlagsImpl.sAllAppsSheetForHandheldSupplier = null
         val featureFlags = FeatureFlagsImpl()
         assertThat(featureFlags.allAppsSheetForHandheld()).isFalse()
+    }
+
+    @Test
+    fun allAppsSheetForHandheld_obeysSupplierWhenConfigured() {
+        try {
+            FeatureFlagsImpl.sAllAppsSheetForHandheldSupplier = java.util.function.BooleanSupplier { true }
+            val featureFlags = FeatureFlagsImpl()
+            assertThat(featureFlags.allAppsSheetForHandheld()).isTrue()
+        } finally {
+            FeatureFlagsImpl.sAllAppsSheetForHandheldSupplier = null
+        }
     }
 
     @Test

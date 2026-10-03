@@ -41,6 +41,8 @@ import androidx.core.content.FileProvider
 import app.lawnchair.backup.LawnchairBackup
 import app.lawnchair.flowerpot.Flowerpot
 import app.lawnchair.preferences.PreferenceManager
+import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.preferences2.firstCached
 import app.lawnchair.ui.ModalBottomSheetContent
 import app.lawnchair.ui.preferences.about.ExpressiveUpdateScheduler
 import app.lawnchair.ui.preferences.destinations.openAppInfo
@@ -48,6 +50,7 @@ import app.lawnchair.util.restartLauncher
 import app.lawnchair.util.unsafeLazy
 import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.BuildConfig
+import com.android.launcher3.FeatureFlagsImpl
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherApplication
@@ -68,6 +71,10 @@ class LawnchairApp : LauncherApplication() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        val pref2 = PreferenceManager2.getInstance(this)
+        FeatureFlagsImpl.sAllAppsSheetForHandheldSupplier = java.util.function.BooleanSupplier {
+            pref2.allAppsSheetForHandheld.firstCached(pref2)
+        }
         QuickStepContract.sRecentsDisabled = !recentsEnabled
         Flowerpot.Manager.getInstance(this)
         registerActivityLifecycleCallbacks(activityHandler)

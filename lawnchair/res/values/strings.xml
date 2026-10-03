@@ -1001,6 +1001,9 @@
     <string name="pref_all_apps_remember_position_title">Remember scroll position</string>
     <string name="pref_all_apps_remember_position_description">Save the last scrolled location when closing the app drawer</string>
 
+    <string name="pref_all_apps_sheet_title">Bottom sheet drawer</string>
+    <string name="pref_all_apps_sheet_description">Show app drawer as a floating bottom sheet with top handle instead of edge-to-edge full screen</string>
+
     <string name="pref_all_apps_show_scrollbar_title">Show scrollbar</string>
 
     <string name="app_drawer_columns">App drawer columns</string>
