@@ -10,7 +10,7 @@ class FolderWidgetGridMathTest {
         iconLabelGapPx = 12, rowSpacingPx = 18, minTouchPx = 144,
     )
 
-    @Test fun twoByTwo_isCenteredWithLabels() {
+    @Test fun twoByTwo_isTopAlignedBelowHeaderWithLabels() {
         val s = FolderWidgetGridMath.compute(base)
         assertThat(s.columns).isEqualTo(3)
         assertThat(s.columnWidthPx).isEqualTo(190)
@@ -20,7 +20,7 @@ class FolderWidgetGridMathTest {
         assertThat(s.contentHeightPx).isEqualTo(434)
         assertThat(s.scrollable).isFalse()
         assertThat(s.gridLeftPx).isEqualTo(25)
-        assertThat(s.gridTopPx).isEqualTo(181)
+        assertThat(s.gridTopPx).isEqualTo(120)
     }
 
     @Test fun overflow_scrollsFromTheTop() {
@@ -64,9 +64,9 @@ class FolderWidgetGridMathTest {
         assertThat(FolderWidgetGridMath.compute(base.copy(iconScale = 0.7f)).iconSizePx).isEqualTo(99)
     }
 
-    @Test fun empty_isCenteredAndNotScrollable() {
+    @Test fun empty_isTopAlignedAndNotScrollable() {
         val s = FolderWidgetGridMath.compute(base.copy(itemCount = 0))
         assertThat(s.scrollable).isFalse()
-        assertThat(s.gridTopPx).isEqualTo(398)
+        assertThat(s.gridTopPx).isEqualTo(120)
     }
 }

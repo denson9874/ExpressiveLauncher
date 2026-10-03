@@ -73,7 +73,7 @@ object FolderWidgetGridMath {
             labelsVisible = labelsVisible,
             rowHeightPx = rowHeight,
             gridLeftPx = paddingPx + (innerWidth - gridWidth) / 2,
-            gridTopPx = paddingPx + headerHeightPx + if (scrollable) 0 else (viewport - content) / 2,
+            gridTopPx = paddingPx + headerHeightPx,
             gridWidthPx = gridWidth,
             viewportHeightPx = viewport,
             contentHeightPx = content,
