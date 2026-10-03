@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Point
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.util.AttributeSet
@@ -25,13 +26,23 @@ import kotlin.math.roundToInt
 /** Sizes a Folder widget panel takes from Home (see [FolderWidgetGridMath]). */
 data class FolderWidgetMetrics(
     val spanX: Int,
-    val homeIconSizePx: Int,
-    val labelHeightPx: Int,
-    val iconLabelGapPx: Int,
-    val rowSpacingPx: Int,
-    val minTouchPx: Int,
-    val paddingPx: Int,
-    val headerHeightPx: Int,
+    val spanY: Int = 2,
+    val folderCellWidthPx: Int = 195,
+    val folderCellHeightPx: Int = 230,
+    val folderChildIconSizePx: Int = 147,
+    val folderChildTextSizePx: Int = 38,
+    val folderChildDrawablePaddingPx: Int = 4,
+    val folderBorderSpacePx: Point = Point(0, 0),
+    val numFolderColumns: Int = 4,
+    val numFolderRows: Int = 4,
+    val labelHeightPx: Int = 45,
+    val paddingPx: Int = 24,
+    val headerHeightPx: Int = 96,
+    val minTouchPx: Int = 144,
+    // Legacy properties for compatibility
+    val homeIconSizePx: Int = folderChildIconSizePx,
+    val iconLabelGapPx: Int = folderChildDrawablePaddingPx,
+    val rowSpacingPx: Int = 0,
 )
 
 /**
@@ -119,7 +130,10 @@ class FolderWidgetPanel @JvmOverloads constructor(
     var onAddApps: (() -> Unit)? = null
 
     var gridSpec: FolderWidgetGridSpec = FolderWidgetGridMath.compute(
-        FolderWidgetGridInput(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1),
+        FolderWidgetGridInput(
+            widthPx = 0, heightPx = 0, spanX = 1, spanY = 1, itemCount = 0,
+            paddingPx = 0, headerHeightPx = 0, labelHeightPx = 0, minTouchPx = 1,
+        ),
     )
         private set
 
@@ -136,6 +150,8 @@ class FolderWidgetPanel @JvmOverloads constructor(
 
     init {
         background = panelBackground
+        clipToOutline = true
+        recyclerView.clipToPadding = false
         addView(header)
         addView(recyclerView)
         addView(addAppsButton)
@@ -207,13 +223,18 @@ class FolderWidgetPanel @JvmOverloads constructor(
                 widthPx = width,
                 heightPx = height,
                 spanX = m.spanX,
+                spanY = m.spanY,
                 itemCount = recyclerView.adapter?.itemCount ?: 0,
                 paddingPx = m.paddingPx,
                 headerHeightPx = headerHeight,
-                homeIconSizePx = m.homeIconSizePx,
+                folderCellWidthPx = m.folderCellWidthPx,
+                folderCellHeightPx = m.folderCellHeightPx,
+                folderChildIconSizePx = m.folderChildIconSizePx,
+                folderChildDrawablePaddingPx = m.folderChildDrawablePaddingPx,
+                folderBorderSpacePx = m.folderBorderSpacePx,
+                numFolderColumns = m.numFolderColumns,
+                numFolderRows = m.numFolderRows,
                 labelHeightPx = m.labelHeightPx,
-                iconLabelGapPx = m.iconLabelGapPx,
-                rowSpacingPx = m.rowSpacingPx,
                 minTouchPx = m.minTouchPx,
                 columnOverride = s.columns,
                 showLabels = s.showLabels,
@@ -222,8 +243,10 @@ class FolderWidgetPanel @JvmOverloads constructor(
         )
         applySpec(spec)
         val innerWidth = max(0, width - 2 * m.paddingPx)
-        val gridHeight = max(0, spec.viewportHeightPx - (spec.gridTopPx - m.paddingPx - headerHeight))
-        header.measure(exactly(innerWidth), exactly(headerHeight))
+        val headerLeft = if (spec.gridWidthPx < innerWidth) spec.gridLeftPx else m.paddingPx
+        val headerAvailableWidth = max(0, width - headerLeft - m.paddingPx)
+        val gridHeight = spec.viewportHeightPx
+        header.measure(exactly(headerAvailableWidth), exactly(headerHeight))
         recyclerView.measure(exactly(spec.gridWidthPx), exactly(gridHeight))
         val button = context.dp(OPEN_BUTTON_DP)
         openButton.measure(exactly(button), exactly(button))
@@ -249,7 +272,8 @@ class FolderWidgetPanel @JvmOverloads constructor(
         val width = right - left
         val height = bottom - top
         val headerHeight = if (s.showHeader) m.headerHeightPx else 0
-        header.layout(m.paddingPx, m.paddingPx, m.paddingPx + header.measuredWidth, m.paddingPx + headerHeight)
+        val headerLeft = if (spec.gridWidthPx < width - 2 * m.paddingPx) spec.gridLeftPx else m.paddingPx
+        header.layout(headerLeft, m.paddingPx, headerLeft + header.measuredWidth, m.paddingPx + headerHeight)
         recyclerView.layout(
             spec.gridLeftPx,
             spec.gridTopPx,

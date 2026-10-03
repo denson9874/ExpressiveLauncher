@@ -87,9 +87,15 @@ class FolderWidgetAppsAdapter(
         icon.setCenterVertically(spec.labelsVisible)
         // Without labels the text is cleared too: the shortcuts popup restores text visibility
         // when it closes. The content description keeps the app's name.
-        if (!spec.labelsVisible) icon.text = ""
         if (!spec.labelsVisible) {
-            icon.setPadding(icon.paddingLeft, max(0, (spec.rowHeightPx - spec.iconSizePx) / 2), icon.paddingRight, 0)
+            icon.text = ""
+            val vPad = maxOf(0, (spec.rowHeightPx - spec.iconSizePx) / 2)
+            icon.setPadding(icon.paddingLeft, vPad, icon.paddingRight, vPad)
+        } else {
+            if (icon.text.isNullOrEmpty()) {
+                val item = icon.tag as? ItemInfo
+                if (item != null) icon.text = item.title
+            }
         }
     }
 

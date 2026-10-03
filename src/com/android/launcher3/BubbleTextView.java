@@ -1079,8 +1079,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             Paint.FontMetrics fm = getPaint().getFontMetrics();
             int cellHeightPx = mIconSize + getCompoundDrawablePadding() +
                     (int) Math.ceil(fm.bottom - fm.top) * getCellSpecMaxTextLineCount();
-            setPadding(getPaddingLeft(), (height - cellHeightPx) / 2, getPaddingRight(),
-                    getPaddingBottom());
+            // LC-Note: clamp vertical padding to non-negative to prevent icon clipping in tight grids.
+            int topPad = Math.max(0, (height - cellHeightPx) / 2);
+            setPadding(getPaddingLeft(), topPad, getPaddingRight(), topPad);
         }
         if (shouldDrawAppContrastTile()) {
             int mAppTitleHorizontalPadding = getResources().getDimensionPixelSize(
@@ -1559,9 +1560,6 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
      * LC-Note: sizes the icon for an Expressive Folder widget grid and re-applies its bounds.
      */
     public void setIconSizeOverridePx(int iconSizePx) {
-        if (mIconSize == iconSizePx) {
-            return;
-        }
         mIconSize = iconSizePx;
         if (mIcon != null) {
             applyCompoundDrawables(getIconOrTransparentColor());

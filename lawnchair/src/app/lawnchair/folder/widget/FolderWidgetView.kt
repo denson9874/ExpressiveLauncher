@@ -1,6 +1,7 @@
 package app.lawnchair.folder.widget
 
 import android.content.Context
+import android.graphics.Point
 import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.Gravity
@@ -64,6 +65,7 @@ class FolderWidgetView @JvmOverloads constructor(
     private var appliedSpec: FolderWidgetGridSpec? = null
     private var labelLineHeightPx = -1
     private var boundSpanX = -1
+    private var boundSpanY = -1
 
     /** The panel's corner radius, for the resize frame. */
     val cornerRadiusPx: Float
@@ -141,7 +143,8 @@ class FolderWidgetView @JvmOverloads constructor(
             }
         val style = style ?: defaultStyle().also { style = it }
         boundSpanX = currentSpanX()
-        panel.bind(info.title ?: "", adapter, style, metrics(boundSpanX))
+        boundSpanY = currentSpanY()
+        panel.bind(info.title ?: "", adapter, style, metrics(boundSpanX, boundSpanY))
         contentDescription = getAccessiblityTitle(info.title)
         setTextVisible(true)
     }
@@ -149,6 +152,9 @@ class FolderWidgetView @JvmOverloads constructor(
     /** While resizing, the cell span changes before the item's span is committed. */
     internal fun currentSpanX(): Int =
         (layoutParams as? CellLayoutLayoutParams)?.cellHSpan?.takeIf { it > 0 } ?: mInfo.spanX
+
+    internal fun currentSpanY(): Int =
+        (layoutParams as? CellLayoutLayoutParams)?.cellVSpan?.takeIf { it > 0 } ?: mInfo.spanY
 
     /**
      * Long-press on empty grid space or the header picks up the widget; a vertical drag in a grid
@@ -288,8 +294,11 @@ class FolderWidgetView @JvmOverloads constructor(
         val row = index / columns
         val contentHeight = (row + 1) * spec.rowHeightPx
         val rowTop = if (contentHeight > grid.height) grid.height - spec.rowHeightPx else row * spec.rowHeightPx
-        val rowSpacing = metrics(boundSpanX).rowSpacingPx
-        val iconTop = if (spec.labelsVisible) rowSpacing / 2 else (spec.rowHeightPx - spec.iconSizePx) / 2
+        val iconTop = if (spec.labelsVisible) {
+            maxOf(0, (spec.rowHeightPx - spec.cellContentHeightPx) / 2)
+        } else {
+            maxOf(0, (spec.rowHeightPx - spec.iconSizePx) / 2)
+        }
         return intArrayOf(
             panel.left + grid.left + column * spec.columnWidthPx + spec.columnWidthPx / 2,
             panel.top + grid.top + rowTop + iconTop + spec.iconSizePx / 2,
@@ -328,19 +337,27 @@ class FolderWidgetView @JvmOverloads constructor(
         return FolderWidgetStyle().resolve(ProManager.INSTANCE.get(context).isPro.value, defaults)
     }
 
-    internal fun metrics(spanX: Int): FolderWidgetMetrics {
+    internal fun metrics(spanX: Int, spanY: Int = currentSpanY()): FolderWidgetMetrics {
         val dp = mActivity.deviceProfile
         val density = resources.displayMetrics.density
         fun px(value: Int) = (value * density).roundToInt()
+        val headerHeight = if (spanY == 1) px(20) else px(22)
+        val padding = if (spanY == 1) px(6) else px(8)
         return FolderWidgetMetrics(
             spanX = spanX,
-            homeIconSizePx = dp.iconSizePx,
+            spanY = spanY,
+            folderCellWidthPx = dp.folderCellWidthPx,
+            folderCellHeightPx = dp.folderCellHeightPx,
+            folderChildIconSizePx = dp.folderChildIconSizePx,
+            folderChildTextSizePx = dp.folderChildTextSizePx,
+            folderChildDrawablePaddingPx = dp.folderChildDrawablePaddingPx,
+            folderBorderSpacePx = Point(dp.folderCellLayoutBorderSpacePx),
+            numFolderColumns = dp.numFolderColumns,
+            numFolderRows = dp.numFolderRows,
             labelHeightPx = labelLineHeight(),
-            iconLabelGapPx = dp.folderChildDrawablePaddingPx,
-            rowSpacingPx = px(8),
+            paddingPx = padding,
+            headerHeightPx = headerHeight,
             minTouchPx = px(48),
-            paddingPx = px(12),
-            headerHeightPx = px(40),
         )
     }
 
@@ -358,7 +375,9 @@ class FolderWidgetView @JvmOverloads constructor(
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val height = MeasureSpec.getSize(heightMeasureSpec)
         setMeasuredDimension(width, height)
-        if (boundSpanX != -1 && boundSpanX != currentSpanX()) bindPanel()
+        val spanX = currentSpanX()
+        val spanY = currentSpanY()
+        if (boundSpanX != -1 && (boundSpanX != spanX || boundSpanY != spanY)) bindPanel()
         val name = folderName ?: return panel.measure(exactly(width), exactly(height))
         (name.layoutParams as LayoutParams).apply {
             // FolderIcon places its label under a 1x1 icon; here it sits under the panel.
