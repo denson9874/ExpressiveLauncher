@@ -38,7 +38,7 @@ Preloaded font styles (4.0.3, XDA post 90759508): the Font rows are no longer Pr
 offers eleven offline system families plus bundled Google Sans Flex to everyone, while importing
 font files and the Google Fonts catalog stay Pro (`FontPresets`, `FontPresetsTest`).
 
-Validation: app unit suite 504/504 PASS, CI contracts 291/291 OK. Real hardware Pixel 8 Pro
+Validation: app unit suite 505/505 PASS, CI contracts 291/291 OK. Real hardware Pixel 8 Pro
 (43191FDJG0017A, Android Canary ZP11.260821.010) and emulator-5590: widget picker add, 1x1 folder
 morph to widget and back, resize in all directions with icon pushing, scroll vs Home swipes, drag out and
 drop in, app launch and return, TalkBack labels/actions, "Remove animations" toggle, and launcher restart.

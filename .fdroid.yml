@@ -13,5 +13,5 @@ Donate: https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2
 
 AutoUpdateMode: Version qa-v%v
 UpdateCheckMode: Tags
-CurrentVersion: 4.0.3
-CurrentVersionCode: 52
+CurrentVersion: 4.0.4
+CurrentVersionCode: 53

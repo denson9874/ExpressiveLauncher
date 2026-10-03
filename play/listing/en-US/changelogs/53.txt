@@ -1,0 +1,5 @@
+1. Interactive Folder Widgets: Convert any normal folder into an interactive, resizable widget with smooth morph animations.
+2. Dynamic Grid & 4x4 Spacing: Intelligent 4-column distribution on 4x4 layouts with reduced side margins matching desktop padding.
+3. Clean Modern Presentation: Automatically hides bottom labels upon conversion to widget; full TalkBack accessibility support.
+4. Per-Widget Customization: Dedicated settings sheet with Pro background colors, opacity, and corner radii.
+5. Live Drag-and-Drop & Menus: Seamless app drag in/out, live grid updates, and rich long-press menus.
