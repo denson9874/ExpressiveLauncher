@@ -11,7 +11,10 @@ import android.view.View
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
+import app.lawnchair.data.folderwidget.FolderWidgetStyleRepository
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.pro.ProManager
@@ -21,6 +24,11 @@ import com.android.launcher3.BubbleTextView
 import com.android.launcher3.DropTarget.DragObject
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherState.NORMAL
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import com.android.launcher3.R
 import com.android.launcher3.allapps.ActivityAllAppsContainerView
 import com.android.launcher3.celllayout.CellLayoutLayoutParams
@@ -75,13 +83,50 @@ class FolderWidgetView @JvmOverloads constructor(
         super.setIconVisible(false)
     }
 
+    private var styleObservationJob: Job? = null
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         bindPanel()
+        observeStyle()
     }
 
-    /** Applies a widget style (the defaults until per-widget styles are stored). */
+    override fun onDetachedFromWindow() {
+        styleObservationJob?.cancel()
+        styleObservationJob = null
+        super.onDetachedFromWindow()
+    }
+
+    private fun observeStyle() {
+        val info = mInfo ?: return
+        styleObservationJob?.cancel()
+        val scope = (mActivity as? LifecycleOwner)?.lifecycleScope
+            ?: CoroutineScope(Dispatchers.Main.immediate)
+        val prefs = PreferenceManager2.getInstance(context)
+        styleObservationJob = scope.launch {
+            combine(
+                FolderWidgetStyleRepository.INSTANCE.get(context).observe(info.id),
+                ProManager.INSTANCE.get(context).isPro,
+                prefs.folderColor.get(),
+                prefs.folderBackgroundOpacity.get(),
+            ) { storedStyle, isPro, _, opacity ->
+                val defaults = FolderWidgetDefaults(
+                    backgroundColor = resolveFolderBackgroundColor(context),
+                    backgroundOpacity = opacity,
+                    cornerRadiusPx = runCatching {
+                        resources.getDimension(android.R.dimen.system_app_widget_background_radius)
+                    }.getOrDefault(0f),
+                )
+                storedStyle.resolve(isPro, defaults)
+            }.collect { resolvedStyle ->
+                applyStyle(resolvedStyle)
+            }
+        }
+    }
+
+    /** Applies a widget style. */
     fun applyStyle(style: ResolvedFolderWidgetStyle) {
+        if (this.style == style) return
         this.style = style
         bindPanel()
     }
