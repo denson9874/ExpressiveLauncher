@@ -1,0 +1,3 @@
+1. Work Profile Tab Alignment: Fixed an issue where Personal and Work profile tabs could become vertically displaced over app icons or fail to reload when closing the drawer while scrolled.
+2. Edge-to-Edge Full Screen App Drawer: Restored edge-to-edge full screen App Drawer layout on handheld devices by disabling experimental bottom sheet presentation.
+3. Fast Scroll Synchronization: Restored pure Launcher3 fast scroll synchronization, ensuring instantaneous return to top with zero visual clipping or displacement.

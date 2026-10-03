@@ -556,12 +556,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      * @param exitSearch Whether to force exit the search state and return to A-Z apps list.
      */
     public void reset(boolean animate, boolean exitSearch) {
-        // Scroll Main and Work RV to top. Search RV is done in `resetSearch`.
-        if (!PreferenceCacheExtensionsKt.firstCached(pref2.getRememberPosition())) {
-            for (int i = 0; i < mAH.size(); i++) {
-                if (i != SEARCH && mAH.get(i).mRecyclerView != null) {
-                    mAH.get(i).mRecyclerView.scrollToTop();
-                }
+        for (int i = 0; i < mAH.size(); i++) {
+            if (i != SEARCH && mAH.get(i).mRecyclerView != null) {
+                mAH.get(i).mRecyclerView.scrollToTop();
             }
         }
         if (mTouchHandler != null) {

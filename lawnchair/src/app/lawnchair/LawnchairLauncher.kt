@@ -117,14 +117,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             }
         }
     }
-    private val rememberPositionStateListener = object : StateManager.StateListener<LauncherState> {
-        override fun onStateTransitionStart(toState: LauncherState) {
-            if (toState is AllAppsState) {
-                mAppsView.activeRecyclerView.restoreScrollPosition()
-            }
-        }
-        override fun onStateTransitionComplete(finalState: LauncherState) {}
-    }
+
     private val statusBarClockListener = object : StateManager.StateListener<LauncherState> {
         override fun onStateTransitionStart(toState: LauncherState) {
             when (toState) {
@@ -203,15 +196,6 @@ class LawnchairLauncher : QuickstepLauncher() {
                     removeStateListener(statusBarClockListener)
                     // Make sure status bar clock is restored when the preference is toggled off
                     LawnchairApp.instance.restoreClockInStatusBar()
-                }
-            }
-        }.launchIn(scope = lifecycleScope)
-        preferenceManager2.rememberPosition.get().onEach {
-            with(launcher.stateManager) {
-                if (it) {
-                    addStateListener(rememberPositionStateListener)
-                } else {
-                    removeStateListener(rememberPositionStateListener)
                 }
             }
         }.launchIn(scope = lifecycleScope)

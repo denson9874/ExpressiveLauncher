@@ -231,11 +231,6 @@ fun AppDrawerPreferences(
         ) {
             PreferenceGroup(heading = stringResource(id = R.string.advanced)) {
                 SwitchPreference(
-                    label = stringResource(id = R.string.pref_all_apps_remember_position_title),
-                    description = stringResource(id = R.string.pref_all_apps_remember_position_description),
-                    adapter = prefs2.rememberPosition.getAdapter(),
-                )
-                SwitchPreference(
                     label = stringResource(id = R.string.pref_all_apps_show_scrollbar_title),
                     adapter = prefs2.showScrollbar.getAdapter(),
                 )
