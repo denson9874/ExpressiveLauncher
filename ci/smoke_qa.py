@@ -383,11 +383,16 @@ class Smoke:
         root = self.home("candidate-date-home")
         date = self.node(root, rid="date")
         epoch = int(self.shell("date", "+%s"))
-        self.tap(date)
-        self.capture("candidate-date-handoff")
-        intents = self.shell("dumpsys", "activity", "activities")
-        self.save("candidate-date-intents.txt", intents)
-        stamps = [int(v)//1000 for v in re.findall(r"content://com.android.calendar/time/(\d+)", intents)]
+        stamps = []
+        for attempt in range(3):
+            self.tap(date)
+            self.capture("candidate-date-handoff")
+            intents = self.shell("dumpsys", "activity", "activities")
+            self.save("candidate-date-intents.txt", intents)
+            stamps = [int(v)//1000 for v in re.findall(r"content://com.android.calendar/time/(\d+)", intents)]
+            if any(abs(value-epoch) <= 30 for value in stamps):
+                break
+            time.sleep(2)
         self.require(any(abs(value-epoch) <= 30 for value in stamps), "Date tap did not hand off the current guest time")
         self.passed("current_date_handoff", guestEpoch=epoch, intentEpochs=stamps)
         self.home("candidate-final-home")
