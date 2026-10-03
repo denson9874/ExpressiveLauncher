@@ -1,1 +1,3 @@
-Fix app drawer icon scaling in responsive grid layout. Fix app drawer horizontal padding and align header tabs with app columns.
+1. App Drawer Icon Scaling: Fixed app screen icon size slider not applying on responsive grid devices, allowing icons to scale cleanly with expanded cell bounds.
+2. App Drawer Horizontal Padding: Fixed drawer horizontal padding slider calculation on responsive grids, replacing legacy multiplier with smooth 1:1 proportional scaling.
+3. Tab Strip & Header Alignment: Fixed tab strip insets so Personal and Work profile tabs align precisely with app drawer columns without double padding.
