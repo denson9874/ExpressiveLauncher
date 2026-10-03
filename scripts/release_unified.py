@@ -252,6 +252,10 @@ def main():
             "--output", str(receipt_path),
         ]
         qa_apks = list((ROOT / "build/outputs/apk/lawnWithQuickstepExpressive/qa").glob("*.apk"))
+        if not qa_apks:
+            ci_release_dir = Path.home() / "Library/Application Support/Expressive CI/releases" / release_id
+            if ci_release_dir.is_dir():
+                qa_apks = [f for f in ci_release_dir.glob("*.apk") if "baseline" not in f.name]
         if qa_apks:
             play_protect_cmd.extend(["--apk", str(qa_apks[0])])
         run_cmd(play_protect_cmd)

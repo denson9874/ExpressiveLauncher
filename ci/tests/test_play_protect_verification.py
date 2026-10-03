@@ -46,6 +46,11 @@ class PlayProtectVerificationTests(unittest.TestCase):
         )
         self.assertEqual(receipt["status"], "verified")
         self.assertIn("verifiedAt", receipt)
+        self.assertEqual(receipt.get("adiRegistrationToken"), "D333CTGWPQ5ACAAAAAAAAAAAAA")
+
+    def test_adi_registration_token_constant(self):
+        self.assertEqual(verify_tool.ADI_REGISTRATION_TOKEN, "D333CTGWPQ5ACAAAAAAAAAAAAA")
+        self.assertEqual(verify_tool.ADI_REGISTRATION_ASSET, "assets/adi-registration.properties")
 
 
 if __name__ == "__main__":

@@ -24,6 +24,8 @@ VERIFICATION_URL = f"https://play.google.com/console/u/0/developers/{VERIFIED_DE
 VERIFIED_CERT_SHA256 = "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2"
 VERIFIED_CERT_FORMATTED = "C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2"
 DEFAULT_PACKAGE_NAME = "dev.launcher.expressive.l3"
+ADI_REGISTRATION_TOKEN = "D333CTGWPQ5ACAAAAAAAAAAAAA"
+ADI_REGISTRATION_ASSET = "assets/adi-registration.properties"
 
 
 class VerificationError(Exception):
@@ -141,11 +143,39 @@ def verify_package(
                 f"Signing certificate mismatch! APK has {format_fingerprint(extracted_cert)}, "
                 f"expected verified developer certificate {format_fingerprint(cert_sha256)}"
             )
+        # Verify presence of adi-registration.properties and token
+        with zipfile.ZipFile(apk_path, "r") as z:
+            names = z.namelist()
+            if ADI_REGISTRATION_ASSET not in names:
+                raise VerificationError(
+                    f"Required verification token file '{ADI_REGISTRATION_ASSET}' is missing from APK"
+                )
+            token_content = z.read(ADI_REGISTRATION_ASSET).decode("utf-8").strip()
+            if token_content != ADI_REGISTRATION_TOKEN:
+                raise VerificationError(
+                    f"Verification token mismatch in {ADI_REGISTRATION_ASSET}! "
+                    f"Found '{token_content}', expected '{ADI_REGISTRATION_TOKEN}'"
+                )
+
         apk_info = {
             "apkPath": str(apk_path.resolve()),
             "apkSha256": file_hash,
             "apkSizeBytes": file_size,
+            "adiRegistrationToken": ADI_REGISTRATION_TOKEN,
+            "adiRegistrationAsset": ADI_REGISTRATION_ASSET,
         }
+    else:
+        source_adi = Path(__file__).resolve().parents[1] / "lawnchair/assets/adi-registration.properties"
+        if source_adi.is_file():
+            token_content = source_adi.read_text(encoding="utf-8").strip()
+            if token_content != ADI_REGISTRATION_TOKEN:
+                raise VerificationError(
+                    f"Verification token in source tree {source_adi} does not match {ADI_REGISTRATION_TOKEN}"
+                )
+            apk_info = {
+                "adiRegistrationToken": ADI_REGISTRATION_TOKEN,
+                "adiRegistrationAsset": "lawnchair/assets/adi-registration.properties",
+            }
 
     receipt = {
         "developerId": VERIFIED_DEVELOPER_ID,

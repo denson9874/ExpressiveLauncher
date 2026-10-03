@@ -26,11 +26,13 @@ out of scope for a third-party HOME app.
    Developer Name `Daryl Denson`, Verification URL `https://play.google.com/console/u/0/developers/5547708187557586870/android-developer-verification`).
    New tooling (`scripts/verify_developer_play_protect.py`) verifies the release APK against certificate SHA-256
    (`C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2`) via `apksigner`
-   or `keytool` and emits `artifacts/play-protect-verification/developer_verification_receipt.json`. Integrated as
-   automated Stage 2b in `scripts/release_unified.py` to ensure off-Play standalone distributions (GitHub Releases,
-   Obtainium) clear Google Play Protect developer accountability checks.
+   or `keytool` and emits `artifacts/play-protect-verification/developer_verification_receipt.json`. Packages the
+   required Google Play Console ownership verification token snippet (`D333CTGWPQ5ACAAAAAAAAAAAAA`) into
+   `assets/adi-registration.properties` to complete Android Developer Verification for off-Play package
+   `dev.launcher.expressive.l3`. Integrated as automated Stage 2b in `scripts/release_unified.py` to ensure
+   off-Play standalone distributions (GitHub Releases, Obtainium) clear Google Play Protect developer accountability checks.
 
-Validation: `ci/tests/test_play_protect_verification.py` (3/3 PASS); `FolderWidgetAnimationsTest`
+Validation: `ci/tests/test_play_protect_verification.py` (4/4 PASS); `FolderWidgetAnimationsTest`
 (`revealEndpoints_closing_preservesRadiusAcrossEndpoints`) and `FloatingHeaderViewScrollTest`
 (`allAppsSheetForHandheld_obeysSupplierWhenConfigured`).
 
