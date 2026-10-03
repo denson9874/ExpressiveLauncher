@@ -4,40 +4,46 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
-## Large Home folders v2 — 2026-10-01 (candidate 4.0.3 / code 52)
+## Folder widget — 2026-10-02 (candidate 4.0.4 / code 53)
 
-User feedback on QA 4.0.2: large folders couldn't grow next to widgets, had no discoverable way back
-to 1x1, and every interaction animation assumed a 1x1 folder. Spec:
-`docs/superpowers/specs/2026-10-01-large-folders-v2-design.md`.
+User and tester feedback on 4.0.3 (Adriano: "Folders are not centered"; covering tiles awkward over widgets).
+Redesigned big folders as native, in-process Folder widgets following Hanks' Folder Widget model
+(`pub.hanks.appfolderwidget`). Specs: `docs/superpowers/specs/2026-10-02-folder-widget-design.md`,
+`docs/superpowers/plans/2026-10-02-folder-widget.md`.
 
-1. **Folders cover widgets.** A large folder may cover empty cells and widget cells (never icons,
-   folders or the search bar). It draws above the widget (elevation, no shadow) and gets the
-   touches where they overlap; the widget never moves. Rules in `LargeFolderOverlap` (tests).
-   The loader decides 2x2 vs 1x1 after all Home items are known (any load order), lets a widget and
-   a large folder's anchor share cells, rewrites a folder that no longer fits to 1x1 (never deletes
-   it) and moves a demoted folder out from under a widget. Binding allows the same overlap.
-   Testing found and fixed item deletion when a folder's anchor sat inside a widget.
-2. **Resize handles.** Long-press a Home folder and release in place → `FolderResizeFrame` with four
-   handles; past half a cell it snaps between 1x1 and 2x2 (haptic), the pulled side sets the
-   direction, blocked sides rubber-band. Footer button and TalkBack action remain. Dock folders are
-   always 1x1 (`dragSpan`). Two-panel layouts can shrink but not grow (untested there).
-3. **Animations.** Android 17's spring folder animation assumes a 1x1 preview, so large folders
-   use a tile reveal: the panel starts as the tile's rounded square and apps fly between their tile
-   slot and their cell (`LargeFolderAnimationGeometry`, tests). Size changes morph (300 ms). The
-   drag image is the real tile (the adaptive 1x1 folder icon swap is skipped); hovering apps spring
-   the tile and light up their slot; drops land in the real slot or the "more" slot. App launches
-   and returns use the slot (remote bounds and the clip-reveal fallback).
+1. **Folder widget model.** Folder widgets behave like standard Home widgets: they occupy real grid
+   cells, push neighboring items via `CellLayout.createAreaForResize`, and never overlap or cover
+   other items. Available via the widget picker (2x2 under Expressive Launcher L3) or by long-pressing
+   any desktop folder and tapping "Make widget". A widget can be converted back to a 1x1 normal folder
+   via "Make normal folder" in the long-press menu or the open folder's footer button. Existing 4.0.2/4.0.3
+   large folders are automatically migrated to `FolderWidgetView`, moving to the nearest vacant cell
+   if conflicting.
+2. **Scrolling and layout.** Apps fill the panel in an adaptive grid (auto columns ~1.5 per Home cell,
+   or user override 2–6). The apps grid is top-aligned directly below the header. When apps exceed the
+   panel's visible capacity, vertical scrolling is enabled; fitting grids report `canScrollVertically = false`,
+   allowing vertical Home swipes (shade and drawer) to pass through without interception.
+3. **Continuous cell-by-cell resizing.** `FolderWidgetResizeFrame` provides handles on all four sides
+   with real-time cell-by-cell expansion and shrinking (minimum 2 cells, maximum grid size). App names
+   automatically hide when height is constrained (e.g. 2x1, 3x1 strips).
+4. **Fluid animations.** `RoundRectRevealAnimator` provides seamless geometry-aware open/close transitions
+   between the widget container and full folder view without 1x1 circle intermediates. Launching and
+   returning animates directly from/to the child icon in the widget grid.
+5. **Per-widget style customization (Room v4).** Free controls for columns (Auto, 2–6), Show app names,
+   Show header, and Show name below. Pro-gated controls for custom background color, opacity, corner
+   radius, and icon scale via `FolderWidgetSettingsSheet`.
+6. **Accessibility.** Full TalkBack announcement ("Folder widget, <Name>, <N> apps"), individually focusable
+   child app icons, and accessibility actions for resizing, converting, and removing.
 
 Preloaded font styles (4.0.3, XDA post 90759508): the Font rows are no longer Pro-gated; the picker
 offers eleven offline system families plus bundled Google Sans Flex to everyone, while importing
 font files and the Google Fonts catalog stay Pro (`FontPresets`, `FontPresetsTest`).
 
-Validation: app unit suite 458/458, CI contracts 291/291. Emulator (Android 17 QPR2 Beta 5): overlap
-taps/long-press, loader in both orders and across restarts, icon blocking, dock drop + restart,
-frame shrink/grow/blocked, open/close/resize/drop frame captures, animations off. Not verified on
-device: the slot launch origin (this emulator ignores launch origins for this launcher, dock icons
-included), widget removal/reorder under a folder (widget drags couldn't be injected), TalkBack
-actions, landscape and two-panel layouts. No physical-device check.
+Validation: app unit suite 504/504 PASS, CI contracts 291/291 OK. Real hardware Pixel 8 Pro
+(43191FDJG0017A, Android Canary ZP11.260821.010) and emulator-5590: widget picker add, 1x1 folder
+morph to widget and back, resize in all directions with icon pushing, scroll vs Home swipes, drag out and
+drop in, app launch and return, TalkBack labels/actions, "Remove animations" toggle, and launcher restart.
+Limit: two-panel / foldable layouts not physically available on test devices. Notes recorded in
+`artifacts/folder-widget-2026-10-02/NOTES.md`.
 
 ## Large Home folders and At a Glance daily messages — 2026-10-01 (candidate 4.0.2 / code 51)
 
