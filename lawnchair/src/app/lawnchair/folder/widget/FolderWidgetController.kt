@@ -1,12 +1,14 @@
 package app.lawnchair.folder.widget
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.DialogInterface
 import android.widget.Toast
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import android.content.pm.LauncherApps
+import app.lawnchair.data.folderwidget.FolderWidgetStyleRepository
 import app.lawnchair.folder.widget.ui.FolderWidgetAppPicker
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
@@ -24,6 +26,8 @@ import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.util.ComponentKey
+import com.android.launcher3.util.Executors
+import kotlinx.coroutines.runBlocking
 
 /** Creates, converts and removes Folder widgets on Home. */
 object FolderWidgetController {
@@ -162,6 +166,7 @@ object FolderWidgetController {
             // One write for the span and the flag: the loader turns any Home folder larger than 1x1
             // back into a widget.
             launcher.modelWriter.updateItemInDatabase(info)
+            deleteStyle(launcher, info.id)
             addView(launcher, info)
         }
 
@@ -263,6 +268,7 @@ object FolderWidgetController {
         // Also dismisses an earlier Undo bar, committing its delete before this one starts, and
         // commits an open resize frame while the widget is still on Home (M8).
         AbstractFloatingView.closeAllOpenViews(launcher, false)
+        deleteStyle(launcher, info.id)
         if (putBack) {
             launcher.workspace.removeWorkspaceItem(widget)
             putBackApps(launcher, info)
@@ -287,8 +293,10 @@ object FolderWidgetController {
             if (putBack) {
                 putBackApps(launcher, info)
                 launcher.modelWriter.commitDelete()
+                deleteStyle(launcher, info.id)
             } else {
                 removeAll.run()
+                deleteStyle(launcher, info.id)
             }
         }.setOnDismissListener {
             if (chosen) return@setOnDismissListener
@@ -301,6 +309,14 @@ object FolderWidgetController {
             }
         }.show()
         return true
+    }
+
+    private fun deleteStyle(context: Context, folderId: Int) {
+        Executors.MODEL_EXECUTOR.execute {
+            runBlocking {
+                FolderWidgetStyleRepository.INSTANCE.get(context).delete(folderId)
+            }
+        }
     }
 
     private fun removeDialog(
