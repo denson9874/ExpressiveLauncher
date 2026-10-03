@@ -1,0 +1,133 @@
+[CENTER][SIZE=6][B]Expressive Launcher 4.0.4 QA — Outside the Box[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Welcome to Expressive Launcher 4.0.4 (Build 53)! In 4.0.3, large folders sat atop the desktop. In this release, we've completely evolved large folders into true native [B]Folder Widgets[/B] inspired by Hanks' app folder widget architecture. You can now resize folders freely across any cell layout, enjoy dynamic responsive column spacing (including tight 4x4 grids), customize backgrounds and styles with Expressive Pro, and morph between normal 1x1 folders and interactive widgets in a single tap.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+1. [B]Native Interactive Folder Widgets[/B]
+[LIST]
+[*][B]Before:[/B] Large folders were synthetic tiles that simulated widget layouts and sat over desktop cells.
+[*][B]Now:[/B] Folder widgets are fully integrated Home widgets. They occupy true workspace grid cells, automatically push neighboring icons during resize via [ICODE]CellLayout[/ICODE] space reservation, and never conflict or cause item overlap.
+[*]Convert any standard 1x1 folder into a live widget with a single tap on [B]"Make widget"[/B] in the long-press menu, or add new 2x2 folder widgets directly from the Widget Picker under Expressive Launcher.
+[*]Easily revert to a standard 1x1 desktop folder at any time via [B]"Make normal folder"[/B] or the open folder footer button.
+
+[/LIST]
+2. [B]Responsive 4x4 & Multi-Column Layout Math[/B]
+[LIST]
+[*]When resized to 4x4, apps now intelligently span across all 4 desktop columns, cutting out dead center clustering and keeping left/right side margins snug to native 8dp padding.
+[*]Smaller widget spans dynamically select 2–3 columns matching content count, or you can pick your own column count (2 to 6).
+
+[/LIST]
+3. [B]Clean Modern Aesthetics & Auto-Hidden Labels[/B]
+[LIST]
+[*]Converting a folder to a widget automatically wipes any stale style and hides the bottom folder name label underneath the panel for a clean, distraction-free widget card.
+[*]App labels inside the widget automatically adapt to vertical height, cleanly hiding on thin 1-row widget strips (like 2x1 or 3x1) so icons remain crisp and unclipped.
+
+[/LIST]
+4. [B]Per-Widget Styling & Customization (Room Database v4)[/B]
+[LIST]
+[*]Long-press any folder widget and tap the settings gear to open the dedicated [B]Folder Widget Settings Sheet[/B].
+[*]Free controls: customize column layout (Auto or 2–6), toggle header visibility, and adjust app label displays.
+[*]Expressive Pro controls: customize individual background colors, panel opacity, custom corner radii, and icon scaling.
+
+[/LIST]
+5. [B]Fluid Morph Transitions & Native Gestures[/B]
+[LIST]
+[*]Expanding and collapsing uses [ICODE]RoundRectRevealAnimator[/ICODE], smoothly morphing between the widget container bounds and the open folder panel without awkward intermediate states.
+[*]Drag apps directly into or out of the widget with live grid reflow.
+[*]Vertically scrollable when app contents exceed visible capacity, while non-scrolling widgets pass Home gestures (shade swipe down, app drawer swipe up) through cleanly.
+
+[/LIST]
+6. [B]Full TalkBack & Accessibility Integration[/B]
+[LIST]
+[*]Clear TalkBack descriptions ("Folder widget, [Name], [N] apps").
+[*]Dedicated accessibility actions for resizing, converting to normal folder, and managing apps.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🗣️ From Your Reports[/B][/SIZE]
+
+[LIST]
+[*][B]Folder centering and spacing (Pixel 8 Pro feedback):[/B] Previous 4x4 widgets left massive gaps on either side; 4.0.4 fixes column allocation so 4x4 widgets fill the width cleanly.
+[*][B]Conversion label clutter:[/B] Converting a 1x1 folder into a widget previously retained the bottom label; now it immediately defaults to clean card styling without duplicate labels.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]💎 Expressive Pro & Free Core[/B][/SIZE]
+
+[LIST]
+[*][B]Free Core[/B]: always supported, ad-free and privacy-first. Creating folder widgets, resizing, morph animations, auto-column math, drag-and-drop, and standard column selection are all 100% Free Core.
+[*][B]Expressive Pro ($4.99 one-time)[/B]: unlocks deep personalization such as custom widget background colors, opacity sliders, tailored corner radii, custom icon scaling, imported fonts, gestures, and per-app icon overrides.
+
+[/LIST]
+[QUOTE][I]Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE][B]Q:[/B] [I]Why did the folder widget go to the gym?[/I]  
+[B]A:[/B] [I]To get into 4x4 shape without awkward side handles.[/I][/QUOTE]
+
+[QUOTE]The old folder used to hoard all its icons in the center like they were scared of the edges. We gave them some room to breathe, and now they span wall-to-wall.[/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I have walls and corners, yet I expand and contract at your command. When I grow wide, my icons fill all four lanes; when you tap my header, I bloom open, and when you fold me down, I tuck neatly into a single tile. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]The Expressive Launcher Folder Widget![/B][/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🧪 Validation[/B][/SIZE]
+
+[LIST]
+[*][B]App unit suite:[/B] 505 tests passing, covering Folder widget grid math, 4x4 column layout, Room v4 style repository, TalkBack accessibility actions, animation geometry, and placement migrations.
+[*][B]CI pipeline contract tests:[/B] 291 tests passing ([ICODE]python3 -m unittest discover -s ci/tests[/ICODE]).
+[*][B]Physical Device Validation (Pixel 8 Pro, Android Canary ZP11.260821.010):[/B]
+[*]Converted 1x1 normal folders to widgets and verified bottom label disappears immediately.
+[*]Tested 4x4 widget sizing and verified 4-column span with 24px (8dp) side margins.
+[*]Tested opening, closing, app launch and return animations.
+[*]Tested dragging apps in and out of the folder widget with live reordering.
+[*]Verified default Home persistence across reboots and launcher restarts.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Version[/B]: [ICODE]4.0.4[/ICODE] (Build [ICODE]53[/ICODE]), QA channel
+[*][B]Package[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Built on[/B]: Lawnchair and AOSP Launcher3 (Apache 2.0).
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] (or tap Add App in Obtainium and paste https://github.com/denson9874/ExpressiveLauncher)
+[*][B]This release[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.4-53"]qa-v4.0.4-53[/URL]
+[*][B]Direct APK[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.4-53/ExpressiveLauncherL3-4.0.4-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk"]ExpressiveLauncherL3-4.0.4 signed APK[/URL]
+[*][B]All releases[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases"]GitHub Releases[/URL]
+[*][B]Bug reports[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/issues"]GitHub Issues[/URL]
+[*][B]Telegram Channel[/B]: [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.4-53"]Download Expressive Launcher v4.0.4 (Build 53)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]

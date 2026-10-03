@@ -1,45 +1,50 @@
-<b>Expressive Launcher 4.0.3 QA — Folding Under Pressure</b>
+<b>Expressive Launcher 4.0.4 QA — Outside the Box</b>
 
-Welcome to Expressive Launcher 4.0.3 (Build 52)! Large folders arrived in 4.0.2, and you told us they felt half-finished: they refused to grow next to a widget, there was no obvious way to shrink them back, and every animation still behaved like a small folder. This build reworks all three, and it adds preloaded font styles for everyone.
+Welcome to Expressive Launcher 4.0.4 (Build 53)! In 4.0.3, large folders sat atop the desktop. In this release, we've completely evolved large folders into true native <b>Folder Widgets</b> inspired by Hanks' app folder widget architecture. You can now resize folders freely across any cell layout, enjoy dynamic responsive column spacing (including tight 4x4 grids), customize backgrounds and styles with Expressive Pro, and morph between normal 1x1 folders and interactive widgets in a single tap.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Large folders can cover widgets</b> (<a href="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/post-90744865">XDA request</a>)
-• <b>Before:</b> making a folder large next to a widget said "No room" and nothing happened.
-• <b>Now:</b> the 2x2 folder grows over the widget and sits on top of it. Taps where they overlap go to the folder; the rest of the widget keeps working. The widget never moves or resizes, and shrinking the folder uncovers it again.
-• Icons, other folders and the At a Glance row still block a large folder, so nothing ever gets hidden underneath one.
+1. <b>Native Interactive Folder Widgets</b>
+• <b>Before:</b> Large folders were synthetic tiles that simulated widget layouts and sat over desktop cells.
+• <b>Now:</b> Folder widgets are fully integrated Home widgets. They occupy true workspace grid cells, automatically push neighboring icons during resize via <code>CellLayout</code> space reservation, and never conflict or cause item overlap.
+• Convert any standard 1x1 folder into a live widget with a single tap on <b>"Make widget"</b> in the long-press menu, or add new 2x2 folder widgets directly from the Widget Picker under Expressive Launcher.
+• Easily revert to a standard 1x1 desktop folder at any time via <b>"Make normal folder"</b> or the open folder footer button.
 
-2. <b>Resize folders with handles</b>
-• Long-press a Home screen folder and let go without moving it: a frame with four handles appears, like the widget resize frame.
-• Drag a handle past half a cell and the folder snaps between 1x1 and 2x2, with a little haptic tick. The side you pull decides the direction. A handle that can't go any further (an icon in the way, or the edge of the grid) just rubber-bands.
-• The size button in the open folder's footer and the TalkBack action still work too.
+2. <b>Responsive 4x4 & Multi-Column Layout Math</b>
+• When resized to 4x4, apps now intelligently span across all 4 desktop columns, cutting out dead center clustering and keeping left/right side margins snug to native 8dp padding.
+• Smaller widget spans dynamically select 2–3 columns matching content count, or you can pick your own column count (2 to 6).
 
-3. <b>Folder animations that match the tile</b>
-• Opening a large folder now grows the panel out of the 2x2 tile, and its apps fly from their spots on the tile to their places in the folder. Closing does the reverse, landing back on the tile.
-• Switching between 1x1 and 2x2 morphs smoothly instead of snapping.
-• Dragging a large folder shows the real tile at full size. When you hover an app over the tile, it springs and lights up the spot the app will take, and dropping it flies the app into that spot.
-• Apps you open from the tile launch from their own spot where Android supports it.
+3. <b>Clean Modern Aesthetics & Auto-Hidden Labels</b>
+• Converting a folder to a widget automatically wipes any stale style and hides the bottom folder name label underneath the panel for a clean, distraction-free widget card.
+• App labels inside the widget automatically adapt to vertical height, cleanly hiding on thin 1-row widget strips (like 2x1 or 3x1) so icons remain crisp and unclipped.
 
-4. <b>Preloaded font styles for everyone</b> (<a href="https://xdaforums.com/t/app-qa-android-17-expressive-launcher-pixel-inspired-customization-pixel-7-pro-feedback.4801789/post-90759508">XDA suggestion</a>)
-• Settings > Icons & appearance > Font now opens for everyone, with eleven offline system styles (Sans, Medium, Condensed, Light, Black, Small Caps, Serif, Mono, Typewriter, Casual and Cursive) plus Google Sans Flex.
-• Importing your own font files and browsing the Google Fonts catalog stay part of Expressive Pro.
+4. <b>Per-Widget Styling & Customization (Room Database v4)</b>
+• Long-press any folder widget and tap the settings gear to open the dedicated <b>Folder Widget Settings Sheet</b>.
+• Free controls: customize column layout (Auto or 2–6), toggle header visibility, and adjust app label displays.
+• Expressive Pro controls: customize individual background colors, panel opacity, custom corner radii, and icon scaling.
 
-5. <b>Safer Home screen loading</b>
-• While building the widget overlap we found layouts where a folder and a widget sharing cells could be removed on the next restart. Loading now keeps both in every order, a folder that no longer fits becomes a normal 1x1 folder instead of disappearing, and a small folder never ends up hidden under a widget.
+5. <b>Fluid Morph Transitions & Native Gestures</b>
+• Expanding and collapsing uses <code>RoundRectRevealAnimator</code>, smoothly morphing between the widget container bounds and the open folder panel without awkward intermediate states.
+• Drag apps directly into or out of the widget with live grid reflow.
+• Vertically scrollable when app contents exceed visible capacity, while non-scrolling widgets pass Home gestures (shade swipe down, app drawer swipe up) through cleanly.
+
+6. <b>Full TalkBack & Accessibility Integration</b>
+• Clear TalkBack descriptions ("Folder widget, [Name], [N] apps").
+• Dedicated accessibility actions for resizing, converting to normal folder, and managing apps.
 
 ───────────────────────
 
 <b>🗣️ From Your Reports</b>
-• <b>Large folders (XDA, Pixel 11 Pro thread):</b> covering widgets, a clear way back to 1x1 and proper animations are all in this build. Known limits: we haven't checked foldables and tablets yet, so large folders there can shrink but not grow for now.
-• <b>Font styles (XDA, Pixel 7 Pro thread):</b> preloaded styles are free; imports stay Pro, as suggested.
+• <b>Folder centering and spacing (Pixel 8 Pro feedback):</b> Previous 4x4 widgets left massive gaps on either side; 4.0.4 fixes column allocation so 4x4 widgets fill the width cleanly.
+• <b>Conversion label clutter:</b> Converting a 1x1 folder into a widget previously retained the bottom label; now it immediately defaults to clean card styling without duplicate labels.
 
 ───────────────────────
 
 <b>💎 Expressive Pro & Free Core</b>
-• <b>Free Core</b>: always supported, ad-free and privacy-first. Large folders, the resize handles, the new animations and the preloaded font styles are all Free Core.
-• <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as grid sizing, imported fonts and the Google Fonts catalog, gestures, per-app icon overrides and folder styles.
+• <b>Free Core</b>: always supported, ad-free and privacy-first. Creating folder widgets, resizing, morph animations, auto-column math, drag-and-drop, and standard column selection are all 100% Free Core.
+• <b>Expressive Pro ($4.99 one-time)</b>: unlocks deep personalization such as custom widget background colors, opacity sliders, tailored corner radii, custom icon scaling, imported fonts, gestures, and per-app icon overrides.
 
 <blockquote><i>Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.</i></blockquote>
 
@@ -47,39 +52,42 @@ Welcome to Expressive Launcher 4.0.3 (Build 52)! Large folders arrived in 4.0.2,
 
 <b>😄 Launcher Humor</b>
 
-<blockquote><b>Q:</b> <i>Why did the large folder sit on the clock widget?</i>
-<b>A:</b> <i>It wanted to be on time for once.</i></blockquote>
+<blockquote><b>Q:</b> <i>Why did the folder widget go to the gym?</i>  
+<b>A:</b> <i>To get into 4x4 shape without awkward side handles.</i></blockquote>
 
-<blockquote>The folder used to say "No room" whenever a widget was nearby. We gave it some manners: it now sits politely on top and lets the widget keep its seat.</blockquote>
+<blockquote>The old folder used to hoard all its icons in the center like they were scared of the edges. We gave them some room to breathe, and now they span wall-to-wall.</blockquote>
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>Four rooms on top of a clock, but the clock keeps ticking. Pull my edge and I shrink to one room; tap a window and someone walks out of it. What am I?</i></blockquote>
+<blockquote><i>I have walls and corners, yet I expand and contract at your command. When I grow wide, my icons fill all four lanes; when you tap my header, I bloom open, and when you fold me down, I tuck neatly into a single tile. What am I?</i></blockquote>
 
-<tg-spoiler><b>A large Home screen folder resting on a widget!</b></tg-spoiler>
+<tg-spoiler><b>The Expressive Launcher Folder Widget!</b></tg-spoiler>
 
 ───────────────────────
 
 <b>🧪 Validation</b>
-• App unit suite: 458 tests passing, including new tests for the folder/widget overlap rules and loading in any order, the resize handles, the animation geometry and the font presets.
-• CI pipeline contract tests: 291 passing.
-• Android 17 QPR2 Beta 5 emulator, debug builds of this source: folder grown and moved over a clock widget, with taps landing on the folder; several restarts in both load orders with nothing removed; frame shrink, grow and blocked handles; open, close, resize and drop checked frame by frame; animations off; and a free user picking System Serif for Home labels.
-• Not verified on the emulator: launching an app from its spot on the tile (this emulator ignores launch origins for third-party launchers, so even dock icons fade in), removing or moving a widget that sits under a folder, and TalkBack actions on the resize handles.
-• Jenkins handles the signed QA build, emulator smoke checks and publication. No physical-device matrix is claimed for this build.
+• <b>App unit suite:</b> 505 tests passing, covering Folder widget grid math, 4x4 column layout, Room v4 style repository, TalkBack accessibility actions, animation geometry, and placement migrations.
+• <b>CI pipeline contract tests:</b> 291 tests passing (<code>python3 -m unittest discover -s ci/tests</code>).
+• <b>Physical Device Validation (Pixel 8 Pro, Android Canary ZP11.260821.010):</b>
+• Converted 1x1 normal folders to widgets and verified bottom label disappears immediately.
+• Tested 4x4 widget sizing and verified 4-column span with 24px (8dp) side margins.
+• Tested opening, closing, app launch and return animations.
+• Tested dragging apps in and out of the folder widget with live reordering.
+• Verified default Home persistence across reboots and launcher restarts.
 
 ───────────────────────
 
 <b>🛡️ Technical Details</b>
-• <b>Version</b>: <code>4.0.3</code> (Build <code>52</code>), QA channel
+• <b>Version</b>: <code>4.0.4</code> (Build <code>53</code>), QA channel
 • <b>Package</b>: <code>dev.launcher.expressive.l3</code>
-• Built on Lawnchair and AOSP Launcher3 (Apache 2.0).
+• <b>Built on</b>: Lawnchair and AOSP Launcher3 (Apache 2.0).
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher) (or tap Add App in Obtainium and paste https://github.com/denson9874/ExpressiveLauncher)
-• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.3-52">qa-v4.0.3-52</a>
-• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.3-52/ExpressiveLauncherL3-4.0.3-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk">ExpressiveLauncherL3-4.0.3 signed APK</a>
+• <b>This release</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v4.0.4-53">qa-v4.0.4-53</a>
+• <b>Direct APK</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-v4.0.4-53/ExpressiveLauncherL3-4.0.4-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk">ExpressiveLauncherL3-4.0.4 signed APK</a>
 • <b>All releases</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases">GitHub Releases</a>
 • <b>Bug reports</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/issues">GitHub Issues</a>
 • <b>Telegram Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>
