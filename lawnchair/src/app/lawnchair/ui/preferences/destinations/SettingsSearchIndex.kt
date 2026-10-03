@@ -238,6 +238,11 @@ object SettingsSearchIndex {
             entry(R.string.show_labels, keywords = "names, icon text, drawer labels")
             entry(R.string.label_size, keywords = "text size, font size, drawer labels")
             entry(R.string.twoline_label, keywords = "two lines, wrap, long names")
+            entry(
+                R.string.pref_all_apps_sheet_title,
+                R.string.pref_all_apps_sheet_description,
+                keywords = "bottom sheet, full screen, pixel launcher drawer, presentation, handle",
+            )
             entry(R.string.pref_all_apps_remember_position_title, R.string.pref_all_apps_remember_position_description, keywords = "scroll position, last position")
             entry(R.string.pref_all_apps_show_scrollbar_title, keywords = "fast scroll, scroller")
             entry(R.string.app_drawer_haptic_feedback_label, keywords = "vibration, haptics")
