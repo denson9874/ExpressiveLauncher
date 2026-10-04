@@ -8,7 +8,7 @@ This runbook applies to releasing **Expressive Launcher L3** (`lawnWithQuickstep
 
 - **Developer Name:** Daryl Denson
 - **Play Console Developer ID:** `5547708187557586870`
-- **Developer Contact:** `daryldenson0405@gmail.com`
+- **Developer Contact:** `denson9874@expressivelauncher.com`
 - **Application ID:** `com.denson9874.Expressive_Launcher_L3`
 - **App Name:** Expressive Launcher L3
 - **Current Version Code:** `37`

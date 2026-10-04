@@ -1,0 +1,3 @@
+1. Automated Pro Activation Pipeline: Multi-identifier resolution in the activation backend indexes order, capture, and invoice IDs from PayPal webhooks to eliminate manual key requests.
+2. In-App PayPal Email Verification: Added account email verification in Redeem Pro, allowing instant automated device binding even if device ID was not passed during checkout.
+3. Official Business Support Contact: Updated support and key issuance contact to denson9874@expressivelauncher.com with in-app guidance emphasizing automated activation as primary.

@@ -109,6 +109,12 @@ async function handleLicenseLookup(url, env) {
     const raw = await env.EXPRESSIVE_PRO_KV.get(`license:email:${email}`);
     if (raw) {
       const data = JSON.parse(raw);
+      if (deviceId && !data.recipient.includes(deviceId)) {
+        await env.EXPRESSIVE_PRO_KV.put(
+          `license:device:${deviceId}`,
+          JSON.stringify(data)
+        );
+      }
       return jsonResponse({
         success: true,
         key: data.key,
@@ -120,7 +126,7 @@ async function handleLicenseLookup(url, env) {
 
   return jsonResponse({
     success: false,
-    message: "No active license found for this device.",
+    message: "No active license found for this device or account.",
   });
 }
 
@@ -148,13 +154,20 @@ async function handlePayPalWebhook(request, env) {
     resource.custom_id ||
     resource.custom ||
     resource.invoice_id ||
+    resource.purchase_units?.[0]?.custom_id ||
+    resource.purchase_units?.[0]?.invoice_id ||
     ""
   ).trim();
 
   const transactionId = resource.id || body.id || `TX-${Date.now()}`;
+  const relatedOrderId = resource.supplementary_data?.related_ids?.order_id || "";
+  const invoiceId = resource.invoice_id || resource.purchase_units?.[0]?.invoice_id || "";
+  const captureId = resource.purchase_units?.[0]?.payments?.captures?.[0]?.id || "";
+
   const payerEmail = (
     resource.payer?.email_address ||
     resource.payer_email ||
+    resource.payment_source?.paypal?.email_address ||
     ""
   ).toLowerCase().trim();
 
@@ -180,6 +193,9 @@ async function handlePayPalWebhook(request, env) {
     key: licenseKey,
     recipient: recipient,
     transactionId: transactionId,
+    orderId: relatedOrderId || undefined,
+    invoiceId: invoiceId || undefined,
+    captureId: captureId || undefined,
     payerEmail: payerEmail,
     eventType: eventType,
     createdAt: new Date().toISOString(),
@@ -199,10 +215,14 @@ async function handlePayPalWebhook(request, env) {
         JSON.stringify(record)
       );
     }
-    await env.EXPRESSIVE_PRO_KV.put(
-      `tx:${transactionId}`,
-      JSON.stringify(record)
-    );
+    // Store under all transaction/order identifiers!
+    const idsToStore = new Set([transactionId, relatedOrderId, invoiceId, captureId].filter(Boolean));
+    for (const tid of idsToStore) {
+      await env.EXPRESSIVE_PRO_KV.put(
+        `tx:${tid}`,
+        JSON.stringify(record)
+      );
+    }
   }
 
   return jsonResponse({
@@ -219,36 +239,47 @@ async function handlePayPalWebhook(request, env) {
 async function handleVerifyDonation(request, env) {
   const { transaction_id, device_id, email } = await request.json();
 
-  if (!transaction_id || (!device_id && !email)) {
+  const cleanTx = (transaction_id || "").trim();
+  const cleanDev = device_id ? device_id.trim().toUpperCase() : null;
+  const cleanEmail = email ? email.trim().toLowerCase() : null;
+
+  if (!cleanDev || (!cleanTx && !cleanEmail)) {
     return jsonResponse(
       {
         success: false,
-        message: "Missing transaction_id or device_id/email in request",
+        message: "Missing device_id or transaction_id/email in request",
       },
       400
     );
   }
 
-  const cleanTx = transaction_id.trim();
-  const cleanDev = device_id ? device_id.trim().toUpperCase() : null;
-  const cleanEmail = email ? email.trim().toLowerCase() : null;
-
-  // Check if already in KV
+  // Check if already in KV via transaction ID or email
   if (env.EXPRESSIVE_PRO_KV) {
-    const existingTx = await env.EXPRESSIVE_PRO_KV.get(`tx:${cleanTx}`);
-    if (existingTx) {
-      const data = JSON.parse(existingTx);
+    let existingRecord = null;
+    if (cleanTx) {
+      const raw = await env.EXPRESSIVE_PRO_KV.get(`tx:${cleanTx}`);
+      if (raw) {
+        existingRecord = JSON.parse(raw);
+      }
+    }
+    if (!existingRecord && cleanEmail) {
+      const raw = await env.EXPRESSIVE_PRO_KV.get(`license:email:${cleanEmail}`);
+      if (raw) {
+        existingRecord = JSON.parse(raw);
+      }
+    }
+    if (existingRecord) {
       // Link to new device if needed
-      if (cleanDev && !data.recipient.includes(cleanDev)) {
+      if (cleanDev && !existingRecord.recipient.includes(cleanDev)) {
         await env.EXPRESSIVE_PRO_KV.put(
           `license:device:${cleanDev}`,
-          JSON.stringify(data)
+          JSON.stringify(existingRecord)
         );
       }
       return jsonResponse({
         success: true,
-        key: data.key,
-        recipient: data.recipient,
+        key: existingRecord.key,
+        recipient: existingRecord.recipient,
       });
     }
   }

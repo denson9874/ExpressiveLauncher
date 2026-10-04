@@ -4,6 +4,31 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Automated Pro activation pipeline, account email lookup, and business support contact — 2026-10-04 (candidate 4.0.9 / code 58)
+
+1. **Automated Pro activation pipeline & multi-identifier resolution.** Upgraded the Cloudflare Worker
+   serverless activation backend (`server/cloudflare-worker/worker.js`) to index all related transaction,
+   order, capture, and invoice identifiers from PayPal payment webhooks (`tx:${id}`, `tx:${orderId}`,
+   `tx:${invoiceId}`, `tx:${captureId}`) and store payer account email mappings (`license:email:${payerEmail}`).
+   If PayPal No-Code Payment (NCP) checkout occurs without client-side device binding, the serverless backend
+   indexes the order and payment references across all keys so manual email outreach is eliminated.
+2. **In-App account email lookup & instant device binding.** Enhanced `ProActivationService.kt` and
+   `RedeemProDialog.kt` to allow verifying contributions via PayPal account email or Transaction ID.
+   When an account email is provided, the launcher queries `/api/license?email=...`, automatically links the
+   current anonymous installation `deviceId`, generates the local cryptographic VIP/Pro license, and activates
+   instantly without requiring external email correspondence.
+3. **Official business support email & verification priority UX.** Transitioned developer contact and manual
+   key issuance email across the app (`lawnchair/res/values/expressive_pro.xml`, `RedeemProDialog.kt`),
+   Privacy Policy (`docs/PRIVACY_POLICY.md`, `play/privacy-policy.md`), and developer listing documentation
+   (`docs/PLAY_RELEASE.md`, `play/data-safety.md`) to `denson9874@expressivelauncher.com`. Updated in-app
+   Redeem Pro copy to clearly emphasize that automated in-app verification ("Check Activation Status" and
+   "Enter Transaction ID or PayPal Email") is the primary and instant path, reserving manual email support
+   as a fallback.
+
+Validation: `ProActivationUxTest` (all passed, verifying business support email and automated verification
+priority), CI contract tests (295/295 passed), live Cloudflare worker endpoint health and verification tests
+on `https://expressive-pro-activation.daryldenson-apps.workers.dev`.
+
 ## Bottom sheet drawer, folder closing polish, and developer verification — 2026-10-03 (candidate 4.0.8 / code 57)
 
 1. **App Drawer presentation mode: Full-screen vs Bottom sheet drawer.** Pixel Launcher uses a floating

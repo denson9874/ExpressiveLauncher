@@ -2,7 +2,7 @@
 
 Effective date: September 25, 2026  
 Developer: Daryl Denson (Google Play Developer ID: 5547708187557586870)  
-Contact: daryldenson0405@gmail.com  
+Contact: denson9874@expressivelauncher.com  
 
 Daryl Denson ("we", "us", or "our") provides Expressive Launcher L3, an independent Android Home application. This Privacy Policy describes how Expressive Launcher L3 handles user data.
 
@@ -59,5 +59,5 @@ If you have any questions or requests regarding this Privacy Policy or Expressiv
 
 **Daryl Denson**  
 Google Play Console Developer ID: 5547708187557586870  
-Email: [daryldenson0405@gmail.com](mailto:daryldenson0405@gmail.com)  
+Email: [denson9874@expressivelauncher.com](mailto:denson9874@expressivelauncher.com)  
 Project Repository: [https://github.com/denson9874/ExpressiveLauncher](https://github.com/denson9874/ExpressiveLauncher)

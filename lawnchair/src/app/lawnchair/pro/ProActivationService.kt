@@ -18,7 +18,8 @@ interface ProActivationService {
 
     @GET("api/license")
     suspend fun checkLicense(
-        @Query("device_id") deviceId: String,
+        @Query("device_id") deviceId: String? = null,
+        @Query("email") email: String? = null,
     ): LicenseResponse
 
     @POST("api/verify-donation")

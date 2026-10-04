@@ -431,10 +431,26 @@ fun RedeemProDialog(
                                             }
 
                                             val service = ProActivationService.create()
+                                            val isEmail = input.contains("@") && input.contains(".")
                                             val req = VerifyDonationRequest(
-                                                transactionId = input,
+                                                transactionId = if (isEmail) "" else input,
                                                 deviceId = deviceId,
+                                                email = if (isEmail) input else null,
                                             )
+                                            // If input looks like an email, check license endpoint directly first
+                                            if (isEmail) {
+                                                val licenseResp = service.checkLicense(deviceId = deviceId, email = input)
+                                                if (licenseResp.success && !licenseResp.key.isNullOrBlank()) {
+                                                    val actRes = proManager.activate(licenseResp.key)
+                                                    if (actRes.isSuccess) {
+                                                        if (actRes.getOrNull()?.isCakey == true) {
+                                                            showCakeyCelebration = true
+                                                        }
+                                                        return@launch
+                                                    }
+                                                }
+                                            }
+
                                             val response = service.verifyDonation(req)
                                             if (response.success && !response.key.isNullOrBlank()) {
                                                 val actRes = proManager.activate(response.key)
@@ -950,14 +966,14 @@ private fun launchSupportEmail(
             "PayPal Transaction ID: $cleanTx\n\n" +
             "Thank you!",
     )
-    val mailtoUri = Uri.parse("mailto:daryldenson0405@gmail.com?subject=$subject&body=$body")
+    val mailtoUri = Uri.parse("mailto:denson9874@expressivelauncher.com?subject=$subject&body=$body")
     val intent = Intent(Intent.ACTION_SENDTO, mailtoUri)
     try {
         context.startActivity(intent)
     } catch (_: Exception) {
         val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
             type = "message/rfc822"
-            putExtra(Intent.EXTRA_EMAIL, arrayOf("daryldenson0405@gmail.com"))
+            putExtra(Intent.EXTRA_EMAIL, arrayOf("denson9874@expressivelauncher.com"))
             putExtra(Intent.EXTRA_SUBJECT, "Expressive Pro Activation - $deviceId")
             putExtra(
                 Intent.EXTRA_TEXT,
@@ -967,7 +983,7 @@ private fun launchSupportEmail(
         try {
             context.startActivity(Intent.createChooser(fallbackIntent, "Send Email"))
         } catch (_: Exception) {
-            Toast.makeText(context, "Please email daryldenson0405@gmail.com with your Device ID.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Please email denson9874@expressivelauncher.com with your Device ID.", Toast.LENGTH_LONG).show()
         }
     }
 }
@@ -979,7 +995,7 @@ private fun copySupportDetails(
     transactionId: String,
 ) {
     val cleanTx = transactionId.trim().ifEmpty { "N/A" }
-    val details = "Expressive Pro Support\nDevice ID: $deviceId\nPayPal Transaction ID: $cleanTx\nSupport Email: daryldenson0405@gmail.com"
+    val details = "Expressive Pro Support\nDevice ID: $deviceId\nPayPal Transaction ID: $cleanTx\nSupport Email: denson9874@expressivelauncher.com"
     clipboardManager.setText(AnnotatedString(details))
     Toast.makeText(
         context,

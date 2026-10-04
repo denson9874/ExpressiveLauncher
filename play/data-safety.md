@@ -75,4 +75,4 @@ This worksheet provides exact, verified answers for the **Data safety** section 
 - **App Name:** Expressive Launcher L3
 - **Application ID:** `com.denson9874.Expressive_Launcher_L3`
 - **Privacy Policy URL:** `https://denson9874.github.io/ExpressiveLauncher/privacy`
-- **Contact:** `daryldenson0405@gmail.com`
+- **Contact:** `denson9874@expressivelauncher.com`

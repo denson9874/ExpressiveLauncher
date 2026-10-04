@@ -41,7 +41,8 @@ class ProActivationUxTest {
     @Test
     fun supportStrings_areConfiguredWithSupportEmail() {
         val footer = context.getString(R.string.expressive_pro_support_footer)
-        assertThat(footer).contains("daryldenson0405@gmail.com")
+        assertThat(footer).contains("denson9874@expressivelauncher.com")
+        assertThat(footer).contains("Automated verification")
 
         val unreachable = context.getString(R.string.expressive_pro_server_unreachable_desc)
         assertThat(unreachable).contains("offline Pro license key")
