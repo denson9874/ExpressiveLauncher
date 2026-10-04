@@ -28,15 +28,15 @@
       "Bash(gh pr *)",
       "Read(~/Library/Application Support/Expressive CI/**)",
       "Edit(~/Library/Application Support/Expressive CI/feedback/xda/**)",
-      "Read(~/ExpressiveLauncher/**)",
-      "Edit(~/ExpressiveLauncher/**)"
+      "Read(~/Developer/ExpressiveLauncher/**)",
+      "Edit(~/Developer/ExpressiveLauncher/**)"
     ],
     "ask": [
       "Bash(python3 scripts/publish_play_bundle.py *)"
     ],
     "additionalDirectories": [
       "~/Library/Application Support/Expressive CI/feedback/xda",
-      "~/ExpressiveLauncher"
+      "~/Developer/ExpressiveLauncher"
     ]
   }
 }

@@ -141,7 +141,7 @@ In the current Google Play Console UI (as seen on your screen):
 2. Click the blue button **Go to Protected with Play →** (or click **Protected with Play** in the left sidebar, 4th item from the top).
 3. Under **Play App Signing**:
    - If opting for Google-managed key: Google Play manages your key, and you can register your upload key using `upload_certificate.pem` or by uploading your signed bundle.
-   - If setting your upload certificate manually, upload [`upload_certificate.pem`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/upload_certificate.pem).
+   - If setting your upload certificate manually, upload [`upload_certificate.pem`](file:///Users/daryldenson/Developer/ExpressiveLauncher/upload_certificate.pem).
    - Verify that your registered certificate SHA-256 fingerprint matches:  
      `2A:A9:F1:BF:3D:BD:2D:5B:D2:7A:D7:51:6F:1C:AF:1B:8A:18:E1:5F:6D:59:85:8A:37:28:27:84:BB:2A:CB:A7`.
 
@@ -149,19 +149,19 @@ In the current Google Play Console UI (as seen on your screen):
 1. In the left sidebar, under **Test and release**, click **Testing** (expand the dropdown) → click **Internal testing**.
 2. Click **Create new release** in the top right.
 3. In the App bundles section, upload:  
-   [`build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab)
+   [`build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab`](file:///Users/daryldenson/Developer/ExpressiveLauncher/build/outputs/bundle/lawnWithQuickstepExpressiveRelease/expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab)
    *(Play Console will automatically register your upload key from the bundle signature if not previously registered!)*
-4. Copy the release notes from [`play/listing/en-US/changelogs/36.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/changelogs/36.txt).
+4. Copy the release notes from [`play/listing/en-US/changelogs/36.txt`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/listing/en-US/changelogs/36.txt).
 5. Click **Next**, review the bundle, and save.
 
 ### D. Store Listing & Graphics
 In the left sidebar, navigate to **Grow users > Store presence > Main store listing**:
-- **App title:** `Expressive Launcher L3` (from [`play/listing/en-US/title.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/title.txt))
-- **Short description:** From [`play/listing/en-US/short_description.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/short_description.txt)
-- **Full description:** From [`play/listing/en-US/full_description.txt`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/full_description.txt)
-- **App icon:** Upload [`play/listing/en-US/graphics/icon.png`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/graphics/icon.png) (512x512 PNG)
-- **Feature graphic:** Upload [`play/listing/en-US/graphics/featureGraphic.png`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/graphics/featureGraphic.png) (1024x500 PNG)
-- **Phone screenshots:** Upload `01-home.jpg` and `02-settings.jpg` from [`play/listing/en-US/graphics/phoneScreenshots/`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/listing/en-US/graphics/phoneScreenshots/)
+- **App title:** `Expressive Launcher L3` (from [`play/listing/en-US/title.txt`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/listing/en-US/title.txt))
+- **Short description:** From [`play/listing/en-US/short_description.txt`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/listing/en-US/short_description.txt)
+- **Full description:** From [`play/listing/en-US/full_description.txt`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/listing/en-US/full_description.txt)
+- **App icon:** Upload [`play/listing/en-US/graphics/icon.png`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/listing/en-US/graphics/icon.png) (512x512 PNG)
+- **Feature graphic:** Upload [`play/listing/en-US/graphics/featureGraphic.png`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/listing/en-US/graphics/featureGraphic.png) (1024x500 PNG)
+- **Phone screenshots:** Upload `01-home.jpg` and `02-settings.jpg` from [`play/listing/en-US/graphics/phoneScreenshots/`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/listing/en-US/graphics/phoneScreenshots/)
 
 ### E. App Content & Policy Declarations
 Scroll down the left sidebar to **Policy and programs** (or **App content**):
@@ -170,7 +170,7 @@ Scroll down the left sidebar to **Policy and programs** (or **App content**):
 3. **Ads:** Select "No, my app does not contain ads".
 4. **Content Rating (IARC):** Complete questionnaire (Utilities category, no violence, no location sharing → Rated Everyone / PEGI 3).
 5. **Target Audience:** Select 18 and over (or 13+).
-6. **Data Safety:** Complete using [`play/data-safety.md`](file:///Users/daryldenson/Documents/ChatGPT/New%20project/play/data-safety.md).
+6. **Data Safety:** Complete using [`play/data-safety.md`](file:///Users/daryldenson/Developer/ExpressiveLauncher/play/data-safety.md).
 7. **Permission Declarations:**
    - **`QUERY_ALL_PACKAGES`:** State: *"Expressive Launcher is a replacement Android Home application. It must query all installed launchable applications to populate the Home screen, All Apps drawer, and app search."*
    - **Accessibility Service:** State: *"Expressive Launcher uses Android AccessibilityService API exclusively for optional user-configured gesture shortcuts (such as double-tap to lock screen or open notifications). It subscribes to no accessibility events and reads no user content."*

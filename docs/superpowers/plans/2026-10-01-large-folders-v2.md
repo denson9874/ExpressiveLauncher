@@ -18,7 +18,7 @@ the overlapping touches.
 
 ## Global Constraints
 
-- Work only in the worktree `~/ExpressiveWorktrees/large-folders-v2` on branch `claude/large-folders-v2`. Never switch branches in `~/Documents/ChatGPT/New project`.
+- Work on branch `claude/large-folders-v2` in `~/Developer/ExpressiveLauncher`.
 - JDK: `export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home` (native ARM64 JDK 21). Never use `/usr/bin/java`.
 - Mark every edit to upstream Launcher3 files with an `// LC-Note:` comment, as existing large-folder code does.
 - Large folders exist only for `Favorites.CONTAINER_DESKTOP`. Dock and app-drawer folders stay 1x1.
@@ -50,7 +50,7 @@ the overlapping touches.
 Run:
 ```bash
 cd ~/ExpressiveWorktrees/large-folders-v2
-git submodule update --init --reference "$HOME/Documents/ChatGPT/New project/platform_frameworks_libs_systemui" platform_frameworks_libs_systemui
+git submodule update --init --reference "$HOME/Developer/ExpressiveLauncher/platform_frameworks_libs_systemui" platform_frameworks_libs_systemui
 ```
 Expected: `Submodule path 'platform_frameworks_libs_systemui': checked out 'e12acf09…'`.
 

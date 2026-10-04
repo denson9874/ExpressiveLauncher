@@ -15,7 +15,7 @@ live in the gitignored `.agents/rules/`; this file supersedes them.
 Standing authorization, no per-run confirmation needed:
 - Implement, test and commit on `codex/pixel-parity`; push it with `git push origin codex/pixel-parity`.
 - Update the public `main` branch only through PRs (branch `docs/*` or `claude/*`, from
-  `~/ExpressiveLauncher`, which tracks the separately exported public tree). Merge them when checks pass.
+  `~/Developer/ExpressiveLauncher`, which tracks the public tree). Merge them when checks pass.
 - Run Jenkins build/publish jobs and `scripts/release_unified.py`; edit GitHub release notes.
 - Triage, label, reproduce, comment on and close GitHub issues on `denson9874/ExpressiveLauncher`.
 - Post release announcements to Telegram (@ExpressiveLauncher) via `scripts/post_telegram.py`.
