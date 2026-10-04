@@ -3,8 +3,8 @@
 <b>✨ What's New & Improved</b>
 
 1. <b>Google Play Protect Developer Verification</b>:
-• Packaged the official Android Developer Verification token snippet (<code>D333CTGWPQ5ACAAAAAAAAAAAAA</code>) into <code>assets/adi-registration.properties</code>.
-• Links off-Play distribution package <code>dev.launcher.expressive.l3</code> with verified Google Developer identity (<code>5547708187557586870</code>, Daryl Denson) in Google Play Console to clear Google Play Protect scans and security warnings on Android devices.
+• Packaged the official Android Developer Verification registration token (<code>adi-registration.properties</code>) into the app assets.
+• Formally registers the standalone package <code>dev.launcher.expressive.l3</code> with Android developer verification to clear Google Play Protect scans and security warnings on user devices.
 
 2. <b>App Drawer Style Choice (Full-Screen vs Bottom Sheet)</b>:
 • Added user setting (<b>Settings → App Drawer → General → Bottom sheet drawer</b>) letting users choose between the default edge-to-edge full-screen App Drawer and the classic Pixel Launcher floating bottom sheet presentation.
@@ -19,7 +19,6 @@
 <b>🛡️ Verification & Technical Details</b>
 • <b>Launcher Version</b>: <code>4.0.8</code> (Build <code>57</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
-• <b>Developer ID</b>: <code>5547708187557586870</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
 🔗 <b>Links & Downloads</b>:
