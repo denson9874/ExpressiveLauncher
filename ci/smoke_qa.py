@@ -197,7 +197,8 @@ class Smoke:
         while time.monotonic() < deadline:
             self.require(self.proc.poll() is None, "Owned emulator exited during boot; see emulator.log")
             if self.shell("getprop", "sys.boot_completed", check=False, timeout=10) == "1":
-                break
+                if self.shell("pm", "path", "android", check=False, timeout=10).startswith("package:"):
+                    break
             time.sleep(3)
         else:
             raise RuntimeError("Emulator boot exceeded 360 seconds")
@@ -307,10 +308,24 @@ class Smoke:
         self.shell("am", "force-stop", self.package)
         self.require(not self.shell("pidof", self.package, check=False), "Launcher did not stop")
 
+    def install_apk(self, path: Path, *flags, timeout: int = 180, attempts: int = 3) -> str:
+        last_error = ""
+        for attempt in range(1, attempts + 1):
+            try:
+                out = self.adb("install", *flags, str(path.resolve()), timeout=timeout)
+                if "Success" in out:
+                    return out
+                last_error = out
+            except RuntimeError as error:
+                last_error = str(error)
+            if attempt < attempts:
+                time.sleep(attempt * 3)
+        raise RuntimeError(f"Install failed for {path} after {attempts} attempts: {last_error}")
+
     def run(self):
         self.start()
         self.adb("logcat", "-c")
-        self.require("Success" in self.adb("install", str(self.install_baseline.resolve()), timeout=180), "Initial install failed")
+        self.install_apk(self.install_baseline)
         self.shell("cmd", "role", "add-role-holder", ROLE, self.package)
         self.shell("cmd", "package", "set-home-activity", self.package)
         self.home("baseline-home")
@@ -327,7 +342,7 @@ class Smoke:
         self.require(switch.get("checked") == "true", "Preference did not persist before upgrade")
         self.passed("seed_preference", preference="Infinite scrolling", value=True)
         self.quiesce()
-        self.require("Success" in self.adb("install", "-r", str(self.args.apk.resolve()), timeout=180), "Candidate upgrade failed")
+        self.install_apk(self.args.apk, "-r")
         after = self.metadata("candidate")
         self.require(before["firstInstallTime"] == after["firstInstallTime"], "Upgrade changed firstInstallTime")
         if self.bootstrap:

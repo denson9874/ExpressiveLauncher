@@ -199,5 +199,33 @@ class StableSmokeContractTests(unittest.TestCase):
             runner.metadata('candidate')
 
 
+class InstallRetryTests(unittest.TestCase):
+    def test_install_succeeds_first_try(self):
+        runner = smoke.Smoke.__new__(smoke.Smoke)
+        runner.adb = Mock(return_value="Performing Streamed Install\nSuccess")
+        res = runner.install_apk(Path("/fake/test.apk"))
+        self.assertIn("Success", res)
+        self.assertEqual(runner.adb.call_count, 1)
+
+    def test_install_retries_on_transient_failure_and_succeeds(self):
+        runner = smoke.Smoke.__new__(smoke.Smoke)
+        runner.adb = Mock(side_effect=[
+            RuntimeError("Command failed (1): adb: device offline"),
+            "Performing Streamed Install\nSuccess"
+        ])
+        with patch.object(smoke.time, "sleep"):
+            res = runner.install_apk(Path("/fake/test.apk"))
+        self.assertIn("Success", res)
+        self.assertEqual(runner.adb.call_count, 2)
+
+    def test_install_fails_after_max_attempts(self):
+        runner = smoke.Smoke.__new__(smoke.Smoke)
+        runner.adb = Mock(side_effect=RuntimeError("Command failed (1): adb: device offline"))
+        with patch.object(smoke.time, "sleep"):
+            with self.assertRaisesRegex(RuntimeError, "Install failed for .* after 3 attempts"):
+                runner.install_apk(Path("/fake/test.apk"))
+        self.assertEqual(runner.adb.call_count, 3)
+
+
 if __name__ == "__main__":
     unittest.main()
