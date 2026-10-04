@@ -373,13 +373,18 @@ class Smoke:
         x1, y1, x2, y2 = bounds(self.node(root, rid="workspace"))
         # Both endpoints are derived from the current workspace's actual bounds.
         x = (x1+x2)//2
-        start_y, end_y = y1 + int((y2-y1)*0.70), y1 + int((y2-y1)*0.22)
-        self.shell("input", "swipe", str(x), str(start_y), str(x), str(end_y), "350")
-        time.sleep(2)
-        root = self.capture("candidate-drawer")
+        start_y, end_y = y1 + int((y2-y1)*0.75), y1 + int((y2-y1)*0.15)
+        duration_ms = 250
+        for attempt in range(1, 4):
+            self.shell("input", "swipe", str(x), str(start_y), str(x), str(end_y), str(duration_ms))
+            time.sleep(2)
+            root = self.capture("candidate-drawer")
+            if any(n.get("resource-id", "").endswith(":id/apps_view") for n in root.iter("node")):
+                break
+            time.sleep(1)
         self.node(root, rid="apps_view")
         self.node(root, rid="search_container_all_apps")
-        self.passed("drawer_swipe", path=[x, start_y, x, end_y], durationMs=350)
+        self.passed("drawer_swipe", path=[x, start_y, x, end_y], durationMs=duration_ms)
         self.tap(self.node(root, rid="search_container_all_apps"))
         root = self.capture("candidate-search-focused")
         # Opening the search surface can focus its editor without requesting the IME.
