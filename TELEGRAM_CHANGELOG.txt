@@ -1,24 +1,25 @@
-<b>Expressive Launcher 4.0.7 (Build 56)</b>
+<b>Expressive Launcher 4.0.8 (Build 57)</b>
 
 <b>✨ What's New & Improved</b>
 
-1. <b>App Drawer Style Choice (Full-Screen vs Bottom Sheet)</b>:
-• Added user setting (<b>Settings → App Drawer → General → Bottom sheet drawer</b>) letting users choose between the default edge-to-edge full-screen App Drawer and the classic Pixel Launcher floating bottom sheet presentation.
-• Enabling the bottom sheet restores the top drag handle pill (<code>—</code>) and subtle background wallpaper scaling while preserving smooth edge-to-edge column spacing.
+1. <b>Google Play Protect Developer Verification</b>:
+• Packaged the official Android Developer Verification token snippet (<code>D333CTGWPQ5ACAAAAAAAAAAAAA</code>) into <code>assets/adi-registration.properties</code>.
+• Links off-Play distribution package <code>dev.launcher.expressive.l3</code> with verified Google Developer identity (<code>5547708187557586870</code>, Daryl Denson) in Google Play Console to clear Google Play Protect scans and security warnings on Android devices.
 
-2. <b>Folder Widget Closing Animation Polish</b>:
+2. <b>App Drawer Style Choice (Full-Screen vs Bottom Sheet)</b>:
+• Added user setting (<b>Settings → App Drawer → General → Bottom sheet drawer</b>) letting users choose between the default edge-to-edge full-screen App Drawer and the classic Pixel Launcher floating bottom sheet presentation.
+• Fully integrated into in-app settings search (<code>SettingsSearchIndex</code>).
+
+3. <b>Folder Widget Closing Animation Polish</b>:
 • Reworked the closing animation when collapsing the expanded full folder view back into its Home folder widget.
 • Smoothly cross-fades the folder panel into the resting widget tile during the final transition, eliminating visual edge clipping and the flash artifact where the folder briefly popped back up in the center of the screen.
-
-3. <b>Android Developer Verification & Play Protect Clearance</b>:
-• Integrated automated developer identity and certificate validation for off-Play build distributions (GitHub Releases & Obtainium) targeting Google Play Console Android Developer Verification (Developer ID <code>5547708187557586870</code>).
-• Ensures standalone packages clear Play Protect developer accountability checks.
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>4.0.7</code> (Build <code>56</code>)
+• <b>Launcher Version</b>: <code>4.0.8</code> (Build <code>57</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
+• <b>Developer ID</b>: <code>5547708187557586870</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
 🔗 <b>Links & Downloads</b>:
