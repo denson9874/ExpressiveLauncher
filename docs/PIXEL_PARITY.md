@@ -4,7 +4,7 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
-## Bottom sheet drawer, folder closing polish, and developer verification — 2026-10-03 (candidate 4.0.7 / code 56)
+## Bottom sheet drawer, folder closing polish, and developer verification — 2026-10-03 (candidate 4.0.8 / code 57)
 
 1. **App Drawer presentation mode: Full-screen vs Bottom sheet drawer.** Pixel Launcher uses a floating
    bottom sheet presentation with a top drag handle (`—`) on handhelds, while Expressive's default presentation

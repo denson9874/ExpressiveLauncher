@@ -1,0 +1,3 @@
+1. Google Play Protect Verification: Packaged official Android Developer Verification token (adi-registration.properties) to register package dev.launcher.expressive.l3 and clear Play Protect developer checks.
+2. App Drawer Presentation Style: Added user setting (Settings > App Drawer > General) to toggle between edge-to-edge full-screen and Pixel bottom-sheet drawer with settings search integration.
+3. Folder Widget Closing Polish: Smooth cross-fade when dismissing expanded folder widgets back to home screen without visual artifacts or edge flashes.
