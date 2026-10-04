@@ -1,23 +1,36 @@
-<b>Expressive Launcher 4.0.8 (Build 57)</b>
+<b>Expressive Launcher 4.0.9 (Build 58) — The Automated Key Express</b>
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Google Play Protect Developer Verification</b>:
-• Packaged the official Android Developer Verification registration token (<code>adi-registration.properties</code>) into the app assets.
-• Formally registers the standalone package <code>dev.launcher.expressive.l3</code> with Android developer verification to clear Google Play Protect scans and security warnings on user devices.
+1. <b>Automated Pro Activation Pipeline & Multi-Identifier Resolution</b>:
+• The serverless Cloudflare activation backend (<code>server/cloudflare-worker</code>) now indexes all associated PayPal identifiers across payment captures, orders, sales, and invoices (<code>tx:${id}</code>, <code>tx:${orderId}</code>, <code>tx:${invoiceId}</code>, <code>tx:${captureId}</code>).
+• PayPal No-Code Payment (NCP) contributions are resolved immediately regardless of whether you copy the Transaction ID or Order ID from your receipt, delivering instant in-app activation without waiting for manual key emails!
 
-2. <b>App Drawer Style Choice (Full-Screen vs Bottom Sheet)</b>:
-• Added user setting (<b>Settings → App Drawer → General → Bottom sheet drawer</b>) letting users choose between the default edge-to-edge full-screen App Drawer and the classic Pixel Launcher floating bottom sheet presentation.
-• Fully integrated into in-app settings search (<code>SettingsSearchIndex</code>).
+2. <b>In-App PayPal Account Email Verification</b>:
+• Added PayPal account email verification directly into the in-app Redeem Pro sheet (<b>Settings → Expressive Pro → Already contributed?</b>).
+• If your device ID was not bound during checkout, entering your PayPal account email automatically links your device and retrieves your offline cryptographic VIP/Pro key in seconds.
 
-3. <b>Folder Widget Closing Animation Polish</b>:
-• Reworked the closing animation when collapsing the expanded full folder view back into its Home folder widget.
-• Smoothly cross-fades the folder panel into the resting widget tile during the final transition, eliminating visual edge clipping and the flash artifact where the folder briefly popped back up in the center of the screen.
+3. <b>Official Business Support Email & Support Flow Overhaul</b>:
+• Updated our official developer support & manual key issuance address across the entire app and privacy policies to <b><code>denson9874@expressivelauncher.com</code></b> (saying goodbye to personal Gmail for official app business!).
+• <b>Important</b>: Automated in-app verification ("Check Activation Status" and "Verify via PayPal Transaction ID or Email") is the <b>primary, instant, 24/7 activation method</b>. Manual email outreach is reserved as a fallback if automated checks cannot locate your receipt.
+
+───────────────────────
+
+<b>💬 Support & Community Notice</b>
+<blockquote>💡 <b>Reminder on Pro Activation</b>: Before reaching out via email, always try tapping <b>Check Activation Status</b> or entering your <b>PayPal Transaction ID / Email</b> in the app first! It connects directly to our serverless engine to unlock your device instantly. If you still need a hand, our new business desk is ready at <b><code>denson9874@expressivelauncher.com</code></b>.</blockquote>
+
+───────────────────────
+
+<b>🧩 Release Riddle</b>
+
+Why did the cryptographic key break up with the email client?
+
+<tg-spoiler>Because it found true instant chemistry with the automated serverless worker! ⚡</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>4.0.8</code> (Build <code>57</code>)
+• <b>Launcher Version</b>: <code>4.0.9</code> (Build <code>58</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
