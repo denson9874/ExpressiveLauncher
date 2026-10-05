@@ -1,0 +1,47 @@
+# Expressive Core build (Play Protect enhanced fraud protection) — Implementation Plan
+
+**Problem (XDA-021):** Play Protect's enhanced fraud protection blocks apps installed from browsers,
+messaging apps or file managers when they declare an accessibility service, a notification listener,
+or SMS read/receive. Expressive declares `BIND_ACCESSIBILITY_SERVICE` (`LawnchairAccessibilityService`)
+and `BIND_NOTIFICATION_LISTENER_SERVICE` (Launcher3 `NotificationListener`). Google's documented
+remedies are Play distribution or removing those capabilities; developer verification (4.0.8) does
+not affect this check. The user chose a Core build (2026-10-05).
+
+**Goal:** A second APK of the same package and signer, "Expressive Core", with neither service, that
+installs from a browser without the block. Users can move between Core and Full in place.
+
+## What Core gives up (verified in source)
+| Feature | Full | Core |
+| --- | --- | --- |
+| Notification dots | `NotificationListener` | Hidden; Settings explains why and links to Full |
+| Open notifications / quick settings gestures | `StatusBarManager` first, a11y fallback | `StatusBarManager` only (`EXPAND_STATUS_BAR` is declared) |
+| Double-tap to sleep | a11y (default), device admin, root | Device admin or root; note that device-admin locking requires the PIN for the next unlock |
+| Recents gesture | a11y only | Option hidden |
+
+## Design
+- **Build switch:** Gradle property `-PexpressiveCore=true`, mirroring how `targetPlayStore` already
+  selects the manifest and BuildConfig. No new flavor dimension, so task names and variants stay the same.
+- **Manifest overlay** (`expressive/AndroidManifest-core.xml`): `tools:node="remove"` for
+  `app.lawnchair.LawnchairAccessibilityService` and `com.android.launcher3.notification.NotificationListener`.
+  A CI contract test fails if a Core APK's manifest contains either `BIND_` permission.
+- **Runtime gating:** `BuildConfig.EXPRESSIVE_CORE`; Notification dots preference, the a11y sleep mode
+  and the Recents gesture handler hidden or replaced in Core, with an About/Settings line: "Expressive Core —
+  installs without the Play Protect block; notification dots need Expressive Full."
+- **Update feed:** Core reads its own manifest `updates:qa-v2-core/latest.json` (stable:
+  `updates:release-core/latest.json`), so the in-app updater never swaps a Core user onto Full.
+- **Pipeline:** the QA build job assembles both APKs from the same sealed source; the seal, verification,
+  smoke QA and publication cover both. The GitHub release attaches both APKs, clearly named
+  (`…-Core.apk`, `…-Full.apk`). Weekly gate and stable follow the same pattern.
+- **Docs/notes:** README and release notes explain which APK to pick; XDA/Telegram posts link both.
+
+## Phases
+1. App: build property, manifest overlay, BuildConfig gating, settings copy, unit tests, manifest
+   contract test; local Core APK verified with `aapt2` (no flagged services) and on the emulator.
+2. Pipeline: Jenkins build/publish for both APKs, feeds, publisher and weekly-gate tests (sealed
+   evidence for each). Reconfigure Jenkins jobs (user approval each time).
+3. Release: first QA with Core plus at least two other improvements; ask an enforcing-region user
+   (Georgery) to confirm a browser install of Core has no block.
+
+## Open questions
+- Should Full stay the default download and Core be offered for affected regions, or the reverse?
+- Should the Obtainium link point to Full or Core? (Obtainium can filter assets by name regex.)
