@@ -1021,6 +1021,8 @@
     <!-- HiddenAppsPreferences -->
     <string name="hide_from_drawer">Hide from app drawer</string>
     <string name="action_hide_app">Hide</string>
+    <string name="expressive_core_gesture_unavailable">This gesture needs accessibility access, which Expressive Core doesn\'t include. Pick another action or install Expressive Full.</string>
+    <string name="expressive_core_notification_dots_unavailable">Not available in Expressive Core, which leaves out notification access so Play Protect doesn\'t block installs. Install Expressive Full for notification dots.</string>
     <string name="app_hidden_from_drawer">%1$s hidden from app drawer</string>
     <string name="hidden_apps_label_with_count">Hidden apps (%1$d)</string>
     <plurals name="apps_count">

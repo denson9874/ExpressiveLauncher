@@ -37,6 +37,12 @@ installs from a browser without the block. Users can move between Core and Full 
 ## Phases
 1. App: build property, manifest overlay, BuildConfig gating, settings copy, unit tests, manifest
    contract test; local Core APK verified with `aapt2` (no flagged services) and on the emulator.
+   **Done 2026-10-05 (branch `claude/core-build`):** `-PexpressiveCore=true` → `ExpressiveLauncherL3-Core.*.apk`;
+   `aapt2` shows no accessibility/notification-listener/SMS declarations (only BIND_DEVICE_ADMIN and
+   BIND_JOB_SERVICE); `ExpressiveCore` rules + `ExpressiveCoreTest`; `ci/tests/test_core_manifest.py`
+   (fails on Full/Core drift). Emulator: dots section explains Core; double-tap sleep goes to device admin.
+   Also fixed a pre-existing bug: the device-admin prompt reused the accessibility dialog text ("To To …
+   accessibility service"). Gesture/sleep pickers are Pro-gated, so their filtering is unit-tested only.
 2. Pipeline: Jenkins build/publish for both APKs, feeds, publisher and weekly-gate tests (sealed
    evidence for each). Reconfigure Jenkins jobs (user approval each time).
 3. Release: first QA with Core plus at least two other improvements; ask an enforcing-region user

@@ -75,7 +75,8 @@ class SleepMethodRoot(context: Context) : SleepGestureHandler.SleepMethod(contex
 }
 
 class SleepMethodPieAccessibility(context: Context) : SleepGestureHandler.SleepMethod(context) {
-    override suspend fun isSupported() = Utilities.ATLEAST_P
+    override suspend fun isSupported() =
+        Utilities.ATLEAST_P && app.lawnchair.ExpressiveCore.supportsAccessibilityActions()
 
     @TargetApi(Build.VERSION_CODES.P)
     override suspend fun sleep(launcher: LawnchairLauncher) {
@@ -115,6 +116,7 @@ class SleepMethodDeviceAdmin(context: Context) : SleepGestureHandler.SleepMethod
                         R.string.expressive_dt2s_admin_hint,
                     ),
                     settingsIntent = intent,
+                    accessibility = false,
                 ) { close(true) }
             }
             return

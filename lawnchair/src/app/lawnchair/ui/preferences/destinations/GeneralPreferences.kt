@@ -17,6 +17,7 @@
 package app.lawnchair.ui.preferences.destinations
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -24,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
@@ -48,12 +48,14 @@ import app.lawnchair.ui.preferences.components.controls.WarningPreference
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
+import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.preferences.components.notificationDotsEnabled
 import app.lawnchair.ui.preferences.components.notificationServiceEnabled
 import app.lawnchair.ui.preferences.data.liveinfo.LiveInformationAvailability
 import app.lawnchair.ui.preferences.data.liveinfo.liveInformationManager
 import app.lawnchair.ui.preferences.navigation.GeneralIconPack
 import app.lawnchair.ui.preferences.navigation.GeneralIconShape
+import app.lawnchair.ui.preferences.pro.ProGate
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -228,6 +230,14 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
         val dotTextColor = prefs2.notificationDotTextColor.asState().value
 
         PreferenceGroup(heading = stringResource(id = R.string.notification_dots)) {
+            if (!app.lawnchair.ExpressiveCore.supportsNotificationDots()) {
+                // Expressive Core has no notification listener (Play Protect enhanced fraud protection).
+                PreferenceTemplate(
+                    title = { Text(text = stringResource(id = R.string.notification_dots)) },
+                    description = { Text(text = stringResource(id = R.string.expressive_core_notification_dots_unavailable)) },
+                )
+                return@PreferenceGroup
+            }
             NotificationDotsPreference(enabled = notificationEnabled, serviceEnabled = serviceEnabled)
             val canDisplayNotificationDot = notificationEnabled && serviceEnabled
             if (canDisplayNotificationDot) {
