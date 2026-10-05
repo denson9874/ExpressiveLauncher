@@ -501,6 +501,8 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onResume() {
         super.onResume()
         restartIfPending()
+        // Re-check time-limited Pro licenses (trials) whenever Home returns.
+        app.lawnchair.pro.ProManager.INSTANCE.get(this).refreshState()
 
         dragLayer.viewTreeObserver.addOnDrawListener(
             object : ViewTreeObserver.OnDrawListener {

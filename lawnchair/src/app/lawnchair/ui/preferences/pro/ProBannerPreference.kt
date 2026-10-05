@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -124,6 +125,10 @@ fun ProBannerPreference(
                 Text(
                     text = when {
                         isCakey -> stringResource(R.string.cakey_edition_banner_desc)
+                        isPro && details?.isTrial == true -> {
+                            val days = details!!.daysLeftAt(System.currentTimeMillis() / 1000L) ?: 0
+                            pluralStringResource(R.plurals.expressive_pro_trial_days_left, days, days)
+                        }
                         isPro && details != null -> stringResource(
                             R.string.expressive_pro_active_desc,
                             details!!.recipient,
