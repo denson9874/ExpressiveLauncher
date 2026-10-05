@@ -16,6 +16,7 @@ SPEC.loader.exec_module(finalize)
 REVISION = "a" * 40
 APK = b"expressive qa apk bytes"
 TEST_RESULTS = "build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest"
+QA_TEST_RESULTS = "build/test-results/testLawnWithQuickstepExpressiveQaUnitTest"
 
 
 class FinalizeQaGateTests(unittest.TestCase):
@@ -104,6 +105,26 @@ class FinalizeQaGateTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "will not be overwritten"):
             self.run_finalize()
         self.assertEqual("original", (self.release / "seal.json").read_text())
+
+
+    def qa_junit(self, tests=4, failures=0):
+        results = self.source / QA_TEST_RESULTS
+        results.mkdir(parents=True, exist_ok=True)
+        (results / "TEST-Qa.xml").write_text(
+            f'<testsuite name="q" tests="{tests}" failures="{failures}" errors="0" skipped="0"/>'
+        )
+
+    def test_seals_qa_variant_unit_results_when_present(self):
+        self.qa_junit(tests=4)
+        self.run_finalize()
+        metadata = json.loads((self.release / "metadata.json").read_text())
+        self.assertEqual({"tests": 4, "failures": 0, "errors": 0, "skipped": 0}, metadata["unitTests"])
+        self.assertTrue((self.release / "junit" / "TEST-Qa.xml").exists())
+        self.assertFalse((self.release / "junit" / "TEST-Suite.xml").exists())
+
+    def test_failing_qa_variant_results_are_not_masked_by_debug_results(self):
+        self.qa_junit(tests=4, failures=1)
+        self.assertRejected("complete passing, unskipped unit test suite")
 
 
 if __name__ == "__main__":

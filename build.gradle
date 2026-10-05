@@ -374,12 +374,17 @@ android {
         includeInBundle = false
     }
 
+    // CI passes -PexpressiveTestBuildType=qa so unit tests reuse the shipped Qa compilation instead of
+    // building the whole app a second time as Debug; local development keeps Debug unit tests.
+    testBuildType = providers.gradleProperty("expressiveTestBuildType").getOrElse("debug")
+
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all {
             // Android 17's ApplicationSharedMemory shadow reaches the raw file
             // descriptor bridge, which is encapsulated by JDK 21 modules.
             jvmArgs "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED"
+            maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
         }
     }
 

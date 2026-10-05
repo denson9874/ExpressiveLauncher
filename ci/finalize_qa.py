@@ -9,6 +9,22 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 
+UNIT_TEST_RESULT_DIRS = (
+    # CI runs the suite against the shipped Qa variant (-PexpressiveTestBuildType=qa) so the
+    # app compiles once; older sources and the stable job still produce Debug results.
+    'build/test-results/testLawnWithQuickstepExpressiveQaUnitTest',
+    'build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest',
+)
+
+
+def unit_test_results_dir(source_dir):
+    for relative in UNIT_TEST_RESULT_DIRS:
+        candidate = source_dir / relative
+        if any(candidate.glob('TEST-*.xml')):
+            return candidate
+    return source_dir / UNIT_TEST_RESULT_DIRS[-1]
+
+
 def validate_provenance(metadata, source, qa):
     channel = metadata.get('channel')
     if channel not in ('qa', 'release'):
@@ -92,7 +108,8 @@ def main(argv=None):
         validate_provenance(metadata, source, qa)
     except ValueError as error:
         raise SystemExit(str(error)) from error
-    results = list((args.source_dir / 'build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest').glob('TEST-*.xml'))
+    results_dir = unit_test_results_dir(args.source_dir)
+    results = list(results_dir.glob('TEST-*.xml'))
     totals = {'tests': 0, 'failures': 0, 'errors': 0, 'skipped': 0}
     for path in results:
         suite = ET.parse(path).getroot()
@@ -141,7 +158,7 @@ This report describes the exact APK built and tested by Jenkins. Publication sta
     (root / 'QA-report.md').write_text(report)
     qa['reportSha256'] = hashlib.sha256(report.encode()).hexdigest()
     (root / 'qa-result.json').write_text(json.dumps(qa, indent=2) + '\n')
-    shutil.copytree(args.source_dir / 'build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest', root / 'junit')
+    shutil.copytree(results_dir, root / 'junit')
     mapping_variant = 'Qa' if metadata['channel'] == 'qa' else 'Release'
     mapping = args.source_dir / ('build/outputs/mapping/lawnWithQuickstepExpressive' + mapping_variant)
     if mapping.exists(): shutil.copytree(mapping, root / 'mapping')

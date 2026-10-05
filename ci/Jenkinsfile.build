@@ -37,7 +37,9 @@ pipeline {
         }
         stage('Unit tests and signed QA build') {
             steps { sh '''cd "$RUN_WORKSPACE/source"
-                ./gradlew --no-scan --no-parallel --console=plain testLawnWithQuickstepExpressiveDebugUnitTest assembleLawnWithQuickstepExpressiveQa
+                ./gradlew --no-scan --console=plain -PexpressiveTestBuildType=qa testLawnWithQuickstepExpressiveQaUnitTest assembleLawnWithQuickstepExpressiveQa
+                # Release the Gradle and Kotlin daemons' memory before the emulator boots.
+                ./gradlew --stop
             ''' }
         }
         stage('Verify package and signing continuity') {
@@ -58,7 +60,7 @@ pipeline {
     }
     post {
         always {
-            junit testResults: "build-${env.BUILD_NUMBER}/source/build/test-results/testLawnWithQuickstepExpressiveDebugUnitTest/TEST-*.xml", allowEmptyResults: true
+            junit testResults: "build-${env.BUILD_NUMBER}/source/build/test-results/test*UnitTest/TEST-*.xml", allowEmptyResults: true
             archiveArtifacts artifacts: "build-${env.BUILD_NUMBER}/artifacts/**", allowEmptyArchive: true, fingerprint: true
         }
     }

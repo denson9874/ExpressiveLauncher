@@ -46,6 +46,10 @@ python3 -m unittest discover -s ci/tests -v                 # CI/pipeline contra
   unit-test forks. Build speed-ups must never skip contract tests, `ci/verify_qa.py`, `ci/smoke_qa.py`
   or the weekly gate.
 - Android SDK 37.1; submodule `platform_frameworks_libs_systemui` must be initialized.
+- CI compiles the app once: Jenkins runs the unit suite against the shipped Qa variant
+  (`-PexpressiveTestBuildType=qa testLawnWithQuickstepExpressiveQaUnitTest`); local development keeps
+  Debug unit tests. Smoke QA boots the emulator with `-gpu host` (`--gpu swiftshader_indirect` is
+  the fallback if host rendering ever fails on the Jenkins agent).
 
 ## Release policy
 
