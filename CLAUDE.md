@@ -75,14 +75,22 @@ python3 scripts/release_unified.py            # Jenkins build → publish → Te
 ```
 
 Stages it runs: Jenkins build (signed QA APK plus smoke tests) → Jenkins publish (GitHub release plus
-the `updates:qa-v2/latest.json` feed) → optional Play (`--with-play`) → Telegram post → XDA BBCode at
+the `updates:qa-v2/latest.json` feed) → Core publish (`expressive-qa-core-publish`: the
+`qa-core-v<VER>-<CODE>` prerelease plus `updates:qa-v2-core/latest.json`, only when the build sealed
+`qa-core-…`) → optional Play (`--with-play`) → Telegram post → XDA BBCode at
 `docs/release_notes/xda_thread_post_<version>.bbcode`. It does not commit, push or post to XDA.
+
+Expressive Core (XDA-021) is the same package and signer without the accessibility service and
+notification listener, so Play Protect's enhanced fraud protection does not block browser installs.
+The build job seals it after Full (`-PexpressiveCore=true`); a Core failure marks only its stage
+failed and never blocks Full. Core is QA-only for now; stable, the weekly gate and Obtainium stay Full.
 Manual equivalents:
 
 ```sh
 python3 ci/jenkins/control.py run --job build --revision FULL_SHA --version-name X.Y.Z --version-code N
 python3 ci/jenkins/control.py status --job build --number N
 python3 ci/jenkins/control.py run --job publish --release-id qa-X.Y.Z-N-build-B --promote
+python3 ci/jenkins/control.py run --job core-publish --release-id qa-core-X.Y.Z-N-build-B --promote
 ```
 
 Before submitting a build: push any submodule commits (Jenkins fetches the gitlink and fails with

@@ -14,7 +14,11 @@ BASE = Path.home() / 'Library/Application Support/Expressive CI'
 ROOT = Path(__file__).resolve().parents[2]
 URL = 'http://127.0.0.1:8091/'
 JOBS = {'build': 'expressive-qa-build', 'publish': 'expressive-qa-publish',
-        'release-build': 'expressive-release-build', 'release-publish': 'expressive-release-publish'}
+        'release-build': 'expressive-release-build', 'release-publish': 'expressive-release-publish',
+        # Expressive Core (XDA-021) publishes from its own job so the weekly stable gate, which audits
+        # expressive-qa-publish, only ever sees Full QA promotions.
+        'core-publish': 'expressive-qa-core-publish'}
+CORE_RELEASE_ID = r'qa-core-\d+\.\d+\.\d+-[1-9]\d*-build-[1-9]\d*'
 
 
 class Client:
@@ -52,8 +56,8 @@ def configure(client, kind):
         ET.SubElement(parameter, 'name').text = name
         ET.SubElement(parameter, 'defaultValue').text = default
         ET.SubElement(parameter, 'trim').text = 'true'
-    if kind == 'publish':
-        for name in ('PROMOTE_QA_FEED', 'BRIDGE_LEGACY_QA_FEED'):
+    if kind in ('publish', 'core-publish'):
+        for name in ('PROMOTE_QA_FEED', 'BRIDGE_LEGACY_QA_FEED') if kind == 'publish' else ('PROMOTE_QA_FEED',):
             parameter = ET.SubElement(definitions, 'hudson.model.BooleanParameterDefinition')
             ET.SubElement(parameter, 'name').text = name
             ET.SubElement(parameter, 'defaultValue').text = 'false'
@@ -108,6 +112,10 @@ def main():
             if args.bridge_legacy_qa:
                 parser.error('Stable releases cannot bridge a QA manifest')
             data = {'RELEASE_ID': args.release_id}
+        elif args.job == 'core-publish':
+            if not re.fullmatch(CORE_RELEASE_ID, args.release_id or ''): parser.error('Valid Core --release-id is required')
+            if args.bridge_legacy_qa: parser.error('Core releases cannot bridge a legacy QA manifest')
+            data = {'RELEASE_ID': args.release_id, 'PROMOTE_QA_FEED': str(args.promote).lower()}
         else:
             if not re.fullmatch(r'qa-\d+\.\d+\.\d+-\d+-build-\d+', args.release_id or ''): parser.error('Valid --release-id is required')
             if args.bridge_legacy_qa and not args.promote: parser.error('--bridge-legacy-qa requires --promote')

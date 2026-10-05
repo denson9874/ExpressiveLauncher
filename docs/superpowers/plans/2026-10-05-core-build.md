@@ -51,3 +51,15 @@ installs from a browser without the block. Users can move between Core and Full 
 ## Open questions
 - Should Full stay the default download and Core be offered for affected regions, or the reverse?
 - Should the Obtainium link point to Full or Core? (Obtainium can filter assets by name regex.)
+
+## Decisions (2026-10-05)
+- Full stays the default download and the Obtainium target; Core is offered for affected regions.
+- Each QA version gets a separate Core prerelease (`qa-core-v<VER>-<CODE>`, Core APK only) and its
+  own feed (`updates:qa-v2-core/latest.json`); Full's release, feed, stable gate and Obtainium link
+  are unchanged. Core is built on every QA build. Core stable is deferred.
+
+## Status
+- Phase 1 (app): done on `claude/core-build` (`5caff5b`).
+- Phase 2 (pipeline): implemented on `claude/core-build`; see `docs/CI_PIPELINE.md` → Expressive Core.
+  Remaining: reconfigure `expressive-qa-build` and create `expressive-qa-core-publish`
+  (`control.py configure`, user approval), then merge via PR.

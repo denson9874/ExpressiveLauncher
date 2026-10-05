@@ -150,6 +150,28 @@ The receipt is the authoritative status record. A build pass, created draft or s
 alone does not establish an available update. If a job fails after public release publication, preserve
 its receipt and retry; the release may be visible even though the channel manifest has not advanced.
 
+## Expressive Core (XDA-021)
+
+Play Protect's enhanced fraud protection blocks browser-installed apps that declare an accessibility
+service, a notification listener or SMS access. Expressive Core (`-PexpressiveCore=true`) is the same
+package and signer without the first two (`expressive/AndroidManifest-launcher-core.xml`).
+
+- **Build:** after the Full candidate is sealed, `expressive-qa-build` assembles Core from the same
+  source, stages it into `artifacts-core/` (`pipeline.py stage --variant core`, which runs
+  `verify_qa.py --variant core` to reject any of those declarations in the packaged manifest), runs
+  the same smoke QA as an in-place upgrade from the published Full QA baseline, and seals
+  `releases/qa-core-<VER>-<CODE>-build-<B>`. The stage runs under `catchError(buildResult: 'SUCCESS')`,
+  so a Core failure never blocks or relabels the Full build.
+- **Publish:** `expressive-qa-core-publish` (Jenkinsfile.core-publish) runs
+  `publish_qa.py --variant core`: tag `qa-core-v<VER>-<CODE>` (prerelease), feed
+  `updates:qa-v2-core/latest.json` whose `channel` field stays `qa` (the updater compares it with its
+  own channel). Instead of the Full feed-baseline rule, Core requires its tested baseline to be the
+  exact APK asset (GitHub digest and size) of a published Full QA release; the first Core feed also
+  requires empty Core feed history and no other `qa-core-v` release. Seals, release IDs and receipts
+  cannot cross variants.
+- **Isolation:** the weekly stable gate audits only `expressive-qa-build` seals named `qa-…` and
+  `expressive-qa-publish` runs, so Core never affects stable eligibility. There is no Core stable yet.
+
 ## Migration from Drive
 
 Future build exports use GitHub. Historical Drive files are retained. Version 1.0.10 and earlier have

@@ -164,6 +164,7 @@ def main():
     parser.add_argument("--bump", choices=["auto", "patch", "minor", "major"], help="Bump version in build.gradle before running release (auto rolls over at x.y.9 -> x.(y+1).0)")
     parser.add_argument("--major", action="store_true", help="Bump major version ((MAJOR+1).0.0) before running release")
     parser.add_argument("--skip-jenkins", action="store_true", help="Skip Jenkins build & GitHub publication")
+    parser.add_argument("--skip-core", action="store_true", help="Do not publish the Expressive Core QA prerelease")
     parser.add_argument("--with-play", "--enable-play", action="store_true", help="Enable optional Google Play Store bundle build & publication (default: off, direct GitHub Releases primary)")
     parser.add_argument("--skip-play", action="store_true", help="Explicitly skip Google Play Store bundle build & publication (default)")
     parser.add_argument("--skip-telegram", action="store_true", help="Skip Telegram announcement formatting/posting")
@@ -244,6 +245,29 @@ def main():
         wait_for_jenkins_job("publish", min_build_number=prev_pub_num + 1)
         print(f"\n[SUCCESS] Published to GitHub Releases and promoted in-app update feed!")
 
+        # Expressive Core (XDA-021): the build job seals it after Full; a Core failure never blocks Full.
+        core_release_id = f"qa-core-{version_name}-{version_code}-build-{build_number}"
+        core_seal = Path.home() / "Library/Application Support/Expressive CI/releases" / core_release_id / "seal.json"
+        if args.skip_core:
+            core_status = "Skipped (--skip-core)"
+        elif not core_seal.is_file():
+            core_status = f"Not sealed by build #{build_number}; check the Jenkins Core stage"
+            print(f"\n[WARNING] Expressive Core: {core_status}")
+        else:
+            print("\n>>> STAGE 2a: Jenkins Core Publish Job (Expressive Core prerelease & Core feed)...")
+            try:
+                prev_core_num = get_latest_jenkins_build_number("core-publish")
+                run_cmd([sys.executable, str(CONTROL_SCRIPT), "run", "--job", "core-publish",
+                         "--release-id", core_release_id, "--promote"])
+                time.sleep(3)
+                wait_for_jenkins_job("core-publish", min_build_number=prev_core_num + 1)
+                core_status = (f"https://github.com/denson9874/ExpressiveLauncher/releases/tag/"
+                               f"qa-core-v{version_name}-{version_code}")
+                print(f"\n[SUCCESS] Published Expressive Core: {core_status}")
+            except Exception as error:
+                core_status = f"Publish failed ({error}); retry: control.py run --job core-publish --release-id {core_release_id} --promote"
+                print(f"\n[WARNING] Expressive Core: {core_status}")
+
         print("\n>>> STAGE 2b: Android Developer Verification (Play Protect Clearance)...")
         receipt_path = ROOT / "artifacts/play-protect-verification/developer_verification_receipt.json"
         play_protect_cmd = [
@@ -251,7 +275,8 @@ def main():
             "--package", "dev.launcher.expressive.l3",
             "--output", str(receipt_path),
         ]
-        qa_apks = list((ROOT / "build/outputs/apk/lawnWithQuickstepExpressive/qa").glob("*.apk"))
+        qa_apks = [apk for apk in (ROOT / "build/outputs/apk/lawnWithQuickstepExpressive/qa").glob("*.apk")
+                   if not apk.name.startswith("ExpressiveLauncherL3-Core")]
         if not qa_apks:
             ci_release_dir = Path.home() / "Library/Application Support/Expressive CI/releases" / release_id
             if ci_release_dir.is_dir():
@@ -305,7 +330,8 @@ def main():
         if args.telegram_channel:
             tg_cmd.extend(["--channel", args.telegram_channel])
 
-        qa_apk_candidates = list((ROOT / "build/outputs/apk/lawnWithQuickstepExpressive/qa").glob("*.apk"))
+        qa_apk_candidates = [apk for apk in (ROOT / "build/outputs/apk/lawnWithQuickstepExpressive/qa").glob("*.apk")
+                             if not apk.name.startswith("ExpressiveLauncherL3-Core")]
         if qa_apk_candidates:
             tg_cmd.extend(["--apk", str(qa_apk_candidates[0])])
 
@@ -342,6 +368,8 @@ def main():
     print(f"- Version:            {version_name} (Build {version_code})")
     print(f"- GitHub Release:     https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v{version_name}-{version_code}")
     print(f"- QA In-App Feed:     https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json")
+    if not args.skip_jenkins:
+        print(f"- Expressive Core:    {core_status}")
     if enable_play:
         print(f"- Google Play Tracks: {args.play_tracks}")
     else:

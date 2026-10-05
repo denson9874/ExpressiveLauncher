@@ -35,6 +35,13 @@ def validate_provenance(metadata, source, qa):
         raise ValueError('Device QA belongs to a different package')
     if metadata.get('sourceRevision', source['sourceRevision']) != source['sourceRevision']:
         raise ValueError('Verified APK belongs to a different source revision')
+    if metadata.get('variant', 'full') not in ('full', 'core'):
+        raise ValueError('Unknown build variant')
+    if metadata.get('variant') == 'core':
+        core = metadata.get('coreManifest')
+        if (channel != 'qa' or source.get('baselineChannel') != 'qa' or not isinstance(core, dict) or
+                core.get('forbiddenDeclarations') != []):
+            raise ValueError('Expressive Core must be a QA build with verified manifest evidence and a QA baseline')
     if channel == 'qa' and 'baselineChannel' in source:
         baseline = metadata.get('baseline', {})
         if (source['baselineChannel'] not in ('qa', 'release') or
@@ -136,7 +143,12 @@ def main(argv=None):
         validation_notice = ('\nThis build uses an explicitly selected QA version and current committed source. '
                              'The legacy validationOnly marker records that source selection; green stable '
                              'publication requires a separate exact-build authorization and receipt.\n')
-    report = f'''# Expressive Launcher {metadata['versionName']} — Jenkins {channel_label} release
+    product = 'Expressive Launcher Core' if metadata.get('variant') == 'core' else 'Expressive Launcher'
+    if metadata.get('variant') == 'core':
+        validation_notice += ('\nExpressive Core: the same package and signer without the accessibility service or '
+                              'notification listener (verified in the packaged manifest). The automated upgrade '
+                              'installs it over the published Full QA baseline.\n')
+    report = f'''# {product} {metadata['versionName']} — Jenkins {channel_label} release
 
 This report describes the exact APK built and tested by Jenkins. Publication status is recorded separately in the publication receipt.
 {validation_notice}
