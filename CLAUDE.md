@@ -85,6 +85,10 @@ python3 ci/jenkins/control.py status --job build --number N
 python3 ci/jenkins/control.py run --job publish --release-id qa-X.Y.Z-N-build-B --promote
 ```
 
+Before submitting a build: push any submodule commits (Jenkins fetches the gitlink and fails with
+`not our ref` otherwise), and never rebuild a version already published — the package gate rejects
+it. Retry publication against the sealed ID, or implement and bump a new candidate.
+
 Jenkins (loopback 127.0.0.1:8091) owns full tests, signing, emulator checks, sealing and GitHub
 publication; do not replace its jobs with ad-hoc uploads. Retry a failed publication against the
 same sealed release ID. A build pass is not a release: require a receipt with `provider=github`,

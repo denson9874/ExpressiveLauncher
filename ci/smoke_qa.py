@@ -375,6 +375,9 @@ class Smoke:
         x = (x1+x2)//2
         start_y, end_y = y1 + int((y2-y1)*0.75), y1 + int((y2-y1)*0.15)
         duration_ms = 250
+        # A real user swipes once. Retries absorb emulator timing just after a cold start
+        # (measured 2026-10-04: 9/10 first-swipe on swiftshader, 20/20 on host GPU), but the
+        # attempt count is recorded so a launcher regression cannot hide behind them.
         for attempt in range(1, 4):
             self.shell("input", "swipe", str(x), str(start_y), str(x), str(end_y), str(duration_ms))
             time.sleep(2)
@@ -384,7 +387,9 @@ class Smoke:
             time.sleep(1)
         self.node(root, rid="apps_view")
         self.node(root, rid="search_container_all_apps")
-        self.passed("drawer_swipe", path=[x, start_y, x, end_y], durationMs=duration_ms)
+        if attempt > 1:
+            print(f"WARN drawer_swipe needed {attempt} swipes; inspect candidate-drawer evidence", flush=True)
+        self.passed("drawer_swipe", path=[x, start_y, x, end_y], durationMs=duration_ms, attempts=attempt)
         self.tap(self.node(root, rid="search_container_all_apps"))
         root = self.capture("candidate-search-focused")
         # Opening the search surface can focus its editor without requesting the IME.
