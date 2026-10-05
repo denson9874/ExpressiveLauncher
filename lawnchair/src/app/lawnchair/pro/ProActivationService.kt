@@ -27,6 +27,12 @@ interface ProActivationService {
         @Body request: VerifyDonationRequest,
     ): LicenseResponse
 
+    /** Issues (or re-delivers) the one 7-day trial for a hashed device fingerprint. HTTP 409 once used. */
+    @POST("api/trial")
+    suspend fun startTrial(
+        @Body request: TrialRequest,
+    ): TrialResponse
+
     companion object {
         const val DEFAULT_ACTIVATION_URL = "https://expressive-pro-activation.daryldenson-apps.workers.dev/"
 
@@ -61,4 +67,18 @@ data class LicenseResponse(
     @SerialName("key") val key: String? = null,
     @SerialName("message") val message: String? = null,
     @SerialName("recipient") val recipient: String? = null,
+)
+
+@Serializable
+data class TrialRequest(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("trial_fingerprint") val trialFingerprint: String,
+)
+
+@Serializable
+data class TrialResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("key") val key: String? = null,
+    @SerialName("expiresAt") val expiresAt: Long? = null,
+    @SerialName("error") val error: String? = null,
 )

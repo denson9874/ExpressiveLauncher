@@ -125,12 +125,13 @@
     <ul>
       <li><strong>Web Search</strong>: When you type a query and choose to search the web, your query is sent directly to your selected search provider (such as Google Search or DuckDuckGo) via browser intent or direct API. Requests are handled under the respective provider's privacy policy.</li>
       <li><strong>Google Fonts</strong>: When you select an online font in appearance settings, font files are downloaded directly from Google Fonts over HTTPS.</li>
+      <li><strong>Expressive Pro activation (optional)</strong>: If you contribute to Expressive Pro or start the free trial, the app contacts our activation service (hosted on Cloudflare Workers) over encrypted HTTPS. Contributions send the app's random installation ID and, only if you enter them, your PayPal transaction ID or PayPal account email. Starting the 7-day trial sends the installation ID and a one-way SHA-256 hash derived from your device's app-specific Android ID; the raw Android ID never leaves your device. The service stores license records and, for trials, that hash and the trial end date so each device gets one trial.</li>
       <li><strong>User-Initiated Crash Reporting</strong>: If a crash occurs and you explicitly tap "Upload Crash Report", an anonymized diagnostic report is uploaded to a diagnostic paste service over encrypted HTTPS. No automated background crash uploading takes place without user action.</li>
     </ul>
 
     <h2>3. Data Retention and Deletion</h2>
     <p>All launcher configuration and preferences remain on your device until you clear application storage in Android Settings (<strong>Settings &rarr; Apps &rarr; Expressive Launcher &rarr; Storage &amp; cache &rarr; Clear storage</strong>) or uninstall the application from your device.</p>
-    <p>Because we do not store your personal information on remote servers, uninstalling the app or clearing local data completely removes all your local data.</p>
+    <p>Apart from the optional Expressive Pro activation records described above, we do not store your personal information on our own servers. Uninstalling the app or clearing local data completely removes all your local data. To request deletion of activation records, email denson9874@expressivelauncher.com.</p>
 
     <h2>4. Security</h2>
     <p>Expressive Launcher L3 relies on Android platform sandbox protections, uses encrypted HTTPS transport for all network requests, and excludes unnecessary legacy storage and privileged platform permissions.</p>

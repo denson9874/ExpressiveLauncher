@@ -11,6 +11,11 @@ const MAGIC = new Uint8Array([0x45, 0x50]); // "EP"
 const SCHEMA_VERSION = 1;
 const TYPE_TESTER = 1;
 const TYPE_VIP = 3;
+const TYPE_TRIAL = 6;
+const TRIAL_DAYS = 7;
+const TRIAL_RATE_LIMIT_PER_HOUR = 5;
+const DEVICE_ID_PATTERN = /^DEV-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
+const FINGERPRINT_PATTERN = /^[0-9a-f]{64}$/;
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 const CORS_HEADERS = {
@@ -53,7 +58,12 @@ export default {
         return await handleVerifyDonation(request, env);
       }
 
-      // 4. Web Deep Link Redirect / Launcher Activation Page
+      // 4. Seven-day Pro trial, one per hashed device fingerprint
+      if (url.pathname === "/api/trial" && request.method === "POST") {
+        return await handleTrialRequest(request, env);
+      }
+
+      // 5. Web Deep Link Redirect / Launcher Activation Page
       if (url.pathname === "/activate" && request.method === "GET") {
         return handleActivationRedirect(url);
       }
@@ -128,6 +138,65 @@ async function handleLicenseLookup(url, env) {
     success: false,
     message: "No active license found for this device or account.",
   });
+}
+
+/**
+ * Handle POST /api/trial with { device_id, trial_fingerprint }.
+ *
+ * trial_fingerprint is a SHA-256 (hex) computed on the device from its Android ID and package name;
+ * the raw identifier never reaches this service. Each fingerprint gets one 7-day trial. Asking again
+ * before it ends (e.g. after a reinstall that changed device_id) re-issues a key with the same expiry;
+ * asking after it ends returns 409 trial_used.
+ */
+async function handleTrialRequest(request, env, now = Date.now()) {
+  if (!env.EXPRESSIVE_PRO_KV) {
+    return jsonResponse({ success: false, message: "Storage backend not configured" }, 503);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+  const deviceId = String(body?.device_id ?? "").trim().toUpperCase();
+  const fingerprint = String(body?.trial_fingerprint ?? "").trim().toLowerCase();
+  if (!DEVICE_ID_PATTERN.test(deviceId) || !FINGERPRINT_PATTERN.test(fingerprint)) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const rateKey = `trial:rate:${ip}:${Math.floor(now / 3600000)}`;
+  const attempts = parseInt((await env.EXPRESSIVE_PRO_KV.get(rateKey)) || "0", 10);
+  if (attempts >= TRIAL_RATE_LIMIT_PER_HOUR) {
+    return jsonResponse({ success: false, error: "rate_limited" }, 429);
+  }
+  await env.EXPRESSIVE_PRO_KV.put(rateKey, String(attempts + 1), { expirationTtl: 7200 });
+
+  const nowSeconds = Math.floor(now / 1000);
+  const recordKey = `trial:fp:${fingerprint}`;
+  const existing = await env.EXPRESSIVE_PRO_KV.get(recordKey);
+  let expiresAt;
+  if (existing) {
+    const record = JSON.parse(existing);
+    if (nowSeconds >= record.expiresAt) {
+      return jsonResponse({ success: false, error: "trial_used", expiresAt: record.expiresAt }, 409);
+    }
+    expiresAt = record.expiresAt;
+    if (record.deviceId !== deviceId) {
+      record.deviceId = deviceId;
+      await env.EXPRESSIVE_PRO_KV.put(recordKey, JSON.stringify(record));
+    }
+  } else {
+    expiresAt = nowSeconds + TRIAL_DAYS * 86400;
+    await env.EXPRESSIVE_PRO_KV.put(
+      recordKey,
+      JSON.stringify({ deviceId, expiresAt, createdAt: new Date(now).toISOString() })
+    );
+  }
+
+  const key = await generateProLicense(`device:${deviceId}`, TYPE_TRIAL, expiresAt, env);
+  return jsonResponse({ success: true, key, expiresAt });
 }
 
 /**
@@ -715,3 +784,6 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+// Exported for unit tests (node --test server/cloudflare-worker/).
+export { handleTrialRequest, TYPE_TRIAL, TRIAL_DAYS };

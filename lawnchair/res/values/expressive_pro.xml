@@ -21,6 +21,19 @@
     <string name="expressive_pro_lifetime">Lifetime (Never expires)</string>
     <string name="expressive_pro_close">Close</string>
     <string name="expressive_pro_badge">PRO</string>
+    <string name="expressive_pro_trial_button">Try Pro free for 7 days</string>
+    <string name="expressive_pro_trial_starting">Starting your trial…</string>
+    <string name="expressive_pro_trial_desc">Every Pro feature, free for 7 days. One trial per device; no payment details needed. Afterwards Pro turns off and your settings stay saved.</string>
+    <string name="expressive_pro_trial_started">Your 7-day Pro trial has started!</string>
+    <plurals name="expressive_pro_trial_days_left">
+        <item quantity="one">Pro trial · %d day left</item>
+        <item quantity="other">Pro trial · %d days left</item>
+    </plurals>
+    <string name="expressive_pro_trial_ended_title">Your Pro trial has ended</string>
+    <string name="expressive_pro_trial_ended_desc">Pro features are paused and your settings are saved. Contribute $4.99 to keep them for good.</string>
+    <string name="expressive_pro_trial_ended_dismiss">Dismiss</string>
+    <string name="expressive_pro_trial_used">This device has already used its free trial.</string>
+    <string name="expressive_pro_trial_unavailable">The trial couldn\'t be started right now. Check your connection and try again.</string>
     <string name="expressive_pro_locked_message">This feature requires Expressive Pro. Tap to enter your tester or giveaway key.</string>
     <string name="expressive_v3_transition_banner_title">Welcome to Expressive V3</string>
     <string name="expressive_v3_transition_banner_desc">We appreciate your feedback and testing! Free Core continues receiving updates, while customization features are now Pro exclusive.</string>
