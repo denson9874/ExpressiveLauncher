@@ -22,6 +22,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.override.CustomizeAppDialog
 import app.lawnchair.override.CustomizeShortcutDialog
@@ -32,6 +33,7 @@ import app.lawnchair.ui.preferences.navigation.AppDrawerAppListToFolder
 import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.BubbleTextView
+import com.android.launcher3.LauncherSettings
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT
@@ -53,7 +55,10 @@ import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.PackageManagerHelper
 import com.android.launcher3.views.ActivityContext
 import com.android.launcher3.views.OptionsPopupView
+import com.android.launcher3.views.Snackbar
 import java.net.URISyntaxException
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class LawnchairShortcut {
 
@@ -159,6 +164,29 @@ class LawnchairShortcut {
                 OpenInStore(activity, itemInfo, originalView, packageName, installer)
             }
 
+        /** One-tap "Hide" for apps long-pressed in the app drawer (community request TG-003). */
+        val HIDE_APP =
+            SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo: ItemInfo, originalView: View ->
+                val prefs2 = PreferenceManager2.getInstance(activity)
+                if (!canHideFromDrawer(itemInfo, prefs2.lockHomeScreen.firstCached(prefs2))) {
+                    return@Factory null
+                }
+                HideApp(activity, itemInfo, originalView)
+            }
+
+        private val DRAWER_CONTAINERS = setOf(
+            LauncherSettings.Favorites.CONTAINER_ALL_APPS,
+            LauncherSettings.Favorites.CONTAINER_ALL_APPS_PREDICTION,
+        )
+
+        /** Only real apps opened from the drawer can be hidden, and never while Home is locked. */
+        @JvmStatic
+        fun canHideFromDrawer(itemInfo: ItemInfo, homeLocked: Boolean): Boolean =
+            !homeLocked &&
+                itemInfo.itemType == ITEM_TYPE_APPLICATION &&
+                itemInfo.targetComponent != null &&
+                itemInfo.container in DRAWER_CONTAINERS
+
         val PAUSE_APPS = SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo: ItemInfo, originalView: View ->
             val targetCmp = itemInfo.targetComponent
             val packageName = targetCmp?.packageName ?: return@Factory null
@@ -173,6 +201,37 @@ class LawnchairShortcut {
             }
 
             PauseApps(activity, itemInfo, originalView)
+        }
+    }
+
+    class HideApp(
+        target: LawnchairLauncher,
+        itemInfo: ItemInfo,
+        originalView: View,
+    ) : SystemShortcut<LawnchairLauncher>(
+        R.drawable.ic_visibility_off,
+        R.string.action_hide_app,
+        target,
+        itemInfo,
+        originalView,
+    ) {
+        override fun onClick(view: View) {
+            val launcher = mTarget
+            val key = ComponentKey(mItemInfo.targetComponent, mItemInfo.user).toString()
+            val label = mItemInfo.title ?: ""
+            val hiddenApps = PreferenceManager2.getInstance(launcher).hiddenApps
+            AbstractFloatingView.closeAllOpenViews(launcher)
+            launcher.lifecycleScope.launch {
+                hiddenApps.set(hiddenApps.get().first() + key)
+                Snackbar.show(
+                    launcher,
+                    launcher.getString(R.string.app_hidden_from_drawer, label),
+                    R.string.undo,
+                    null,
+                ) {
+                    launcher.lifecycleScope.launch { hiddenApps.set(hiddenApps.get().first() - key) }
+                }
+            }
         }
     }
 

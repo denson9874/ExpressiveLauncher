@@ -50,6 +50,25 @@ object FolderWidgetMenus {
         }
 
     /**
+     * The open folder's ⋮ button: shows the footer action (Make widget / Make normal folder) in a
+     * small menu, so converting takes a deliberate second tap (community request TG-002).
+     * Returns false when the folder has no footer action.
+     */
+    @JvmStatic
+    fun showFooterOverflow(launcher: Launcher, icon: FolderIcon, anchor: View): Boolean {
+        val action = footerActionFor(icon.mInfo, FolderWidgetController.isHomeLocked(launcher))
+            ?: return false
+        val bounds = Rect()
+        launcher.dragLayer.getDescendantRectRelativeToSelf(anchor, bounds)
+        val item = OptionItem(launcher, action, iconFor(action), LauncherEvent.IGNORE) { _: View ->
+            runAction(launcher, icon, action)
+            true
+        }
+        OptionsPopupView.show<Launcher>(launcher, RectF(bounds), listOf(item), true)
+        return true
+    }
+
+    /**
      * Shows the menu for [icon] and returns the pre-drag condition for its drag: moving past the
      * touch slop starts the drag and closes the menu; releasing without moving keeps the menu and,
      * for a Folder widget, shows its resize frame.

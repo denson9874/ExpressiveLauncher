@@ -230,6 +230,11 @@ object SettingsSearchIndex {
             entry(R.string.background_opacity, keywords = "transparency, blur")
             entry(R.string.work_profile_tab_container_background_label, keywords = "tabs, work profile")
             entry(R.string.pref_all_apps_search_bar_background, keywords = "search bar, backdrop")
+            entry(
+                R.string.pref_all_apps_search_bar_transparent_on_scroll,
+                R.string.pref_all_apps_search_bar_transparent_on_scroll_description,
+                keywords = "search bar, transparent, header, scroll",
+            )
             entry(R.string.app_drawer_columns, keywords = "grid, columns")
             entry(R.string.row_height_label, keywords = "grid, rows, spacing")
             entry(R.string.app_drawer_indent_label, keywords = "margins, spacing")

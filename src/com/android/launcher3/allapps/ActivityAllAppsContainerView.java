@@ -895,7 +895,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 pref2.getWorkProfileTabContainerBackground(), pref2);
         
         float prog = Utilities.boundToRange((float) scrolledOffset / mHeaderThreshold, 0f, 1f);
-        int headerColor = getHeaderColor(prog);
+        // LC-Note: optional see-through header while scrolling (TG-006); the search field keeps
+        // its own background so it stays readable over the apps behind it.
+        boolean transparentOnScroll = PreferenceCacheExtensionsKt.firstCached(
+                pref2.getAppDrawerSearchBarTransparentOnScroll(), pref2);
+        int headerColor = transparentOnScroll ? Color.TRANSPARENT : getHeaderColor(prog);
         int tabsAlpha = (!showTabContainerBackground || mHeader.getPeripheralProtectionHeight(/* expectedHeight */ false) == 0) ? 0
                 : (int) (Utilities.boundToRange(
                         (scrolledOffset + mHeader.mSnappedScrolledY) / mHeaderThreshold, 0f, 1f)
@@ -930,9 +934,10 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 }
             }
         } else if (scrolledOffset > mHeaderThreshold) {
-            bgVisible = false;
+            bgVisible = transparentOnScroll && !isSearching();
         }
-        mSearchUiManager.setBackgroundVisibility(bgVisible, 1 - prog);
+        mSearchUiManager.setBackgroundVisibility(bgVisible,
+                transparentOnScroll && !isSearching() ? 1f : 1 - prog);
     }
 
     protected int getHeaderColor(float blendRatio) {

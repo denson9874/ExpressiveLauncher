@@ -99,6 +99,11 @@ fun AppDrawerPreferences(
             }
             SearchBarPreference(SearchRoute.DRAWER_SEARCH, showLabel = false)
             SwitchPreference(
+                adapter = prefs2.appDrawerSearchBarTransparentOnScroll.getAdapter(),
+                label = stringResource(id = R.string.pref_all_apps_search_bar_transparent_on_scroll),
+                description = stringResource(id = R.string.pref_all_apps_search_bar_transparent_on_scroll_description),
+            )
+            SwitchPreference(
                 adapter = prefs2.showSuggestedAppsInDrawer.getAdapter(),
                 label = stringResource(R.string.show_suggested_apps_in_drawer),
                 description = stringResource(R.string.show_suggested_apps_in_drawer_description),

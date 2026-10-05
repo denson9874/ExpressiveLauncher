@@ -266,6 +266,12 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.recreate() },
     )
 
+    /** TG-006: keep the drawer header see-through while scrolling instead of filling it in. */
+    val appDrawerSearchBarTransparentOnScroll = preference(
+        key = booleanPreferencesKey(name = "all_apps_search_bar_transparent_on_scroll"),
+        defaultValue = false,
+    )
+
     val workProfileTabBackgroundColor = preference(
         key = stringPreferencesKey(name = "work_profile_tab_background_color"),
         parse = ColorOption::fromString,

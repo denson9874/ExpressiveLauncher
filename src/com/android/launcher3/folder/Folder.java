@@ -360,10 +360,10 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         mFooter = findViewById(R.id.folder_footer);
         mWidgetButton = findViewById(R.id.folder_widget_button);
         if (mWidgetButton != null) {
+            // LC-Note: a ⋮ menu instead of a one-tap convert button, which was easy to hit by mistake.
             mWidgetButton.setOnClickListener(v -> {
-                if (mActivityContext instanceof Launcher launcher && mFolderIcon != null
-                        && v.getTag() instanceof Integer action) {
-                    FolderWidgetMenus.runAction(launcher, mFolderIcon, action);
+                if (mActivityContext instanceof Launcher launcher && mFolderIcon != null) {
+                    FolderWidgetMenus.showFooterOverflow(launcher, mFolderIcon, v);
                 }
             });
         }
@@ -902,8 +902,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             mWidgetButton.setVisibility(action == null ? GONE : VISIBLE);
             mWidgetButton.setTag(action);
             if (action != null) {
-                mWidgetButton.setImageResource(FolderWidgetMenus.iconFor(action));
-                mWidgetButton.setContentDescription(getContext().getString(action));
+                mWidgetButton.setImageResource(R.drawable.ic_more_vert_dots);
+                mWidgetButton.setContentDescription(getContext().getString(R.string.folder_more_options));
             }
         }
         if (mAddAppsButton != null) {

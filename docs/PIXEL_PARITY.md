@@ -4,6 +4,33 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Drawer Hide shortcut, folder ⋮ menu, and transparent drawer search bar — 2026-10-04 (candidate 4.1.0 / code 59)
+
+Source: Telegram feedback (TG-002, TG-003, TG-006), 2026-10-03.
+
+1. **One-tap Hide in the app drawer (TG-003).** New `LawnchairShortcut.HIDE_APP` popup action for apps
+   long-pressed in the drawer or its prediction row (`canHideFromDrawer`: application items with a
+   component, drawer containers only, never while Home is locked; Private Space excluded). It adds the
+   app's `ComponentKey` to `hiddenApps`, which `LawnchairAlphabeticalAppsList` observes live, and shows a
+   Snackbar with Undo. Hiding stays free, as in the Customize dialog; the Hidden apps list remains Pro.
+2. **Folder ⋮ menu (TG-002).** The open folder's footer button no longer converts in one tap: it shows
+   `ic_more_vert_dots` ("More options") and opens `FolderWidgetMenus.showFooterOverflow`, an
+   `OptionsPopupView` with Make widget / Make normal folder.
+3. **Transparent search bar while scrolling (TG-006).** New free option
+   `appDrawerSearchBarTransparentOnScroll` (default off) in App list › General and the settings search
+   index. When on, `ActivityAllAppsContainerView.updateHeaderScroll` leaves the header protection colour
+   transparent and keeps the search field's own background visible while not searching.
+
+Not shipped: TG-007 (folder icons ignore icon size) did not reproduce on the default `4_by_6` grid; at a
+1.4× home icon size, folder icons scaled with Home (~120 → ~166 px on screen). Details requested.
+
+Validation: `HideAppShortcutPolicyTest` (4/4), full unit suite 518/518, CI contract tests 300/300.
+Emulator (Android 17 QPR2 Beta 5, CP41.260828.004.A7, host GPU) checks of the debug build: Hide removes the
+app with an Undo Snackbar and Undo restores it (repeated on two apps); the folder ⋮ opens a Make widget menu
+without converting, the item converts, and the widget converts back; the scrolled drawer header shows the
+protection band when off and stays see-through when on. Icons scrolling under the header are clipped at its
+edge in both states (existing behaviour).
+
 ## Automated Pro activation pipeline, account email lookup, and business support contact — 2026-10-04 (candidate 4.0.9 / code 58)
 
 1. **Automated Pro activation pipeline & multi-identifier resolution.** Upgraded the Cloudflare Worker

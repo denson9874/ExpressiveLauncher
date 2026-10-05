@@ -1014,10 +1014,14 @@
     <string name="work_profile_tab_background_label">Tab background color</string>
 
     <string name="pref_all_apps_search_bar_background">Show background behind search bar</string>
+    <string name="pref_all_apps_search_bar_transparent_on_scroll">Transparent search bar while scrolling</string>
+    <string name="pref_all_apps_search_bar_transparent_on_scroll_description">Keep the area behind the search bar see-through when you scroll the app drawer</string>
     <string name="work_profile_tab_container_background_label">Show background behind tabs</string>
 
     <!-- HiddenAppsPreferences -->
     <string name="hide_from_drawer">Hide from app drawer</string>
+    <string name="action_hide_app">Hide</string>
+    <string name="app_hidden_from_drawer">%1$s hidden from app drawer</string>
     <string name="hidden_apps_label_with_count">Hidden apps (%1$d)</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d app</item>
@@ -1213,6 +1217,7 @@
     <string name="folder_widget_add_apps">Add apps</string>
     <string name="folder_widget_open_folder">Open folder</string>
     <string name="folder_widget_make_widget">Make widget</string>
+    <string name="folder_more_options">More options</string>
     <string name="folder_widget_make_folder">Make normal folder</string>
     <string name="folder_widget_customize">Customize</string>
     <string name="folder_widget_remove">Remove</string>

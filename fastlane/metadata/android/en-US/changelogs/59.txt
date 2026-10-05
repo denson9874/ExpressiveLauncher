@@ -1,0 +1,3 @@
+1. One-tap Hide in the app drawer: long-press any app in the drawer and choose Hide, with an Undo bar in case you change your mind.
+2. Safer folder conversion: the open folder's widget button now opens a ⋮ menu, so Make widget is never triggered by an accidental tap.
+3. Transparent search bar while scrolling: a new App list option keeps the area behind the drawer search bar see-through as you scroll.
