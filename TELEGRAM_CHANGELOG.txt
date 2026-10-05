@@ -1,38 +1,46 @@
-<b>Expressive Launcher 4.0.9 (Build 58) — The Automated Key Express</b>
+<b>Expressive Launcher 4.1.0 (Build 59) — Now You See It, Now You Don't</b>
+
+Three improvements straight from community feedback in our Telegram group. Thank you for the detailed list!
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Automated Pro Activation Pipeline & Multi-Identifier Resolution</b>:
-• The serverless Cloudflare activation backend (<code>server/cloudflare-worker</code>) now indexes all associated PayPal identifiers across payment captures, orders, sales, and invoices (<code>tx:${id}</code>, <code>tx:${orderId}</code>, <code>tx:${invoiceId}</code>, <code>tx:${captureId}</code>).
-• PayPal No-Code Payment (NCP) contributions are resolved immediately regardless of whether you copy the Transaction ID or Order ID from your receipt, delivering instant in-app activation without waiting for manual key emails!
+1. <b>One-tap Hide in the app drawer</b>:
+• Long-press any app in the app drawer (or its suggestions row) and choose <b>Hide</b>. It disappears from the drawer immediately.
+• Changed your mind? Tap <b>Undo</b> on the bar that appears at the bottom of the screen.
+• Before, hiding took three taps through Customize. Hide only appears for apps opened from the drawer, and never while the Home screen is locked.
 
-2. <b>In-App PayPal Account Email Verification</b>:
-• Added PayPal account email verification directly into the in-app Redeem Pro sheet (<b>Settings → Expressive Pro → Already contributed?</b>).
-• If your device ID was not bound during checkout, entering your PayPal account email automatically links your device and retrieves your offline cryptographic VIP/Pro key in seconds.
+2. <b>No more accidental folder-to-widget conversions</b>:
+• Inside an open Home folder, the button next to the folder name is now a <b>⋮ menu</b>. <b>Make widget</b> (or <b>Make normal folder</b> for a Folder widget) lives inside it, so converting always takes a deliberate second tap.
 
-3. <b>Official Business Support Email & Support Flow Overhaul</b>:
-• Updated our official developer support & manual key issuance address across the entire app and privacy policies to <b><code>denson9874@expressivelauncher.com</code></b> (saying goodbye to personal Gmail for official app business!).
-• <b>Important</b>: Automated in-app verification ("Check Activation Status" and "Verify via PayPal Transaction ID or Email") is the <b>primary, instant, 24/7 activation method</b>. Manual email outreach is reserved as a fallback if automated checks cannot locate your receipt.
+3. <b>Transparent search bar while scrolling</b> (new option):
+• New switch in <b>Settings → App list → Transparent search bar while scrolling</b>.
+• When it's on, the area behind the app drawer search bar stays see-through as you scroll, instead of filling in with a solid band. The search field keeps its own background so it stays easy to read. Off by default.
+
+<blockquote>😄 Your apps can now play hide-and-seek. Unlike real hide-and-seek, there's an Undo button for when nobody can find them.
+
+📁 Folders were getting promoted to widgets without asking. They now need a ⋮ second opinion.</blockquote>
 
 ───────────────────────
 
-<b>💬 Support & Community Notice</b>
-<blockquote>💡 <b>Reminder on Pro Activation</b>: Before reaching out via email, always try tapping <b>Check Activation Status</b> or entering your <b>PayPal Transaction ID / Email</b> in the app first! It connects directly to our serverless engine to unlock your device instantly. If you still need a hand, our new business desk is ready at <b><code>denson9874@expressivelauncher.com</code></b>.</blockquote>
+<b>💬 Community Notes</b>
+• <b>Folder icon size</b>: we couldn't reproduce folder icons ignoring the icon-size setting on the default grid (folder icons scaled with Home at 1.4×). If you still see it, please share your device, grid and whether the folder is on Home or in the app drawer in @ExpressiveLauncherFeedback.
+• <b>Free trial for Pro</b>: great suggestion. We're designing a time-limited trial for an upcoming 4.1.x release.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-Why did the cryptographic key break up with the email client?
+I vanish with one tap and return with another; I'm in your drawer, then I'm not, but never truly gone. What am I?
 
-<tg-spoiler>Because it found true instant chemistry with the automated serverless worker! ⚡</tg-spoiler>
+<tg-spoiler>A hidden app — one tap on <b>Hide</b>, one tap on <b>Undo</b>! 🙈</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>4.0.9</code> (Build <code>58</code>)
+• <b>Launcher Version</b>: <code>4.1.0</code> (Build <code>59</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
+• <b>Validated</b>: 518 unit tests and 300 CI contract tests passing; Hide/Undo, the folder ⋮ menu (both directions) and the transparent search bar checked on an Android 17 QPR2 Beta 5 emulator.
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
