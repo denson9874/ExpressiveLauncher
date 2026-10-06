@@ -10,9 +10,9 @@
             <cellSize launcher:fixedSize="66dp" />
         </folderSpec>
         <folderSpec launcher:dimensionType="height" launcher:maxAvailableSize="9999dp">
-            <startPadding launcher:fixedSize="16dp" />
+            <startPadding launcher:fixedSize="12dp" />
             <!-- mapped to footer height size -->
-            <endPadding launcher:fixedSize="48dp" />
+            <endPadding launcher:fixedSize="44dp" />
             <gutter launcher:fixedSize="0dp" />
             <cellSize launcher:fixedSize="80dp" />
         </folderSpec>

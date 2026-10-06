@@ -1,46 +1,42 @@
-<b>Expressive Launcher 4.1.0 (Build 59) — Now You See It, Now You Don't</b>
+<b>Expressive Launcher 4.1.1 (Build 60) — Consistent Sizing, Sleek Folders & Pro Trial</b>
 
-Three improvements straight from community feedback in our Telegram group. Thank you for the detailed list!
+Three community-requested improvements delivered straight from our Telegram discussions. Thank you for the thoughtful feedback and bug reports!
 
 <b>✨ What's New & Improved</b>
 
-1. <b>One-tap Hide in the app drawer</b>:
-• Long-press any app in the app drawer (or its suggestions row) and choose <b>Hide</b>. It disappears from the drawer immediately.
-• Changed your mind? Tap <b>Undo</b> on the bar that appears at the bottom of the screen.
-• Before, hiding took three taps through Customize. Hide only appears for apps opened from the drawer, and never while the Home screen is locked.
+1. <b>7-Day Pro Free Trial</b> (TG-008):
+• You can now experience all Expressive Launcher Pro features free for 7 days with a single-device trial.
+• Start the trial directly from the Expressive Pro screen to test all premium customisation and gesture features risk-free.
 
-2. <b>No more accidental folder-to-widget conversions</b>:
-• Inside an open Home folder, the button next to the folder name is now a <b>⋮ menu</b>. <b>Make widget</b> (or <b>Make normal folder</b> for a Folder widget) lives inside it, so converting always takes a deliberate second tap.
+2. <b>Stable Drawer Icon Sizing</b> (TG-009):
+• Fixed an issue where recycled app drawer views could experience icon size fluctuations when navigating in and out of the app list.
+• Drawer views now strictly synchronize their layout metrics and icon bounds against the active <code>AllAppsProfile</code> upon recycling and binding.
 
-3. <b>Transparent search bar while scrolling</b> (new option):
-• New switch in <b>Settings → App list → Transparent search bar while scrolling</b>.
-• When it's on, the area behind the app drawer search bar stays see-through as you scroll, instead of filling in with a solid band. The search field keeps its own background so it stays easy to read. Off by default.
-
-<blockquote>😄 Your apps can now play hide-and-seek. Unlike real hide-and-seek, there's an Undo button for when nobody can find them.
-
-📁 Folders were getting promoted to widgets without asking. They now need a ⋮ second opinion.</blockquote>
+3. <b>Compact Open Folder Padding</b> (TG-010):
+• Tightened vertical margins and footer padding inside open folder views (reducing excess whitespace at the top and around the folder footer).
+• Folders look balanced and proportional across both 3-row and standard grid specs.
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Folder icon size</b>: we couldn't reproduce folder icons ignoring the icon-size setting on the default grid (folder icons scaled with Home at 1.4×). If you still see it, please share your device, grid and whether the folder is on Home or in the app drawer in @ExpressiveLauncherFeedback.
-• <b>Free trial for Pro</b>: great suggestion. We're designing a time-limited trial for an upcoming 4.1.x release.
+• <b>App Drawer Recycled Views</b>: Thanks to Pratik for reporting the subtle icon size variation across drawer launches!
+• <b>Folder Geometry</b>: Thanks to Adriano for highlighting the excess top/bottom padding in opened folders!
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-I vanish with one tap and return with another; I'm in your drawer, then I'm not, but never truly gone. What am I?
+I expand when you call me, hold all your favorites tight, yet shrink my empty edges so your screen feels just right. What am I?
 
-<tg-spoiler>A hidden app — one tap on <b>Hide</b>, one tap on <b>Undo</b>! 🙈</tg-spoiler>
+<tg-spoiler>A refreshed open folder with tightened padding! 📁✨</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>4.1.0</code> (Build <code>59</code>)
+• <b>Launcher Version</b>: <code>4.1.1</code> (Build <code>60</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
-• <b>Validated</b>: 518 unit tests and 300 CI contract tests passing; Hide/Undo, the folder ⋮ menu (both directions) and the transparent search bar checked on an Android 17 QPR2 Beta 5 emulator.
+• <b>Validated</b>: All unit tests (including <code>BubbleTextViewDrawerRecycleTest</code> and <code>FolderPaddingTest</code>) and 300 CI contract tests passing.
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)

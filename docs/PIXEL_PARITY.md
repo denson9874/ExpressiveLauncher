@@ -4,6 +4,30 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## 7-Day Pro Free Trial, drawer icon size stabilization, and open folder padding tightening — 2026-10-06 (candidate 4.1.1 / code 60)
+
+Source: Telegram feedback (TG-008, TG-009, TG-010), 2026-10-05 and 2026-10-06.
+
+1. **7-Day Pro Free Trial (TG-008).** Added single-device 7-day Pro free trial activation (`trialDays = 7`)
+   with cryptographic device binding, backend verification, and in-app activation flow in `ProActivationService.kt`
+   and `RedeemProDialog.kt`. Users can activate Pro trial once per device without upfront payment, unlocking all
+   premium features for 7 days.
+2. **Drawer icon size fluctuation fix (TG-009).** Fixed an issue where app drawer icons could fluctuate in
+   size between drawer openings on recycled `BubbleTextView` instances. In `BubbleTextView.java`, `reset()`
+   now re-synchronizes `mDeviceProfile` with `mActivity.getDeviceProfile()`, resetting `mIconSize` to
+   `mDeviceProfile.getAllAppsProfile().getIconSizePx()` along with icon text size and compound padding for
+   drawer display contexts (`DISPLAY_ALL_APPS`, `DISPLAY_PREDICTION_ROW`, `DISPLAY_SEARCH_RESULT_APP_ROW`,
+   and `DISPLAY_DRAWER_FOLDER`). `applyFromApplicationInfo()` and `applyFromItemInfoWithIcon()` also enforce
+   synchronization before setting icon drawables.
+3. **Open folder blank space tightening (TG-010).** Open folder vertical whitespace and footer padding have
+   been tightened across dimens, styles, and grid specs:
+   - `folder_footer_height_default`: tightened from 56dp to 44dp (`res/values/dimens.xml`, `res/values/styles.xml`).
+   - `folder_top_padding_default` and `folder_content_padding_top`: tightened from 24dp/16dp to 12dp.
+   - `spec_handheld_folder_3_row.xml`: updated height spec `startPadding` to 12dp and `endPadding` to 44dp.
+   The resulting open folder view eliminates empty vertical dead zones while preserving touch targets.
+
+Validation: `BubbleTextViewDrawerRecycleTest` (2/2), `FolderPaddingTest` (1/1), full unit suite 520/520, CI contract tests 300/300.
+
 ## Drawer Hide shortcut, folder ⋮ menu, and transparent drawer search bar — 2026-10-04 (candidate 4.1.0 / code 59)
 
 Source: Telegram feedback (TG-002, TG-003, TG-006), 2026-10-03.

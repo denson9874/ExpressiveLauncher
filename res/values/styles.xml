@@ -501,11 +501,11 @@
     </style>
 
     <style name="FolderStyleDefault">
-        <item name="folderTopPadding">24dp</item>
+        <item name="folderTopPadding">12dp</item>
         <item name="folderCellHeight">94dp</item>
         <item name="folderCellWidth">80dp</item>
         <item name="folderBorderSpace">16dp</item>
-        <item name="folderFooterHeight">56dp</item>
+        <item name="folderFooterHeight">44dp</item>
     </style>
 
     <style name="CellStyleDefault">

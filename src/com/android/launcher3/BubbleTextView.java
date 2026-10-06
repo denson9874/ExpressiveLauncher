@@ -374,6 +374,17 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         // (e.g. All Apps) do not keep inconsistent icon sizes (see issue #6575).
         clearPressedBackground();
         resetIconScale();
+        // TG-009: Synchronize DeviceProfile and icon sizing for recycled views in drawer so
+        // icon bounds do not fluctuate between drawer openings when DeviceProfile updates.
+        mDeviceProfile = mActivity.getDeviceProfile();
+        if (mDisplay == DISPLAY_ALL_APPS || mDisplay == DISPLAY_PREDICTION_ROW
+                || mDisplay == DISPLAY_SEARCH_RESULT_APP_ROW || mDisplay == DISPLAY_DRAWER_FOLDER) {
+            mIconSize = mDeviceProfile.getAllAppsProfile().getIconSizePx();
+            setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                    mDeviceProfile.getAllAppsProfile().getIconTextSizePx());
+            setCompoundDrawablePadding(
+                    mDeviceProfile.getAllAppsProfile().getIconDrawablePaddingPx());
+        }
         // Reset any shifty arrangements in case animation is disrupted.
         setPivotY(0);
         setAlpha(1);
@@ -428,6 +439,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     @UiThread
     public void applyFromApplicationInfo(AppInfo info) {
+        if (mDisplay == DISPLAY_ALL_APPS || mDisplay == DISPLAY_PREDICTION_ROW
+                || mDisplay == DISPLAY_SEARCH_RESULT_APP_ROW || mDisplay == DISPLAY_DRAWER_FOLDER) {
+            mDeviceProfile = mActivity.getDeviceProfile();
+            mIconSize = mDeviceProfile.getAllAppsProfile().getIconSizePx();
+        }
         applyIconAndLabel(info);
         setItemInfo(info);
 
@@ -443,6 +459,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
      */
     @UiThread
     public void applyFromItemInfoWithIcon(ItemInfoWithIcon info) {
+        if (mDisplay == DISPLAY_ALL_APPS || mDisplay == DISPLAY_PREDICTION_ROW
+                || mDisplay == DISPLAY_SEARCH_RESULT_APP_ROW || mDisplay == DISPLAY_DRAWER_FOLDER) {
+            mDeviceProfile = mActivity.getDeviceProfile();
+            mIconSize = mDeviceProfile.getAllAppsProfile().getIconSizePx();
+        }
         applyIconAndLabel(info);
         // We don't need to check the info since it's not a WorkspaceItemInfo
         setItemInfo(info);
