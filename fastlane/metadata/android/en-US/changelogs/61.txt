@@ -1,0 +1,3 @@
+1. Expressive Core edition: Lightweight build without accessibility or notification listener services to bypass Play Protect fraud protection blocks.
+2. Drawer search icon sizing fix: Fixed an issue where app drawer icons became oversized after backing out of drawer search.
+3. Dual-variant update pipeline: Independent update feeds and verified upgrade smoke tests for both Full and Core editions.

@@ -4,6 +4,26 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Expressive Core build, search exit icon size stabilization, and dual-variant CI pipeline — 2026-10-07 (candidate 4.1.2 / code 61)
+
+Source: XDA feedback (XDA-021), Telegram feedback (TG-011), 2026-10-06 and 2026-10-07.
+
+1. **Expressive Core edition (XDA-021).** Built without Accessibility service or Notification Listener service
+   declarations (`-PexpressiveCore=true`, `AndroidManifest-launcher-core.xml`) to prevent Google Play Protect's
+   enhanced fraud protection warnings on browser downloads. Core shares the package `dev.launcher.expressive.l3`
+   and signing key for cross-variant upgrades, provides device-admin screen lock fallback, and distributes via
+   its own `qa-v2-core` and `release-core` update feeds.
+2. **Drawer search exit icon size stabilization (TG-011).** Fixed an issue where app drawer icons remained
+   enlarged after backing out of drawer search. In `BubbleTextView.java`, `applyFromWorkspaceItem()` now synchronizes
+   `mIconSize` with `mDeviceProfile.getAllAppsProfile().getIconSizePx()` for drawer contexts (`DISPLAY_ALL_APPS`,
+   `DISPLAY_PREDICTION_ROW`, `DISPLAY_SEARCH_RESULT_APP_ROW`, and `DISPLAY_DRAWER_FOLDER`). In
+   `ActivityAllAppsContainerView.java`, `animateToSearchState(false)` completion explicitly notifies drawer adapters
+   (`notifyDataSetChanged()`) to rebind visible views with active profile bounds.
+3. **Dual-variant CI pipeline (XDA-021).** Automated Jenkins build/publish flow for Core builds alongside Full QA.
+   Validates zero prohibited permissions/services via manifest scanning and executes cross-variant upgrade smoke tests.
+
+Validation: `BubbleTextViewDrawerRecycleTest` (3/3), `ExpressiveCoreTest` (5/5), `test_core_manifest.py` (3/3), CI contract suite 328/328 OK.
+
 ## 7-Day Pro Free Trial, drawer icon size stabilization, and open folder padding tightening — 2026-10-06 (candidate 4.1.1 / code 60)
 
 Source: Telegram feedback (TG-008, TG-009, TG-010), 2026-10-05 and 2026-10-06.
