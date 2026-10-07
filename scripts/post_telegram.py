@@ -15,6 +15,7 @@ from pathlib import Path
 import re
 import socket
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -151,8 +152,14 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str, disable_previ
         data=data,
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except (urllib.error.URLError, socket.error, TimeoutError) as e:
+            if attempt == 2:
+                raise
+            time.sleep(2)
 
 
 def chunk_telegram_html(html_text: str, max_chars: int = 3800) -> list[str]:
@@ -305,6 +312,8 @@ def main():
     print(f"Announcement split into {len(chunks)} message chunk(s).")
     try:
         for idx, chunk in enumerate(chunks, 1):
+            if idx > 1:
+                time.sleep(1.5)
             res = send_telegram_message(token, channel, chunk)
             if res.get("ok"):
                 msg_id = res.get("result", {}).get("message_id")
