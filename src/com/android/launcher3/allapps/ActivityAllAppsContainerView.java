@@ -500,6 +500,13 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                         }
                         onActivePageChanged(previousPage);
                         mSearchExitInProgress = false;
+                        for (int i = AdapterHolder.MAIN; i <= AdapterHolder.WORK; i++) {
+                            AdapterHolder holder = mAH.get(i);
+                            if (holder != null && holder.mRecyclerView != null
+                                    && holder.mRecyclerView.getAdapter() != null) {
+                                holder.mRecyclerView.getAdapter().notifyDataSetChanged();
+                            }
+                        }
                     }
                 });
     }

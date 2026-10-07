@@ -10,6 +10,7 @@ import com.android.launcher3.BubbleTextView
 import com.android.launcher3.DeviceProfile
 import com.android.launcher3.deviceprofile.AllAppsProfile
 import com.android.launcher3.model.data.AppInfo
+import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.popup.PopupDataProvider
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -92,5 +93,38 @@ class BubbleTextViewDrawerRecycleTest {
 
         bubbleTextView.applyFromApplicationInfo(appInfo)
         assertThat(bubbleTextView.iconSize).isEqualTo(60)
+    }
+
+    @Test
+    fun applyFromWorkspaceItem_onPredictionRowDisplay_synchronizesIconSize() {
+        val launcher = Robolectric.buildActivity(LawnchairLauncher::class.java).get()
+        val dp = DeviceProfile()
+        val allAppsProfile = AllAppsProfile(
+            borderSpacePx = Point(16, 16),
+            cellHeightPx = 120,
+            iconSizePx = 56,
+            iconTextSizePx = 14f,
+            iconDrawablePaddingPx = 8,
+            maxAllAppsTextLineCount = 1,
+            cellWidthPx = 100,
+        )
+        ReflectionHelpers.setField(dp, "mAllAppsProfile", allAppsProfile)
+        ReflectionHelpers.setField(launcher, "mDeviceProfile", dp)
+        ReflectionHelpers.setField(launcher, "mPopupDataProvider", PopupDataProvider(launcher))
+
+        val bubbleTextView = BubbleTextView(launcher)
+        bubbleTextView.setDisplay(BubbleTextView.DISPLAY_PREDICTION_ROW)
+        bubbleTextView.setIconSizeOverridePx(40)
+
+        val workspaceItemInfo = WorkspaceItemInfo().apply {
+            title = "Predicted App"
+            bitmap = com.android.launcher3.icons.BitmapInfo.of(
+                android.graphics.Bitmap.createBitmap(10, 10, android.graphics.Bitmap.Config.ARGB_8888),
+                0
+            )
+        }
+
+        bubbleTextView.applyFromWorkspaceItem(workspaceItemInfo)
+        assertThat(bubbleTextView.iconSize).isEqualTo(56)
     }
 }
