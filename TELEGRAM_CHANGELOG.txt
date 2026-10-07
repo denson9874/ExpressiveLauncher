@@ -1,42 +1,44 @@
-<b>Expressive Launcher 4.1.1 (Build 60) — Consistent Sizing, Sleek Folders & Pro Trial</b>
+<b>Expressive Launcher 4.1.2 (Build 61) — Expressive Core & Stable Drawer Sizing</b>
 
-Three community-requested improvements delivered straight from our Telegram discussions. Thank you for the thoughtful feedback and bug reports!
+Two major milestones in this release: introducing <b>Expressive Core</b> for frictionless browser installs on Android 15/16/17, and stabilizing app drawer icon sizing when exiting search. Thank you to our community contributors for reporting edge cases and testing!
 
 <b>✨ What's New & Improved</b>
 
-1. <b>7-Day Pro Free Trial</b> (TG-008):
-• You can now experience all Expressive Launcher Pro features free for 7 days with a single-device trial.
-• Start the trial directly from the Expressive Pro screen to test all premium customisation and gesture features risk-free.
+1. <b>Expressive Core Edition</b> (XDA-021):
+• New lightweight build without Accessibility or Notification Listener services, specifically avoiding Google Play Protect's "Enhanced Fraud Protection" warning when sideloading from browsers.
+• Built with the identical package name (<code>dev.launcher.expressive.l3</code>) and signing certificate, ensuring seamless upgrades between Full and Core builds.
+• Core provides standard home launcher features with device-admin or root screen lock fallbacks.
 
-2. <b>Stable Drawer Icon Sizing</b> (TG-009):
-• Fixed an issue where recycled app drawer views could experience icon size fluctuations when navigating in and out of the app list.
-• Drawer views now strictly synchronize their layout metrics and icon bounds against the active <code>AllAppsProfile</code> upon recycling and binding.
+2. <b>Stable Drawer Icon Sizing on Search Exit</b> (TG-011):
+• Fixed an issue where app drawer icons remained enlarged after backing out of drawer search and only reverted to proper proportions upon closing and reopening the drawer.
+• In <code>BubbleTextView</code>, <code>applyFromWorkspaceItem()</code> now synchronizes icon dimensions with the active <code>AllAppsProfile</code> across drawer displays (prediction rows and search shortcuts).
+• In <code>ActivityAllAppsContainerView</code>, completing search dismissal explicitly notifies active drawer adapters to refresh visible views against active device profile dimensions.
 
-3. <b>Compact Open Folder Padding</b> (TG-010):
-• Tightened vertical margins and footer padding inside open folder views (reducing excess whitespace at the top and around the folder footer).
-• Folders look balanced and proportional across both 3-row and standard grid specs.
+3. <b>Dual-Variant QA Automation & CI Pipeline</b> (XDA-021):
+• Jenkins pipeline now automatically compiles, verifies, seals, and distributes Expressive Core (<code>-PexpressiveCore=true</code>) alongside Full QA builds.
+• Manifest scanner strictly validates that Core APKs contain no flagged permissions, and smoke tests verify upgrade compatibility between Full and Core releases.
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>App Drawer Recycled Views</b>: Thanks to Pratik for reporting the subtle icon size variation across drawer launches!
-• <b>Folder Geometry</b>: Thanks to Adriano for highlighting the excess top/bottom padding in opened folders!
+• <b>App Drawer Search Sizing</b>: Special thanks to Pratik for flagging the icon sizing discrepancy when navigating between search and the drawer!
+• <b>Play Protect Warnings</b>: Thanks to our XDA community members for reporting sideload blocks under enhanced fraud protection rules!
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-I expand when you call me, hold all your favorites tight, yet shrink my empty edges so your screen feels just right. What am I?
+I carry the heart of the launcher with pride, yet leave the heavy listeners outside. Play Protect smiles and lets me slide right in. What edition am I?
 
-<tg-spoiler>A refreshed open folder with tightened padding! 📁✨</tg-spoiler>
+<tg-spoiler>Expressive Core! 🛡️⚡</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>4.1.1</code> (Build <code>60</code>)
+• <b>Launcher Version</b>: <code>4.1.2</code> (Build <code>61</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
-• <b>Validated</b>: All unit tests (including <code>BubbleTextViewDrawerRecycleTest</code> and <code>FolderPaddingTest</code>) and 300 CI contract tests passing.
+• <b>Validated</b>: App unit suite, CI contract suite (328/328 pass), and dual-variant smoke tests.
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
