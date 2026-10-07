@@ -27,7 +27,7 @@ enum class SleepMode(
 
         fun fromString(string: String) = values().firstOrNull { it.toString() == string }
 
-        fun entries(): List<ListPreferenceEntry<SleepMode>> = values().map {
+        fun entries(): List<ListPreferenceEntry<SleepMode>> = app.lawnchair.ExpressiveCore.availableSleepModes().map {
             ListPreferenceEntry(value = it) { stringResource(id = it.labelResourceId) }
         }
     }

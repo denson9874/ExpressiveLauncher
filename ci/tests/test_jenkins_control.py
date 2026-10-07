@@ -49,5 +49,46 @@ class QaCandidateParametersTests(unittest.TestCase):
             }, urllib.parse.parse_qs(encoded.decode(), keep_blank_values=True))
 
 
+class CorePublishJobTests(unittest.TestCase):
+    """XDA-021: Core publishes from its own job; the weekly gate audits only expressive-qa-publish."""
+
+    def run_control(self, *arguments):
+        client = MagicMock()
+        response = client.request.return_value.__enter__.return_value
+        response.status = 201
+        response.headers = {'Location': control.URL + 'queue/item/71/'}
+        with patch.object(control, 'Client', return_value=client), patch('sys.argv', ['control.py', *arguments]), \
+                patch('sys.stdout', new_callable=io.StringIO), patch('sys.stderr', new_callable=io.StringIO):
+            control.main()
+        return client
+
+    def test_core_publish_queues_only_core_seals_on_its_own_job(self):
+        client = self.run_control('run', '--job', 'core-publish', '--release-id', 'qa-core-4.1.1-60-build-66', '--promote')
+        endpoint, encoded = client.request.call_args.args
+        self.assertEqual('job/expressive-qa-core-publish/buildWithParameters', endpoint)
+        self.assertEqual({'RELEASE_ID': ['qa-core-4.1.1-60-build-66'], 'PROMOTE_QA_FEED': ['true']},
+                         urllib.parse.parse_qs(encoded.decode()))
+
+    def test_full_and_core_release_ids_cannot_cross_jobs(self):
+        for arguments in (['--job', 'core-publish', '--release-id', 'qa-4.1.1-60-build-66'],
+                          ['--job', 'publish', '--release-id', 'qa-core-4.1.1-60-build-66'],
+                          ['--job', 'core-publish', '--release-id', 'qa-core-4.1.1-60-build-66', '--promote',
+                           '--bridge-legacy-qa']):
+            with self.subTest(arguments=arguments), self.assertRaises(SystemExit) as stopped:
+                self.run_control('run', *arguments)
+            self.assertEqual(2, stopped.exception.code)
+
+    def test_core_publish_job_definition_has_only_release_id_and_promotion(self):
+        client = MagicMock()
+        control.configure(client, 'core-publish')
+        endpoint, xml = client.request.call_args.args[:2]
+        self.assertEqual('job/expressive-qa-core-publish/config.xml', endpoint)
+        text = xml.decode()
+        self.assertIn('<name>RELEASE_ID</name>', text)
+        self.assertIn('<name>PROMOTE_QA_FEED</name>', text)
+        self.assertNotIn('BRIDGE_LEGACY_QA_FEED', text)
+        self.assertIn('publish --variant core', text)
+
+
 if __name__ == '__main__':
     unittest.main()

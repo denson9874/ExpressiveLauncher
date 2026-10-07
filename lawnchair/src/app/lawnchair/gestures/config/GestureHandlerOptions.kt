@@ -22,8 +22,9 @@ private val optionsDisabledInDeckLayout = setOf(
 )
 
 fun filterGestureHandlerOptions(deckLayoutEnabled: Boolean): List<GestureHandlerOption> {
-    if (!deckLayoutEnabled) return gestureHandlerOptions
-    return gestureHandlerOptions.filterNot { it in optionsDisabledInDeckLayout }
+    val options = app.lawnchair.ExpressiveCore.filterGestureOptions(gestureHandlerOptions)
+    if (!deckLayoutEnabled) return options
+    return options.filterNot { it in optionsDisabledInDeckLayout }
 }
 
 suspend fun GestureHandlerOption.buildConfigFrom(context: Context): GestureHandlerConfig? {

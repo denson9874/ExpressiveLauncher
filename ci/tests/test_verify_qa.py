@@ -286,5 +286,61 @@ class StableContractTests(unittest.TestCase):
             verify.verify_qa(self.apk, self.baseline, '1.0.8', 9, self.tools, channel='release', bootstrap_stable=True)
 
 
+def manifest(*permissions):
+    services = "".join(
+        f'      E: service (line=1)\n        A: android:permission="{name}" (Raw: "{name}")\n'
+        for name in permissions)
+    return ("N: android=http://schemas.android.com/apk/res/android\n  E: manifest (line=1)\n"
+            "    E: application (line=2)\n" + services)
+
+
+class CoreVariantTests(ReleaseContractTests.__base__):
+    """XDA-021: a Core candidate must not declare what Play Protect blocks for browser installs."""
+
+    setUp = ReleaseContractTests.setUp
+
+    def run_fixture(self, command, **kwargs):
+        if "xmltree" in command:
+            self.commands.append(command)
+            return subprocess.CompletedProcess(command, 0, self.manifest, "")
+        return ReleaseContractTests.run_fixture(self, command, **kwargs)
+
+    def verify_core(self, channel="qa"):
+        with patch.object(verify.subprocess, "run", side_effect=self.run_fixture):
+            return verify.verify_qa(self.apk, self.baseline, "1.0.8", 9, self.tools, channel, variant="core")
+
+    def test_core_candidate_without_flagged_services_records_the_variant(self):
+        self.manifest = manifest("android.permission.BIND_JOB_SERVICE")
+        metadata = self.verify_core()
+        self.assertEqual("core", metadata["variant"])
+        self.assertEqual([], metadata["coreManifest"]["forbiddenDeclarations"])
+        self.assertEqual(["dump", "xmltree"], self.commands[-1][1:3])
+
+    def test_core_candidate_with_any_flagged_declaration_is_rejected(self):
+        for permission in verify.CORE_FORBIDDEN_PERMISSIONS:
+            self.manifest = manifest(permission)
+            with self.subTest(permission=permission), self.assertRaisesRegex(verify.VerificationError, "Play Protect"):
+                self.verify_core()
+
+    def test_core_requires_a_manifest_with_an_application(self):
+        self.manifest = "N: android=http://schemas.android.com/apk/res/android\n"
+        with self.assertRaisesRegex(verify.VerificationError, "application"):
+            self.verify_core()
+
+    def test_full_candidate_has_no_variant_marker_and_skips_the_manifest_check(self):
+        self.manifest = manifest("android.permission.BIND_ACCESSIBILITY_SERVICE")
+        with patch.object(verify.subprocess, "run", side_effect=self.run_fixture):
+            metadata = verify.verify_qa(self.apk, self.baseline, "1.0.8", 9, self.tools)
+        self.assertNotIn("variant", metadata)
+        self.assertFalse(any("xmltree" in command for command in self.commands))
+
+    def test_core_is_qa_only_and_variants_are_closed(self):
+        self.manifest = manifest()
+        with self.assertRaisesRegex(verify.VerificationError, "only to QA"):
+            self.verify_core(channel="release")
+        with self.assertRaisesRegex(verify.VerificationError, "Unknown build variant"):
+            verify.verify_qa(self.apk, self.baseline, "1.0.8", 9, self.tools, variant="lite")
+
+
 if __name__ == "__main__":
     unittest.main()

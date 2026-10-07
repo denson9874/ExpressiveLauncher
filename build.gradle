@@ -153,6 +153,16 @@ final def targetPlayStore = providers.gradleProperty("targetPlayStore")
         .get()
         .toBoolean()
 
+// Expressive Core (-PexpressiveCore=true): the same package and signer without the accessibility service
+// and notification listener, so Play Protect's enhanced fraud protection does not block browser installs.
+final def expressiveCore = providers.gradleProperty("expressiveCore")
+        .orElse("false")
+        .get()
+        .toBoolean()
+if (expressiveCore && targetPlayStore) {
+    throw new GradleException("expressiveCore is a direct-distribution build; do not combine it with targetPlayStore")
+}
+
 // The direct-distribution identity is intentionally explicit. Android accepts an in-place update
 // only when the application ID and signing lineage match the installed build.
 // Google Play Store distribution uses the registered console application ID com.denson9874.Expressive_Launcher_L3.
@@ -169,10 +179,10 @@ final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePriva
         .orElse("https://denson9874.github.io/ExpressiveLauncher/privacy")
         .get()
 final def expressiveQaUpdateManifestUrl = providers.gradleProperty("expressiveQaUpdateManifestUrl")
-        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json")
+        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/${expressiveCore ? 'qa-v2-core' : 'qa-v2'}/latest.json")
         .get()
 final def expressiveReleaseUpdateManifestUrl = providers.gradleProperty("expressiveReleaseUpdateManifestUrl")
-        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/release/latest.json")
+        .orElse("https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/${expressiveCore ? 'release-core' : 'release'}/latest.json")
         .get()
 final def expressiveVersionCode = expressiveVersionCodeText.isInteger()
         ? expressiveVersionCodeText.toInteger()
@@ -270,6 +280,7 @@ android {
         buildConfigField "boolean", "CAN_REQUEST_BROAD_VISUAL_MEDIA_ACCESS", "false"
         buildConfigField "String", "PRIVACY_POLICY_URL", '"https://lawnchair.app/privacy_policy"'
         buildConfigField "boolean", "TARGET_PLAY_STORE", "false"
+        buildConfigField "boolean", "EXPRESSIVE_CORE", "false"
         resValue("string", "derived_app_name", "Lawnchair")
 
         manifestPlaceholders.quickstepMinSdk = quickstepMinSdk
@@ -443,6 +454,7 @@ android {
             buildConfigField "String", "EXPRESSIVE_RELEASE_UPDATE_MANIFEST_URL", "\"${targetPlayStore ? '' : expressiveReleaseUpdateManifestUrl}\""
             buildConfigField "String", "PRIVACY_POLICY_URL", "\"${expressivePrivacyPolicyUrl}\""
             buildConfigField "boolean", "TARGET_PLAY_STORE", "${targetPlayStore}"
+            buildConfigField "boolean", "EXPRESSIVE_CORE", "${expressiveCore}"
             resValue("string", "derived_app_name", "Expressive Launcher L3")
         }
 
@@ -519,7 +531,9 @@ android {
         lawnWithQuickstepExpressive {
             manifest.srcFile targetPlayStore
                     ? "expressive/AndroidManifest-launcher-play.xml"
-                    : "expressive/AndroidManifest-launcher.xml"
+                    : expressiveCore
+                        ? "expressive/AndroidManifest-launcher-core.xml"
+                        : "expressive/AndroidManifest-launcher.xml"
             // Combined source sets outrank the Lawnchair app flavor. Product branding and
             // standard-Home dimensions therefore survive resource merging for this variant.
             res.srcDirs = ["expressive/res"]
@@ -749,7 +763,7 @@ androidComponents {
             // developer Debug and upstream Lawnchair variants on their existing identities.
             variant.applicationId.set(expressiveApplicationId)
         }
-        def productName = channel == "expressive" ? "ExpressiveLauncherL3" : "Lawnchair"
+        def productName = channel == "expressive" ? (expressiveCore ? "ExpressiveLauncherL3-Core" : "ExpressiveLauncherL3") : "Lawnchair"
         def launcherComponentKey = variant.makeResValueKey("string", "launcher_component")
         variant.resValues.put(
             launcherComponentKey,

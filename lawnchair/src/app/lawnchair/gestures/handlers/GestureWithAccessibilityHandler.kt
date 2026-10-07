@@ -27,6 +27,11 @@ import com.android.launcher3.R
 object GestureWithAccessibilityHandler {
 
     fun onTrigger(launcher: LawnchairLauncher, stringAction: Int, action: Int) {
+        if (!app.lawnchair.ExpressiveCore.supportsAccessibilityActions()) {
+            // Expressive Core has no accessibility service to enable (XDA-021).
+            android.widget.Toast.makeText(launcher, R.string.expressive_core_gesture_unavailable, android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
         val app = launcher.lawnchairApp
         if (!app.isAccessibilityServiceBound()) {
             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
@@ -51,6 +56,7 @@ fun ServiceWarningDialog(
     action: Int,
     settingsIntent: Intent,
     modifier: Modifier = Modifier,
+    accessibility: Boolean = true,
     handleClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -59,6 +65,11 @@ fun ServiceWarningDialog(
         title = { Text(text = stringResource(id = title)) },
         text = {
             Column {
+                if (!accessibility) {
+                    // Device admin and other non-accessibility prompts show their own instructions only.
+                    Text(text = stringResource(action))
+                    return@Column
+                }
                 Text(
                     text = stringResource(
                         productStringId(

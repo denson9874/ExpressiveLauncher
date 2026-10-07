@@ -142,5 +142,31 @@ class UnifiedQaSealTests(unittest.TestCase):
                 finalize.validate_provenance(self.metadata, {**self.source, 'qaChannelMigration': value}, self.qa)
 
 
+class CoreSealTests(unittest.TestCase):
+    """XDA-021: a Core seal needs manifest evidence and the published Full QA baseline."""
+
+    def setUp(self):
+        package = 'dev.launcher.expressive.l3'
+        self.baseline = dict(packageName=package, versionCode=59, sha256='b' * 64)
+        self.metadata = dict(channel='qa', packageName=package, baseline=self.baseline, variant='core',
+                             coreManifest={'forbiddenDeclarations': [], 'checked': []})
+        self.source = dict(channel='qa', sourceRevision='a' * 40, baselineChannel='qa',
+                           baselineFeed='https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json')
+        self.qa = dict(channel='qa', packageName=package, baselineSha256='b' * 64)
+
+    def test_core_with_clean_manifest_and_qa_baseline_seals(self):
+        finalize.validate_provenance(self.metadata, self.source, self.qa)
+        self.assertEqual('qa', self.metadata['baselineChannel'])
+
+    def test_core_without_evidence_or_with_a_stable_migration_baseline_cannot_seal(self):
+        for metadata, source in (
+                ({**self.metadata, 'coreManifest': None}, self.source),
+                ({**self.metadata, 'coreManifest': {'forbiddenDeclarations': ['x']}}, self.source),
+                ({**self.metadata, 'variant': 'lite'}, self.source),
+                (self.metadata, {**self.source, 'baselineChannel': 'release'})):
+            with self.subTest(metadata=metadata, source=source), self.assertRaises(ValueError):
+                finalize.validate_provenance(dict(metadata), dict(source), self.qa)
+
+
 if __name__ == '__main__':
     unittest.main()

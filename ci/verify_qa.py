@@ -27,6 +27,17 @@ EXPECTED_CERTIFICATE_SHA256 = (
 )
 
 
+# Expressive Core (XDA-021): Play Protect's enhanced fraud protection blocks browser-installed apps
+# that declare these, so a Core APK must not contain any of them.
+CORE_FORBIDDEN_PERMISSIONS = (
+    "android.permission.BIND_ACCESSIBILITY_SERVICE",
+    "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
+    "android.permission.RECEIVE_SMS",
+    "android.permission.READ_SMS",
+)
+VARIANTS = ("full", "core")
+
+
 class VerificationError(ValueError):
     """An APK or tool result does not meet the QA release contract."""
 
@@ -175,6 +186,17 @@ def verify_feed_bundle(apk, candidate, build_tools):
     return {**identity, "bundled": True, "signerMatches": True, "serviceOnly": True}
 
 
+def verify_core_manifest(apk, build_tools):
+    """A Core APK must declare no accessibility service, notification listener or SMS access."""
+    manifest = run_tool(build_tools / "aapt2", "dump", "xmltree", apk, "--file", "AndroidManifest.xml")
+    if not re.search(r"^\s*E: application(?:\s|$)", manifest, re.MULTILINE):
+        raise VerificationError("Core manifest dump is missing the application element")
+    found = sorted(name for name in CORE_FORBIDDEN_PERMISSIONS if '"' + name + '"' in manifest)
+    if found:
+        raise VerificationError("Core APK declares services or permissions Play Protect blocks: " + ", ".join(found))
+    return {"forbiddenDeclarations": [], "checked": list(CORE_FORBIDDEN_PERMISSIONS)}
+
+
 def unique_json_fields(pairs):
     result = {}
     for key, value in pairs:
@@ -185,9 +207,14 @@ def unique_json_fields(pairs):
 
 
 def verify_qa(apk, baseline_apk, version_name, version_code, build_tools, channel='qa',
-              bootstrap_stable=False, qa_metadata=None, source_revision=None, validation_only=False):
+              bootstrap_stable=False, qa_metadata=None, source_revision=None, validation_only=False,
+              variant='full'):
     if channel not in ('qa', 'release'):
         raise VerificationError('Unknown distribution channel')
+    if variant not in VARIANTS:
+        raise VerificationError('Unknown build variant')
+    if variant == 'core' and channel != 'qa':
+        raise VerificationError('Expressive Core is published only to QA')
     if channel == 'qa' and (bootstrap_stable or qa_metadata is not None or validation_only):
         raise VerificationError('Stable verification flags cannot be used for QA')
     if bootstrap_stable and baseline_apk is not None:
@@ -245,6 +272,7 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools, channe
         raise VerificationError("Candidate versionCode must be strictly newer than the delivered baseline")
 
     feed = verify_feed_bundle(apk, candidate, build_tools) if candidate["versionCode"] >= 10 else None
+    core = verify_core_manifest(apk, build_tools) if variant == 'core' else None
 
     # Recheck both files after all tool calls, including time spent inspecting the baseline.
     for path, artifact in artifacts:
@@ -255,6 +283,7 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools, channe
         "channel": channel,
         **candidate,
         **({"googleDiscoverSupport": feed} if feed is not None else {}),
+        **({"variant": "core", "coreManifest": core} if core is not None else {}),
         "baseline": {**baseline, "candidateIsNewer": True, "signerMatches": True} if baseline is not None else None,
         **({'baselineMode': 'first-stable-install' if bootstrap_stable else 'quiesced-upgrade',
             'stableBootstrap': bootstrap_stable, 'sourceRevision': source_revision,
@@ -287,6 +316,7 @@ def main(argv=None):
     parser.add_argument('--qa-metadata', type=Path)
     parser.add_argument('--source-revision')
     parser.add_argument('--validation-only', action='store_true')
+    parser.add_argument('--variant', choices=VARIANTS, default='full')
     parser.add_argument("--version-name", required=True)
     parser.add_argument("--version-code", required=True, type=int)
     parser.add_argument("--build-tools", required=True, type=Path)
@@ -301,7 +331,8 @@ def main(argv=None):
             ):
                 raise VerificationError("Metadata output must not overwrite an APK or Android build tool")
         metadata = verify_qa(args.apk, args.baseline_apk, args.version_name, args.version_code, args.build_tools,
-                             args.channel, args.bootstrap_stable, args.qa_metadata, args.source_revision, args.validation_only)
+                             args.channel, args.bootstrap_stable, args.qa_metadata, args.source_revision, args.validation_only,
+                             args.variant)
         write_metadata(args.output, metadata)
     except (VerificationError, OSError, json.JSONDecodeError) as error:
         print("QA verification failed: " + str(error), file=sys.stderr)

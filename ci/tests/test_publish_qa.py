@@ -1060,5 +1060,167 @@ class UnifiedQaPublicationTests(unittest.TestCase):
             github.validate_unified_qa_state(current, self.feed(), self.metadata)
 
 
+class CoreQaPublicationTests(unittest.TestCase):
+    """XDA-021: Expressive Core publishes to its own prerelease and feed, never Full's."""
+    write_artifacts = PublishPolicyTest.write_artifacts
+
+    def setUp(self):
+        PublishPolicyTest.setUp(self)
+        self.baseline = dict(schemaVersion=1, channel='qa', packageName=publisher.QA_PACKAGE,
+                             fileName='ExpressiveLauncherL3-4.1.0-Jenkins-QA-release-signed.apk',
+                             versionName='4.1.0', versionCode=59, sha256='b' * 64, sizeBytes=3,
+                             certificateSha256=publisher.QA_CERTIFICATE)
+        self.metadata.update(versionName='4.1.1', versionCode=60, baseline=self.baseline,
+                             baselineChannel='qa', baselineFeed=publisher.feed_url('qa'), variant='core',
+                             coreManifest={'forbiddenDeclarations': [], 'checked': []})
+        self.qa.update(channel='qa', packageName=publisher.QA_PACKAGE, baselineSha256='b' * 64)
+        self.write_artifacts()
+
+    def feed(self):
+        tag = publisher.release_tag(self.metadata, 'qa', 'core')
+        return publisher.candidate_feed(self.metadata, publisher.download_url(tag, self.apk.name, 'qa', 'core'))
+
+    def full_release(self, draft=False, digest=None):
+        return ({'id': 59, 'tag_name': 'qa-v4.1.0-59', 'draft': draft, 'prerelease': True},
+                [{'name': self.baseline['fileName'], 'state': 'uploaded', 'size': 3,
+                  'digest': digest or 'sha256:' + 'b' * 64}])
+
+    def test_core_has_its_own_tag_feed_and_identity_and_full_paths_are_unchanged(self):
+        self.assertEqual('qa-core-v4.1.1-60', publisher.release_tag(self.metadata, 'qa', 'core'))
+        self.assertEqual('qa-v4.1.1-60', publisher.release_tag(self.metadata))
+        self.assertEqual('qa-v2-core/latest.json', publisher.feed_path('qa', 'core'))
+        self.assertEqual('qa-v2/latest.json', publisher.feed_path('qa'))
+        self.assertEqual('release/latest.json', publisher.feed_path('release'))
+        self.assertIn('expressive-qa-core ', publisher.release_identity(self.metadata, 'qa', 'core'))
+        self.assertIn('expressive-qa ', publisher.release_identity(self.metadata))
+        self.assertEqual('qa', self.feed()['channel'], 'the app updater matches the feed channel to "qa"')
+        metadata, files = publisher.load_artifacts(self.directory, variant='core')
+        self.assertEqual('core', metadata['variant'])
+        self.assertIn(self.apk.name, files)
+
+    def test_core_is_qa_only(self):
+        for call in (lambda: publisher.feed_path('release', 'core'),
+                     lambda: publisher.release_tag(self.metadata, 'release', 'core'),
+                     lambda: publisher.feed_path('qa', 'lite')):
+            with self.assertRaises(publisher.PublishError):
+                call()
+
+    def test_a_sealed_candidate_publishes_only_as_its_own_variant(self):
+        with self.assertRaisesRegex(publisher.PublishError, 'different build variant'):
+            publisher.load_artifacts(self.directory)
+        del self.metadata['variant']
+        self.write_artifacts()
+        with self.assertRaisesRegex(publisher.PublishError, 'different build variant'):
+            publisher.load_artifacts(self.directory, variant='core')
+
+    def test_core_requires_clean_manifest_evidence_and_a_qa_baseline(self):
+        original = copy.deepcopy(self.metadata)
+        for field, value in (('coreManifest', None), ('coreManifest', {'forbiddenDeclarations': ['x']}),
+                             ('baselineChannel', 'release'), ('baselineFeed', publisher.feed_url('qa', 'core'))):
+            with self.subTest(field=field, value=value):
+                self.metadata = {**copy.deepcopy(original), field: value}
+                self.write_artifacts()
+                with self.assertRaises(publisher.PublishError):
+                    publisher.load_artifacts(self.directory, variant='core')
+
+    def test_feeds_and_releases_cannot_cross_variants(self):
+        publisher.validate_github_feed(self.feed(), 'qa', 'core')
+        with self.assertRaises(publisher.PublishError):
+            publisher.validate_github_feed(self.feed(), 'qa')
+        full_feed = publisher.candidate_feed(self.metadata, publisher.download_url(
+            publisher.release_tag(self.metadata), self.apk.name))
+        with self.assertRaises(publisher.PublishError):
+            publisher.validate_github_feed(full_feed, 'qa', 'core')
+        full_release = dict(id=1, tag_name='qa-core-v4.1.1-60', draft=False, prerelease=True,
+                            body=publisher.release_identity(self.metadata))
+        with self.assertRaisesRegex(publisher.PublishError, 'conflicts'):
+            publisher.GitHub('qa', 'core').validate_release(full_release, self.metadata)
+
+    def test_baseline_must_be_the_exact_apk_of_a_published_full_qa_release(self):
+        github = publisher.GitHub('qa', 'core')
+        full = mock.Mock()
+        with mock.patch.object(publisher, 'GitHub', return_value=full):
+            full.find_release.return_value, full.assets.return_value = self.full_release()
+            github.require_published_full_baseline(self.metadata)
+            full.find_release.assert_called_with('qa-v4.1.0-59')
+            for release, assets in (self.full_release(draft=True), self.full_release(digest='sha256:' + 'e' * 64),
+                                    (None, [])):
+                full.find_release.return_value, full.assets.return_value = release, assets
+                with self.subTest(release=release, assets=assets), self.assertRaises(publisher.PublishError):
+                    github.require_published_full_baseline(self.metadata)
+
+    def test_first_core_feed_requires_empty_history_and_ignores_full_releases(self):
+        github = publisher.GitHub('qa', 'core')
+        full = dict(id=5, tag_name='qa-v4.1.0-59', draft=False, prerelease=True, body='full')
+        exact = dict(id=6, tag_name='qa-core-v4.1.1-60', draft=False, prerelease=True,
+                     body=publisher.release_identity(self.metadata, 'qa', 'core'))
+        other = dict(id=7, tag_name='qa-core-v4.1.0-59', draft=False, prerelease=True, body='x')
+        with mock.patch.object(github, 'api', side_effect=[[], [full, exact]]) as api:
+            github.require_initial_core_history(self.metadata)
+            self.assertIn('qa-v2-core%2Flatest.json', api.call_args_list[0].args[0])
+        for replies in ([[{'sha': 'c' * 40}]], [[], [other]]):
+            with self.subTest(replies=replies), mock.patch.object(github, 'api', side_effect=replies), \
+                    self.assertRaises(publisher.PublishError):
+                github.require_initial_core_history(self.metadata)
+
+    def test_core_state_checks_baseline_and_history_but_allows_an_identical_retry(self):
+        github = publisher.GitHub('qa', 'core')
+        with mock.patch.object(github, 'require_published_full_baseline') as baseline, \
+                mock.patch.object(github, 'require_initial_core_history') as history:
+            github.validate_core_state(self.feed(), self.feed(), self.metadata)
+            baseline.assert_not_called()
+            github.validate_core_state(None, self.feed(), self.metadata)
+            baseline.assert_called_once_with(self.metadata)
+            history.assert_called_once_with(self.metadata)
+            older = {**self.feed(), 'versionCode': 59, 'versionName': '4.1.0'}
+            github.validate_core_state(older, self.feed(), self.metadata)
+            self.assertEqual(2, baseline.call_count)
+            self.assertEqual(1, history.call_count)
+
+    def test_core_publication_uses_core_client_feed_and_never_full_state_checks(self):
+        _, files = publisher.load_artifacts(self.directory, variant='core')
+        state = {'feed': None}
+        github = mock.Mock(spec=publisher.GitHub)
+        github.preflight.return_value = 'b' * 40
+        github.feed.side_effect = lambda: (copy.deepcopy(state['feed']), None)
+        github.ensure_release.return_value = {'id': 23, 'draft': True}
+        github.asset.return_value = None
+        github.stage.side_effect = lambda _, name, path: {'id': 9, 'name': name}
+        github.publish_release.return_value = {'id': 23, 'draft': False}
+        github.update_feed.side_effect = lambda feed, metadata=None: state.update(feed=feed) or True
+        receipt = {}
+        tag = 'qa-core-v4.1.1-60'
+        with mock.patch.object(publisher, 'GitHub', return_value=github) as constructor, \
+                mock.patch.object(publisher, 'public_feed', side_effect=lambda **_: state['feed']), \
+                mock.patch.object(publisher, 'public_download_digest',
+                                  return_value=(self.apk.stat().st_size, publisher.file_hash(self.apk))):
+            github.asset.side_effect = lambda _, name: (
+                {'browser_download_url': publisher.download_url(tag, name, 'qa', 'core')}
+                if state.get('published') else None)
+            github.publish_release.side_effect = lambda *_: state.update(published=True) or {'id': 23, 'draft': False}
+            publisher.publish(self.directory, True, receipt, variant='core')
+        constructor.assert_called_once_with('qa', 'core')
+        self.assertEqual(2, github.validate_core_state.call_count)
+        github.validate_unified_qa_state.assert_not_called()
+        github.validate_stable_state.assert_not_called()
+        self.assertEqual('released', receipt['status'])
+        self.assertEqual('core', receipt['variant'])
+        self.assertEqual(tag, receipt['tag'])
+        self.assertEqual(publisher.feed_url('qa', 'core'), receipt['feedUrl'])
+        self.assertEqual(publisher.download_url(tag, self.apk.name, 'qa', 'core'), state['feed']['apkUrl'])
+        github.update_feed.assert_called_once_with(state['feed'], metadata=mock.ANY)
+
+    def test_full_receipts_have_no_variant_field(self):
+        del self.metadata['variant']
+        self.write_artifacts()
+        receipt = {}
+        github = mock.Mock(spec=publisher.GitHub)
+        github.preflight.side_effect = publisher.PublishError('stop after local validation')
+        with mock.patch.object(publisher, 'GitHub', return_value=github), self.assertRaises(publisher.PublishError):
+            publisher.publish(self.directory, False, receipt)
+        self.assertEqual('qa-v4.1.1-60', receipt['tag'])
+        self.assertNotIn('variant', receipt)
+
+
 if __name__ == '__main__':
     unittest.main()

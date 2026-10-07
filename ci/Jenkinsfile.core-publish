@@ -1,0 +1,25 @@
+pipeline {
+    agent { label 'expressive-macos-android' }
+    options { disableConcurrentBuilds(); timeout(time: 30, unit: 'MINUTES'); skipDefaultCheckout() }
+    parameters {
+        string(name: 'RELEASE_ID', defaultValue: '', description: 'Sealed Expressive Core candidate ID (qa-core-*) from a successful QA build')
+        booleanParam(name: 'PROMOTE_QA_FEED', defaultValue: false, description: 'Publish the verified GitHub Core QA prerelease and advance only the Core QA update manifest')
+    }
+    environment {
+        SOURCE_REPOSITORY = '/Users/daryldenson/Developer/ExpressiveLauncher'
+        EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
+        PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+    }
+    stages {
+        stage('Publish retained Core candidate') {
+            steps {
+                script {
+                    if (!(params.RELEASE_ID ==~ /qa-core-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-build-[0-9]+/)) { error('Invalid Core release ID') }
+                }
+                sh '''python3 "$SOURCE_REPOSITORY/ci/pipeline.py" publish --variant core --release-id "$RELEASE_ID" --output "$WORKSPACE/publication-$BUILD_NUMBER.json"
+                '''
+            }
+        }
+    }
+    post { always { archiveArtifacts artifacts: 'publication-*.json', allowEmptyArchive: true, fingerprint: true } }
+}

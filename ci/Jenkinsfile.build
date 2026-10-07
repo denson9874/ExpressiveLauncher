@@ -25,6 +25,7 @@ pipeline {
                     if (params.BASELINE_RELEASE_ID && !(params.BASELINE_RELEASE_ID ==~ /qa-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-build-[0-9]+/)) { error('Invalid baseline release ID') }
                     env.RUN_WORKSPACE = "${env.WORKSPACE}/build-${env.BUILD_NUMBER}"
                     env.RELEASE_ID = "qa-${params.VERSION_NAME}-${params.VERSION_CODE}-build-${env.BUILD_NUMBER}"
+                    env.CORE_RELEASE_ID = "qa-core-${params.VERSION_NAME}-${params.VERSION_CODE}-build-${env.BUILD_NUMBER}"
                 }
                 sh '''git -C "$SOURCE_REPOSITORY" show "$SOURCE_REVISION:ci/prepare_build.py" > "$WORKSPACE/prepare-$BUILD_NUMBER.py"
                 python3 "$WORKSPACE/prepare-$BUILD_NUMBER.py" --repository "$SOURCE_REPOSITORY" --revision "$SOURCE_REVISION" --workspace "$RUN_WORKSPACE" --baseline-release-id "$BASELINE_RELEASE_ID"'''
@@ -57,11 +58,28 @@ pipeline {
                 python3 ci/finalize_qa.py --artifact-dir "$RUN_WORKSPACE/artifacts" --source-dir "$RUN_WORKSPACE/source" --release-dir "$EXPRESSIVE_CI_HOME/releases/$RELEASE_ID" --build-url "$BUILD_URL"
             ''' }
         }
+        // Expressive Core (XDA-021) runs after the Full candidate is sealed. A Core failure marks only
+        // this stage failed: the Full seal stays publishable and release_unified.py skips Core.
+        stage('Expressive Core build, smoke QA and seal') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    sh '''cd "$RUN_WORKSPACE/source"
+                        if ! ./gradlew --no-scan --console=plain -PexpressiveCore=true assembleLawnWithQuickstepExpressiveQa; then
+                            ./gradlew --stop; exit 1
+                        fi
+                        ./gradlew --stop
+                        python3 ci/pipeline.py stage --variant core --workspace "$RUN_WORKSPACE" --version-name "$VERSION_NAME" --version-code "$VERSION_CODE"
+                        python3 ci/pipeline.py smoke --variant core --workspace "$RUN_WORKSPACE" --source-revision "$SOURCE_REVISION"
+                        python3 ci/finalize_qa.py --artifact-dir "$RUN_WORKSPACE/artifacts-core" --source-dir "$RUN_WORKSPACE/source" --release-dir "$EXPRESSIVE_CI_HOME/releases/$CORE_RELEASE_ID" --build-url "$BUILD_URL"
+                    '''
+                }
+            }
+        }
     }
     post {
         always {
             junit testResults: "build-${env.BUILD_NUMBER}/source/build/test-results/test*UnitTest/TEST-*.xml", allowEmptyResults: true
-            archiveArtifacts artifacts: "build-${env.BUILD_NUMBER}/artifacts/**", allowEmptyArchive: true, fingerprint: true
+            archiveArtifacts artifacts: "build-${env.BUILD_NUMBER}/artifacts/**,build-${env.BUILD_NUMBER}/artifacts-core/**", allowEmptyArchive: true, fingerprint: true
         }
     }
 }

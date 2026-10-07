@@ -10,6 +10,24 @@ import shutil
 import subprocess
 import tempfile
 
+# Expressive Core (XDA-021) is built after the Full candidate is sealed, from the same source,
+# and is staged, smoke-tested, sealed and published separately (qa-core-* release IDs).
+CORE_APK_PREFIX = 'ExpressiveLauncherL3-Core'
+
+
+def artifact_dir(workspace, variant):
+    return workspace / ('artifacts-core' if variant == 'core' else 'artifacts')
+
+
+def select_apk(apks, variant):
+    selected = [apk for apk in apks if apk.name.startswith(CORE_APK_PREFIX) == (variant == 'core')]
+    if len(selected) != 1: raise SystemExit('Expected exactly one APK for the selected channel')
+    return selected[0]
+
+
+def release_id_pattern(channel, variant):
+    return channel + ('-core' if variant == 'core' else '') + r'-\d+\.\d+\.\d+-\d+-build-\d+'
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -22,17 +40,25 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--publication-receipt', type=Path)
     parser.add_argument('--channel', choices=['qa', 'release'], default='qa')
+    parser.add_argument('--variant', choices=['full', 'core'], default='full')
     args = parser.parse_args()
     here = Path(__file__).resolve().parent
+    if args.variant == 'core' and (args.channel != 'qa' or args.operation == 'bridge-legacy-qa'):
+        raise SystemExit('Expressive Core is staged, tested and published only for QA')
     if args.operation == 'stage':
         source = args.workspace / 'source'
-        output = args.workspace / 'artifacts'
-        apks = list((source / 'build/outputs/apk/lawnWithQuickstepExpressive' / args.channel).glob('*.apk'))
-        if len(apks) != 1: raise SystemExit('Expected exactly one APK for the selected channel')
+        output = artifact_dir(args.workspace, args.variant)
+        built = select_apk(list((source / 'build/outputs/apk/lawnWithQuickstepExpressive' / args.channel).glob('*.apk')),
+                           args.variant)
         label = 'QA' if args.channel == 'qa' else 'Release'
-        name = f'ExpressiveLauncherL3-{args.version_name}-Android17-QPR2-Beta5-Jenkins-{label}-release-signed.apk'
+        product = CORE_APK_PREFIX if args.variant == 'core' else 'ExpressiveLauncherL3'
+        name = f'{product}-{args.version_name}-Android17-QPR2-Beta5-Jenkins-{label}-release-signed.apk'
+        if args.variant == 'core':
+            # Core reuses the Full candidate's source provenance and its tested baseline APK.
+            output.mkdir(exist_ok=False)
+            shutil.copyfile(args.workspace / 'artifacts' / 'source.json', output / 'source.json')
         apk = output / name
-        shutil.copyfile(apks[0], apk)
+        shutil.copyfile(built, apk)
         command = ['python3', str(here / 'verify_qa.py'), '--apk', str(apk),
             '--version-name', args.version_name,
             '--version-code', args.version_code, '--build-tools', str(Path(os.environ['ANDROID_HOME']) / 'build-tools/37.0.0'),
@@ -45,10 +71,11 @@ def main():
             else: command += ['--baseline-apk', str(output / 'baseline.apk')]
             if source_info.get('validationOnly') is True: command.append('--validation-only')
         else:
-            command += ['--baseline-apk', str(output / 'baseline.apk')]
+            command += ['--baseline-apk', str(args.workspace / 'artifacts' / 'baseline.apk')]
+            if args.variant == 'core': command += ['--variant', 'core']
         subprocess.run(command, check=True)
     elif args.operation == 'smoke':
-        output = args.workspace / 'artifacts'
+        output = artifact_dir(args.workspace, args.variant)
         metadata = json.loads((output / 'metadata.json').read_text())
         evidence = output / 'device-qa'
         command = ['python3', str(here / 'smoke_qa.py'), '--apk', str(output / metadata['fileName']),
@@ -58,16 +85,18 @@ def main():
             if metadata.get('stableBootstrap') is True: command.append('--bootstrap-stable')
             else: command += ['--baseline-apk', str(output / 'baseline.apk')]
         else:
-            command += ['--baseline-apk', str(output / 'baseline.apk')]
+            command += ['--baseline-apk', str(args.workspace / 'artifacts' / 'baseline.apk')]
         subprocess.run(command, check=True)
         shutil.copyfile(evidence / 'qa-result.json', output / 'qa-result.json')
     else:
-        if not re.fullmatch(args.channel + r'-\d+\.\d+\.\d+-\d+-build-\d+', args.release_id or ''):
+        if not re.fullmatch(release_id_pattern(args.channel, args.variant), args.release_id or ''):
             raise SystemExit('Invalid sealed release ID')
         release = Path(os.environ['EXPRESSIVE_CI_HOME']) / 'releases' / args.release_id
         metadata = json.loads((release / 'metadata.json').read_text())
         if metadata.get('channel') != args.channel:
             raise SystemExit('Sealed candidate belongs to a different publication channel')
+        if metadata.get('variant', 'full') != args.variant:
+            raise SystemExit('Sealed candidate belongs to a different build variant')
         if args.channel == 'release' and args.operation != 'publish':
             raise SystemExit('Legacy migration is restricted to QA')
         if args.channel == 'release':
@@ -133,6 +162,7 @@ def main():
                 # Old Drive publishers reject this flag before performing any upload.
                 command += ['--artifact-dir', str(release), '--expected-provider', 'github']
                 if args.channel == 'release': command += ['--channel', 'release']
+                if args.variant == 'core': command += ['--variant', 'core']
                 promotion = 'PROMOTE_QA_FEED' if args.channel == 'qa' else 'PROMOTE_RELEASE_FEED'
                 if os.environ.get(promotion, '').lower() == 'true': command.append('--promote')
             else:
