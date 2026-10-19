@@ -22,8 +22,7 @@ object ProTrialFingerprint {
         return hash(source, context.packageName)
     }
 
-    fun hash(deviceIdentifier: String, packageName: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest("$deviceIdentifier:$packageName".toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+    fun hash(deviceIdentifier: String, packageName: String): String = MessageDigest.getInstance("SHA-256")
+        .digest("$deviceIdentifier:$packageName".toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
 }

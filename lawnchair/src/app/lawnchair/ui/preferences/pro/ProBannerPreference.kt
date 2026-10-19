@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,8 +41,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.lawnchair.pro.proManager
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.ListItemDefaults
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import com.android.launcher3.R
@@ -80,8 +80,11 @@ fun ProBannerPreference(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = if (isCakey) stringResource(R.string.cakey_edition_title)
-                        else stringResource(R.string.expressive_pro_title),
+                        text = if (isCakey) {
+                            stringResource(R.string.cakey_edition_title)
+                        } else {
+                            stringResource(R.string.expressive_pro_title)
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -125,15 +128,18 @@ fun ProBannerPreference(
                 Text(
                     text = when {
                         isCakey -> stringResource(R.string.cakey_edition_banner_desc)
+
                         isPro && details?.isTrial == true -> {
                             val days = details!!.daysLeftAt(System.currentTimeMillis() / 1000L) ?: 0
                             pluralStringResource(R.plurals.expressive_pro_trial_days_left, days, days)
                         }
+
                         isPro && details != null -> stringResource(
                             R.string.expressive_pro_active_desc,
                             details!!.recipient,
                             details!!.type.displayName,
                         )
+
                         else -> stringResource(R.string.expressive_pro_free_desc)
                     },
                     style = MaterialTheme.typography.bodyMedium,

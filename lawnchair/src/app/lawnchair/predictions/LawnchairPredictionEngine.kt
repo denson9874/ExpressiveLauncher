@@ -129,8 +129,7 @@ class LawnchairPredictionEngine(
         return targets
     }
 
-    fun shouldPrioritizeRecentlyInstalled(): Boolean =
-        prefs2.prioritizeRecentlyInstalledApps.firstCached()
+    fun shouldPrioritizeRecentlyInstalled(): Boolean = prefs2.prioritizeRecentlyInstalledApps.firstCached()
 
     fun getRecentlyInstalledRanked(limit: Int = 10): List<String> {
         val pm = context.packageManager

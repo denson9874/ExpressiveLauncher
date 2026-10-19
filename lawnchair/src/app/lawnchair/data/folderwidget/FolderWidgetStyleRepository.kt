@@ -12,10 +12,9 @@ class FolderWidgetStyleRepository(
 ) {
     constructor(context: Context) : this(AppDatabase.INSTANCE.get(context))
 
-    fun observe(folderId: Int): Flow<FolderWidgetStyle> =
-        db.folderWidgetStyleDao().observe(folderId).map { entity ->
-            entity?.toStyle() ?: FolderWidgetStyle()
-        }
+    fun observe(folderId: Int): Flow<FolderWidgetStyle> = db.folderWidgetStyleDao().observe(folderId).map { entity ->
+        entity?.toStyle() ?: FolderWidgetStyle()
+    }
 
     suspend fun save(folderId: Int, style: FolderWidgetStyle) {
         db.folderWidgetStyleDao().upsert(FolderWidgetStyleEntity.from(folderId, style))

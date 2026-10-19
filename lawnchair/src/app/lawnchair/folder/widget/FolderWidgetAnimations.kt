@@ -175,7 +175,9 @@ object FolderWidgetAnimations {
                 val deltaY = flightDelta(ptWidget[1], panelRect.top.toFloat(), ptFolder[1])
                 val startScale = if (folderBounds.width() > 0 && widgetBounds.width() > 0) {
                     widgetBounds.width().toFloat() / folderBounds.width().toFloat()
-                } else 1f
+                } else {
+                    1f
+                }
 
                 fliers.add(FlightState(v, btv, deltaX, deltaY, startScale))
             } else {

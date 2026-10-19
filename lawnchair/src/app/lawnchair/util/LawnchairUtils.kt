@@ -230,8 +230,7 @@ private fun getAllAppsBaseColor(context: Context, defaultColor: Int): Int {
 }
 
 /** Apply Lawnchair custom allapps opacity and colour to the provided colour */
-fun getAllAppsBackgroundColor(context: Context, defaultColor: Int): Int =
-    getAllAppsBackgroundColor(context, defaultColor, blurAvailable = true)
+fun getAllAppsBackgroundColor(context: Context, defaultColor: Int): Int = getAllAppsBackgroundColor(context, defaultColor, blurAvailable = true)
 
 /**
  * Same as [getAllAppsBackgroundColor], but when the drawer sheet expects a blur that Android has
@@ -247,8 +246,7 @@ fun getAllAppsBackgroundColor(context: Context, defaultColor: Int, blurAvailable
  * Drawer sheet alpha. The opacity slider tints a blurred sheet; without the blur a translucent
  * sheet only shows the Home screen icons through the app grid, so it becomes solid instead.
  */
-fun allAppsSheetAlpha(userOpacity: Float, blurAvailable: Boolean): Int =
-    if (blurAvailable) (userOpacity.coerceIn(0f, 1f) * 255).roundToInt() else 255
+fun allAppsSheetAlpha(userOpacity: Float, blurAvailable: Boolean): Int = if (blurAvailable) (userOpacity.coerceIn(0f, 1f) * 255).roundToInt() else 255
 
 fun Context.checkPackagePermission(packageName: String, permissionName: String): Boolean {
     try {

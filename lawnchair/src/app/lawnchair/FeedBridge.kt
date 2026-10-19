@@ -263,7 +263,6 @@ class FeedBridge(private val context: Context) {
 
         @JvmStatic
         fun useBridge(context: Context) = getInstance(context).resolveConnection()?.useBridge == true
-
     }
 
     init {

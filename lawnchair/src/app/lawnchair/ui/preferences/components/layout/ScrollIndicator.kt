@@ -9,12 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -91,8 +91,8 @@ object ScrollIndicatorGeometry {
 private val ThumbWidth = 4.dp
 private val ThumbEndPadding = 3.dp
 private val MinThumbHeight = 32.dp
-private const val IdleAlpha = 0.28f
-private const val ScrollingAlpha = 0.6f
+private const val IDLE_ALPHA = 0.28f
+private const val SCROLLING_ALPHA = 0.6f
 
 /**
  * @param insets padding that content scrolls beneath (top app bar, navigation bar); the thumb
@@ -101,7 +101,7 @@ private const val ScrollingAlpha = 0.6f
 @Composable
 fun Modifier.scrollIndicator(state: ScrollState, insets: PaddingValues = PaddingValues()): Modifier {
     val alpha by animateFloatAsState(
-        targetValue = if (state.isScrollInProgress) ScrollingAlpha else IdleAlpha,
+        targetValue = if (state.isScrollInProgress) SCROLLING_ALPHA else IDLE_ALPHA,
         animationSpec = tween(durationMillis = 250),
         label = "scroll indicator alpha",
     )
@@ -125,7 +125,7 @@ fun Modifier.scrollIndicator(state: ScrollState, insets: PaddingValues = Padding
 @Composable
 fun Modifier.scrollIndicator(state: LazyListState, insets: PaddingValues = PaddingValues()): Modifier {
     val alpha by animateFloatAsState(
-        targetValue = if (state.isScrollInProgress) ScrollingAlpha else IdleAlpha,
+        targetValue = if (state.isScrollInProgress) SCROLLING_ALPHA else IDLE_ALPHA,
         animationSpec = tween(durationMillis = 250),
         label = "scroll indicator alpha",
     )

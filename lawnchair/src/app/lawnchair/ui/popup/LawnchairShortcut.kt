@@ -181,11 +181,10 @@ class LawnchairShortcut {
 
         /** Only real apps opened from the drawer can be hidden, and never while Home is locked. */
         @JvmStatic
-        fun canHideFromDrawer(itemInfo: ItemInfo, homeLocked: Boolean): Boolean =
-            !homeLocked &&
-                itemInfo.itemType == ITEM_TYPE_APPLICATION &&
-                itemInfo.targetComponent != null &&
-                itemInfo.container in DRAWER_CONTAINERS
+        fun canHideFromDrawer(itemInfo: ItemInfo, homeLocked: Boolean): Boolean = !homeLocked &&
+            itemInfo.itemType == ITEM_TYPE_APPLICATION &&
+            itemInfo.targetComponent != null &&
+            itemInfo.container in DRAWER_CONTAINERS
 
         val PAUSE_APPS = SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo: ItemInfo, originalView: View ->
             val targetCmp = itemInfo.targetComponent

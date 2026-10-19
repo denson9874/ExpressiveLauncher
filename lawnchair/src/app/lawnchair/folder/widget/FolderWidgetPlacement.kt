@@ -91,8 +91,7 @@ object FolderWidgetPlacement {
 
     /** Whether a placed widget's row must be rewritten: its screen, cells, span or options changed. */
     @JvmStatic
-    fun needsRewrite(row: Placement, rowOptions: Int, placed: Placement, options: Int): Boolean =
-        row != placed || rowOptions != options
+    fun needsRewrite(row: Placement, rowOptions: Int, placed: Placement, options: Int): Boolean = row != placed || rowOptions != options
 
     /** Steps 1–2 of [place]: [wanted] itself, or shrunk in place to fit the grid, when free. */
     private fun keepInPlace(
@@ -116,8 +115,7 @@ object FolderWidgetPlacement {
         return if (fits(shrunk)) Placement(screenId, shrunk) else null
     }
 
-    private fun GridRect.overlaps(o: GridRect) =
-        x < o.x + o.spanX && o.x < x + spanX && y < o.y + o.spanY && o.y < y + spanY
+    private fun GridRect.overlaps(o: GridRect) = x < o.x + o.spanX && o.x < x + spanX && y < o.y + o.spanY && o.y < y + spanY
 
     /** The vacant area nearest to (x, y) by squared distance; ties go to the smaller y, then x. */
     private fun nearestVacant(

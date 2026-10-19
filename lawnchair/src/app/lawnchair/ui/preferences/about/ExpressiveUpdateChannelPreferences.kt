@@ -54,5 +54,4 @@ internal class ExpressiveUpdateChannelPreferences(
     }
 }
 
-internal fun selectedExpressiveUpdateConfig(context: Context): ExpressiveUpdateConfig? =
-    ExpressiveUpdateChannelPreferences(context).selectedConfig()
+internal fun selectedExpressiveUpdateConfig(context: Context): ExpressiveUpdateConfig? = ExpressiveUpdateChannelPreferences(context).selectedConfig()

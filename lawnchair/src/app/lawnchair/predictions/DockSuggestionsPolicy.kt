@@ -11,8 +11,7 @@ object DockSuggestionsPolicy {
 
     /** Predictions the dock should show for the current setting. */
     @JvmStatic
-    fun <T> visibleSuggestions(enabled: Boolean, predictions: List<T>): List<T> =
-        if (enabled) predictions else emptyList()
+    fun <T> visibleSuggestions(enabled: Boolean, predictions: List<T>): List<T> = if (enabled) predictions else emptyList()
 
     /**
      * Upstream Launcher3 restores its hybrid-hotseat migration backup when the predictor stops

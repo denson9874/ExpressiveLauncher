@@ -42,10 +42,18 @@ object FolderWidgetResizeMath {
         if (s < 0) s = 0
         if (e > gridSize) e = gridSize
         if (e - s < minSize) {
-            if (moveStart) s = e - minSize else if (moveEnd) e = s + minSize
+            if (moveStart) {
+                s = e - minSize
+            } else if (moveEnd) {
+                e = s + minSize
+            }
         }
         if (e - s > maxSize) {
-            if (moveStart) s = e - maxSize else if (moveEnd) e = s + maxSize
+            if (moveStart) {
+                s = e - maxSize
+            } else if (moveEnd) {
+                e = s + maxSize
+            }
         }
         return s to (e - s)
     }

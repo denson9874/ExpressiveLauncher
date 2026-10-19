@@ -51,8 +51,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
-internal fun requiresAttachedQsbRemeasure(measuredWidth: Int, measuredHeight: Int): Boolean =
-    measuredWidth <= 0 || measuredHeight <= 0
+internal fun requiresAttachedQsbRemeasure(measuredWidth: Int, measuredHeight: Int): Boolean = measuredWidth <= 0 || measuredHeight <= 0
 
 internal fun canCreateAttachedQsbComposition(
     isAttached: Boolean,
@@ -63,8 +62,7 @@ internal fun canMeasureAttachedQsbComposition(
     isAttached: Boolean,
     lifecycleState: Lifecycle.State?,
     hasSavedStateOwner: Boolean,
-): Boolean =
-    hasSavedStateOwner && canCreateAttachedQsbComposition(isAttached, lifecycleState)
+): Boolean = hasSavedStateOwner && canCreateAttachedQsbComposition(isAttached, lifecycleState)
 
 /**
  * Mirrors Compose 1.12's content-child lookup. Window recomposers are stored on this view, which is

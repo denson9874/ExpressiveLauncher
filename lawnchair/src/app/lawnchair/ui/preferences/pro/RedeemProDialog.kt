@@ -1,3 +1,7 @@
+// ProActiveContent emits several siblings into its caller's Column. compose-rules checks this
+// rule per file, so ktlint only honors the suppression at file level.
+@file:Suppress("ktlint:compose:multiple-emitters-check")
+
 package app.lawnchair.ui.preferences.pro
 
 import android.content.Context
@@ -81,11 +85,11 @@ import app.lawnchair.pro.VerifyDonationRequest
 import app.lawnchair.pro.proManager
 import app.lawnchair.ui.preferences.about.AboutDestinations
 import com.android.launcher3.R
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -157,15 +161,21 @@ fun RedeemProDialog(
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isPro) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.secondaryContainer,
+                            if (isPro) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            },
                         ),
                 ) {
                     Icon(
                         imageVector = if (isPro) Icons.Rounded.Verified else Icons.Rounded.Star,
                         contentDescription = null,
-                        tint = if (isPro) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.secondary,
+                        tint = if (isPro) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.secondary
+                        },
                         modifier = Modifier.size(26.dp),
                     )
                 }
@@ -177,8 +187,11 @@ fun RedeemProDialog(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = if (isPro) stringResource(R.string.expressive_pro_status_active)
-                        else stringResource(R.string.expressive_pro_redeem_title),
+                        text = if (isPro) {
+                            stringResource(R.string.expressive_pro_status_active)
+                        } else {
+                            stringResource(R.string.expressive_pro_redeem_title)
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -587,7 +600,10 @@ fun RedeemProDialog(
                         keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
                         trailingIcon = {
                             if (keyInput.isNotEmpty()) {
-                                IconButton(onClick = { keyInput = ""; errorMessage = null }) {
+                                IconButton(onClick = {
+                                    keyInput = ""
+                                    errorMessage = null
+                                }) {
                                     Icon(Icons.Rounded.Clear, contentDescription = "Clear")
                                 }
                             } else {
@@ -809,8 +825,11 @@ private fun ProActiveContent(
     val isCakey = details.isCakey
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = if (isCakey) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+        color = if (isCakey) {
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+        } else {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        },
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
@@ -825,12 +844,18 @@ private fun ProActiveContent(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = if (isCakey) stringResource(R.string.cakey_edition_title)
-                    else stringResource(R.string.expressive_pro_license_details),
+                    text = if (isCakey) {
+                        stringResource(R.string.cakey_edition_title)
+                    } else {
+                        stringResource(R.string.expressive_pro_license_details)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isCakey) MaterialTheme.colorScheme.onTertiaryContainer
-                    else MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = if (isCakey) {
+                        MaterialTheme.colorScheme.onTertiaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    },
                 )
             }
             Spacer(Modifier.height(10.dp))

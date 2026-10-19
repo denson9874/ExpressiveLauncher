@@ -42,8 +42,7 @@ class FolderWidgetAppsAdapter(
 
     override fun getItemCount(): Int = folder.getContents().size
 
-    override fun getItemViewType(position: Int): Int =
-        if (folder.getContents()[position] is AppPairInfo) TYPE_APP_PAIR else TYPE_APP
+    override fun getItemViewType(position: Int): Int = if (folder.getContents()[position] is AppPairInfo) TYPE_APP_PAIR else TYPE_APP
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder = Holder(
         if (viewType == TYPE_APP_PAIR) {
