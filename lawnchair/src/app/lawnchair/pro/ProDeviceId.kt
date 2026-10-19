@@ -54,8 +54,7 @@ object ProDeviceId {
     }
 
     @SuppressLint("HardwareIds")
-    private fun androidId(context: Context): String? =
-        Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+    private fun androidId(context: Context): String? = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
 
     private fun generateRandomDeviceId(): String {
         val random = SecureRandom()

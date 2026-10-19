@@ -8,6 +8,7 @@ import worker, {
   handleAdminIssue,
   parseSignedKey,
   generateProLicense,
+  LicenseLedger,
   TYPE_TRIAL,
   MAX_DEVICE_MOVES,
 } from "./worker.js";
@@ -25,14 +26,59 @@ class MemoryKv {
   async put(key, value) { this.map.set(key, value); }
 }
 
+/** Durable Object storage whose reads yield to other work, so unserialized code would interleave. */
+class MemoryStorage {
+  constructor() { this.map = new Map(); }
+  async get(key) {
+    await new Promise((resolve) => setImmediate(resolve));
+    return this.map.has(key) ? structuredClone(this.map.get(key)) : undefined;
+  }
+  async put(keyOrEntries, value) {
+    await new Promise((resolve) => setImmediate(resolve));
+    const entries = typeof keyOrEntries === "string" ? { [keyOrEntries]: value } : keyOrEntries;
+    for (const [k, v] of Object.entries(entries)) this.map.set(k, structuredClone(v));
+  }
+}
+
+/** Stand-in for a Durable Object namespace: one instance per name; blockConcurrencyWhile queues calls. */
+class FakeDurableObjects {
+  constructor(ObjectClass, env) {
+    this.ObjectClass = ObjectClass;
+    this.env = env;
+    this.instances = new Map();
+  }
+  idFromName(name) { return name; }
+  get(id) {
+    if (!this.instances.has(id)) {
+      let queue = Promise.resolve();
+      const state = {
+        storage: new MemoryStorage(),
+        blockConcurrencyWhile(callback) {
+          const run = queue.then(callback);
+          queue = run.catch(() => {});
+          return run;
+        },
+      };
+      this.instances.set(id, { object: new this.ObjectClass(state, this.env), storage: state.storage });
+    }
+    const { object } = this.instances.get(id);
+    return { fetch: (url, init) => object.fetch(new Request(url, init)) };
+  }
+  storageKeys() {
+    return [...this.instances.values()].flatMap((i) => [...i.storage.map.keys()]);
+  }
+}
+
 async function testEnv(extra = {}) {
   const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
   const pkcs8 = Buffer.from(await crypto.subtle.exportKey("pkcs8", pair.privateKey)).toString("base64");
-  return {
+  const env = {
     EXPRESSIVE_PRO_KV: new MemoryKv(),
     PRO_PRIVATE_KEY_PEM: `-----BEGIN PRIVATE KEY-----\n${pkcs8}\n-----END PRIVATE KEY-----`,
     ...extra,
   };
+  env.LICENSE_LEDGER = new FakeDurableObjects(LicenseLedger, env);
+  return env;
 }
 
 function post(path, body, headers = {}) {
@@ -137,6 +183,27 @@ test("a license moves to at most MAX_DEVICE_MOVES new devices per 30 days, count
   assert.equal(later.status, 200, "the first move has left the 30-day window");
 });
 
+test("parallel moves to different devices can't exceed the limit", async () => {
+  const env = await testEnv();
+  const key = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_VIP, 0, env);
+  const devices = ["DEV-PAR0-0001", "DEV-PAR0-0002", "DEV-PAR0-0003", "DEV-PAR0-0004", "DEV-PAR0-0005"];
+  const responses = await Promise.all(devices.map((d, i) => rebind(env, key, d, NOW, `198.51.100.${i + 20}`)));
+  const statuses = responses.map((r) => r.status).sort();
+  assert.deepEqual(statuses, [200, 200, 200, 409, 409]);
+
+  // Every key that was handed out is on record, so later moves still count all of them.
+  const blocked = await rebind(env, key, "DEV-PAR0-0009", NOW + DAY_MS);
+  assert.equal(blocked.status, 409);
+});
+
+test("a just-moved key is traced to its license, so chaining moves uses the same allowance", async () => {
+  const env = await testEnv();
+  const original = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_VIP, 0, env);
+  const first = await (await rebind(env, original, NEW_DEVICE)).json();
+  const second = await (await rebind(env, first.key, "DEV-CHAN-0001")).json();
+  assert.equal(second.movesLeft, MAX_DEVICE_MOVES - 2);
+});
+
 test("rebind returns keys that are not device-bound unchanged", async () => {
   const env = await testEnv();
   for (const recipient of ["account:fan@example.com", "giveaway-1791000000-001"]) {
@@ -144,7 +211,15 @@ test("rebind returns keys that are not device-bound unchanged", async () => {
     const data = await (await rebind(env, key, NEW_DEVICE)).json();
     assert.equal(data.key, key);
   }
-  assert.equal([...env.EXPRESSIVE_PRO_KV.map.keys()].filter((k) => k.startsWith("moves:")).length, 0);
+  assert.equal(env.LICENSE_LEDGER.storageKeys().length, 0);
+});
+
+test("moves fail closed when the ledger binding is missing", async () => {
+  const env = await testEnv();
+  delete env.LICENSE_LEDGER;
+  const key = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_VIP, 0, env);
+  const res = await worker.fetch(post("/api/rebind", { key, device_id: NEW_DEVICE }), env, {});
+  assert.equal(res.status, 500);
 });
 
 test("rebind refuses trial, expired, forged and malformed requests", async () => {

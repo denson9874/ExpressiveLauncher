@@ -4,7 +4,8 @@ This directory contains the 100% serverless backend for **Expressive Launcher Pr
 
 ## Overview
 - **Runtime**: Cloudflare Workers (Free Tier, 100,000 requests/day, zero cold starts)
-- **Database**: Cloudflare Workers KV (Key-Value storage for device licenses and transactions)
+- **Database**: Cloudflare Workers KV (Key-Value storage for device licenses and transactions), plus a
+  SQLite-backed Durable Object for license moves
 - **Cryptography**: NIST P-256 (secp256r1) ECDSA digital signatures generated via the native Web Crypto API (`crypto.subtle`).
 - **Dependencies**: 0 external npm dependencies.
 
@@ -28,7 +29,9 @@ reinstall, cleared data). When the app sees that mismatch it sends the key to `/
 restore by transaction ID does the same through `/api/verify-donation`. Either way the worker signs a
 copy for the new device with the same type, expiry and features. A license (counted across all its
 copies) may move to 3 new devices per 30 days; asking again for a device it already moved to returns
-the same key.
+the same key. Moves are recorded by the `LicenseLedger` Durable Object (binding `LICENSE_LEDGER`,
+declared in `wrangler.toml`), which handles one move at a time so parallel requests can't exceed the
+limit; `wrangler deploy` creates it on first deploy.
 
 ### Issuing keys by hand
 

@@ -7,6 +7,16 @@ kv_namespaces = [
   { binding = "EXPRESSIVE_PRO_KV", id = "58380b9ca23940e4a3aa59c928b5eec1", preview_id = "EXPRESSIVE_PRO_LICENSES_PREVIEW_KV_ID" }
 ]
 
+# Records license moves to new devices one at a time (the move limit must hold under parallel
+# requests, which KV can't guarantee). SQLite-backed, so it works on the Workers Free plan.
+[[durable_objects.bindings]]
+name = "LICENSE_LEDGER"
+class_name = "LicenseLedger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LicenseLedger"]
+
 # Sensitive secrets (Set with `wrangler secret put <NAME>`):
 # - PRO_PRIVATE_KEY_PEM: Master ECDSA P-256 private key. The worker holds the only copy: never
 #   delete or replace it (`wrangler deploy` keeps it).

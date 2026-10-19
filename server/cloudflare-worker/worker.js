@@ -538,15 +538,55 @@ async function handleRebind(request, env, now = Date.now()) {
 }
 
 /**
- * Re-sign a verified license for deviceId. Moves are counted per license: the id of the first key
- * issued, which every re-signed copy points back to through `keyroot:`. Asking again for a device the
- * license already moved to returns that key without using a move.
+ * Re-sign a verified license for deviceId through the LICENSE_LEDGER Durable Object, which runs one
+ * move at a time so parallel requests can't each pass the move limit.
  */
 async function moveLicenseToDevice(license, deviceId, env, now) {
+  if (!env.LICENSE_LEDGER) {
+    throw new Error("LICENSE_LEDGER Durable Object binding is not configured.");
+  }
+  const ledger = env.LICENSE_LEDGER.get(env.LICENSE_LEDGER.idFromName("license-moves"));
+  const res = await ledger.fetch("https://license-ledger/move", {
+    method: "POST",
+    body: JSON.stringify({ license, deviceId, now }),
+  });
+  if (!res.ok) {
+    throw new Error(`License ledger returned ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Durable Object holding every license move. One instance serves all licenses (moves are rare), and
+ * blockConcurrencyWhile makes each read, limit check, signature and write run alone. Its storage is
+ * strongly consistent, so a key moved a moment ago is traced back to its license at once, which KV
+ * (eventually consistent) could not promise.
+ */
+export class LicenseLedger {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(request) {
+    const { license, deviceId, now } = await request.json();
+    const result = await this.state.blockConcurrencyWhile(() =>
+      recordMove(this.state.storage, license, deviceId, now, this.env)
+    );
+    return jsonResponse(result);
+  }
+}
+
+/**
+ * Moves are counted per license: the id of the first key issued, which every re-signed copy points
+ * back to through `keyroot:`. Asking again for a device the license already moved to returns that key
+ * without using a move.
+ */
+async function recordMove(storage, license, deviceId, now, env) {
   const nowSeconds = Math.floor(now / 1000);
-  const rootId = (await env.EXPRESSIVE_PRO_KV.get(`keyroot:${license.id}`)) || license.id;
+  const rootId = (await storage.get(`keyroot:${license.id}`)) || license.id;
   const movesKey = `moves:${rootId}`;
-  const moves = JSON.parse((await env.EXPRESSIVE_PRO_KV.get(movesKey)) || '{"devices":{}}');
+  const moves = (await storage.get(movesKey)) || { devices: {} };
 
   const known = moves.devices[deviceId];
   if (known) {
@@ -561,8 +601,7 @@ async function moveLicenseToDevice(license, deviceId, env, now) {
 
   const key = await generateProLicense(`device:${deviceId}`, license.type, license.expiresAt, env, license.features);
   moves.devices[deviceId] = { key, movedAt: nowSeconds };
-  await env.EXPRESSIVE_PRO_KV.put(movesKey, JSON.stringify(moves));
-  await env.EXPRESSIVE_PRO_KV.put(`keyroot:${await keyId(key)}`, rootId);
+  await storage.put({ [movesKey]: moves, [`keyroot:${await keyId(key)}`]: rootId });
   return { key, movesLeft: movesLeftIn(moves, nowSeconds) };
 }
 
