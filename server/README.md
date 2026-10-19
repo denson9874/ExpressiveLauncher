@@ -13,10 +13,35 @@ This directory contains the 100% serverless backend for **Expressive Launcher Pr
 | Endpoint | Method | Description |
 |---|---|---|
 | `/` or `/health` | `GET` | Service status and uptime check |
-| `/api/license?device_id=DEV-...` | `GET` | Look up issued Pro license key for a device ID |
-| `/api/paypal-webhook` | `POST` | Receives PayPal webhook events, verifies donation, signs key, saves in KV |
-| `/api/verify-donation` | `POST` | Verifies PayPal transaction ID directly and issues device key |
+| `/api/license?device_id=DEV-...` | `GET` | Look up issued Pro license key for a device ID (email lookups return no key) |
+| `/api/paypal-webhook` | `POST` | Receives PayPal webhook events, checks their signature with PayPal, signs key, saves in KV |
+| `/api/verify-donation` | `POST` | Restores a purchase by PayPal transaction ID; re-signs it for a new device if needed |
+| `/api/rebind` | `POST` | `{ key, device_id }`: re-signs a device-bound key for a device whose install ID changed |
+| `/api/trial` | `POST` | Issues the one 7-day trial per device fingerprint |
+| `/api/admin/issue` | `POST` | Owner-only (`Authorization: Bearer <ADMIN_TOKEN>`): signs TESTER / GIVEAWAY / VIP / DEV / CAKEY keys |
 | `/activate?key=EXPR-PRO-...` | `GET` | Deep link gateway (redirects to `expressive://pro/activate?key=...`) |
+
+### Moving a license to a reset device
+
+Keys bound to a device ID stop working when the device gets a new install ID (factory reset,
+reinstall, cleared data). When the app sees that mismatch it sends the key to `/api/rebind`, and a
+restore by transaction ID does the same through `/api/verify-donation`. Either way the worker signs a
+copy for the new device with the same type, expiry and features. A license (counted across all its
+copies) may move to 3 new devices per 30 days; asking again for a device it already moved to returns
+the same key.
+
+### Issuing keys by hand
+
+The worker holds the only copy of the master private key, so it signs every key. With `ADMIN_TOKEN`
+set on the worker and saved locally (`~/.config/expressive/admin_token` or
+`EXPRESSIVE_PRO_ADMIN_TOKEN`):
+
+```bash
+python3 scripts/issue_pro_key.py create --type CAKEY --device DEV-A1B2-C3D4
+python3 scripts/issue_pro_key.py batch --count 10 --type GIVEAWAY --prefix xda- --output keys.txt
+```
+
+Every request is also recorded in KV under `admin:issued:<time>-<id>`.
 
 ---
 
@@ -43,16 +68,26 @@ kv_namespaces = [
 ]
 ```
 
-### 4. Set Master Private Key Secret
-Upload your master private key to the worker environment:
+### 4. Set Secrets
+The live worker already holds `PRO_PRIVATE_KEY_PEM`, and it is the only copy of the master key:
+never delete or replace it. (`wrangler deploy` keeps existing secrets.) Only a brand-new worker
+needs it uploaded:
 ```bash
 wrangler secret put PRO_PRIVATE_KEY_PEM < ~/.config/expressive/pro_master_private.pem
 ```
 
-*(Optional: If you want direct PayPal API transaction verification)*:
+PayPal webhooks are refused until their signatures can be checked, so set these before deploying
+(the webhook ID is shown next to the webhook in the PayPal Developer Dashboard):
 ```bash
 wrangler secret put PAYPAL_CLIENT_ID
 wrangler secret put PAYPAL_CLIENT_SECRET
+wrangler secret put PAYPAL_WEBHOOK_ID
+```
+
+For issuing keys by hand, set a long random admin token and keep a copy locally:
+```bash
+openssl rand -hex 32 > ~/.config/expressive/admin_token
+wrangler secret put ADMIN_TOKEN < ~/.config/expressive/admin_token
 ```
 
 ### 5. Deploy the Worker

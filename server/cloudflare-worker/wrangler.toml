@@ -8,6 +8,9 @@ kv_namespaces = [
 ]
 
 # Sensitive secrets (Set with `wrangler secret put <NAME>`):
-# - PRO_PRIVATE_KEY_PEM: Master ECDSA P-256 private key (from ~/.config/expressive/pro_master_private.pem)
-# - PAYPAL_CLIENT_ID: Optional PayPal REST API client ID
-# - PAYPAL_CLIENT_SECRET: Optional PayPal REST API client secret
+# - PRO_PRIVATE_KEY_PEM: Master ECDSA P-256 private key. The worker holds the only copy: never
+#   delete or replace it (`wrangler deploy` keeps it).
+# - ADMIN_TOKEN: Long random token for POST /api/admin/issue (scripts/issue_pro_key.py)
+# - PAYPAL_WEBHOOK_ID: ID of the webhook in the PayPal dashboard; webhooks are refused without it
+# - PAYPAL_CLIENT_ID: PayPal REST API client ID (webhook checks and transaction lookups)
+# - PAYPAL_CLIENT_SECRET: PayPal REST API client secret

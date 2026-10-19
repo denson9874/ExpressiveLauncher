@@ -33,6 +33,15 @@ interface ProActivationService {
         @Body request: TrialRequest,
     ): TrialResponse
 
+    /**
+     * Re-signs a key bound to another device ID for this one (after a reset or reinstall).
+     * HTTP 409 once the license has moved to too many devices this month.
+     */
+    @POST("api/rebind")
+    suspend fun rebind(
+        @Body request: RebindRequest,
+    ): LicenseResponse
+
     companion object {
         const val DEFAULT_ACTIVATION_URL = "https://expressive-pro-activation.daryldenson-apps.workers.dev/"
 
@@ -67,6 +76,13 @@ data class LicenseResponse(
     @SerialName("key") val key: String? = null,
     @SerialName("message") val message: String? = null,
     @SerialName("recipient") val recipient: String? = null,
+    @SerialName("error") val error: String? = null,
+)
+
+@Serializable
+data class RebindRequest(
+    @SerialName("key") val key: String,
+    @SerialName("device_id") val deviceId: String,
 )
 
 @Serializable

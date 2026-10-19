@@ -41,6 +41,10 @@
     <string name="font_more_fonts_pro">Import your own fonts and browse the Google Fonts catalog with Expressive Pro. Tap to unlock.</string>
     <string name="expressive_pro_locked_customization">Customization is exclusive to Expressive Pro to support development. Tap to unlock.</string>
     <string name="expressive_pro_device_mismatch">This license key is tied to another device (%1$s). Your device ID is %2$s.</string>
+    <string name="expressive_pro_move_limit">This license has already moved to 3 new devices in the last 30 days. Email support to move it again.</string>
+    <string name="expressive_pro_move_failed">This license key is tied to another device and couldn\'t be moved to this one. Email support with your Device ID (%1$s).</string>
+    <string name="expressive_pro_move_offline">This license key is tied to another device. Connect to the internet so it can be moved to this one.</string>
+    <string name="expressive_pro_restore_needs_transaction">To restore a contribution, enter the Transaction ID from your PayPal receipt.</string>
     <string name="expressive_pro_tab_donate">Donate &amp; Unlock</string>
     <string name="expressive_pro_tab_offline">Offline Key</string>
     <string name="expressive_pro_device_id_label">Your Device ID</string>
@@ -49,10 +53,10 @@
     <string name="expressive_pro_pay_button">Donate $4.99 via PayPal</string>
     <string name="expressive_pro_check_status">Check Activation Status</string>
     <string name="expressive_pro_checking_status">Checking payment status…</string>
-    <string name="expressive_pro_verify_transaction">Already contributed? Enter Transaction ID or PayPal Email</string>
-    <string name="expressive_pro_transaction_id_label">PayPal Transaction ID or Account Email</string>
-    <string name="expressive_pro_transaction_id_hint">17-char Transaction ID (e.g. 5Y6345678A1234567) or PayPal email</string>
-    <string name="expressive_pro_button_id_warning">\"%1$s\" is the PayPal donation button ID, not your personal transaction ID. Please enter your 17-character Transaction ID (e.g. 5Y6345678A1234567) or PayPal account email from your receipt, or tap below to email support with your Device ID.</string>
+    <string name="expressive_pro_verify_transaction">Already contributed? Enter your Transaction ID or license key</string>
+    <string name="expressive_pro_transaction_id_label">PayPal Transaction ID or license key</string>
+    <string name="expressive_pro_transaction_id_hint">17-char Transaction ID (e.g. 5Y6345678A1234567)</string>
+    <string name="expressive_pro_button_id_warning">\"%1$s\" is the PayPal donation button ID, not your personal transaction ID. Please enter your 17-character Transaction ID (e.g. 5Y6345678A1234567) from your receipt, or tap below to email support with your Device ID.</string>
     <string name="expressive_pro_server_unreachable_title">Online Verification Unavailable</string>
     <string name="expressive_pro_server_unreachable_desc">The online activation service is currently undergoing maintenance. Don\'t worry — your contribution is safe! Tap below to email your details and receive your instant offline Pro license key.</string>
     <string name="expressive_pro_email_support_button">Email Support for Pro Key</string>

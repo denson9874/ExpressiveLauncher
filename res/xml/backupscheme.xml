@@ -16,6 +16,8 @@
     <include domain="database" path="launcher_7_by_7.db" />
     <include domain="database" path="launcher_8_by_3.db" />
     <include domain="sharedpref" path="com.android.launcher3.prefs.xml" />
+    <!-- Pro license key and device ID, so restoring a backup after a reset keeps Pro active. -->
+    <include domain="sharedpref" path="expressive_pro_license.xml" />
     <include domain="file" path="downgrade_schema.json" />
 
 </full-backup-content>
