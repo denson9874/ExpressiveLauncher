@@ -240,6 +240,22 @@ class Smoke:
         self.require(bool(candidates), f"UI target missing: text={text} id={rid} desc={desc}")
         return candidates[0]
 
+    def swipe_to_date(self, root, max_pages=4):
+        """At a Glance may open on another card (e.g. "Tap to set up"); swipe its pager to the date."""
+        for page in range(max_pages):
+            dates = [n for n in root.iter("node") if n.get("resource-id", "").endswith(":id/date")]
+            if dates:
+                return dates[0], page
+            pager = self.node(root, rid="smartspace_card_pager")
+            x1, y1, x2, y2 = bounds(pager)
+            y = (y1 + y2) // 2
+            # The QA emulator is left-to-right: the next card is to the right.
+            start_x, end_x = x1 + (x2 - x1) * 4 // 5, x1 + (x2 - x1) // 5
+            self.shell("input", "swipe", str(start_x), str(y), str(end_x), str(y), "300")
+            time.sleep(1)
+            root = self.capture(f"candidate-date-home-page-{page + 1}")
+        self.require(False, f"At a Glance date card not found within {max_pages} pages")
+
     def tap(self, node):
         x1, y1, x2, y2 = bounds(node)
         self.shell("input", "tap", str((x1+x2)//2), str((y1+y2)//2))
@@ -406,7 +422,8 @@ class Smoke:
         self.require(results, "Local Calendar search returned no visible app result")
         self.passed("local_search", query="Calendar")
         root = self.home("candidate-date-home")
-        date = self.node(root, rid="date")
+        date, date_page = self.swipe_to_date(root)
+        self.result["datePage"] = date_page
         epoch = int(self.shell("date", "+%s"))
         stamps = []
         for attempt in range(3):
