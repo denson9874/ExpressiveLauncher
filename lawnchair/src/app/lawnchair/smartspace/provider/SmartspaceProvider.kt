@@ -3,6 +3,7 @@ package app.lawnchair.smartspace.provider
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import app.lawnchair.ExpressiveCore
 import androidx.lifecycle.Lifecycle
 import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceScores
@@ -39,13 +40,14 @@ class SmartspaceProvider @Inject constructor(
 
     private val glanceMessages = GlanceMessagesProvider(context)
 
-    val dataSources = listOf(
+    // Also the list of toggles on the At a Glance settings page, so a source left out here is hidden there.
+    val dataSources = listOfNotNull(
         SmartspaceWidgetReader(context),
         glanceMessages,
         BatteryStatusProvider(context),
         BluetoothBatteryProvider(context),
         TorchProvider(context),
-        NowPlayingProvider(context),
+        NowPlayingProvider(context).takeIf { ExpressiveCore.supportsNowPlaying() },
         OnboardingProvider(context),
     )
 

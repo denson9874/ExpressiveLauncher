@@ -12,6 +12,7 @@ class ExpressiveCoreTest {
     @Test
     fun fullBuild_keepsEveryCapability() {
         assertThat(ExpressiveCore.supportsNotificationDots(forCore = false)).isTrue()
+        assertThat(ExpressiveCore.supportsNowPlaying(forCore = false)).isTrue()
         assertThat(ExpressiveCore.supportsAccessibilityActions(forCore = false)).isTrue()
         assertThat(ExpressiveCore.availableSleepModes(forCore = false)).containsExactlyElementsIn(SleepMode.values())
         assertThat(ExpressiveCore.filterGestureOptions(gestureHandlerOptions, forCore = false))
@@ -21,6 +22,7 @@ class ExpressiveCoreTest {
     @Test
     fun coreBuild_dropsNotificationDotsAndAccessibilityActions() {
         assertThat(ExpressiveCore.supportsNotificationDots(forCore = true)).isFalse()
+        assertThat(ExpressiveCore.supportsNowPlaying(forCore = true)).isFalse()
         assertThat(ExpressiveCore.supportsAccessibilityActions(forCore = true)).isFalse()
     }
 

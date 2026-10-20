@@ -16,6 +16,12 @@ object ExpressiveCore {
     /** Notification dots need the notification listener. */
     fun supportsNotificationDots(forCore: Boolean = isCore): Boolean = !forCore
 
+    /**
+     * At a Glance "Now playing" reads media sessions through the notification listener. In Core its
+     * setup could never finish, leaving a permanent "Tap to set up" card, so Core leaves it out.
+     */
+    fun supportsNowPlaying(forCore: Boolean = isCore): Boolean = !forCore
+
     /** Accessibility global actions (lock screen, recents, a11y fallbacks) need the accessibility service. */
     fun supportsAccessibilityActions(forCore: Boolean = isCore): Boolean = !forCore
 
