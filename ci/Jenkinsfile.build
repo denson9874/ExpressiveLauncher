@@ -14,7 +14,7 @@ pipeline {
         ANDROID_SDK_ROOT = '/Users/densond/Library/Android/sdk'
         JAVA_HOME = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
         EXPRESSIVE_KEYSTORE_PROPERTIES = '/Users/densond/Developer/ExpressiveLauncher/keystore.properties'
-        PATH = '/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+        PATH = '/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/opt/python@3.14/libexec/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }
     stages {
         stage('Prepare recorded source') {

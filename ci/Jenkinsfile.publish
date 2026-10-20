@@ -9,7 +9,7 @@ pipeline {
     environment {
         SOURCE_REPOSITORY = '/Users/densond/Developer/ExpressiveLauncher'
         EXPRESSIVE_CI_HOME = '/Users/densond/Library/Application Support/Expressive CI'
-        PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+        PATH = '/opt/homebrew/opt/python@3.14/libexec/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }
     stages {
         stage('Publish retained candidate') {
