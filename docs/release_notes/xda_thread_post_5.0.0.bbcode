@@ -14,10 +14,6 @@ Welcome to [B]Expressive Launcher 5.0.0 (Build 62)[/B]! This is our biggest majo
 [*][B]Zero-Disk-I/O Architecture[/B]: Settings scrolling and switches are now completely decoupled from disk bottlenecks. We eliminated synchronous DataStore disk reads ([ICODE]firstBlocking()[/ICODE]) and Room SQLite stalls on the Android UI looper, routing lookups through an instantaneous $O(1)$ in-memory cache.
 [*][B]Instant Switch Feedback[/B]: Toggle switches now use optimistic UI dispatch—flipping instantaneously on touch with zero jank, while background disk persistence commits quietly on an asynchronous coroutine.
 [*][B]Suspended Background Recreation[/B]: Toggling settings options no longer forces the background Home workspace to rebuild itself while you're still in the preferences menu.
-[*][B]Measured Hardware Telemetry (Pixel 7 Pro)[/B]:
-[*]50th percentile frame time dropped from [B]69ms–200ms down to 6ms[/B].
-[*]90th percentile frame time dropped from [B]200ms down to 7ms–15ms[/B].
-[*]Switch toggle jank plummeted to a flat [B]1.00%[/B], with [B]0 frames[/B] exceeding the 100ms stutter mark.
 
 [/LIST]
 [SIZE=5][B]2. 📁 Cover Folders & Folder Widget Polish[/B][/SIZE]
@@ -56,7 +52,7 @@ Welcome to [B]Expressive Launcher 5.0.0 (Build 62)[/B]! This is our biggest majo
 
 [SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
 
-[QUOTE]⚡ [I]Our settings switches used to ponder the philosophical meaning of existence for 250 milliseconds every time you tapped them. They now flip faster than your brain when your phone hits 1% battery.[/I]
+[QUOTE]⚡ [I]Our settings switches no longer stop to think things over. Tap, flip, done.[/I]
 
 📁 [I]Cover Folders: Because sometimes you want your folder to dress up as Spotify in front of its friends, until you swipe it up and reveal the secret folder society inside.[/I]
 
