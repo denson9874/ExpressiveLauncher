@@ -528,7 +528,11 @@ class LawnchairLauncher : QuickstepLauncher() {
 
     fun recreateIfNotScheduled() {
         if (sRestartFlags == 0) {
-            recreate()
+            if (hasBeenResumed()) {
+                recreate()
+            } else {
+                sRestartFlags = sRestartFlags or FLAG_RECREATE
+            }
         }
     }
 

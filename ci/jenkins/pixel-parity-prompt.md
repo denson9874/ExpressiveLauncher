@@ -14,8 +14,8 @@ Read docs/PIXEL_PARITY.md, docs/DIRECT_DISTRIBUTION.md, docs/CI_PIPELINE.md, and
 docs/GITHUB_RELEASE_CHANGELOG.md.
 
 Before selecting this run's improvement, use $expressive-xda-feedback by reading
-/Users/daryldenson/.codex/skills/expressive-xda-feedback/SKILL.md. Refresh the three XDA threads
-and the durable backlog at /Users/daryldenson/Library/Application Support/Expressive CI/feedback/xda.
+/Users/densond/.codex/skills/expressive-xda-feedback/SKILL.md. Refresh the three XDA threads
+and the durable backlog at /Users/densond/Library/Application Support/Expressive CI/feedback/xda.
 Prioritize eligible, feasible reported issues within this run's one-improvement budget; investigate
 before treating a report as a verified defect. Record coverage, source links, acceptance checks,
 and a proposed QA slot for every actionable item. Newly discovered Friday or Saturday feedback

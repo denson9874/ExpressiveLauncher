@@ -47,6 +47,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -262,38 +263,28 @@ fun IconShapePreview(
     strokeColor: Color = MaterialTheme.colorScheme.primary,
     fillColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
 ) {
-    val path = iconShape.getMaskPath().asComposePath()
-
-    var translated = remember { false }
-    fun translatePath(canvasWidth: Float, canvasHeight: Float) {
-        if (!translated) {
-            translated = true
-            val pathHeight = path.getBounds().size.height
-            val pathWidth = path.getBounds().size.width
-            path.translate(
-                Offset(
-                    x = (canvasWidth - pathWidth) / 2,
-                    y = (canvasHeight - pathHeight) / 2,
-                ),
-            )
-        }
+    val path = remember(iconShape) {
+        iconShape.getMaskPath().asComposePath()
     }
+    val bounds = remember(path) { path.getBounds() }
 
     Canvas(
         modifier = modifier.requiredSize(48.dp),
     ) {
-        translatePath(
-            canvasWidth = size.width,
-            canvasHeight = size.height,
-        )
-        drawPath(
-            path = path,
-            color = fillColor,
-        )
-        drawPath(
-            path = path,
-            color = strokeColor,
-            style = Stroke(width = 4f),
-        )
+        val dx = (size.width - bounds.width) / 2f - bounds.left
+        val dy = (size.height - bounds.height) / 2f - bounds.top
+        withTransform({
+            translate(dx, dy)
+        }) {
+            drawPath(
+                path = path,
+                color = fillColor,
+            )
+            drawPath(
+                path = path,
+                color = strokeColor,
+                style = Stroke(width = 4f),
+            )
+        }
     }
 }

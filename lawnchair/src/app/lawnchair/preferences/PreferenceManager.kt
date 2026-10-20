@@ -172,6 +172,7 @@ class PreferenceManager @Inject constructor(
     val wallpaperBlurFactorThreshold = FloatPref("pref_wallpaperBlurFactor", 3.0F, recreate)
 
     val drawerList = BoolPref("pref_drawerList", true, recreate)
+    val drawerSmartCategories = BoolPref("drawer_smart_categories", true, recreate)
     val folderApps = BoolPref("pref_hideFolderApps", true, reloadGrid)
 
     val recentsActionScreenshot = BoolPref("pref_recentsActionScreenshot", !isOnePlusStock)

@@ -9,17 +9,26 @@ secret, so issue keys with scripts/issue_pro_key.py instead. Don't run `init` to
 key: a new key pair signs licenses that every shipped build rejects.
 """
 
+from __future__ import annotations
+
 import argparse
 import datetime
+import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
+import urllib.request
 
 MAGIC = b"EP"
 SCHEMA_VERSION = 1
+
+DEFAULT_WORKER_URL = "https://expressive-pro-activation.daryldenson-apps.workers.dev"
+DEFAULT_TOKEN_PATH = Path.home() / ".config/expressive/admin_token"
 
 TYPE_TESTER = 1
 TYPE_GIVEAWAY = 2
@@ -307,7 +316,50 @@ def verify_and_inspect_key(key_str: str, public_key_path: Path) -> dict:
     }
 
 
-def main():
+def load_admin_token(explicit: str | None = None, env: dict = os.environ, token_path: Path = DEFAULT_TOKEN_PATH) -> str:
+    if explicit:
+        return explicit.strip()
+    if env.get("EXPRESSIVE_PRO_ADMIN_TOKEN"):
+        return env["EXPRESSIVE_PRO_ADMIN_TOKEN"].strip()
+    if token_path.is_file():
+        return token_path.read_text(encoding="utf-8").strip()
+    raise SystemExit(
+        f"No admin token: pass --token, set EXPRESSIVE_PRO_ADMIN_TOKEN, or save it to {token_path}"
+    )
+
+
+def register_keys_with_worker(
+    url: str,
+    token: str,
+    items: list[dict],
+    opener=urllib.request.urlopen,
+) -> dict:
+    """Register one or more signed keys with the Cloudflare Worker via POST /api/admin/register."""
+    body = {"keys": items} if len(items) > 1 else items[0]
+    req = urllib.request.Request(
+        url.rstrip("/") + "/api/admin/register",
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "User-Agent": "expressive-generate-pro-key/1",
+        },
+    )
+    try:
+        with opener(req, timeout=30) as res:
+            return json.loads(res.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        try:
+            data = json.loads(detail)
+            detail = data.get("message") or data.get("error") or detail
+        except json.JSONDecodeError:
+            pass
+        raise SystemExit(f"Worker refused registration (HTTP {e.code}): {detail}")
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -317,29 +369,49 @@ def main():
     p_init.add_argument("--public-key", type=Path, default=DEFAULT_PUBLIC_KEY_PATH)
 
     # create
-    p_create = subparsers.add_parser("create", help="Create a signed license key")
+    p_create = subparsers.add_parser("create", help="Create a signed license key offline")
     p_create.add_argument("--recipient", help="Recipient name, handle, or ID")
     p_create.add_argument("--device", help="Device ID (e.g. DEV-A1B2-C3D4) to bind this license to")
     p_create.add_argument("--account", help="Account email (e.g. user@example.com) to bind this license to")
     p_create.add_argument("--type", choices=["TESTER", "GIVEAWAY", "VIP", "DEV", "CAKEY"], default="TESTER")
     p_create.add_argument("--expires", default="never", help="Duration (e.g. 30d, 90d, 1y) or 'never'")
     p_create.add_argument("--private-key", type=Path, default=DEFAULT_PRIVATE_KEY_PATH)
+    p_create.add_argument("--register", action="store_true", help="Register the key with Cloudflare Worker service")
+    p_create.add_argument("--url", default=os.environ.get("EXPRESSIVE_PRO_WORKER_URL", DEFAULT_WORKER_URL), help="Worker URL")
+    p_create.add_argument("--token", help="Admin token for worker authentication")
+    p_create.add_argument("--transaction-id", help="Optional transaction ID for reference / recovery")
 
     # batch
-    p_batch = subparsers.add_parser("batch", help="Batch generate multiple giveaway / tester keys")
+    p_batch = subparsers.add_parser("batch", help="Batch generate multiple giveaway / tester keys offline")
     p_batch.add_argument("--count", type=int, default=10, help="Number of keys to generate")
     p_batch.add_argument("--type", choices=["TESTER", "GIVEAWAY", "VIP", "DEV", "CAKEY"], default="GIVEAWAY")
     p_batch.add_argument("--prefix", default="giveaway-", help="Recipient label prefix")
     p_batch.add_argument("--expires", default="never", help="Duration (e.g. 30d, 1y) or 'never'")
     p_batch.add_argument("--output", type=Path, help="Optional output text file path")
     p_batch.add_argument("--private-key", type=Path, default=DEFAULT_PRIVATE_KEY_PATH)
+    p_batch.add_argument("--register", action="store_true", help="Register all batch keys with Cloudflare Worker service")
+    p_batch.add_argument("--url", default=os.environ.get("EXPRESSIVE_PRO_WORKER_URL", DEFAULT_WORKER_URL), help="Worker URL")
+    p_batch.add_argument("--token", help="Admin token for worker authentication")
+
+    # register
+    p_reg = subparsers.add_parser("register", help="Register an offline license key with the Cloudflare Worker service")
+    p_reg.add_argument("--key", required=True, help="License key string (e.g. EXPR-PRO-...)")
+    p_reg.add_argument("--device", help="Device ID override (DEV-XXXX-XXXX)")
+    p_reg.add_argument("--transaction-id", help="Optional transaction or reference ID")
+    p_reg.add_argument("--url", default=os.environ.get("EXPRESSIVE_PRO_WORKER_URL", DEFAULT_WORKER_URL), help="Worker URL")
+    p_reg.add_argument("--token", help="Admin token for worker authentication")
 
     # inspect
-    p_inspect = subparsers.add_parser("inspect", help="Verify and inspect a license key")
+    p_inspect = subparsers.add_parser("inspect", help="Verify and inspect a license key offline")
     p_inspect.add_argument("--key", required=True, help="License key string")
     p_inspect.add_argument("--public-key", type=Path, default=DEFAULT_PUBLIC_KEY_PATH)
 
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
 
     if args.command == "init":
         priv, pub = ensure_key_pair(args.private_key, args.public_key)
@@ -378,7 +450,18 @@ def main():
         print(f"Type      : {args.type}")
         print(f"Expires   : {args.expires} ({'Lifetime' if expires_at == 0 else datetime.datetime.fromtimestamp(expires_at, tz=datetime.timezone.utc)})")
         print(f"\nLicense Key:\n{key}")
-        print(f"\nOne-Tap Deep Link:\n{deep_link}\n")
+        print(f"\nOne-Tap Deep Link:\n{deep_link}")
+
+        if args.register:
+            token = load_admin_token(args.token, os.environ, DEFAULT_TOKEN_PATH)
+            reg_item = {"key": key}
+            if args.device:
+                reg_item["device"] = args.device.strip().upper()
+            if args.transaction_id:
+                reg_item["transaction_id"] = args.transaction_id.strip()
+            reg_result = register_keys_with_worker(args.url, token, [reg_item])
+            print(f"\nRegistered to Worker : SUCCESS ({reg_result.get('registered', 1)} key registered at {args.url})")
+        print()
 
     elif args.command == "batch":
         if not args.private_key.is_file():
@@ -403,6 +486,30 @@ def main():
         else:
             print(f"\n=== Generated {args.count} {args.type} Keys ===")
             print(output_text)
+
+        if args.register:
+            token = load_admin_token(args.token, os.environ, DEFAULT_TOKEN_PATH)
+            reg_items = [{"key": k, "recipient": r} for r, k, dl in results]
+            reg_result = register_keys_with_worker(args.url, token, reg_items)
+            print(f"Registered {reg_result.get('registered', len(results))} keys with Worker at {args.url}")
+
+    elif args.command == "register":
+        token = load_admin_token(args.token, os.environ, DEFAULT_TOKEN_PATH)
+        reg_item = {"key": args.key.strip()}
+        if args.device:
+            reg_item["device"] = args.device.strip().upper()
+        if args.transaction_id:
+            reg_item["transaction_id"] = args.transaction_id.strip()
+        reg_result = register_keys_with_worker(args.url, token, [reg_item])
+        print("\n=== Expressive Pro License Registered to Cloudflare Worker ===")
+        for k in reg_result.get("keys", []):
+            print(f"Key        : {k.get('key')}")
+            print(f"Recipient  : {k.get('recipient')}")
+            if k.get("device"):
+                print(f"Device     : {k.get('device')}")
+            print(f"Type       : {k.get('type')}")
+            print(f"Deep Link  : {k.get('deepLink')}")
+        print(f"Worker URL : {args.url}\n")
 
     elif args.command == "inspect":
         pub = args.public_key

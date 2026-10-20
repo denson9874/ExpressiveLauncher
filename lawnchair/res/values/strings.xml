@@ -1215,10 +1215,28 @@
 
     <string name="please_wait">Please wait…</string>
 
-    <!-- Folder widget -->
+    <!-- Folder widget & Cover Folders -->
     <string name="folder_widget_add_apps">Add apps</string>
     <string name="folder_widget_open_folder">Open folder</string>
     <string name="folder_widget_make_widget">Make widget</string>
+    <string name="folder_cover_enable">Enable cover</string>
+    <string name="folder_cover_disable">Disable cover</string>
+    <string name="folder_cover_mode_title">Folder covers</string>
+    <string name="folder_cover_mode_desc">Tap launches the first app; swipe up opens the folder</string>
+    <string name="smart_category_tabs_title">Smart category tabs</string>
+    <string name="smart_category_tabs_desc">Automatically categorize app drawer apps into tabs using system categories</string>
+    <string name="drawer_smart_categories_title">Smart Categories</string>
+    <string name="drawer_smart_categories_description">Show smart category filter tabs at the top of the app drawer</string>
+    <string name="category_tab_all">All</string>
+    <string name="category_tab_games">Games</string>
+    <string name="category_tab_media">Media</string>
+    <string name="category_tab_social">Social</string>
+    <string name="category_tab_work">Work</string>
+    <string name="category_tab_utilities">Utilities</string>
+    <string name="smartspace_now_playing_title">Now Playing in Smartspace</string>
+    <string name="smartspace_now_playing_desc">Display current media track and playback controls on the home screen</string>
+    <string name="smartspace_bt_battery_title">Bluetooth device battery</string>
+    <string name="smartspace_bt_battery_desc">Show connected headphones or watch battery levels in Smartspace</string>
     <string name="folder_more_options">More options</string>
     <string name="folder_widget_make_folder">Make normal folder</string>
     <string name="folder_widget_customize">Customize</string>

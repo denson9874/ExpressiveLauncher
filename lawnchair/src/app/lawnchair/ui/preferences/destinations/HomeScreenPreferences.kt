@@ -50,9 +50,9 @@ import app.lawnchair.ui.preferences.components.controls.SwitchPreference
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.lawnchair.ui.preferences.navigation.Dock
 import app.lawnchair.ui.preferences.navigation.HomeScreenGrid
-import app.lawnchair.util.collectAsStateBlocking
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.LauncherSettings
@@ -305,7 +305,8 @@ fun HomeScreenPreferences(
             }
         }
         val overrideRepo = IconOverrideRepository.INSTANCE.get(LocalContext.current)
-        val customIconsCount by remember { overrideRepo.observeCount() }.collectAsStateBlocking()
+        val customIconsCount by remember { overrideRepo.observeCount() }
+            .collectAsStateWithLifecycle(initialValue = 0)
         if (customIconsCount > 0) {
             PreferenceGroup {
                 ClickablePreference(

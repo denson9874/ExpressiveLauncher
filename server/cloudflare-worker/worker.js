@@ -83,7 +83,12 @@ export default {
         return await handleAdminIssue(request, env);
       }
 
-      // 7. Web Deep Link Redirect / Launcher Activation Page
+      // 7. Owner-only key registration (registers an offline-generated key into KV)
+      if (url.pathname === "/api/admin/register" && request.method === "POST") {
+        return await handleAdminRegister(request, env);
+      }
+
+      // 8. Web Deep Link Redirect / Launcher Activation Page
       if (url.pathname === "/activate" && request.method === "GET") {
         return handleActivationRedirect(url);
       }
@@ -689,6 +694,19 @@ async function handleAdminIssue(request, env, now = Date.now()) {
   }
 
   if (env.EXPRESSIVE_PRO_KV) {
+    if (body.device && keys.length === 1) {
+      const devId = String(body.device).trim().toUpperCase();
+      await env.EXPRESSIVE_PRO_KV.put(
+        `license:device:${devId}`,
+        JSON.stringify({
+          key: keys[0].key,
+          recipient: keys[0].recipient,
+          createdAt: new Date(now).toISOString(),
+          type: typeName,
+          expiresAt,
+        })
+      );
+    }
     // A record of what was issued, since the keys can't be regenerated offline any more.
     const id = `${Math.floor(now / 1000)}-${crypto.randomUUID().slice(0, 8)}`;
     await env.EXPRESSIVE_PRO_KV.put(
@@ -698,6 +716,124 @@ async function handleAdminIssue(request, env, now = Date.now()) {
   }
 
   return jsonResponse({ success: true, type: typeName, expiresAt, keys });
+}
+
+/**
+ * Handle POST /api/admin/register (Authorization: Bearer <ADMIN_TOKEN>).
+ *
+ * Registers one or more offline-generated EXPR-PRO keys into Cloudflare KV.
+ * Body can be a single item:
+ *   { key: "EXPR-PRO-...", device?: "DEV-...", transaction_id?: "..." }
+ * Or a batch:
+ *   { keys: [ { key: "...", device?: "...", transaction_id?: "..." }, ... ] }
+ */
+async function handleAdminRegister(request, env, now = Date.now()) {
+  if (!env.ADMIN_TOKEN) {
+    return jsonResponse({ error: "Endpoint not found" }, 404);
+  }
+  const header = request.headers.get("Authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  if (!(await secretsEqual(token, env.ADMIN_TOKEN))) {
+    return jsonResponse({ success: false, error: "unauthorized" }, 401);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+
+  const items = [];
+  if (Array.isArray(body?.keys)) {
+    if (body.keys.length === 0 || body.keys.length > ADMIN_BATCH_LIMIT) {
+      return badAdminRequest(`keys array must contain between 1 and ${ADMIN_BATCH_LIMIT} items`);
+    }
+    for (const item of body.keys) {
+      if (!item?.key) return badAdminRequest("each item in keys must include a key string");
+      items.push({
+        key: String(item.key).trim(),
+        device: item.device ? String(item.device).trim().toUpperCase() : null,
+        transactionId: item.transaction_id ? String(item.transaction_id).trim() : null,
+      });
+    }
+  } else if (body?.key) {
+    items.push({
+      key: String(body.key).trim(),
+      device: body.device ? String(body.device).trim().toUpperCase() : null,
+      transactionId: body.transaction_id ? String(body.transaction_id).trim() : null,
+    });
+  } else {
+    return badAdminRequest("request body must provide 'key' or 'keys' array");
+  }
+
+  const registeredKeys = [];
+  const nowSeconds = Math.floor(now / 1000);
+
+  for (const item of items) {
+    const license = await parseSignedKey(item.key, env);
+    if (!license) {
+      return badAdminRequest(`Key signature, CRC, or format is invalid: ${item.key}`);
+    }
+    if (license.expiresAt > 0 && nowSeconds > license.expiresAt) {
+      return badAdminRequest(`Key is already expired: ${item.key}`);
+    }
+
+    let boundDevice = item.device || boundDeviceOf(license.recipient);
+    if (boundDevice && !DEVICE_ID_PATTERN.test(boundDevice)) {
+      return badAdminRequest(`Invalid device ID '${boundDevice}'; must match DEV-XXXX-XXXX`);
+    }
+
+    const typeName = Object.keys(ADMIN_TYPES).find((k) => ADMIN_TYPES[k] === license.type) || `TYPE_${license.type}`;
+    const txId = item.transactionId || `OFFLINE-${nowSeconds}-${crypto.randomUUID().slice(0, 6)}`;
+
+    const record = {
+      key: item.key,
+      recipient: license.recipient,
+      deviceId: boundDevice || undefined,
+      transactionId: txId,
+      type: typeName,
+      expiresAt: license.expiresAt,
+      createdAt: new Date(now).toISOString(),
+    };
+
+    if (env.EXPRESSIVE_PRO_KV) {
+      if (boundDevice) {
+        await env.EXPRESSIVE_PRO_KV.put(`license:device:${boundDevice}`, JSON.stringify(record));
+      }
+      if (item.transactionId) {
+        await env.EXPRESSIVE_PRO_KV.put(`tx:${item.transactionId}`, JSON.stringify(record));
+      }
+    }
+
+    registeredKeys.push({
+      key: item.key,
+      recipient: license.recipient,
+      device: boundDevice,
+      type: typeName,
+      expiresAt: license.expiresAt,
+      transactionId: txId,
+      deepLink: `expressive://pro/activate?key=${item.key}`,
+    });
+  }
+
+  if (env.EXPRESSIVE_PRO_KV) {
+    const auditId = `${nowSeconds}-${crypto.randomUUID().slice(0, 8)}`;
+    await env.EXPRESSIVE_PRO_KV.put(
+      `admin:registered:${auditId}`,
+      JSON.stringify({
+        count: registeredKeys.length,
+        keys: registeredKeys,
+        createdAt: new Date(now).toISOString(),
+      })
+    );
+  }
+
+  return jsonResponse({
+    success: true,
+    registered: registeredKeys.length,
+    keys: registeredKeys,
+  });
 }
 
 function badAdminRequest(message) {
@@ -1231,6 +1367,7 @@ export {
   handleRebind,
   handleVerifyDonation,
   handleAdminIssue,
+  handleAdminRegister,
   parseSignedKey,
   generateProLicense,
   TYPE_TRIAL,

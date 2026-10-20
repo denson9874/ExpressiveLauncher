@@ -60,7 +60,7 @@ class CardPagerAdapter(context: Context) : PagerAdapter() {
         return POSITION_UNCHANGED
     }
 
-    private fun getTargetAtPosition(position: Int): SmartspaceTarget? {
+    fun getTargetAtPosition(position: Int): SmartspaceTarget? {
         if (position !in 0 until smartspaceTargets.size) {
             return null
         }

@@ -31,6 +31,7 @@ import app.lawnchair.preferences2.asState
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.preferences2.preferenceManager2
 import com.android.launcher3.InvariantDeviceProfile
+import com.patrykmichalik.opto.core.PreferenceImpl
 import com.patrykmichalik.opto.domain.Preference
 import kotlin.reflect.KProperty
 import kotlinx.coroutines.launch
@@ -64,8 +65,8 @@ class PreferenceAdapterImpl<T>(
     override val state: State<T> get() = stateInternal
 
     override fun onChange(newValue: T) {
-        set(newValue)
         stateInternal.value = newValue
+        set(newValue)
     }
 
     override fun onPreferenceChange() {
@@ -74,12 +75,16 @@ class PreferenceAdapterImpl<T>(
 }
 
 private class StatePreferenceAdapter<T>(
-    override val state: State<T>,
-    private val set: (T) -> Unit,
+    private val flowState: State<T>,
+    private val localState: MutableState<T?>,
+    private val onChangeAction: (T) -> Unit,
 ) : PreferenceAdapter<T> {
+    override val state: State<T> = derivedStateOf {
+        localState.value ?: flowState.value
+    }
 
     override fun onChange(newValue: T) {
-        set(newValue)
+        onChangeAction(newValue)
     }
 }
 
@@ -119,8 +124,16 @@ private fun <P, T> getAdapter(
 }
 
 @Composable
-fun <T> Preference<T, *, *>.getAdapter(): PreferenceAdapter<T> {
+fun <T> PreferenceImpl<T, *>.getAdapter(): PreferenceAdapter<T> {
     return createStateAdapter(state = asState(), set = this::set)
+}
+
+@Composable
+fun <T> Preference<T, *, *>.getAdapter(): PreferenceAdapter<T> {
+    return when (this) {
+        is PreferenceImpl<T, *> -> getAdapter()
+        else -> createStateAdapter(state = asState(), set = this::set)
+    }
 }
 
 @Composable
@@ -139,10 +152,27 @@ private fun <T> createStateAdapter(
     set: suspend (T) -> Unit,
 ): PreferenceAdapter<T> {
     val scope = rememberCoroutineScope()
-    return remember {
-        StatePreferenceAdapter(state) {
-            scope.launch { set(it) }
-        }
+    val localState = remember { mutableStateOf<T?>(null) }
+
+    if (localState.value != null && localState.value == state.value) {
+        localState.value = null
+    }
+
+    return remember(state) {
+        StatePreferenceAdapter(
+            flowState = state,
+            localState = localState,
+            onChangeAction = { newValue ->
+                localState.value = newValue
+                scope.launch {
+                    try {
+                        set(newValue)
+                    } catch (_: Throwable) {
+                        localState.value = null
+                    }
+                }
+            },
+        )
     }
 }
 

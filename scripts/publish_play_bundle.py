@@ -9,6 +9,7 @@ import argparse
 import base64
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
@@ -243,8 +244,8 @@ def publish(package_name: str, key_path: str, bundle_path: str, track: str, chan
 def find_default_key_file() -> str:
     candidates = [
         os.environ.get("PLAY_STORE_JSON_KEY"),
-        "/Users/daryldenson/Documents/Expressive Launcher Signing/play-service-account.json",
-        "/Users/daryldenson/Documents/Expressive Launcher Signing/expressive-launcher-l3-bc48b467b47e.json",
+        str(Path.home() / "Expressive Launcher Signing/play-service-account.json"),
+        str(Path.home() / "Expressive Launcher Signing/expressive-launcher-l3-bc48b467b47e.json"),
     ]
     for c in candidates:
         if c and os.path.exists(c):

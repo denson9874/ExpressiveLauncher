@@ -6,8 +6,8 @@ pipeline {
         booleanParam(name: 'PROMOTE_QA_FEED', defaultValue: false, description: 'Publish the verified GitHub Core QA prerelease and advance only the Core QA update manifest')
     }
     environment {
-        SOURCE_REPOSITORY = '/Users/daryldenson/Developer/ExpressiveLauncher'
-        EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
+        SOURCE_REPOSITORY = '/Users/densond/Developer/ExpressiveLauncher'
+        EXPRESSIVE_CI_HOME = '/Users/densond/Library/Application Support/Expressive CI'
         PATH = '/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }
     stages {

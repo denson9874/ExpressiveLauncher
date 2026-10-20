@@ -3,13 +3,25 @@
 set -euo pipefail
 umask 077
 
+# This creates a NEW release key. Every published APK is signed with the existing key (certificate
+# SHA-256 C1:41:60:30:…:D0:D2), and an APK signed with any other key cannot update installed copies.
+# To restore after a reinstall, copy expressive-launcher-release.jks and release-credentials.properties
+# from the signing backup and point keystore.properties' storeFile at the copy instead.
+if [[ "${1:-}" != "--create-new-key" ]]; then
+    print -u2 "Refusing to create a new release key without --create-new-key (see the comment above)."
+    exit 1
+fi
+
 script_dir=${0:A:h}
 repository_dir=${script_dir:h}
 signing_dir="${EXPRESSIVE_SIGNING_DIR:-${repository_dir:h:h}/Expressive Launcher Signing}"
 keystore_path="$signing_dir/expressive-launcher-release.jks"
 backup_properties_path="$signing_dir/release-credentials.properties"
 repository_properties_path="$repository_dir/keystore.properties"
-keytool_path="/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/keytool"
+keytool_path=$(which keytool || true)
+if [[ -z "$keytool_path" && -x "/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/keytool" ]]; then
+    keytool_path="/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/keytool"
+fi
 key_alias="expressive-launcher-release"
 
 for target_path in "$keystore_path" "$backup_properties_path" "$repository_properties_path"; do

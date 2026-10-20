@@ -5,12 +5,12 @@ pipeline {
         string(name: 'VALIDATION_QA_RELEASE_ID', defaultValue: '', description: 'Optional explicit QA selection using current clean HEAD (legacy parameter name). Every successful sealed stable build publishes automatically. Leave empty for Saturday source selection.')
     }
     environment {
-        SOURCE_REPOSITORY = '/Users/daryldenson/Developer/ExpressiveLauncher'
-        EXPRESSIVE_CI_HOME = '/Users/daryldenson/Library/Application Support/Expressive CI'
-        ANDROID_HOME = '/Users/daryldenson/Library/Android/sdk'
-        ANDROID_SDK_ROOT = '/Users/daryldenson/Library/Android/sdk'
+        SOURCE_REPOSITORY = '/Users/densond/Developer/ExpressiveLauncher'
+        EXPRESSIVE_CI_HOME = '/Users/densond/Library/Application Support/Expressive CI'
+        ANDROID_HOME = '/Users/densond/Library/Android/sdk'
+        ANDROID_SDK_ROOT = '/Users/densond/Library/Android/sdk'
         JAVA_HOME = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
-        EXPRESSIVE_KEYSTORE_PROPERTIES = '/Users/daryldenson/Developer/ExpressiveLauncher/keystore.properties'
+        EXPRESSIVE_KEYSTORE_PROPERTIES = '/Users/densond/Developer/ExpressiveLauncher/keystore.properties'
         PATH = '/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }
     stages {

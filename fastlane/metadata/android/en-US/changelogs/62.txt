@@ -1,0 +1,6 @@
+Expressive Launcher 5.0.0
+• Cover folders: tap opens the first app, swipe up opens the folder
+• Smart category tabs in the app drawer (Games, Media, Social, Utilities)
+• Smartspace: Bluetooth headphone battery, now playing, faster start
+• Smoother settings toggles
+• Pro licenses move to your device after a reset or reinstall

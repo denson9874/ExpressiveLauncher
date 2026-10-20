@@ -33,6 +33,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -40,9 +41,11 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Property;
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewDebug;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -50,6 +53,7 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import app.lawnchair.folder.widget.FolderWidgetView;
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.Alarm;
 import com.android.launcher3.BubbleTextView;
@@ -80,6 +84,7 @@ import com.android.launcher3.model.data.AppPairInfo;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.FolderInfo.LabelState;
 import com.android.launcher3.model.data.ItemInfo;
+import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemFactory;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.MultiTranslateDelegate;
@@ -142,6 +147,22 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
     private float mScaleForReorderBounce = 1f;
 
+    private float mTouchDownX;
+    private float mTouchDownY;
+    private boolean mCoverSwipeHandled;
+    private float mTouchSlop;
+    private Drawable mCoverIconDrawable = null;
+    private ItemInfo mCoverItem = null;
+
+    private static final Paint sCoverBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint sCoverBadgeStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    static {
+        sCoverBadgePaint.setStyle(Paint.Style.FILL);
+        sCoverBadgeStrokePaint.setColor(Color.WHITE);
+        sCoverBadgeStrokePaint.setStyle(Paint.Style.STROKE);
+        sCoverBadgeStrokePaint.setStrokeCap(Paint.Cap.ROUND);
+    }
+
     private static final Property<FolderIcon, Float> DOT_SCALE_PROPERTY
             = new Property<FolderIcon, Float>(Float.TYPE, "dotScale") {
         @Override
@@ -171,6 +192,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         mPreviewLayoutRule = new ClippedFolderIconLayoutRule();
         mPreviewItemManager = new PreviewItemManager(this);
         mDotParams = new DotRenderer.DrawParams();
+        mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
     }
 
     public static <T extends Context & ActivityContext> FolderIcon inflateFolderAndIcon(int resId,
@@ -599,6 +621,15 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
         if (!mBackgroundIsVisible) return;
 
+        if (mInfo != null && mInfo.isCover() && !mInfo.hasOption(FolderInfo.FLAG_FOLDER_WIDGET)
+                && !mInfo.getContents().isEmpty() && !(this instanceof FolderWidgetView)) {
+            ItemInfo firstItem = mInfo.getContents().get(0);
+            drawCoverAppIcon(canvas, firstItem);
+            drawDot(canvas);
+            drawCoverBadge(canvas);
+            return;
+        }
+
         mPreviewItemManager.recomputePreviewDrawingParams();
 
         if (!mBackground.drawingDelegated()) {
@@ -614,6 +645,57 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         }
 
         drawDot(canvas);
+        drawCoverBadge(canvas);
+    }
+
+    private Drawable getCoverAppDrawable(ItemInfo item) {
+        if (item == null) return null;
+        if (mCoverItem == item && mCoverIconDrawable != null) {
+            return mCoverIconDrawable;
+        }
+        Context context = getContext();
+        int iconSize = mActivity.getDeviceProfile().iconSizePx;
+        Drawable d = null;
+        if (item instanceof WorkspaceItemInfo wii) {
+            d = wii.newIcon(context);
+        } else if (item instanceof ItemInfoWithIcon withIcon) {
+            d = withIcon.newIcon(context);
+        }
+        if (d != null) {
+            d.setBounds(0, 0, iconSize, iconSize);
+            d.setCallback(this);
+            mCoverIconDrawable = d;
+            mCoverItem = item;
+        }
+        return d;
+    }
+
+    private void drawCoverAppIcon(Canvas canvas, ItemInfo firstItem) {
+        Drawable icon = getCoverAppDrawable(firstItem);
+        if (icon == null) return;
+        int iconSize = mActivity.getDeviceProfile().iconSizePx;
+        int left = (getWidth() - iconSize) / 2;
+        int top = getPaddingTop();
+        canvas.save();
+        canvas.translate(left, top);
+        icon.draw(canvas);
+        canvas.restore();
+    }
+
+    private void drawCoverBadge(Canvas canvas) {
+        if (mInfo == null || !mInfo.isCover() || !mBackgroundIsVisible) return;
+        int iconSize = mActivity.getDeviceProfile().iconSizePx;
+        float badgeRadius = iconSize * 0.14f;
+        float cx = (getWidth() + iconSize) / 2f - badgeRadius * 1.3f;
+        float cy = getPaddingTop() + iconSize - badgeRadius * 1.3f;
+
+        sCoverBadgePaint.setColor(mBackground.getDotColor());
+        canvas.drawCircle(cx, cy, badgeRadius, sCoverBadgePaint);
+
+        sCoverBadgeStrokePaint.setStrokeWidth(badgeRadius * 0.35f);
+        float arm = badgeRadius * 0.45f;
+        canvas.drawLine(cx - arm, cy + arm * 0.4f, cx, cy - arm * 0.4f, sCoverBadgeStrokePaint);
+        canvas.drawLine(cx, cy - arm * 0.4f, cx + arm, cy + arm * 0.4f, sCoverBadgeStrokePaint);
     }
 
     public void drawDot(Canvas canvas) {
@@ -672,7 +754,9 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
     @Override
     protected boolean verifyDrawable(@NonNull Drawable who) {
-        return mPreviewItemManager.verifyDrawable(who) || super.verifyDrawable(who);
+        return (mCoverIconDrawable != null && mCoverIconDrawable == who)
+                || mPreviewItemManager.verifyDrawable(who)
+                || super.verifyDrawable(who);
     }
 
     private void updatePreviewItems(boolean animate) {
@@ -689,6 +773,8 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     public void onItemsChanged(boolean animate) {
+        mCoverItem = null;
+        mCoverIconDrawable = null;
         updatePreviewItems(false);
         updateDotInfo();
         setContentDescription(getAccessiblityTitle(mInfo.title));
@@ -707,6 +793,41 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         if (event.getAction() == MotionEvent.ACTION_DOWN
                 && shouldIgnoreTouchDown(event.getX(), event.getY())) {
             return false;
+        }
+
+        if (mInfo != null && mInfo.isCover() && !mInfo.hasOption(FolderInfo.FLAG_FOLDER_WIDGET)
+                && !(this instanceof FolderWidgetView)) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    mTouchDownX = event.getX();
+                    mTouchDownY = event.getY();
+                    mCoverSwipeHandled = false;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (!mCoverSwipeHandled) {
+                        float dy = mTouchDownY - event.getY();
+                        float dx = Math.abs(event.getX() - mTouchDownX);
+                        float slop = mTouchSlop > 0 ? mTouchSlop : ViewConfiguration.get(getContext()).getScaledTouchSlop();
+                        if (dy > slop * 1.5f && dy > dx) {
+                            mCoverSwipeHandled = true;
+                            performHapticFeedback(HapticFeedbackConstants.GESTURE_START);
+                            cancelLongPress();
+                            setPressed(false);
+                            if (mFolder != null && !mFolder.isOpen() && !mFolder.isDestroyed()) {
+                                mFolder.animateOpen();
+                            }
+                            return true;
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (mCoverSwipeHandled) {
+                        setPressed(false);
+                        return true;
+                    }
+                    break;
+            }
         }
 
         // Call the superclass onTouchEvent first, because sometimes it changes the state to

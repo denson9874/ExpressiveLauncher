@@ -34,7 +34,10 @@ object FolderWidgetMenus {
             R.string.folder_widget_make_folder,
             R.string.folder_widget_remove,
         )
-        else -> listOf(R.string.folder_widget_make_widget)
+        else -> listOf(
+            R.string.folder_widget_make_widget,
+            if (info.isCover) R.string.folder_cover_disable else R.string.folder_cover_enable,
+        )
     }
 
     /** Whether a long-press on this folder shows its menu. */
@@ -50,21 +53,22 @@ object FolderWidgetMenus {
         }
 
     /**
-     * The open folder's ⋮ button: shows the footer action (Make widget / Make normal folder) in a
-     * small menu, so converting takes a deliberate second tap (community request TG-002).
-     * Returns false when the folder has no footer action.
+     * The open folder's ⋮ button: shows the folder actions (Make widget, Cover toggle, etc.) in a
+     * small menu, so converting takes a deliberate second tap.
      */
     @JvmStatic
     fun showFooterOverflow(launcher: Launcher, icon: FolderIcon, anchor: View): Boolean {
-        val action = footerActionFor(icon.mInfo, FolderWidgetController.isHomeLocked(launcher))
-            ?: return false
+        val actions = itemsFor(icon.mInfo, FolderWidgetController.isHomeLocked(launcher))
+        if (actions.isEmpty()) return false
         val bounds = Rect()
         launcher.dragLayer.getDescendantRectRelativeToSelf(anchor, bounds)
-        val item = OptionItem(launcher, action, iconFor(action), LauncherEvent.IGNORE) { _: View ->
-            runAction(launcher, icon, action)
-            true
+        val items = actions.map { action ->
+            OptionItem(launcher, action, iconFor(action), LauncherEvent.IGNORE) { _: View ->
+                runAction(launcher, icon, action)
+                true
+            }
         }
-        OptionsPopupView.show<Launcher>(launcher, RectF(bounds), listOf(item), true)
+        OptionsPopupView.show<Launcher>(launcher, RectF(bounds), items, true)
         return true
     }
 
@@ -116,6 +120,11 @@ object FolderWidgetMenus {
                 (icon as? FolderWidgetView)?.let { FolderWidgetController.confirmRemove(launcher, it) }
             R.string.folder_widget_customize ->
                 (icon as? FolderWidgetView)?.let { FolderWidgetController.showSettingsSheet(launcher, it) }
+            R.string.folder_cover_enable, R.string.folder_cover_disable -> {
+                val newCover = !icon.mInfo.isCover
+                icon.mInfo.setCover(newCover, launcher.modelWriter)
+                icon.invalidate()
+            }
         }
     }
 
@@ -124,6 +133,7 @@ object FolderWidgetMenus {
         R.string.folder_widget_make_widget -> R.drawable.ic_widget
         R.string.folder_widget_customize -> R.drawable.ic_palette
         R.string.folder_widget_make_folder -> R.drawable.ic_folder
+        R.string.folder_cover_enable, R.string.folder_cover_disable -> R.drawable.ic_folder
         else -> R.drawable.ic_remove_no_shadow
     }
 }

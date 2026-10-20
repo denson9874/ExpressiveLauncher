@@ -45,6 +45,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Toast;
 
+import app.lawnchair.folder.widget.FolderWidgetView;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.BuildConfig;
 import com.android.launcher3.Flags;
@@ -140,7 +141,21 @@ public class ItemClickHandler {
      * @param v The view that was clicked. Must be an instance of {@link FolderIcon}.
      */
     private static void onClickFolderIcon(View v) {
-        Folder folder = ((FolderIcon) v).getFolder();
+        FolderIcon folderIcon = (FolderIcon) v;
+        Folder folder = folderIcon.getFolder();
+        FolderInfo info = folderIcon.mInfo;
+        if (info != null && info.isCover() && !info.hasOption(FolderInfo.FLAG_FOLDER_WIDGET)
+                && !info.getContents().isEmpty() && !(v instanceof FolderWidgetView)) {
+            ItemInfo firstItem = info.getContents().get(0);
+            Launcher launcher = Launcher.getLauncher(v.getContext());
+            if (firstItem instanceof WorkspaceItemInfo wii) {
+                onClickAppShortcut(v, wii, launcher);
+                return;
+            } else if (firstItem instanceof AppInfo ai) {
+                startAppShortcutOrInfoActivity(v, ai, launcher);
+                return;
+            }
+        }
         if (!folder.isOpen() && !folder.isDestroyed()) {
             // Open the requested folder
             folder.animateOpen();

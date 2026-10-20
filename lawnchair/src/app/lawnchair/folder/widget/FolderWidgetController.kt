@@ -135,6 +135,9 @@ object FolderWidgetController {
         info.cellY = target.y
         info.spanX = target.spanX
         info.spanY = target.spanY
+        if (info.isCover) {
+            info.setCover(false, launcher.modelWriter)
+        }
         info.setOption(FolderInfo.FLAG_FOLDER_WIDGET, true, null)
         launcher.modelWriter.updateItemInDatabase(info)
         deleteStyle(launcher, info.id)

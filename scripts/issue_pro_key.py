@@ -12,6 +12,8 @@ Token: --token, else $EXPRESSIVE_PRO_ADMIN_TOKEN, else ~/.config/expressive/admi
   python3 scripts/issue_pro_key.py batch --count 10 --type GIVEAWAY --prefix xda- --output keys.txt
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os

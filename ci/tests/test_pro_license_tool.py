@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import datetime
+import io
+import json
 from pathlib import Path
 import subprocess
 import tempfile
 import time
 import unittest
+import urllib.error
 
 from scripts.generate_pro_key import (
     CROCKFORD_ALPHABET,
@@ -13,12 +18,15 @@ from scripts.generate_pro_key import (
     TYPE_GIVEAWAY,
     TYPE_TESTER,
     build_and_sign_key,
+    build_parser,
     crc16_ccitt,
     crockford_decode,
     crockford_encode,
     ensure_key_pair,
     get_public_key_base64,
+    load_admin_token,
     parse_expiration,
+    register_keys_with_worker,
     verify_and_inspect_key,
 )
 
@@ -145,6 +153,83 @@ class TestProLicenseTool(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             verify_and_inspect_key(key, self.pub_path)
         self.assertIn("signature", str(ctx.exception).lower())
+
+    def test_token_precedence_in_generate_pro_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            token_file = Path(tmp) / "admin_token"
+            token_file.write_text("file-secret\n", encoding="utf-8")
+            self.assertEqual(load_admin_token("flag-secret", {"EXPRESSIVE_PRO_ADMIN_TOKEN": "env-secret"}, token_file), "flag-secret")
+            self.assertEqual(load_admin_token(None, {"EXPRESSIVE_PRO_ADMIN_TOKEN": "env-secret"}, token_file), "env-secret")
+            self.assertEqual(load_admin_token(None, {}, token_file), "file-secret")
+            with self.assertRaises(SystemExit):
+                load_admin_token(None, {}, Path(tmp) / "nonexistent")
+
+    def test_register_keys_with_worker_posts_to_admin_register(self):
+        seen = {}
+        fake_result = {"success": True, "registered": 1, "keys": [{"key": "EXPR-PRO-TEST"}]}
+
+        class FakeResponse(io.BytesIO):
+            def __enter__(self):
+                return self
+            def __exit__(self, *exc):
+                return False
+
+        def opener(req, timeout):
+            seen["url"] = req.full_url
+            seen["auth"] = req.get_header("Authorization")
+            seen["body"] = json.loads(req.data.decode("utf-8"))
+            return FakeResponse(json.dumps(fake_result).encode("utf-8"))
+
+        res = register_keys_with_worker(
+            "https://worker.test",
+            "my-token",
+            [{"key": "EXPR-PRO-TEST", "device": "DEV-A1B2-C3D4"}],
+            opener=opener,
+        )
+        self.assertEqual(res, fake_result)
+        self.assertEqual(seen["url"], "https://worker.test/api/admin/register")
+        self.assertEqual(seen["auth"], "Bearer my-token")
+        self.assertEqual(seen["body"], {"key": "EXPR-PRO-TEST", "device": "DEV-A1B2-C3D4"})
+
+    def test_register_keys_with_worker_posts_batch(self):
+        seen = {}
+        fake_result = {"success": True, "registered": 2, "keys": []}
+
+        class FakeResponse(io.BytesIO):
+            def __enter__(self):
+                return self
+            def __exit__(self, *exc):
+                return False
+
+        def opener(req, timeout):
+            seen["body"] = json.loads(req.data.decode("utf-8"))
+            return FakeResponse(json.dumps(fake_result).encode("utf-8"))
+
+        items = [{"key": "K1"}, {"key": "K2"}]
+        res = register_keys_with_worker("https://worker.test", "tok", items, opener=opener)
+        self.assertEqual(res, fake_result)
+        self.assertEqual(seen["body"], {"keys": items})
+
+    def test_register_keys_with_worker_handles_http_errors(self):
+        def opener(req, timeout):
+            body = io.BytesIO(json.dumps({"error": "invalid_key", "message": "Signature invalid"}).encode("utf-8"))
+            raise urllib.error.HTTPError(req.full_url, 400, "Bad Request", {}, body)
+
+        with self.assertRaises(SystemExit) as ctx:
+            register_keys_with_worker("https://worker.test", "tok", [{"key": "BAD"}], opener=opener)
+        self.assertIn("400", str(ctx.exception))
+        self.assertIn("Signature invalid", str(ctx.exception))
+
+    def test_parser_options(self):
+        parser = build_parser()
+        args_create = parser.parse_args(["create", "--device", "DEV-1111-2222", "--register", "--token", "abc"])
+        self.assertTrue(args_create.register)
+        self.assertEqual(args_create.device, "DEV-1111-2222")
+        self.assertEqual(args_create.token, "abc")
+
+        args_reg = parser.parse_args(["register", "--key", "EXPR-PRO-TEST", "--device", "DEV-3333-4444"])
+        self.assertEqual(args_reg.key, "EXPR-PRO-TEST")
+        self.assertEqual(args_reg.device, "DEV-3333-4444")
 
 
 if __name__ == "__main__":

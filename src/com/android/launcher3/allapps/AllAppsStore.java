@@ -27,6 +27,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import app.lawnchair.data.category.AppCategoryManager;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.ItemInfo;
@@ -105,6 +106,9 @@ public class AllAppsStore<T extends Context & ActivityContext> {
             boolean shouldPreinflate) {
         mApps = apps == null ? EMPTY_ARRAY : apps;
         Log.d(TAG, "setApps: apps.length=" + mApps.length);
+        if (mApps.length > 0) {
+            AppCategoryManager.INSTANCE.get(mContext).indexAppsAsync(mApps);
+        }
         mModelFlags = flags;
         notifyUpdate();
         mPackageUserKeytoUidMap = map;

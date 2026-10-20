@@ -13,6 +13,8 @@ Automates:
 7. Verification & synchronization of the Android launcher's DEFAULT_ACTIVATION_URL in ProActivationService.kt.
 """
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path

@@ -20,6 +20,7 @@ This directory contains the 100% serverless backend for **Expressive Launcher Pr
 | `/api/rebind` | `POST` | `{ key, device_id }`: re-signs a device-bound key for a device whose install ID changed |
 | `/api/trial` | `POST` | Issues the one 7-day trial per device fingerprint |
 | `/api/admin/issue` | `POST` | Owner-only (`Authorization: Bearer <ADMIN_TOKEN>`): signs TESTER / GIVEAWAY / VIP / DEV / CAKEY keys |
+| `/api/admin/register` | `POST` | Owner-only (`Authorization: Bearer <ADMIN_TOKEN>`): registers offline-generated ECDSA keys to KV |
 | `/activate?key=EXPR-PRO-...` | `GET` | Deep link gateway (redirects to `expressive://pro/activate?key=...`) |
 
 ### Moving a license to a reset device
@@ -33,18 +34,31 @@ the same key. Moves are recorded by the `LicenseLedger` Durable Object (binding 
 declared in `wrangler.toml`), which handles one move at a time so parallel requests can't exceed the
 limit; `wrangler deploy` creates it on first deploy.
 
-### Issuing keys by hand
+### Offline key generation and worker registration
 
-The worker holds the only copy of the master private key, so it signs every key. With `ADMIN_TOKEN`
-set on the worker and saved locally (`~/.config/expressive/admin_token` or
-`EXPRESSIVE_PRO_ADMIN_TOKEN`):
+To generate signed keys completely offline and optionally register them to the Cloudflare Worker:
+
+```bash
+# Generate offline and immediately register to Cloudflare KV:
+python3 scripts/generate_pro_key.py create --type CAKEY --device DEV-A1B2-C3D4 --register
+
+# Batch generate offline and register all keys:
+python3 scripts/generate_pro_key.py batch --count 10 --type GIVEAWAY --prefix xda- --register
+
+# Register an already-generated key to Cloudflare Worker:
+python3 scripts/generate_pro_key.py register --key EXPR-PRO-XXXX-... [--device DEV-A1B2-C3D4]
+```
+
+### Issuing keys directly through worker
+
+With `ADMIN_TOKEN` set on the worker and saved locally (`~/.config/expressive/admin_token` or `EXPRESSIVE_PRO_ADMIN_TOKEN`):
 
 ```bash
 python3 scripts/issue_pro_key.py create --type CAKEY --device DEV-A1B2-C3D4
 python3 scripts/issue_pro_key.py batch --count 10 --type GIVEAWAY --prefix xda- --output keys.txt
 ```
 
-Every request is also recorded in KV under `admin:issued:<time>-<id>`.
+Every request is also recorded in KV under `admin:issued:<time>-<id>` or `admin:registered:<time>-<id>`.
 
 ---
 

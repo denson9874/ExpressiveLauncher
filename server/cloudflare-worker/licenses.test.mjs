@@ -6,6 +6,7 @@ import worker, {
   handleRebind,
   handleVerifyDonation,
   handleAdminIssue,
+  handleAdminRegister,
   parseSignedKey,
   generateProLicense,
   LicenseLedger,
@@ -419,3 +420,81 @@ test("routes the new endpoints", async () => {
   assert.equal(moved.status, 200);
   assert.equal((await moved.json()).recipient, `device:${NEW_DEVICE}`);
 });
+
+const adminRegister = (env, body, token = "admin-secret") =>
+  handleAdminRegister(post("/api/admin/register", body, token ? { Authorization: `Bearer ${token}` } : {}), env, NOW);
+
+test("admin register requires valid ADMIN_TOKEN", async () => {
+  const env = await testEnv({ ADMIN_TOKEN: "admin-secret" });
+  const key = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_CAKEY, 0, env);
+  assert.equal((await adminRegister(env, { key }, null)).status, 401);
+  assert.equal((await adminRegister(env, { key }, "bad-token")).status, 401);
+  const noTokenEnv = await testEnv();
+  assert.equal((await adminRegister(noTokenEnv, { key }, "admin-secret")).status, 404);
+});
+
+test("admin registers offline-signed single key and makes it available via /api/license", async () => {
+  const env = await testEnv({ ADMIN_TOKEN: "admin-secret" });
+  const key = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_CAKEY, 0, env);
+  const res = await adminRegister(env, { key, transaction_id: "OFFLINE-TEST-123" });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.success, true);
+  assert.equal(data.registered, 1);
+  assert.equal(data.keys[0].device, OLD_DEVICE);
+  assert.equal(data.keys[0].key, key);
+
+  // Verify KV storage for device lookup
+  const lookupRes = await worker.fetch(
+    new Request(`https://worker.test/api/license?device_id=${OLD_DEVICE}`),
+    env,
+    {}
+  );
+  assert.equal(lookupRes.status, 200);
+  const lookupData = await lookupRes.json();
+  assert.equal(lookupData.success, true);
+  assert.equal(lookupData.key, key);
+
+  // Verify transaction record was saved
+  assert.ok(env.EXPRESSIVE_PRO_KV.map.has("tx:OFFLINE-TEST-123"));
+  assert.equal([...env.EXPRESSIVE_PRO_KV.map.keys()].filter((k) => k.startsWith("admin:registered:")).length, 1);
+});
+
+test("admin registers batch of offline keys", async () => {
+  const env = await testEnv({ ADMIN_TOKEN: "admin-secret" });
+  const key1 = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_CAKEY, 0, env);
+  const key2 = await generateProLicense(`device:${NEW_DEVICE}`, TYPE_VIP, 0, env);
+  const res = await adminRegister(env, {
+    keys: [
+      { key: key1 },
+      { key: key2, transaction_id: "TX-BATCH-2" },
+    ],
+  });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.registered, 2);
+  assert.equal(data.keys[0].device, OLD_DEVICE);
+  assert.equal(data.keys[1].device, NEW_DEVICE);
+
+  assert.ok(env.EXPRESSIVE_PRO_KV.map.has(`license:device:${OLD_DEVICE}`));
+  assert.ok(env.EXPRESSIVE_PRO_KV.map.has(`license:device:${NEW_DEVICE}`));
+  assert.ok(env.EXPRESSIVE_PRO_KV.map.has("tx:TX-BATCH-2"));
+});
+
+test("admin register rejects forged, corrupted, or expired keys", async () => {
+  const env = await testEnv({ ADMIN_TOKEN: "admin-secret" });
+  const otherEnv = await testEnv();
+  const forgedKey = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_CAKEY, 0, otherEnv);
+  const resForged = await adminRegister(env, { key: forgedKey });
+  assert.equal(resForged.status, 400);
+
+  const corruptedKey = "EXPR-PRO-BADKEY-NOTVALID";
+  const resCorrupted = await adminRegister(env, { key: corruptedKey });
+  assert.equal(resCorrupted.status, 400);
+
+  // Expired key
+  const expiredKey = await generateProLicense(`device:${OLD_DEVICE}`, TYPE_CAKEY, Math.floor(NOW / 1000) - 3600, env);
+  const resExpired = await adminRegister(env, { key: expiredKey });
+  assert.equal(resExpired.status, 400);
+});
+

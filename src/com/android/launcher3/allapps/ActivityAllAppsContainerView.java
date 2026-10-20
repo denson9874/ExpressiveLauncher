@@ -34,6 +34,7 @@ import static com.android.window.flags2.Flags.predictiveBackThreeButtonNav;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -119,6 +120,9 @@ import app.lawnchair.allapps.LawnchairAlphabeticalAppsList;
 import app.lawnchair.font.FontManager;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.data.category.AllAppsCategoryTabs;
+import app.lawnchair.data.category.AppCategory;
+import app.lawnchair.data.category.AppCategoryManager;
 import app.lawnchair.theme.color.tokens.ColorTokens;
 import app.lawnchair.util.LawnchairUtilsKt;
 import app.lawnchair.ui.StretchRecyclerViewContainer;
@@ -310,6 +314,12 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         getLayoutInflater().inflate(R.layout.all_apps_content, this);
         mHeader = findViewById(R.id.all_apps_header);
+        AllAppsCategoryTabs categoryTabs = findViewById(R.id.category_tabs);
+        if (categoryTabs != null) {
+            boolean showCategories = PreferenceManager.getInstance(mActivityContext).getDrawerSmartCategories().get();
+            categoryTabs.setVisibility(showCategories ? VISIBLE : GONE);
+            categoryTabs.setOnCategorySelectedListener(this::setCategoryFilter);
+        }
         mAdditionalHeaderRows.clear();
         mAdditionalHeaderRows.addAll(getAdditionalHeaderRows());
         mBottomSheetBackground = findViewById(R.id.bottom_sheet_background);
@@ -1813,6 +1823,45 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     /** Returns the instance of @{code SearchTransitionController}. */
     public SearchTransitionController getSearchTransitionController() {
         return mSearchTransitionController;
+    }
+
+    /** Filters the main and work apps list by the specified Smart Drawer category. */
+    public void setCategoryFilter(@Nullable AppCategory category) {
+        if (mAH == null || mAH.isEmpty()) return;
+        AdapterHolder mainHolder = mAH.get(AdapterHolder.MAIN);
+        if (mainHolder != null && mainHolder.mAppsList != null) {
+            if (category == null || category == AppCategory.ALL) {
+                mainHolder.mAppsList.updateItemFilter(mPersonalMatcher);
+            } else {
+                mainHolder.mAppsList.updateItemFilter(item -> {
+                    if (mPersonalMatcher != null && !mPersonalMatcher.test(item)) {
+                        return false;
+                    }
+                    ComponentName cn = item.getTargetComponent();
+                    if (cn == null) return false;
+                    return AppCategoryManager.INSTANCE.get(getContext()).getCategory(cn.getPackageName()) == category;
+                });
+            }
+        }
+
+        if (mAH.size() > AdapterHolder.WORK) {
+            AdapterHolder workHolder = mAH.get(AdapterHolder.WORK);
+            if (workHolder != null && workHolder.mAppsList != null && mWorkManager != null) {
+                Predicate<ItemInfo> workMatcher = mWorkManager.getItemInfoMatcher();
+                if (category == null || category == AppCategory.ALL) {
+                    workHolder.mAppsList.updateItemFilter(workMatcher);
+                } else {
+                    workHolder.mAppsList.updateItemFilter(item -> {
+                        if (workMatcher != null && !workMatcher.test(item)) {
+                            return false;
+                        }
+                        ComponentName cn = item.getTargetComponent();
+                        if (cn == null) return false;
+                        return AppCategoryManager.INSTANCE.get(getContext()).getCategory(cn.getPackageName()) == category;
+                    });
+                }
+            }
+        }
     }
 
     /** Holds a {@link BaseAllAppsAdapter} and related fields. */

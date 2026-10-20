@@ -1,6 +1,7 @@
 package app.lawnchair.preferences2
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.lawnchair.util.subscribeBlocking
 import com.patrykmichalik.opto.core.PreferenceImpl
@@ -13,10 +14,14 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun <C, S> Preference<C, S, *>.asState() = get().collectAsStateWithLifecycle(initialValue = firstBlocking())
+fun <C, S> PreferenceImpl<C, S>.asState(): State<C> =
+    get().collectAsStateWithLifecycle(initialValue = firstCached(preferenceManager2()))
 
 @Composable
-fun <C, S> PreferenceImpl<C, S>.asState() = get().collectAsStateWithLifecycle(initialValue = firstCached(preferenceManager2()))
+fun <C, S> Preference<C, S, *>.asState(): State<C> = when (this) {
+    is PreferenceImpl<C, S> -> asState()
+    else -> get().collectAsStateWithLifecycle(initialValue = firstBlocking())
+}
 
 fun <C, S> PreferenceImpl<C, S>.subscribeBlocking(
     prefs2: PreferenceManager2,

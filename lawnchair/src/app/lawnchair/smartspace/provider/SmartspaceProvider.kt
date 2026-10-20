@@ -2,6 +2,7 @@ package app.lawnchair.smartspace.provider
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.Lifecycle
 import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceScores
@@ -21,9 +22,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 
@@ -40,13 +43,21 @@ class SmartspaceProvider @Inject constructor(
         SmartspaceWidgetReader(context),
         glanceMessages,
         BatteryStatusProvider(context),
+        BluetoothBatteryProvider(context),
         TorchProvider(context),
         NowPlayingProvider(context),
         OnboardingProvider(context),
     )
 
     private val state = dataSources
-        .map { it.targets }
+        .map { dataSource ->
+            dataSource.targets
+                .onStart { emit(SmartspaceDataSource.State()) }
+                .catch { error ->
+                    Log.w("SmartspaceProvider", "Isolated error in ${dataSource.javaClass.simpleName}", error)
+                    emit(SmartspaceDataSource.State())
+                }
+        }
         .reduce { acc, flow -> flow.combine(acc) { a, b -> a + b } }
         .shareIn(
             scope,

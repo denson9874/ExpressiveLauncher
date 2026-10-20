@@ -170,10 +170,10 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse(targetPlayStore ? "com.denson9874.Expressive_Launcher_L3" : "dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("61")
+        .orElse("62")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
-        .orElse("4.1.2")
+        .orElse("5.0.0")
         .get()
 final def expressivePrivacyPolicyUrl = providers.gradleProperty("expressivePrivacyPolicyUrl")
         .orElse("https://denson9874.github.io/ExpressiveLauncher/privacy")
@@ -199,7 +199,7 @@ if (expressiveVersionCode < 1 || expressiveVersionCode > 2_100_000_000) {
 // fall back to the Android debug certificate: every direct update must retain the same signer.
 // For Google Play bundles (targetPlayStore=true), use the registered Play developer credentials
 // if present, preventing signing collisions with the direct QA distribution keystore.
-final def defaultSigningDir = new File("/Users/daryldenson/Documents/Expressive Launcher Signing")
+final def defaultSigningDir = new File(System.getenv("EXPRESSIVE_SIGNING_DIR") ?: System.getProperty("user.home") + "/Expressive Launcher Signing")
 final def playKeystorePropertiesFile = new File(defaultSigningDir, "developer-credentials.properties")
 final def defaultKeystorePropertiesFile = (targetPlayStore && playKeystorePropertiesFile.exists())
         ? playKeystorePropertiesFile
@@ -594,7 +594,7 @@ def publishExpressivePlayRelease = tasks.register("publishExpressivePlayRelease"
             "outputs/bundle/lawnWithQuickstepExpressiveRelease/" +
                     "expressive-launcher-l3-lawn-withQuickstep-expressive-release.aab"
     )
-    def signingDirPath = "/Users/daryldenson/Documents/Expressive Launcher Signing"
+    def signingDirPath = defaultSigningDir.absolutePath
     def appId = expressiveApplicationId
     def verName = expressiveVersionName
     def verCode = expressiveVersionCodeText

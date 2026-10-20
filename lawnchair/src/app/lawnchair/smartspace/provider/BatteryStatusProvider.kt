@@ -16,6 +16,7 @@ import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import kotlin.math.abs
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 // pE-TODO(JimfXJ91): Allow customising on/off behaviour for fast/slow charging
 class BatteryStatusProvider(context: Context) :
@@ -39,6 +40,7 @@ class BatteryStatusProvider(context: Context) :
             val wattage = getChargingWattage(intent)
             listOfNotNull(getSmartspaceTarget(charging, full, level, wattage))
         }
+        .onStart { emit(emptyList()) }
 
     private fun getSmartspaceTarget(charging: Boolean, full: Boolean, level: Int, wattage: Float): SmartspaceTarget? {
         val title = when {

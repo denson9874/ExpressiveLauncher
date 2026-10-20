@@ -117,6 +117,11 @@ fun AppDrawerPreferences(
                 label = stringResource(id = R.string.pref_all_apps_sheet_title),
                 description = stringResource(id = R.string.pref_all_apps_sheet_description),
             )
+            SwitchPreference(
+                adapter = prefs.drawerSmartCategories.getAdapter(),
+                label = stringResource(id = R.string.drawer_smart_categories_title),
+                description = stringResource(id = R.string.drawer_smart_categories_description),
+            )
             AppDrawerHapticFeedbackPreference()
         }
         ProGate(

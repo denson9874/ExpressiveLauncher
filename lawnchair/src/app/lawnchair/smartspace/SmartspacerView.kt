@@ -33,11 +33,6 @@ class SmartspacerView(context: Context, attrs: AttributeSet?) : SmartspacerSdkVi
     private var sdkIndicator: View? = null
     private var fallbackView: View? = null
     private var receivedTargetsSinceAttach = false
-    private val showFallback = Runnable {
-        if (isAttachedToWindow && !receivedTargetsSinceAttach) {
-            showLocalFallback()
-        }
-    }
 
     /**
      * The SDK creates its IPC helper lazily from this value. Read the cached preference before
@@ -95,28 +90,20 @@ class SmartspacerView(context: Context, attrs: AttributeSet?) : SmartspacerSdkVi
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         receivedTargetsSinceAttach = false
-        removeCallbacks(showFallback)
-        if (canResolveSmartspacerService()) {
-            postDelayed(showFallback, FALLBACK_TIMEOUT_MILLIS)
-        } else {
-            post(showFallback)
-        }
+        // Zero-Blank Warm Start: Display local glanceable immediately so the home screen header is never blank
+        showLocalFallback()
     }
 
     override fun onDetachedFromWindow() {
-        removeCallbacks(showFallback)
         removeLocalFallback()
         super.onDetachedFromWindow()
     }
 
     override fun onSmartspaceTargetsUpdate(targets: List<SmartspaceTarget>) {
-        removeCallbacks(showFallback)
         super.onSmartspaceTargetsUpdate(targets)
         receivedTargetsSinceAttach = targets.isNotEmpty()
         if (targets.isEmpty()) {
-            // An empty binder response is not a usable feed. Keep the built-in glanceable visible
-            // until Smartspacer supplies real content instead of replacing it with a blank pager.
-            post(showFallback)
+            showLocalFallback()
         } else {
             removeLocalFallback()
         }

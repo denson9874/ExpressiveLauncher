@@ -65,6 +65,12 @@ public class FolderInfo extends CollectionInfo {
     public static final int FLAG_FOLDER_WIDGET = 0x00100000;
 
     /**
+     * Expressive Launcher Cover folder mode. In cover mode, single-tapping the folder launches
+     * the first app inside, and swiping up opens the folder.
+     */
+    public static final int FLAG_COVER_MODE = 0x00200000;
+
+    /**
      * Different states of folder label.
      */
     public enum LabelState {
@@ -162,6 +168,14 @@ public class FolderInfo extends CollectionInfo {
         if (writer != null && oldOptions != options) {
             writer.updateItemInDatabase(this);
         }
+    }
+
+    public boolean isCover() {
+        return hasOption(FLAG_COVER_MODE);
+    }
+
+    public void setCover(boolean isCover, ModelWriter writer) {
+        setOption(FLAG_COVER_MODE, isCover, writer);
     }
 
     @Override

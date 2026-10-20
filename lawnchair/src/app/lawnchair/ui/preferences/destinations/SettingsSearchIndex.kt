@@ -226,6 +226,11 @@ object SettingsSearchIndex {
             entry(R.string.hidden_apps_label, destination = AppDrawerHiddenApps, keywords = "hide apps, privacy, secret")
             entry(R.string.show_suggested_apps_in_drawer, R.string.show_suggested_apps_in_drawer_description, keywords = "predictions, suggested apps, recent apps")
             entry(R.string.suggestion_pref_screen_title, destination = Predictions, keywords = "predictions, suggestions provider")
+            entry(
+                R.string.drawer_smart_categories_title,
+                R.string.drawer_smart_categories_description,
+                keywords = "smart categories, app categories, sections, categorize, organize",
+            )
             entry(R.string.app_drawer_folder, destination = AppDrawerFolder, keywords = "folders, categories, tabs, organize")
             entry(R.string.background_opacity, keywords = "transparency, blur")
             entry(R.string.work_profile_tab_container_background_label, keywords = "tabs, work profile")

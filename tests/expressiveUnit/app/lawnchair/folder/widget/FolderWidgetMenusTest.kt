@@ -13,9 +13,18 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37], application = Application::class)
 class FolderWidgetMenusTest {
-    @Test fun normalFolder_offersMakeWidget() {
+    @Test fun normalFolder_offersMakeWidgetAndCoverToggle() {
         val f = FolderInfo().apply { container = Favorites.CONTAINER_DESKTOP }
-        assertThat(FolderWidgetMenus.itemsFor(f)).containsExactly(R.string.folder_widget_make_widget)
+        assertThat(FolderWidgetMenus.itemsFor(f)).containsExactly(
+            R.string.folder_widget_make_widget,
+            R.string.folder_cover_enable,
+        ).inOrder()
+
+        f.options = FolderInfo.FLAG_COVER_MODE
+        assertThat(FolderWidgetMenus.itemsFor(f)).containsExactly(
+            R.string.folder_widget_make_widget,
+            R.string.folder_cover_disable,
+        ).inOrder()
     }
 
     @Test fun folderWidget_offersCustomizeMakeFolderRemove() {

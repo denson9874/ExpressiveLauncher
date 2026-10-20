@@ -33,3 +33,5 @@ tools/*pro_keygen*
 scripts/*pro_keygen*
 .agents/
 .wrangler/
+tools/macos/*.app
+*.app/
