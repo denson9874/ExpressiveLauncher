@@ -2,6 +2,7 @@ package app.lawnchair.pro
 
 import android.app.Application
 import android.content.Context
+import android.provider.Settings
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
@@ -49,6 +50,35 @@ class ProDeviceIdTest {
     }
 
     @Test
+    fun getDeviceId_derivesFromAndroidId_soClearingDataKeepsTheSameId() {
+        Settings.Secure.putString(context.contentResolver, Settings.Secure.ANDROID_ID, "1234abcd5678ef90")
+        val first = ProDeviceId.get(context)
+        assertThat(first).isEqualTo(ProDeviceId.fromAndroidId("1234abcd5678ef90", context.packageName))
+        assertThat(first).matches("^DEV-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$")
+
+        context.getSharedPreferences("expressive_pro_license", Context.MODE_PRIVATE).edit().clear().commit()
+        assertThat(ProDeviceId.get(context)).isEqualTo(first)
+    }
+
+    @Test
+    fun getDeviceId_keepsAnIdSavedBeforeAndroidIdDerivation() {
+        Settings.Secure.putString(context.contentResolver, Settings.Secure.ANDROID_ID, "1234abcd5678ef90")
+        context.getSharedPreferences("expressive_pro_license", Context.MODE_PRIVATE)
+            .edit().putString("device_install_id", testDeviceId).commit()
+        assertThat(ProDeviceId.get(context)).isEqualTo(testDeviceId)
+    }
+
+    @Test
+    fun fromAndroidId_isPerAppAndSkipsMissingOrSharedIds() {
+        val a = ProDeviceId.fromAndroidId("1234abcd5678ef90", "dev.launcher.expressive.l3")
+        assertThat(a).isEqualTo(ProDeviceId.fromAndroidId("1234abcd5678ef90", "dev.launcher.expressive.l3"))
+        assertThat(a).isNotEqualTo(ProDeviceId.fromAndroidId("1234abcd5678ef90", "dev.launcher.expressive.l3.debug"))
+        assertThat(ProDeviceId.fromAndroidId(null, "p")).isNull()
+        assertThat(ProDeviceId.fromAndroidId(" ", "p")).isNull()
+        assertThat(ProDeviceId.fromAndroidId("9774d56d682e549c", "p")).isNull()
+    }
+
+    @Test
     fun deviceBoundKey_succeedsOnMatchingDevice() {
         // Set device ID to match license
         val prefs = context.getSharedPreferences("expressive_pro_license", Context.MODE_PRIVATE)
@@ -73,6 +103,7 @@ class ProDeviceIdTest {
         val manager = ProManager.INSTANCE.get(context)
         val result = manager.activate(boundToA1B2Key)
         assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).isInstanceOf(ProDeviceMismatchException::class.java)
         assertThat(result.exceptionOrNull()?.message).contains("another device")
         assertThat(manager.isPro.value).isFalse()
     }

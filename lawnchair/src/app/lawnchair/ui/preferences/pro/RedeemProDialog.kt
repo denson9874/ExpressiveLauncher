@@ -122,7 +122,7 @@ fun RedeemProDialog(
         if (initialKey.isNotBlank()) {
             keyInput = initialKey.trim()
             if (keyInput.startsWith("EXPR-PRO-") || keyInput.startsWith("EXPR-")) {
-                val res = proManager.activate(keyInput)
+                val res = proManager.activateOrMove(keyInput)
                 if (res.isFailure) {
                     errorMessage = res.exceptionOrNull()?.message ?: "Invalid license key"
                 } else {
@@ -325,7 +325,7 @@ fun RedeemProDialog(
                                     val service = ProActivationService.create()
                                     val response = service.checkLicense(deviceId)
                                     if (response.success && !response.key.isNullOrBlank()) {
-                                        val actRes = proManager.activate(response.key)
+                                        val actRes = proManager.activateOrMove(response.key, service)
                                         if (actRes.isFailure) {
                                             errorMessage = actRes.exceptionOrNull()?.message ?: "Activation failed"
                                             showSupportCard = true
@@ -412,7 +412,7 @@ fun RedeemProDialog(
                                             if (input.startsWith("EXPR-PRO-", ignoreCase = true) ||
                                                 input.startsWith("EXPR-", ignoreCase = true)
                                             ) {
-                                                val actRes = proManager.activate(input)
+                                                val actRes = proManager.activateOrMove(input)
                                                 if (actRes.isFailure) {
                                                     errorMessage = actRes.exceptionOrNull()?.message ?: "Activation failed"
                                                 } else {
@@ -431,30 +431,20 @@ fun RedeemProDialog(
                                                 return@launch
                                             }
 
-                                            val service = ProActivationService.create()
-                                            val isEmail = input.contains("@") && input.contains(".")
-                                            val req = VerifyDonationRequest(
-                                                transactionId = if (isEmail) "" else input,
-                                                deviceId = deviceId,
-                                                email = if (isEmail) input else null,
-                                            )
-                                            // If input looks like an email, check license endpoint directly first
-                                            if (isEmail) {
-                                                val licenseResp = service.checkLicense(deviceId = deviceId, email = input)
-                                                if (licenseResp.success && !licenseResp.key.isNullOrBlank()) {
-                                                    val actRes = proManager.activate(licenseResp.key)
-                                                    if (actRes.isSuccess) {
-                                                        if (actRes.getOrNull()?.isCakey == true) {
-                                                            showCakeyCelebration = true
-                                                        }
-                                                        return@launch
-                                                    }
-                                                }
+                                            // 3. An email can't prove the payment (anyone may know it); ask for the receipt's ID.
+                                            if (input.contains("@")) {
+                                                errorMessage = context.getString(R.string.expressive_pro_restore_needs_transaction)
+                                                return@launch
                                             }
 
+                                            val service = ProActivationService.create()
+                                            val req = VerifyDonationRequest(
+                                                transactionId = input,
+                                                deviceId = deviceId,
+                                            )
                                             val response = service.verifyDonation(req)
                                             if (response.success && !response.key.isNullOrBlank()) {
-                                                val actRes = proManager.activate(response.key)
+                                                val actRes = proManager.activateOrMove(response.key, service)
                                                 if (actRes.isFailure) {
                                                     errorMessage = actRes.exceptionOrNull()?.message ?: "Activation failed"
                                                     showSupportCard = true
@@ -625,13 +615,15 @@ fun RedeemProDialog(
                         Button(
                             onClick = {
                                 keyboardController?.hide()
-                                val res = proManager.activate(keyInput.trim())
-                                if (res.isFailure) {
-                                    errorMessage = res.exceptionOrNull()?.message ?: "Verification failed"
-                                } else {
-                                    errorMessage = null
-                                    if (res.getOrNull()?.isCakey == true) {
-                                        showCakeyCelebration = true
+                                scope.launch {
+                                    val res = proManager.activateOrMove(keyInput.trim())
+                                    if (res.isFailure) {
+                                        errorMessage = res.exceptionOrNull()?.message ?: "Verification failed"
+                                    } else {
+                                        errorMessage = null
+                                        if (res.getOrNull()?.isCakey == true) {
+                                            showCakeyCelebration = true
+                                        }
                                     }
                                 }
                             },

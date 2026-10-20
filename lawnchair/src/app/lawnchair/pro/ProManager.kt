@@ -169,13 +169,47 @@ class ProManager(private val context: Context) {
         return result
     }
 
+    /**
+     * Activates [rawKey]. When the key is tied to another device ID (this device was factory reset,
+     * or the key came from before a reinstall), asks the activation service to move the license to
+     * this device and activates the key it returns.
+     */
+    suspend fun activateOrMove(
+        rawKey: String,
+        service: ProActivationService = ProActivationService.create(),
+    ): Result<ProLicenseDetails> {
+        val direct = activate(rawKey)
+        if (direct.exceptionOrNull() !is ProDeviceMismatchException) return direct
+
+        val deviceId = ProDeviceId.get(context)
+        val moved = runCatching {
+            val response = try {
+                service.rebind(RebindRequest(rawKey.trim(), deviceId))
+            } catch (e: HttpException) {
+                val message = if (e.code() == 409) {
+                    context.getString(R.string.expressive_pro_move_limit)
+                } else {
+                    context.getString(R.string.expressive_pro_move_failed, deviceId)
+                }
+                throw IllegalStateException(message, e)
+            } catch (e: java.io.IOException) {
+                throw IllegalStateException(context.getString(R.string.expressive_pro_move_offline), e)
+            }
+            val key = response.key?.takeIf { response.success }
+                ?: throw IllegalStateException(context.getString(R.string.expressive_pro_move_failed, deviceId))
+            activate(key).getOrThrow()
+        }
+        moved.onFailure { lastError = it }
+        return moved
+    }
+
     private fun verifyDeviceBinding(details: ProLicenseDetails): Result<Unit> {
         if (details.isDeviceBound) {
             val currentDeviceId = ProDeviceId.get(context)
             val bound = details.boundDeviceId
             if (!bound.equals(currentDeviceId, ignoreCase = true)) {
                 return Result.failure(
-                    IllegalStateException(
+                    ProDeviceMismatchException(
                         context.getString(
                             R.string.expressive_pro_device_mismatch,
                             bound ?: "unknown",
@@ -230,6 +264,9 @@ class ProManager(private val context: Context) {
         }
     }
 }
+
+/** A valid key bound to a different device ID than this one. */
+class ProDeviceMismatchException(message: String) : IllegalStateException(message)
 
 @Composable
 fun proManager(): ProManager = ProManager.INSTANCE.get(LocalContext.current)

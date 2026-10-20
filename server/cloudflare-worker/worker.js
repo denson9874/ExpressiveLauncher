@@ -12,11 +12,21 @@ const SCHEMA_VERSION = 1;
 const TYPE_TESTER = 1;
 const TYPE_VIP = 3;
 const TYPE_TRIAL = 6;
+// Types an admin may issue through POST /api/admin/issue (same names as scripts/generate_pro_key.py).
+const ADMIN_TYPES = { TESTER: 1, GIVEAWAY: 2, VIP: 3, DEV: 4, CAKEY: 5 };
+const ADMIN_BATCH_LIMIT = 100;
 const TRIAL_DAYS = 7;
 const TRIAL_RATE_LIMIT_PER_HOUR = 5;
+// A license may move to this many new devices (reset, reinstall) per rolling window.
+const MAX_DEVICE_MOVES = 3;
+const DEVICE_MOVE_WINDOW_SECONDS = 30 * 86400;
+const REBIND_RATE_LIMIT_PER_HOUR = 10;
 const DEVICE_ID_PATTERN = /^DEV-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 const FINGERPRINT_PATTERN = /^[0-9a-f]{64}$/;
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const PAYPAL_API_BASE = "https://api-m.paypal.com";
+const RESTORE_NEEDS_TRANSACTION =
+  "To restore a contribution, enter the Transaction ID from your PayPal receipt.";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -63,7 +73,17 @@ export default {
         return await handleTrialRequest(request, env);
       }
 
-      // 5. Web Deep Link Redirect / Launcher Activation Page
+      // 5. Move a device-bound key to this device's new install ID
+      if (url.pathname === "/api/rebind" && request.method === "POST") {
+        return await handleRebind(request, env);
+      }
+
+      // 6. Owner-only key issuing (replaces the offline generate_pro_key.py)
+      if (url.pathname === "/api/admin/issue" && request.method === "POST") {
+        return await handleAdminIssue(request, env);
+      }
+
+      // 7. Web Deep Link Redirect / Launcher Activation Page
       if (url.pathname === "/activate" && request.method === "GET") {
         return handleActivationRedirect(url);
       }
@@ -81,14 +101,17 @@ export default {
 
 /**
  * Handle GET /api/license?device_id=DEV-...
+ *
+ * Email lookups no longer return keys: anyone who knew a supporter's address could take their license.
+ * Restores go through POST /api/verify-donation with the PayPal transaction ID instead.
  */
 async function handleLicenseLookup(url, env) {
   const deviceId = url.searchParams.get("device_id")?.trim().toUpperCase();
-  const email = url.searchParams.get("email")?.trim().toLowerCase();
+  const email = url.searchParams.get("email")?.trim();
 
   if (!deviceId && !email) {
     return jsonResponse(
-      { success: false, message: "Missing device_id or email parameter" },
+      { success: false, message: "Missing device_id parameter" },
       400
     );
   }
@@ -100,7 +123,6 @@ async function handleLicenseLookup(url, env) {
     );
   }
 
-  // Look up by device ID
   if (deviceId) {
     const raw = await env.EXPRESSIVE_PRO_KV.get(`license:device:${deviceId}`);
     if (raw) {
@@ -114,29 +136,9 @@ async function handleLicenseLookup(url, env) {
     }
   }
 
-  // Look up by email
-  if (email) {
-    const raw = await env.EXPRESSIVE_PRO_KV.get(`license:email:${email}`);
-    if (raw) {
-      const data = JSON.parse(raw);
-      if (deviceId && !data.recipient.includes(deviceId)) {
-        await env.EXPRESSIVE_PRO_KV.put(
-          `license:device:${deviceId}`,
-          JSON.stringify(data)
-        );
-      }
-      return jsonResponse({
-        success: true,
-        key: data.key,
-        recipient: data.recipient,
-        createdAt: data.createdAt,
-      });
-    }
-  }
-
   return jsonResponse({
     success: false,
-    message: "No active license found for this device or account.",
+    message: email ? RESTORE_NEEDS_TRANSACTION : "No active license found for this device.",
   });
 }
 
@@ -201,9 +203,28 @@ async function handleTrialRequest(request, env, now = Date.now()) {
 
 /**
  * Handle POST /api/paypal-webhook
+ *
+ * Every event is checked with PayPal's verify-webhook-signature API before a key is signed, so a forged
+ * "payment completed" request can't mint a license. Without PAYPAL_WEBHOOK_ID and the API credentials
+ * the endpoint refuses events (PayPal retries them for three days, so none are lost while it is set up).
  */
 async function handlePayPalWebhook(request, env) {
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+
+  if (!env.PAYPAL_WEBHOOK_ID || !env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
+    console.error("PayPal webhook received but PAYPAL_WEBHOOK_ID / API credentials are not configured");
+    return jsonResponse({ success: false, error: "webhook_verification_not_configured" }, 503);
+  }
+  const verification = await verifyPayPalWebhookSignature(request.headers, body, env);
+  if (!verification.valid) {
+    return jsonResponse({ success: false, error: "invalid_signature" }, 401);
+  }
+
   const eventType = body.event_type;
 
   // Supported PayPal capture and payment events
@@ -255,6 +276,25 @@ async function handlePayPalWebhook(request, env) {
     recipient = `device:DEV-DONATION-${transactionId.slice(-8)}`;
   }
 
+  // The app sends its device ID as the invoice ID, and a device ID is shown on screen, so it must
+  // never work as proof of payment.
+  const paymentIds = [...new Set(
+    [transactionId, relatedOrderId, invoiceId, captureId]
+      .filter(Boolean)
+      .filter((id) => !DEVICE_ID_PATTERN.test(id.toUpperCase()))
+  )];
+
+  // PayPal redelivers events and sends several for one payment (order approved, capture completed);
+  // keep the key from the first so a purchase has one license.
+  if (env.EXPRESSIVE_PRO_KV) {
+    for (const id of paymentIds) {
+      const seen = await env.EXPRESSIVE_PRO_KV.get(`tx:${id}`);
+      if (seen) {
+        return jsonResponse({ success: true, duplicate: true, recipient: JSON.parse(seen).recipient });
+      }
+    }
+  }
+
   // Generate ECDSA P-256 signed license key
   const licenseKey = await generateProLicense(recipient, TYPE_VIP, 0, env);
 
@@ -278,15 +318,8 @@ async function handlePayPalWebhook(request, env) {
         JSON.stringify(record)
       );
     }
-    if (payerEmail) {
-      await env.EXPRESSIVE_PRO_KV.put(
-        `license:email:${payerEmail}`,
-        JSON.stringify(record)
-      );
-    }
-    // Store under all transaction/order identifiers!
-    const idsToStore = new Set([transactionId, relatedOrderId, invoiceId, captureId].filter(Boolean));
-    for (const tid of idsToStore) {
+    // Store under all transaction/order identifiers
+    for (const tid of paymentIds) {
       await env.EXPRESSIVE_PRO_KV.put(
         `tx:${tid}`,
         JSON.stringify(record)
@@ -294,62 +327,85 @@ async function handlePayPalWebhook(request, env) {
     }
   }
 
-  return jsonResponse({
-    success: true,
-    key: licenseKey,
-    recipient: recipient,
-    transactionId: transactionId,
+  // PayPal ignores the body; the key is only ever handed to the app.
+  return jsonResponse({ success: true, recipient, transactionId });
+}
+
+/**
+ * Ask PayPal whether a webhook delivery really came from it, for the webhook registered as PAYPAL_WEBHOOK_ID.
+ */
+async function verifyPayPalWebhookSignature(headers, event, env) {
+  const fields = {
+    auth_algo: headers.get("PAYPAL-AUTH-ALGO"),
+    cert_url: headers.get("PAYPAL-CERT-URL"),
+    transmission_id: headers.get("PAYPAL-TRANSMISSION-ID"),
+    transmission_sig: headers.get("PAYPAL-TRANSMISSION-SIG"),
+    transmission_time: headers.get("PAYPAL-TRANSMISSION-TIME"),
+  };
+  if (Object.values(fields).some((v) => !v)) {
+    return { valid: false, message: "Missing PayPal transmission headers" };
+  }
+  try {
+    const token = await getPayPalAccessToken(env);
+    if (!token) {
+      return { valid: false, message: "PayPal authentication failed" };
+    }
+    const res = await fetch(`${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...fields, webhook_id: env.PAYPAL_WEBHOOK_ID, webhook_event: event }),
+    });
+    if (!res.ok) {
+      return { valid: false, message: `PayPal verification returned ${res.status}` };
+    }
+    const data = await res.json();
+    return { valid: data.verification_status === "SUCCESS" };
+  } catch (err) {
+    return { valid: false, message: err.message };
+  }
+}
+
+async function getPayPalAccessToken(env) {
+  const auth = btoa(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`);
+  const tokenRes = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
   });
+  const tokenData = await tokenRes.json();
+  return tokenData.access_token || null;
 }
 
 /**
  * Handle POST /api/verify-donation
  */
-async function handleVerifyDonation(request, env) {
-  const { transaction_id, device_id, email } = await request.json();
+async function handleVerifyDonation(request, env, now = Date.now()) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+  const cleanTx = String(body?.transaction_id ?? "").trim();
+  const cleanDev = String(body?.device_id ?? "").trim().toUpperCase();
 
-  const cleanTx = (transaction_id || "").trim();
-  const cleanDev = device_id ? device_id.trim().toUpperCase() : null;
-  const cleanEmail = email ? email.trim().toLowerCase() : null;
-
-  if (!cleanDev || (!cleanTx && !cleanEmail)) {
-    return jsonResponse(
-      {
-        success: false,
-        message: "Missing device_id or transaction_id/email in request",
-      },
-      400
-    );
+  if (!DEVICE_ID_PATTERN.test(cleanDev)) {
+    return jsonResponse({ success: false, message: "Missing or invalid device_id in request" }, 400);
+  }
+  // Older apps send an email (or the device ID) here. Neither proves the payment, so ask for the
+  // transaction ID; HTTP 200 lets those apps show the message instead of a connection error.
+  if (!cleanTx || cleanTx.includes("@") || DEVICE_ID_PATTERN.test(cleanTx.toUpperCase())) {
+    return jsonResponse({ success: false, error: "transaction_required", message: RESTORE_NEEDS_TRANSACTION });
   }
 
-  // Check if already in KV via transaction ID or email
   if (env.EXPRESSIVE_PRO_KV) {
-    let existingRecord = null;
-    if (cleanTx) {
-      const raw = await env.EXPRESSIVE_PRO_KV.get(`tx:${cleanTx}`);
-      if (raw) {
-        existingRecord = JSON.parse(raw);
-      }
-    }
-    if (!existingRecord && cleanEmail) {
-      const raw = await env.EXPRESSIVE_PRO_KV.get(`license:email:${cleanEmail}`);
-      if (raw) {
-        existingRecord = JSON.parse(raw);
-      }
-    }
-    if (existingRecord) {
-      // Link to new device if needed
-      if (cleanDev && !existingRecord.recipient.includes(cleanDev)) {
-        await env.EXPRESSIVE_PRO_KV.put(
-          `license:device:${cleanDev}`,
-          JSON.stringify(existingRecord)
-        );
-      }
-      return jsonResponse({
-        success: true,
-        key: existingRecord.key,
-        recipient: existingRecord.recipient,
-      });
+    const raw = await env.EXPRESSIVE_PRO_KV.get(`tx:${cleanTx}`);
+    if (raw) {
+      const existingRecord = JSON.parse(raw);
+      return await deliverToDevice(existingRecord, cleanDev, env, now);
     }
   }
 
@@ -366,12 +422,7 @@ async function handleVerifyDonation(request, env) {
       );
     }
 
-    const recipient = cleanDev
-      ? `device:${cleanDev}`
-      : cleanEmail
-      ? `account:${cleanEmail}`
-      : `tx:${cleanTx}`;
-
+    const recipient = `device:${cleanDev}`;
     const key = await generateProLicense(recipient, TYPE_VIP, 0, env);
     const record = {
       key,
@@ -381,18 +432,10 @@ async function handleVerifyDonation(request, env) {
     };
 
     if (env.EXPRESSIVE_PRO_KV) {
-      if (cleanDev) {
-        await env.EXPRESSIVE_PRO_KV.put(
-          `license:device:${cleanDev}`,
-          JSON.stringify(record)
-        );
-      }
-      if (cleanEmail) {
-        await env.EXPRESSIVE_PRO_KV.put(
-          `license:email:${cleanEmail}`,
-          JSON.stringify(record)
-        );
-      }
+      await env.EXPRESSIVE_PRO_KV.put(
+        `license:device:${cleanDev}`,
+        JSON.stringify(record)
+      );
       await env.EXPRESSIVE_PRO_KV.put(
         `tx:${cleanTx}`,
         JSON.stringify(record)
@@ -413,33 +456,306 @@ async function handleVerifyDonation(request, env) {
 }
 
 /**
+ * Hand a stored purchase to deviceId. A key bound to another device (the buyer reset or reinstalled)
+ * is re-signed for this one, within the license's device-move allowance.
+ */
+async function deliverToDevice(record, deviceId, env, now) {
+  const boundDevice = boundDeviceOf(record.recipient);
+  if (!boundDevice || boundDevice === deviceId) {
+    return jsonResponse({ success: true, key: record.key, recipient: record.recipient });
+  }
+  const license = await parseSignedKey(record.key, env);
+  if (!license) {
+    throw new Error("Stored license key failed verification");
+  }
+  const moved = await moveLicenseToDevice(license, deviceId, env, now);
+  if (moved.error) {
+    // HTTP 200 so older apps show the message; newer ones read `error`.
+    return jsonResponse({ success: false, error: moved.error, message: moved.message });
+  }
+  const recipient = `device:${deviceId}`;
+  await env.EXPRESSIVE_PRO_KV.put(
+    `license:device:${deviceId}`,
+    JSON.stringify({ ...record, key: moved.key, recipient, movedFrom: record.recipient })
+  );
+  return jsonResponse({ success: true, key: moved.key, recipient, movesLeft: moved.movesLeft });
+}
+
+/**
+ * Handle POST /api/rebind with { key, device_id }.
+ *
+ * A device-bound key stops working when the device gets a new install ID (factory reset, reinstall,
+ * cleared data). The key itself proves the license, so this re-signs it for the new ID with the same
+ * type, expiry and features, within the license's device-move allowance. Keys that are not bound to a
+ * device already work everywhere and are returned unchanged; trial keys go through POST /api/trial.
+ */
+async function handleRebind(request, env, now = Date.now()) {
+  if (!env.EXPRESSIVE_PRO_KV) {
+    return jsonResponse({ success: false, message: "Storage backend not configured" }, 503);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+  const deviceId = String(body?.device_id ?? "").trim().toUpperCase();
+  const rawKey = String(body?.key ?? "").trim();
+  if (!DEVICE_ID_PATTERN.test(deviceId) || !rawKey) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const rateKey = `rebind:rate:${ip}:${Math.floor(now / 3600000)}`;
+  const attempts = parseInt((await env.EXPRESSIVE_PRO_KV.get(rateKey)) || "0", 10);
+  if (attempts >= REBIND_RATE_LIMIT_PER_HOUR) {
+    return jsonResponse({ success: false, error: "rate_limited" }, 429);
+  }
+  await env.EXPRESSIVE_PRO_KV.put(rateKey, String(attempts + 1), { expirationTtl: 7200 });
+
+  const license = await parseSignedKey(rawKey, env);
+  if (!license) {
+    return jsonResponse({ success: false, error: "invalid_key" }, 400);
+  }
+  if (license.type === TYPE_TRIAL) {
+    return jsonResponse({ success: false, error: "trial_key" }, 400);
+  }
+  if (license.expiresAt > 0 && Math.floor(now / 1000) > license.expiresAt) {
+    return jsonResponse({ success: false, error: "expired" }, 400);
+  }
+
+  const boundDevice = boundDeviceOf(license.recipient);
+  if (!boundDevice || boundDevice === deviceId) {
+    return jsonResponse({ success: true, key: rawKey, recipient: license.recipient });
+  }
+
+  const moved = await moveLicenseToDevice(license, deviceId, env, now);
+  if (moved.error) {
+    return jsonResponse({ success: false, error: moved.error, message: moved.message }, 409);
+  }
+  return jsonResponse({ success: true, key: moved.key, recipient: `device:${deviceId}`, movesLeft: moved.movesLeft });
+}
+
+/**
+ * Re-sign a verified license for deviceId through the LICENSE_LEDGER Durable Object, which runs one
+ * move at a time so parallel requests can't each pass the move limit.
+ */
+async function moveLicenseToDevice(license, deviceId, env, now) {
+  if (!env.LICENSE_LEDGER) {
+    throw new Error("LICENSE_LEDGER Durable Object binding is not configured.");
+  }
+  const ledger = env.LICENSE_LEDGER.get(env.LICENSE_LEDGER.idFromName("license-moves"));
+  const res = await ledger.fetch("https://license-ledger/move", {
+    method: "POST",
+    body: JSON.stringify({ license, deviceId, now }),
+  });
+  if (!res.ok) {
+    throw new Error(`License ledger returned ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Durable Object holding every license move. One instance serves all licenses (moves are rare), and
+ * blockConcurrencyWhile makes each read, limit check, signature and write run alone. Its storage is
+ * strongly consistent, so a key moved a moment ago is traced back to its license at once, which KV
+ * (eventually consistent) could not promise.
+ */
+export class LicenseLedger {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(request) {
+    const { license, deviceId, now } = await request.json();
+    const result = await this.state.blockConcurrencyWhile(() =>
+      recordMove(this.state.storage, license, deviceId, now, this.env)
+    );
+    return jsonResponse(result);
+  }
+}
+
+/**
+ * Moves are counted per license: the id of the first key issued, which every re-signed copy points
+ * back to through `keyroot:`. Asking again for a device the license already moved to returns that key
+ * without using a move.
+ */
+async function recordMove(storage, license, deviceId, now, env) {
+  const nowSeconds = Math.floor(now / 1000);
+  const rootId = (await storage.get(`keyroot:${license.id}`)) || license.id;
+  const movesKey = `moves:${rootId}`;
+  const moves = (await storage.get(movesKey)) || { devices: {} };
+
+  const known = moves.devices[deviceId];
+  if (known) {
+    return { key: known.key, movesLeft: movesLeftIn(moves, nowSeconds) };
+  }
+  if (movesLeftIn(moves, nowSeconds) <= 0) {
+    return {
+      error: "transfer_limit",
+      message: `This license has already moved to ${MAX_DEVICE_MOVES} new devices in the last 30 days. Contact support to move it again.`,
+    };
+  }
+
+  const key = await generateProLicense(`device:${deviceId}`, license.type, license.expiresAt, env, license.features);
+  moves.devices[deviceId] = { key, movedAt: nowSeconds };
+  await storage.put({ [movesKey]: moves, [`keyroot:${await keyId(key)}`]: rootId });
+  return { key, movesLeft: movesLeftIn(moves, nowSeconds) };
+}
+
+function movesLeftIn(moves, nowSeconds) {
+  const recent = Object.values(moves.devices).filter(
+    (d) => nowSeconds - d.movedAt < DEVICE_MOVE_WINDOW_SECONDS
+  ).length;
+  return Math.max(0, MAX_DEVICE_MOVES - recent);
+}
+
+function boundDeviceOf(recipient) {
+  const r = String(recipient || "").trim();
+  return r.toLowerCase().startsWith("device:") ? r.slice("device:".length).trim().toUpperCase() : null;
+}
+
+/**
+ * Handle POST /api/admin/issue (Authorization: Bearer <ADMIN_TOKEN>).
+ *
+ * Signs keys on request, so the master private key only has to live in this worker; replaces the
+ * offline scripts/generate_pro_key.py (use scripts/issue_pro_key.py). Body mirrors its options:
+ * { type, device | account | recipient, expires, count, prefix }.
+ */
+async function handleAdminIssue(request, env, now = Date.now()) {
+  if (!env.ADMIN_TOKEN) {
+    return jsonResponse({ error: "Endpoint not found" }, 404);
+  }
+  const header = request.headers.get("Authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  if (!(await secretsEqual(token, env.ADMIN_TOKEN))) {
+    return jsonResponse({ success: false, error: "unauthorized" }, 401);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    return jsonResponse({ success: false, error: "invalid_request" }, 400);
+  }
+
+  const typeName = String(body?.type ?? "TESTER").trim().toUpperCase();
+  const licenseType = ADMIN_TYPES[typeName];
+  if (!licenseType) {
+    return badAdminRequest(`type must be one of ${Object.keys(ADMIN_TYPES).join(", ")}`);
+  }
+  const expiresAt = parseExpiry(String(body?.expires ?? "never"), now);
+  if (expiresAt === null) {
+    return badAdminRequest("expires must be never, a duration like 30d / 6m / 1y, or a future YYYY-MM-DD");
+  }
+  const count = body?.count === undefined ? 1 : Number(body.count);
+  if (!Number.isInteger(count) || count < 1 || count > ADMIN_BATCH_LIMIT) {
+    return badAdminRequest(`count must be a whole number from 1 to ${ADMIN_BATCH_LIMIT}`);
+  }
+
+  const recipients = [];
+  if (count === 1 && !body.prefix) {
+    if (body.device) {
+      const device = String(body.device).trim().toUpperCase();
+      if (!DEVICE_ID_PATTERN.test(device)) return badAdminRequest("device must look like DEV-XXXX-XXXX");
+      recipients.push(`device:${device}`);
+    } else if (body.account) {
+      recipients.push(`account:${String(body.account).trim().toLowerCase()}`);
+    } else if (body.recipient && String(body.recipient).trim()) {
+      recipients.push(String(body.recipient).trim());
+    } else {
+      return badAdminRequest("give one of device, account or recipient (or count/prefix for a batch)");
+    }
+  } else {
+    if (body.device || body.account || body.recipient) {
+      return badAdminRequest("a batch takes prefix, not device, account or recipient");
+    }
+    const prefix = String(body.prefix ?? "giveaway-");
+    const stamp = Math.floor(now / 1000);
+    for (let i = 1; i <= count; i++) {
+      recipients.push(`${prefix}${stamp}-${String(i).padStart(3, "0")}`);
+    }
+  }
+
+  const keys = [];
+  for (const recipient of recipients) {
+    if (new TextEncoder().encode(recipient).length > 255) {
+      return badAdminRequest("recipient must be at most 255 bytes");
+    }
+    const key = await generateProLicense(recipient, licenseType, expiresAt, env);
+    keys.push({ recipient, key, deepLink: `expressive://pro/activate?key=${key}` });
+  }
+
+  if (env.EXPRESSIVE_PRO_KV) {
+    // A record of what was issued, since the keys can't be regenerated offline any more.
+    const id = `${Math.floor(now / 1000)}-${crypto.randomUUID().slice(0, 8)}`;
+    await env.EXPRESSIVE_PRO_KV.put(
+      `admin:issued:${id}`,
+      JSON.stringify({ type: typeName, expiresAt, keys, createdAt: new Date(now).toISOString() })
+    );
+  }
+
+  return jsonResponse({ success: true, type: typeName, expiresAt, keys });
+}
+
+function badAdminRequest(message) {
+  return jsonResponse({ success: false, error: "invalid_request", message }, 400);
+}
+
+/**
+ * Parse an expiry like scripts/generate_pro_key.py: never/0/none/lifetime, <n>h/d/m/y (a month is 30
+ * days), or YYYY-MM-DD (UTC). Returns Unix seconds, 0 for lifetime, or null when invalid or past.
+ */
+function parseExpiry(value, now) {
+  const s = value.trim().toLowerCase();
+  if (["never", "0", "none", "lifetime"].includes(s)) return 0;
+  const nowSeconds = Math.floor(now / 1000);
+  let at = null;
+  const duration = s.match(/^(\d+)([hdmy])$/);
+  if (duration) {
+    const unit = { h: 3600, d: 86400, m: 30 * 86400, y: 365 * 86400 }[duration[2]];
+    at = nowSeconds + parseInt(duration[1], 10) * unit;
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const ms = Date.parse(`${s}T00:00:00Z`);
+    at = Number.isNaN(ms) ? null : Math.floor(ms / 1000);
+  }
+  if (at === null || at <= nowSeconds || at > 0xffffffff) return null;
+  return at;
+}
+
+/** Constant-time comparison of two secrets (by their SHA-256 digests, so lengths don't leak). */
+async function secretsEqual(a, b) {
+  if (!a || !b) return false;
+  const encoder = new TextEncoder();
+  const [da, db] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(a)),
+    crypto.subtle.digest("SHA-256", encoder.encode(b)),
+  ]);
+  const x = new Uint8Array(da);
+  const y = new Uint8Array(db);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
+/**
  * Verify transaction via PayPal REST API v2
  */
 async function verifyWithPayPalApi(transactionId, env) {
   try {
-    const auth = btoa(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`);
-    const tokenRes = await fetch(
-      "https://api-m.paypal.com/v1/oauth2/token",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: "grant_type=client_credentials",
-      }
-    );
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) {
+    const token = await getPayPalAccessToken(env);
+    if (!token) {
       return { valid: false, message: "PayPal authentication failed" };
     }
 
     // Check capture
     const captureRes = await fetch(
-      `https://api-m.paypal.com/v2/payments/captures/${encodeURIComponent(transactionId)}`,
+      `${PAYPAL_API_BASE}/v2/payments/captures/${encodeURIComponent(transactionId)}`,
       {
         headers: {
-          Authorization: `Bearer ${tokenData.access_token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       }
@@ -543,7 +859,8 @@ async function generateProLicense(
   recipient,
   licenseType = TYPE_VIP,
   expiresAt = 0,
-  env
+  env,
+  features = 0xffffffff
 ) {
   const privateKeyPem = env.PRO_PRIVATE_KEY_PEM;
   if (!privateKeyPem) {
@@ -560,7 +877,6 @@ async function generateProLicense(
   }
 
   const issuedAt = Math.floor(Date.now() / 1000);
-  const features = 0xffffffff;
 
   // Payload: MAGIC(2) + VER(1) + TYPE(1) + ISSUED(4) + EXPIRES(4) + FEATURES(4) + RECIPIENT_LEN(1) + RECIPIENT(N)
   const payload = new Uint8Array(17 + recipientBytes.length);
@@ -616,7 +932,7 @@ async function generateProLicense(
 /**
  * Import PKCS#8 or SEC1 private key into CryptoKey
  */
-async function importPrivateKey(pem) {
+async function importPrivateKey(pem, extractable = false) {
   // Strip PEM headers and whitespace
   const cleanB64 = pem
     .replace(/-----[^\n]+-----/g, "")
@@ -629,7 +945,7 @@ async function importPrivateKey(pem) {
       "pkcs8",
       binaryDer.buffer,
       { name: "ECDSA", namedCurve: "P-256" },
-      false,
+      extractable,
       ["sign"]
     );
   } catch (err) {
@@ -639,10 +955,130 @@ async function importPrivateKey(pem) {
       "pkcs8",
       pkcs8Der.buffer,
       { name: "ECDSA", namedCurve: "P-256" },
-      false,
+      extractable,
       ["sign"]
     );
   }
+}
+
+let cachedVerifyKey = null;
+
+/**
+ * The public half of PRO_PRIVATE_KEY_PEM, so the worker checks keys against exactly the key it signs
+ * with (the same key ProLicenseVerifier.kt embeds).
+ */
+async function importPublicKey(pem) {
+  if (cachedVerifyKey?.pem === pem) return cachedVerifyKey.key;
+  const jwk = await crypto.subtle.exportKey("jwk", await importPrivateKey(pem, true));
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    { kty: "EC", crv: "P-256", x: jwk.x, y: jwk.y },
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["verify"]
+  );
+  cachedVerifyKey = { pem, key };
+  return key;
+}
+
+/**
+ * Decode and verify an EXPR-PRO key the way ProLicenseVerifier.kt does. Returns its fields plus `id`
+ * (SHA-256 of the decoded bytes), or null if it is malformed or not signed by this worker's key.
+ */
+async function parseSignedKey(rawKey, env) {
+  if (!env.PRO_PRIVATE_KEY_PEM) {
+    throw new Error("PRO_PRIVATE_KEY_PEM environment variable is not configured.");
+  }
+  const bytes = decodeKeyBytes(rawKey);
+  if (!bytes || bytes.length < 17 + 1 + 64 + 2) return null;
+
+  const body = bytes.subarray(0, bytes.length - 2);
+  const crc = (bytes[bytes.length - 2] << 8) | bytes[bytes.length - 1];
+  if (computeCrc16Ccitt(body) !== crc) return null;
+  if (bytes[0] !== MAGIC[0] || bytes[1] !== MAGIC[1] || bytes[2] !== SCHEMA_VERSION) return null;
+
+  const payloadLen = 17 + bytes[16];
+  if (body.length < payloadLen + 1) return null;
+  const sigLen = body[payloadLen];
+  if (body.length < payloadLen + 1 + sigLen) return null;
+  const rawSig = convertDerToP1363(body.subarray(payloadLen + 1, payloadLen + 1 + sigLen));
+  if (!rawSig) return null;
+
+  const payload = bytes.slice(0, payloadLen);
+  const valid = await crypto.subtle.verify(
+    { name: "ECDSA", hash: { name: "SHA-256" } },
+    await importPublicKey(env.PRO_PRIVATE_KEY_PEM),
+    rawSig,
+    payload
+  );
+  if (!valid) return null;
+
+  const view = new DataView(payload.buffer);
+  return {
+    type: payload[3],
+    issuedAt: view.getUint32(4, false),
+    expiresAt: view.getUint32(8, false),
+    features: view.getUint32(12, false),
+    recipient: new TextDecoder().decode(payload.subarray(17, payloadLen)),
+    id: await sha256Hex(bytes),
+  };
+}
+
+/** Stable id of a key: SHA-256 of its decoded bytes, so dashes, case and O/0 typos don't matter. */
+async function keyId(rawKey) {
+  return sha256Hex(decodeKeyBytes(rawKey));
+}
+
+/**
+ * Crockford Base32 decode of a key, matching ProLicenseVerifier.kt: drop the EXPR-PRO- / EXPR-
+ * prefix, read O as 0 and I/L as 1, skip other characters. Null if the padding bits are not zero.
+ */
+function decodeKeyBytes(rawKey) {
+  let clean = String(rawKey).trim().toUpperCase();
+  if (clean.startsWith("EXPR-PRO-")) clean = clean.slice("EXPR-PRO-".length);
+  else if (clean.startsWith("EXPR-")) clean = clean.slice("EXPR-".length);
+
+  let bitBuf = 0;
+  let bitsInBuf = 0;
+  const out = [];
+  for (const c of clean) {
+    const v = CROCKFORD_ALPHABET.indexOf(c === "O" ? "0" : c === "I" || c === "L" ? "1" : c);
+    if (v === -1) continue;
+    bitBuf = ((bitBuf << 5) | v) & 0xfff;
+    bitsInBuf += 5;
+    if (bitsInBuf >= 8) {
+      bitsInBuf -= 8;
+      out.push((bitBuf >> bitsInBuf) & 0xff);
+    }
+  }
+  if (bitsInBuf > 0 && (bitBuf & ((1 << bitsInBuf) - 1)) !== 0) return null;
+  return Uint8Array.from(out);
+}
+
+/**
+ * Convert an ASN.1 DER SEQUENCE { INTEGER r, INTEGER s } signature to the raw 64-byte form Web Crypto
+ * verifies. Null if it is not a well-formed P-256 signature.
+ */
+function convertDerToP1363(der) {
+  if (der.length < 8 || der[0] !== 0x30 || der[1] !== der.length - 2) return null;
+  const out = new Uint8Array(64);
+  let offset = 2;
+  for (const target of [0, 32]) {
+    if (der[offset] !== 0x02) return null;
+    const len = der[offset + 1];
+    let value = der.subarray(offset + 2, offset + 2 + len);
+    if (value.length !== len) return null;
+    while (value.length > 32 && value[0] === 0) value = value.subarray(1);
+    if (value.length > 32) return null;
+    out.set(value, target + 32 - value.length);
+    offset += 2 + len;
+  }
+  return offset === der.length ? out : null;
+}
+
+async function sha256Hex(bytes) {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
@@ -740,21 +1176,25 @@ function wrapSec1ToPkcs8(sec1Bytes) {
   //     OID 1.2.840.10045.2.1 (ecPublicKey)
   //     OID 1.2.840.10045.3.1.7 (prime256v1)
   //   OCTET STRING (sec1Bytes)
-  const prefix = new Uint8Array([
-    0x30,
-    sec1Bytes.length + 16,
+  const octetString = [0x04, ...derLength(sec1Bytes.length)];
+  const body = [
     0x02, 0x01, 0x00,
     0x30, 0x13,
     0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,
     0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07,
-    0x04,
-    sec1Bytes.length,
-  ]);
+    ...octetString,
+  ];
+  // An OpenSSL SEC1 key (with its public key) is 121 bytes, so the outer length needs the long form.
+  const prefix = new Uint8Array([0x30, ...derLength(body.length + sec1Bytes.length), ...body]);
 
   const pkcs8 = new Uint8Array(prefix.length + sec1Bytes.length);
   pkcs8.set(prefix, 0);
   pkcs8.set(sec1Bytes, prefix.length);
   return pkcs8;
+}
+
+function derLength(n) {
+  return n < 0x80 ? [n] : n < 0x100 ? [0x81, n] : [0x82, n >> 8, n & 0xff];
 }
 
 function base64ToUint8Array(base64) {
@@ -786,4 +1226,14 @@ function escapeHtml(str) {
 }
 
 // Exported for unit tests (node --test server/cloudflare-worker/).
-export { handleTrialRequest, TYPE_TRIAL, TRIAL_DAYS };
+export {
+  handleTrialRequest,
+  handleRebind,
+  handleVerifyDonation,
+  handleAdminIssue,
+  parseSignedKey,
+  generateProLicense,
+  TYPE_TRIAL,
+  TRIAL_DAYS,
+  MAX_DEVICE_MOVES,
+};
