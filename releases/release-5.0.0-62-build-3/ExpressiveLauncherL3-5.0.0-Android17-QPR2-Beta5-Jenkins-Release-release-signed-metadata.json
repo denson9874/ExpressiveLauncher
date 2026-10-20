@@ -1,0 +1,75 @@
+{
+  "baseline": {
+    "candidateIsNewer": true,
+    "certificateSha256": "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2",
+    "debuggable": false,
+    "fileName": "baseline.apk",
+    "packageName": "dev.launcher.expressive.l3",
+    "sha256": "54febd8232f5e603ffb4af275785ce33299ed0c63b89aa41da95a6babd238a99",
+    "signatureVerified": true,
+    "signerMatches": true,
+    "sizeBytes": 24145852,
+    "versionCode": 49,
+    "versionName": "4.0.0"
+  },
+  "baselineMode": "quiesced-upgrade",
+  "certificateSha256": "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2",
+  "channel": "release",
+  "debuggable": false,
+  "fileName": "ExpressiveLauncherL3-5.0.0-Android17-QPR2-Beta5-Jenkins-Release-release-signed.apk",
+  "googleDiscoverSupport": {
+    "bundled": true,
+    "certificateSha256": "c14160306d5c059b3d119f15fb74e08c57cc272316e80b36e192c71dc9e4d0d2",
+    "debuggable": true,
+    "fileName": "ExpressiveFeed.apk",
+    "packageName": "dev.launcher.expressive.feed",
+    "serviceOnly": true,
+    "sha256": "f02b0e5ac90a6f63fe131d06f69bf914b1d5c7d212c4546d52fe569d9a0564bd",
+    "signatureVerified": true,
+    "signerMatches": true,
+    "sizeBytes": 82103,
+    "versionCode": 62,
+    "versionName": "5.0.0"
+  },
+  "packageName": "dev.launcher.expressive.l3",
+  "schemaVersion": 1,
+  "selectedQa": {
+    "sha256": "a9cc9e7d621096d3d61895df19d396f19fc72f9bae89bf53227692807653ff32",
+    "sourceRevision": "e98e7ed97526fd2e971580744a2dcf04204dac2f",
+    "versionCode": 62,
+    "versionName": "5.0.0"
+  },
+  "sha256": "639acdde5fea558d47790f01380f207caa9ec0809d557dd0392845eb5f27df49",
+  "signatureVerified": true,
+  "sizeBytes": 24372758,
+  "sourceRevision": "999c803100db313d93de35c6b7e839b894fd9346",
+  "stableBootstrap": false,
+  "validationOnly": true,
+  "versionCode": 62,
+  "versionName": "5.0.0",
+  "weeklyReleaseGate": {
+    "status": "manual-selection",
+    "selected": {
+      "sourceRevision": "e98e7ed97526fd2e971580744a2dcf04204dac2f",
+      "versionName": "5.0.0",
+      "versionCode": 62,
+      "qaReleaseId": "qa-5.0.0-62-build-8"
+    },
+    "reason": "Explicit stable build selection; publication requires a sealed green Jenkins build"
+  },
+  "qaProvenance": {
+    "releaseId": "qa-5.0.0-62-build-8",
+    "sealSha256": "3c41c6b9431e52deac241a876e2c43ebee571bae2ef48d007b827f7677763558",
+    "sourceRevision": "e98e7ed97526fd2e971580744a2dcf04204dac2f",
+    "versionName": "5.0.0",
+    "versionCode": 62,
+    "sha256": "a9cc9e7d621096d3d61895df19d396f19fc72f9bae89bf53227692807653ff32"
+  },
+  "buildUrl": "http://127.0.0.1:8091/job/expressive-release-build/3/",
+  "unitTests": {
+    "tests": 550,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}
