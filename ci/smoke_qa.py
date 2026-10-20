@@ -241,20 +241,25 @@ class Smoke:
         return candidates[0]
 
     def swipe_to_date(self, root, max_pages=4):
-        """At a Glance may open on another card (e.g. "Tap to set up"); swipe its pager to the date."""
-        for page in range(max_pages):
-            dates = [n for n in root.iter("node") if n.get("resource-id", "").endswith(":id/date")]
-            if dates:
-                return dates[0], page
-            pager = self.node(root, rid="smartspace_card_pager")
-            x1, y1, x2, y2 = bounds(pager)
-            y = (y1 + y2) // 2
-            # The QA emulator is left-to-right: the next card is to the right.
-            start_x, end_x = x1 + (x2 - x1) * 4 // 5, x1 + (x2 - x1) // 5
-            self.shell("input", "swipe", str(start_x), str(y), str(end_x), str(y), "300")
-            time.sleep(1)
-            root = self.capture(f"candidate-date-home-page-{page + 1}")
-        self.require(False, f"At a Glance date card not found within {max_pages} pages")
+        """At a Glance may open on another card (e.g. "Tap to set up") on any page; swipe its pager
+        forward, then back, until the date card shows. Returns the node and the swipes it took."""
+        swipes = 0
+        for forward in (True, False):
+            for _ in range(max_pages):
+                dates = [n for n in root.iter("node") if n.get("resource-id", "").endswith(":id/date")]
+                if dates:
+                    return dates[0], swipes
+                pager = self.node(root, rid="smartspace_card_pager")
+                x1, y1, x2, y2 = bounds(pager)
+                y = (y1 + y2) // 2
+                # The QA emulator is left-to-right: the next card is to the right.
+                right, left = x1 + (x2 - x1) * 4 // 5, x1 + (x2 - x1) // 5
+                start_x, end_x = (right, left) if forward else (left, right)
+                self.shell("input", "swipe", str(start_x), str(y), str(end_x), str(y), "300")
+                time.sleep(1)
+                swipes += 1
+                root = self.capture(f"candidate-date-home-swipe-{swipes}")
+        self.require(False, f"At a Glance date card not found within {max_pages} pages either way")
 
     def tap(self, node):
         x1, y1, x2, y2 = bounds(node)
@@ -423,7 +428,7 @@ class Smoke:
         self.passed("local_search", query="Calendar")
         root = self.home("candidate-date-home")
         date, date_page = self.swipe_to_date(root)
-        self.result["datePage"] = date_page
+        self.result["dateSwipes"] = date_page
         epoch = int(self.shell("date", "+%s"))
         stamps = []
         for attempt in range(3):
