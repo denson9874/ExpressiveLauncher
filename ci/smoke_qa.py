@@ -462,8 +462,8 @@ def main():
     parser.add_argument("--output-dir", required=True, type=Path, help="New directory; existing evidence is never replaced")
     parser.add_argument("--source-revision", required=True)
     parser.add_argument("--android-home", type=Path, default=Path(os.environ.get("ANDROID_HOME", str(Path.home() / "Library/Android/sdk"))))
-    parser.add_argument("--avd-template", default="Pixel_8_Pro_Android_17_QPR2_Beta5")
-    parser.add_argument("--expected-build", default="CP41.260828.004.A7")
+    parser.add_argument("--avd-template", default="Pixel_8_Pro_Android_17_QPR2")
+    parser.add_argument("--expected-build", default="CP41.260831.007")
     # Apple Silicon host GPU rendering boots ~45% faster than software swiftshader with
     # identical screenshots (measured 2026-10-04); swiftshader_indirect remains the fallback.
     parser.add_argument("--gpu", choices=("host", "swiftshader_indirect"), default="host")

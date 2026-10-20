@@ -12,13 +12,13 @@ GitHub `stable` branch and stable update feed after the publisher rechecks their
 
 ## Infrastructure
 
-- Source checkout: `/Users/daryldenson/Developer/ExpressiveLauncher`, `codex/pixel-parity` (moved out of iCloud Documents on 2026-10-01; the gitignored signing `keystore.properties` lives in this checkout's root).
+- Source checkout: `/Users/densond/Developer/ExpressiveLauncher`, `codex/pixel-parity` (moved out of iCloud Documents on 2026-10-01; the gitignored signing `keystore.properties` lives in this checkout's root).
 - Export repository: https://github.com/denson9874/ExpressiveLauncher . This repository contains
   build exports and manifests; the application source checkout and upstream remotes remain separate.
 - Build job: http://127.0.0.1:8091/job/expressive-qa-build/
 - Publish job: http://127.0.0.1:8091/job/expressive-qa-publish/
 - Jenkins state, private configuration, logs and retained releases:
-  `/Users/daryldenson/Library/Application Support/Expressive CI/`.
+  `/Users/densond/Library/Application Support/Expressive CI/`.
 - Services: `dev.expressive.jenkins` and `dev.expressive.jenkins-agent` in `~/Library/LaunchAgents`.
 
 Jenkins is bound to loopback, requires authentication, and has zero controller executors. Its one
@@ -90,15 +90,14 @@ minified Qa assembly. Package validation requires the exact expected version, QA
 non-debuggable output, verified signature and continuity with the previous certificate.
 A new isolated `Expressive_CI_*` emulator validates same-signer upgrade, retained preferences/HOME,
 warm/cold launch, drawer/search/date flows and clean launcher crash/ANR logs. Existing AVDs remain intact.
-The source-controlled template is `Pixel_8_Pro_Android_17_QPR2_Beta5`, with expected emulator build
-`CP41.260828.004.A7`, full SDK `37.2` and security patch `2026-08-05`. Google's revision 5 Play Store
-ARM64 16 KB image was checksum-verified and passed two independent cold boots with Pixel Launcher
-907/version 17. Its emulator build differs from the physical-device Beta 5 builds listed in the
-[official release notes](https://developer.android.com/about/versions/17/qpr2/release-notes).
-The template references the separate image under
-`/Users/daryldenson/Library/Android/reference-images/android-17-qpr2-beta5-r5/arm64-v8a/`;
-the retained Beta 4 image and AVDs remain unchanged. Update these pins deliberately after verifying
-any newer public QPR reference, before building a new candidate.
+The source-controlled template is `Pixel_8_Pro_Android_17_QPR2` (re-pinned 2026-10-20 after the
+Mac was rebuilt; Google no longer offers the Beta 5 revision 5 image the old template used). It uses
+`system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a` revision 6 from the SDK at
+`~/Library/Android/sdk`, with expected emulator build `CP41.260831.007`, full SDK `37.2` and security
+patch `2026-09-05`, verified by a cold boot with host GPU. Create the template with
+`avdmanager create avd -n Pixel_8_Pro_Android_17_QPR2 -k "system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a" -d pixel_8_pro`.
+Update these pins deliberately after verifying any newer public QPR reference, before building a new
+candidate.
 
 A successful build seals `releases/qa-VERSION-CODE-build-NUMBER` with APK, metadata, report, unit
 results, mapping and device evidence. Jenkins also archives them. Prior releases are never overwritten.
