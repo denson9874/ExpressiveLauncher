@@ -17,6 +17,7 @@ import app.lawnchair.smartspace.provider.SmartspaceProvider
 import app.lawnchair.util.repeatOnAttached
 import com.android.launcher3.R
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -114,11 +115,22 @@ class BcSmartspaceView @JvmOverloads constructor(
             sortedTargets.reverse()
         }
 
+        val oldTargetId = adapter.getTargetAtPosition(currentItem)?.id
         val oldCard = adapter.getCardAtPosition(currentItem)
         adapter.setTargets(sortedTargets)
         val count = adapter.count
-        if (isRtl) {
-            viewPager.setCurrentItem((count - index).coerceIn(0 until count), false)
+        if (count > 0) {
+            val targetIndex = if (oldTargetId != null) {
+                sortedTargets.indexOfFirst { it.id == oldTargetId }
+            } else {
+                -1
+            }
+            val newIndex = if (targetIndex != -1) targetIndex else currentItem.coerceIn(0 until count)
+            if (isRtl) {
+                viewPager.setCurrentItem((count - 1 - newIndex).coerceIn(0 until count), false)
+            } else {
+                viewPager.setCurrentItem(newIndex, false)
+            }
         }
         indicator.setNumPages(targets.size)
         oldCard?.let { animateSmartspaceUpdate(it) }
