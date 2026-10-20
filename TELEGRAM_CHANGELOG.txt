@@ -1,46 +1,78 @@
-<b>Expressive Launcher 4.1.2 (Build 61) — Expressive Core & Stable Drawer Sizing</b>
+<b>Expressive Launcher 5.0.0 (Build 62) — Butter, Brains, and Edge Beats</b>
 
-Two major milestones in this release: introducing <b>Expressive Core</b> for frictionless browser installs on Android 15/16/17, and stabilizing app drawer icon sizing when exiting search. Thank you to our community contributors for reporting edge cases and testing!
+Welcome to <b>Expressive Launcher 5.0.0 (Build 62)</b>! This is our biggest major release yet, packed with under-the-hood engine overhauls, first-party Google Pixel stability, and edge-native cloud intelligence. From 120Hz fluid settings and Cover folders to Smartspace 2.0 and Pro licenses that survive resets, version 5.0.0 raises the bar for Android home screens.
+
+───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-1. <b>Expressive Core Edition</b> (XDA-021):
-• New lightweight build without Accessibility or Notification Listener services, specifically avoiding Google Play Protect's "Enhanced Fraud Protection" warning when sideloading from browsers.
-• Built with the identical package name (<code>dev.launcher.expressive.l3</code>) and signing certificate, ensuring seamless upgrades between Full and Core builds.
-• Core provides standard home launcher features with device-admin or root screen lock fallbacks.
+<b>1. 🧈 Butter-Smooth 120Hz Settings & Instant Toggles</b>
+• <b>Zero-Disk-I/O Architecture</b>: Settings scrolling and switches are now completely decoupled from disk bottlenecks. We eliminated synchronous DataStore disk reads (<code>firstBlocking()</code>) and Room SQLite stalls on the Android UI looper, routing lookups through an instantaneous $O(1)$ in-memory cache.
+• <b>Instant Switch Feedback</b>: Toggle switches now use optimistic UI dispatch—flipping instantaneously on touch with zero jank, while background disk persistence commits quietly on an asynchronous coroutine.
+• <b>Suspended Background Recreation</b>: Toggling settings options no longer forces the background Home workspace to rebuild itself while you're still in the preferences menu.
+• <b>Measured Hardware Telemetry (Pixel 7 Pro)</b>:
+• 50th percentile frame time dropped from <b>69ms–200ms down to 6ms</b>.
+• 90th percentile frame time dropped from <b>200ms down to 7ms–15ms</b>.
+• Switch toggle jank plummeted to a flat <b>1.00%</b>, with <b>0 frames</b> exceeding the 100ms stutter mark.
 
-2. <b>Stable Drawer Icon Sizing on Search Exit</b> (TG-011):
-• Fixed an issue where app drawer icons remained enlarged after backing out of drawer search and only reverted to proper proportions upon closing and reopening the drawer.
-• In <code>BubbleTextView</code>, <code>applyFromWorkspaceItem()</code> now synchronizes icon dimensions with the active <code>AllAppsProfile</code> across drawer displays (prediction rows and search shortcuts).
-• In <code>ActivityAllAppsContainerView</code>, completing search dismissal explicitly notifies active drawer adapters to refresh visible views against active device profile dimensions.
+<b>2. 📁 Cover Folders & Folder Widget Polish</b>
+• <b>App-Dominant Cover Mode</b>: Turn any folder into an undercover app. A Cover folder displays the full-size icon of its primary app with an elegant bottom-right badge. 
+• <b>Single tap</b>: Launches the primary app instantly.
+• <b>Swipe up</b>: Triggers a tactile haptic tick (<code>GESTURE_START</code>) and smoothly expands the folder grid.
+• <b>Dynamic Auto-Promotion</b>: Drag an app out or uninstall it? Position 0 dynamically promotes the next app in line to become the cover star without manual reconfiguration.
+• <b>Widget Conversion Guard</b>: Converting a Cover folder to a Folder widget safely detaches cover flags, and the deliberate <b>⋮ menu</b> ensures conversions always require a conscious second tap.
 
-3. <b>Dual-Variant QA Automation & CI Pipeline</b> (XDA-021):
-• Jenkins pipeline now automatically compiles, verifies, seals, and distributes Expressive Core (<code>-PexpressiveCore=true</code>) alongside Full QA builds.
-• Manifest scanner strictly validates that Core APKs contain no flagged permissions, and smoke tests verify upgrade compatibility between Full and Core releases.
+<b>3. 🧠 Smart Drawer Auto-Categorization</b>
+• <b>Effortless App Organization</b>: Say goodbye to manual filing. Your app drawer can now automatically organize installed apps into categorized tabs (<b>Social</b>, <b>Media</b>, <b>Games</b>, <b>Work & Productivity</b>, <b>Utilities</b>) driven by Android's native <code>ApplicationInfo.category</code> metadata.
+• <b>Asynchronous Category Indexing</b>: Category resolution runs entirely on the background <code>MODEL_EXECUTOR</code>. Opening and flinging through the drawer remains silky smooth at a locked 120Hz.
+• <b>Profile Parity</b>: Fully supports both Personal and Work profile tabs in your app drawer. Toggle it anytime via <b>Settings → App drawer → Smart categories</b>.
+
+<b>4. 🌤️ Smartspace 2.0 & At a Glance Resilience</b>
+• <b>Zero-Blank Warm Start</b>: Smartspace no longer greets you with an awkward empty void while external IPC services boot up. Local date, time, and weather cards render immediately on attach, gracefully transitioning when Smartspacer targets arrive.
+• <b>Flow Crash Isolation</b>: Every external data feed (Bluetooth telemetry, Battery, Torch, Media) is individually isolated with defensive exception barriers. If an accessory provider hiccups, your weather and calendar remain rock solid.
+• <b>Connected Bluetooth Battery Telemetry</b>: Live battery percentage indicators for connected Bluetooth headsets and audio devices, automatically surfacing battery alerts when power dips below 20%.
+• <b>Active Card Retention</b>: Navigating multi-card glanceables now binds dynamically to unique target IDs rather than volatile numeric indices, preventing cards from jumping unexpectedly during background refreshes.
+
+<b>5. 🔑 Pro Licenses That Survive Resets</b>
+• <b>Moves after a reset</b>: A device-bound Pro key used to stop working after a factory reset, reinstall or cleared data. Now the launcher asks the activation service to move it to your device automatically (up to 3 new devices every 30 days).
+• <b>Restore by receipt</b>: Lost your key? Enter the Transaction ID from your PayPal receipt and the license is re-issued for this device.
+• <b>Stable Device ID</b>: Reinstalling or clearing app data keeps the same Device ID, so your key just keeps working.
+• <b>Still offline-first</b>: Keys are checked on your device. You only need a connection when a license moves to a new device.
+
+───────────────────────
+
+<b>😄 Launcher Humor</b>
+
+<blockquote>⚡ <i>Our settings switches used to ponder the philosophical meaning of existence for 250 milliseconds every time you tapped them. They now flip faster than your brain when your phone hits 1% battery.</i>
+
+📁 <i>Cover Folders: Because sometimes you want your folder to dress up as Spotify in front of its friends, until you swipe it up and reveal the secret folder society inside.</i>
+
+🌐 <i>Our new Cloudflare worker lives on the edge, runs in milliseconds, and never sleeps. Just remember to give it a little Wi-Fi handshake during activation—it's serverless, not psychic!</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>App Drawer Search Sizing</b>: Special thanks to Pratik for flagging the icon sizing discrepancy when navigating between search and the drawer!
-• <b>Play Protect Warnings</b>: Thanks to our XDA community members for reporting sideload blocks under enhanced fraud protection rules!
+• <b>After a factory reset</b>: Paste your Pro key (or your PayPal Transaction ID) while online, and the license moves to your reset device.
+• <b>Bluetooth Permissions</b>: Showing accessory battery levels on Android 12+ requires standard Nearby Devices permission (<code>BLUETOOTH_CONNECT</code>). Expressive Launcher never collects or transmits telemetry off your device.
+• <b>Feedback & Bug Triage</b>: Thank you to everyone in @ExpressiveLauncherFeedback for reporting switch delays and Smartspace blanking during beta testing!
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-I carry the heart of the launcher with pride, yet leave the heavy listeners outside. Play Protect smiles and lets me slide right in. What edition am I?
+<blockquote><i>I look like a single app on your screen, but a gentle flick upward reveals an entire team. Tap me once and my leader charges ahead; swipe me up and my hidden squad spreads instead. What am I?</i></blockquote>
 
-<tg-spoiler>Expressive Core! 🛡️⚡</tg-spoiler>
+<tg-spoiler><b>A Cover Folder!</b> Tap launches app #1, swipe-up reveals the whole folder crew. 🎩📱</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>4.1.2</code> (Build <code>61</code>)
+• <b>Launcher Version</b>: <code>5.0.0</code> (Build <code>62</code>), Stable Channel
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
-• <b>Validated</b>: App unit suite, CI contract suite (328/328 pass), and dual-variant smoke tests.
 
 🔗 <b>Links & Downloads</b>:
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
 • <b>Community & Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
+• <b>Announcements Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>

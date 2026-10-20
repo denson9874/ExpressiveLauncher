@@ -1,0 +1,110 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.0.0 (Build 62) — Butter, Brains, and Edge Beats[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+Welcome to [B]Expressive Launcher 5.0.0 (Build 62)[/B]! This is our biggest major release yet, packed with under-the-hood engine overhauls, first-party Google Pixel stability, and edge-native cloud intelligence. From 120Hz fluid settings and Cover folders to Smartspace 2.0 and Pro licenses that survive resets, version 5.0.0 raises the bar for Android home screens.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. 🧈 Butter-Smooth 120Hz Settings & Instant Toggles[/B][/SIZE]
+[LIST]
+[*][B]Zero-Disk-I/O Architecture[/B]: Settings scrolling and switches are now completely decoupled from disk bottlenecks. We eliminated synchronous DataStore disk reads ([ICODE]firstBlocking()[/ICODE]) and Room SQLite stalls on the Android UI looper, routing lookups through an instantaneous $O(1)$ in-memory cache.
+[*][B]Instant Switch Feedback[/B]: Toggle switches now use optimistic UI dispatch—flipping instantaneously on touch with zero jank, while background disk persistence commits quietly on an asynchronous coroutine.
+[*][B]Suspended Background Recreation[/B]: Toggling settings options no longer forces the background Home workspace to rebuild itself while you're still in the preferences menu.
+[*][B]Measured Hardware Telemetry (Pixel 7 Pro)[/B]:
+[*]50th percentile frame time dropped from [B]69ms–200ms down to 6ms[/B].
+[*]90th percentile frame time dropped from [B]200ms down to 7ms–15ms[/B].
+[*]Switch toggle jank plummeted to a flat [B]1.00%[/B], with [B]0 frames[/B] exceeding the 100ms stutter mark.
+
+[/LIST]
+[SIZE=5][B]2. 📁 Cover Folders & Folder Widget Polish[/B][/SIZE]
+[LIST]
+[*][B]App-Dominant Cover Mode[/B]: Turn any folder into an undercover app. A Cover folder displays the full-size icon of its primary app with an elegant bottom-right badge.
+[*][B]Single tap[/B]: Launches the primary app instantly.
+[*][B]Swipe up[/B]: Triggers a tactile haptic tick ([ICODE]GESTURE_START[/ICODE]) and smoothly expands the folder grid.
+[*][B]Dynamic Auto-Promotion[/B]: Drag an app out or uninstall it? Position 0 dynamically promotes the next app in line to become the cover star without manual reconfiguration.
+[*][B]Widget Conversion Guard[/B]: Converting a Cover folder to a Folder widget safely detaches cover flags, and the deliberate [B]⋮ menu[/B] ensures conversions always require a conscious second tap.
+
+[/LIST]
+[SIZE=5][B]3. 🧠 Smart Drawer Auto-Categorization[/B][/SIZE]
+[LIST]
+[*][B]Effortless App Organization[/B]: Say goodbye to manual filing. Your app drawer can now automatically organize installed apps into categorized tabs ([B]Social[/B], [B]Media[/B], [B]Games[/B], [B]Work & Productivity[/B], [B]Utilities[/B]) driven by Android's native [ICODE]ApplicationInfo.category[/ICODE] metadata.
+[*][B]Asynchronous Category Indexing[/B]: Category resolution runs entirely on the background [ICODE]MODEL_EXECUTOR[/ICODE]. Opening and flinging through the drawer remains silky smooth at a locked 120Hz.
+[*][B]Profile Parity[/B]: Fully supports both Personal and Work profile tabs in your app drawer. Toggle it anytime via [B]Settings → App drawer → Smart categories[/B].
+
+[/LIST]
+[SIZE=5][B]4. 🌤️ Smartspace 2.0 & At a Glance Resilience[/B][/SIZE]
+[LIST]
+[*][B]Zero-Blank Warm Start[/B]: Smartspace no longer greets you with an awkward empty void while external IPC services boot up. Local date, time, and weather cards render immediately on attach, gracefully transitioning when Smartspacer targets arrive.
+[*][B]Flow Crash Isolation[/B]: Every external data feed (Bluetooth telemetry, Battery, Torch, Media) is individually isolated with defensive exception barriers. If an accessory provider hiccups, your weather and calendar remain rock solid.
+[*][B]Connected Bluetooth Battery Telemetry[/B]: Live battery percentage indicators for connected Bluetooth headsets and audio devices, automatically surfacing battery alerts when power dips below 20%.
+[*][B]Active Card Retention[/B]: Navigating multi-card glanceables now binds dynamically to unique target IDs rather than volatile numeric indices, preventing cards from jumping unexpectedly during background refreshes.
+
+[/LIST]
+[SIZE=5][B]5. 🔑 Pro Licenses That Survive Resets[/B][/SIZE]
+[LIST]
+[*][B]Moves after a reset[/B]: A device-bound Pro key used to stop working after a factory reset, reinstall or cleared data. Now the launcher asks the activation service to move it to your device automatically (up to 3 new devices every 30 days).
+[*][B]Restore by receipt[/B]: Lost your key? Enter the Transaction ID from your PayPal receipt and the license is re-issued for this device.
+[*][B]Stable Device ID[/B]: Reinstalling or clearing app data keeps the same Device ID, so your key just keeps working.
+[*][B]Still offline-first[/B]: Keys are checked on your device. You only need a connection when a license moves to a new device.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]⚡ [I]Our settings switches used to ponder the philosophical meaning of existence for 250 milliseconds every time you tapped them. They now flip faster than your brain when your phone hits 1% battery.[/I]
+
+📁 [I]Cover Folders: Because sometimes you want your folder to dress up as Spotify in front of its friends, until you swipe it up and reveal the secret folder society inside.[/I]
+
+🌐 [I]Our new Cloudflare worker lives on the edge, runs in milliseconds, and never sleeps. Just remember to give it a little Wi-Fi handshake during activation—it's serverless, not psychic![/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]After a factory reset[/B]: Paste your Pro key (or your PayPal Transaction ID) while online, and the license moves to your reset device.
+[*][B]Bluetooth Permissions[/B]: Showing accessory battery levels on Android 12+ requires standard Nearby Devices permission ([ICODE]BLUETOOTH_CONNECT[/ICODE]). Expressive Launcher never collects or transmits telemetry off your device.
+[*][B]Feedback & Bug Triage[/B]: Thank you to everyone in @ExpressiveLauncherFeedback for reporting switch delays and Smartspace blanking during beta testing!
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I look like a single app on your screen, but a gentle flick upward reveals an entire team. Tap me once and my leader charges ahead; swipe me up and my hidden squad spreads instead. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]A Cover Folder![/B] Tap launches app #1, swipe-up reveals the whole folder crew. 🎩📱[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.0.0[/ICODE] (Build [ICODE]62[/ICODE]), Stable Channel
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[*][B]Announcements Channel[/B]: [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.0.0-62"]Download Expressive Launcher v5.0.0 (Build 62)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
