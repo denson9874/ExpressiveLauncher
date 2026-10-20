@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -50,7 +51,16 @@ class SmartspaceEmissionTest {
             }
         }
 
-        drain()
+        // Providers emit from background dispatchers; wait for the expected emissions instead of a
+        // fixed number of looper idles, which raced on loaded CI machines.
+        val deadline = System.currentTimeMillis() + 10_000
+        while (System.currentTimeMillis() < deadline &&
+            (collectedTargets.lastOrNull().isNullOrEmpty() ||
+                collectedPreview.lastOrNull()?.any { it.id == "dummyTarget" } != true)
+        ) {
+            drain()
+            delay(50)
+        }
 
         println("COLLECTED: count=${collectedTargets.size}, all=${collectedTargets.map { it.map { t -> t.id } }}")
         println("PREVIEW COLLECTED: count=${collectedPreview.size}, all=${collectedPreview.map { it.map { t -> t.id } }}")
