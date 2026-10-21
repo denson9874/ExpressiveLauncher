@@ -79,6 +79,10 @@ export default {
       }
 
       // 6. Owner-only key issuing (replaces the offline generate_pro_key.py)
+      if (url.pathname === "/api/admin/issued" && request.method === "GET") {
+        return await handleAdminIssued(request, env);
+      }
+
       if (url.pathname === "/api/admin/issue" && request.method === "POST") {
         return await handleAdminIssue(request, env);
       }
@@ -836,6 +840,58 @@ async function handleAdminRegister(request, env, now = Date.now()) {
   });
 }
 
+const ISSUED_PAGE_SIZE = 50;
+
+/**
+ * Handle GET /api/admin/issued[?cursor=N] (Authorization: Bearer <ADMIN_TOKEN>): the issue and
+ * register records (`admin:issued:*`, `admin:registered:*`), newest first, 50 per page. `cursor`
+ * is the offset of the next page, or null after the last one.
+ */
+async function handleAdminIssued(request, env) {
+  if (!env.ADMIN_TOKEN) {
+    return jsonResponse({ error: "Endpoint not found" }, 404);
+  }
+  const header = request.headers.get("Authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  if (!(await secretsEqual(token, env.ADMIN_TOKEN))) {
+    return jsonResponse({ success: false, error: "unauthorized" }, 401);
+  }
+  if (!env.EXPRESSIVE_PRO_KV) {
+    return jsonResponse({ success: false, message: "Storage backend not configured" }, 503);
+  }
+
+  const names = [];
+  for (const prefix of ["admin:issued:", "admin:registered:"]) {
+    let cursor;
+    do {
+      const page = await env.EXPRESSIVE_PRO_KV.list({ prefix, cursor });
+      for (const k of page.keys) names.push({ name: k.name, id: k.name.slice(prefix.length) });
+      cursor = page.list_complete ? undefined : page.cursor;
+    } while (cursor);
+  }
+  // Ids start with the issue time in seconds, so a descending sort is newest first.
+  names.sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+
+  const offset = Math.max(0, parseInt(new URL(request.url).searchParams.get("cursor") || "0", 10) || 0);
+  const page = names.slice(offset, offset + ISSUED_PAGE_SIZE);
+  const records = [];
+  for (const { name, id } of page) {
+    const raw = await env.EXPRESSIVE_PRO_KV.get(name);
+    if (!raw) continue;
+    const data = JSON.parse(raw);
+    const keys = (data.keys || []).map((k) => ({
+      key: k.key,
+      recipient: k.recipient ?? null,
+      deepLink: k.deepLink ?? null,
+    }));
+    const type = data.type ?? data.keys?.[0]?.type ?? null;
+    const expiresAt = data.expiresAt ?? data.keys?.[0]?.expiresAt ?? 0;
+    records.push({ id, type, expiresAt, createdAt: data.createdAt ?? null, keys });
+  }
+  const next = offset + ISSUED_PAGE_SIZE < names.length ? String(offset + ISSUED_PAGE_SIZE) : null;
+  return jsonResponse({ success: true, records, cursor: next });
+}
+
 function badAdminRequest(message) {
   return jsonResponse({ success: false, error: "invalid_request", message }, 400);
 }
@@ -1363,6 +1419,7 @@ function escapeHtml(str) {
 
 // Exported for unit tests (node --test server/cloudflare-worker/).
 export {
+  handleAdminIssued,
   handleTrialRequest,
   handleRebind,
   handleVerifyDonation,

@@ -6,6 +6,7 @@ import worker, {
   handleRebind,
   handleVerifyDonation,
   handleAdminIssue,
+  handleAdminIssued,
   handleAdminRegister,
   parseSignedKey,
   generateProLicense,
@@ -25,6 +26,14 @@ class MemoryKv {
   constructor() { this.map = new Map(); }
   async get(key) { return this.map.has(key) ? this.map.get(key) : null; }
   async put(key, value) { this.map.set(key, value); }
+  async list({ prefix = "", cursor } = {}) {
+    // Two keys per page, to exercise cursor paging like Cloudflare's 1000-key pages.
+    const names = [...this.map.keys()].filter((k) => k.startsWith(prefix)).sort();
+    const start = cursor ? parseInt(cursor, 10) : 0;
+    const keys = names.slice(start, start + 2).map((name) => ({ name }));
+    const done = start + 2 >= names.length;
+    return { keys, list_complete: done, cursor: done ? undefined : String(start + 2) };
+  }
 }
 
 /** Durable Object storage whose reads yield to other work, so unserialized code would interleave. */
@@ -498,3 +507,26 @@ test("admin register rejects forged, corrupted, or expired keys", async () => {
   assert.equal(resExpired.status, 400);
 });
 
+
+const issued = (env, token = "admin-secret", cursor) =>
+  handleAdminIssued(new Request(`https://worker.test/api/admin/issued${cursor ? `?cursor=${cursor}` : ""}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  }), env);
+
+test("admin can list issued keys newest first, and only with the token", async () => {
+  const env = await testEnv({ ADMIN_TOKEN: "admin-secret" });
+  assert.equal((await issued(env, "wrong")).status, 401);
+  assert.equal((await issued(await testEnv(), "admin-secret")).status, 404);
+
+  await handleAdminIssue(post("/api/admin/issue", { type: "CAKEY", device: OLD_DEVICE }, { Authorization: "Bearer admin-secret" }), env, NOW);
+  await handleAdminIssue(post("/api/admin/issue", { type: "GIVEAWAY", count: 2, prefix: "xda-" }, { Authorization: "Bearer admin-secret" }), env, NOW + 60_000);
+  await handleAdminIssue(post("/api/admin/issue", { type: "VIP", account: "fan@example.com" }, { Authorization: "Bearer admin-secret" }), env, NOW + 120_000);
+
+  const data = await (await issued(env)).json();
+  assert.equal(data.success, true);
+  assert.deepEqual(data.records.map((r) => r.type), ["VIP", "GIVEAWAY", "CAKEY"]);
+  assert.equal(data.records[1].keys.length, 2);
+  assert.equal(data.records[2].keys[0].recipient, `device:${OLD_DEVICE}`);
+  assert.ok(data.records[2].keys[0].key.startsWith("EXPR-PRO-"));
+  assert.equal(data.cursor, null);
+});
