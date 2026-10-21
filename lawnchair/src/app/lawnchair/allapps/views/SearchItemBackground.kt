@@ -108,8 +108,7 @@ class SearchItemBackground(
 }
 
 /** Card alpha for a row drawn at [rowAlpha]: the card fades with its content. */
-internal fun searchCardAlpha(colorAlpha: Int, rowAlpha: Float): Int =
-    (colorAlpha * rowAlpha.coerceIn(0f, 1f)).roundToInt()
+internal fun searchCardAlpha(colorAlpha: Int, rowAlpha: Float): Int = (colorAlpha * rowAlpha.coerceIn(0f, 1f)).roundToInt()
 
 /**
  * How opaque a row's content is drawn. For rows with a background (the result ripple) the

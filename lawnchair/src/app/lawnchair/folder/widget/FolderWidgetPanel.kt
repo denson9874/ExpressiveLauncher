@@ -321,14 +321,11 @@ class FolderWidgetPanel @JvmOverloads constructor(
         override fun checkLayoutParams(lp: RecyclerView.LayoutParams?) = super.checkLayoutParams(lp) &&
             lp!!.width == ViewGroup.LayoutParams.MATCH_PARENT && lp.height == rowHeightPx
 
-        override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams =
-            super.generateDefaultLayoutParams().cellSized()
+        override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams = super.generateDefaultLayoutParams().cellSized()
 
-        override fun generateLayoutParams(lp: ViewGroup.LayoutParams?): RecyclerView.LayoutParams =
-            super.generateLayoutParams(lp).cellSized()
+        override fun generateLayoutParams(lp: ViewGroup.LayoutParams?): RecyclerView.LayoutParams = super.generateLayoutParams(lp).cellSized()
 
-        override fun generateLayoutParams(c: Context?, attrs: AttributeSet?): RecyclerView.LayoutParams =
-            super.generateLayoutParams(c, attrs).cellSized()
+        override fun generateLayoutParams(c: Context?, attrs: AttributeSet?): RecyclerView.LayoutParams = super.generateLayoutParams(c, attrs).cellSized()
 
         private fun RecyclerView.LayoutParams.cellSized() = apply {
             width = ViewGroup.LayoutParams.MATCH_PARENT

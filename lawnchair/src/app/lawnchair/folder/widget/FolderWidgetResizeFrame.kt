@@ -41,9 +41,11 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : AbstractFloatingView(context, attrs, defStyleAttr), View.OnKeyListener {
+) : AbstractFloatingView(context, attrs, defStyleAttr),
+    View.OnKeyListener {
 
     private val launcher: Launcher = Launcher.getLauncher(context)
+
     // Null when accessibility is off.
     private val stateAnnouncer: DragViewStateAnnouncer? = DragViewStateAnnouncer.createFor(this)
     private val firstFrameAnimatorHelper = FirstFrameAnimatorHelper(this)
@@ -241,7 +243,13 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
         }
 
         if (cellLayout.createAreaForResize(
-                next.x, next.y, next.spanX, next.spanY, widgetView, directionVector, onDismiss,
+                next.x,
+                next.y,
+                next.spanX,
+                next.spanY,
+                widgetView,
+                directionVector,
+                onDismiss,
             )
         ) {
             if (lp.cellHSpan != next.spanX || lp.cellVSpan != next.spanY) {
@@ -342,7 +350,9 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
         val y = ev.y.toInt()
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> return handleTouchDown(ev)
+
             MotionEvent.ACTION_MOVE -> visualizeResizeForDelta(x - xDown, y - yDown)
+
             MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> {
                 visualizeResizeForDelta(x - xDown, y - yDown)
                 onTouchUp()
@@ -403,8 +413,7 @@ class FolderWidgetResizeFrame @JvmOverloads constructor(
         private const val INDEX_RIGHT = 2
         private const val INDEX_BOTTOM = 3
 
-        private fun spanIncrement(deltaFrac: Float): Int =
-            if (abs(deltaFrac) > RESIZE_THRESHOLD) deltaFrac.roundToInt() else 0
+        private fun spanIncrement(deltaFrac: Float): Int = if (abs(deltaFrac) > RESIZE_THRESHOLD) deltaFrac.roundToInt() else 0
 
         /** Shows the resize frame around [widget], closing other floating views first. */
         @JvmStatic

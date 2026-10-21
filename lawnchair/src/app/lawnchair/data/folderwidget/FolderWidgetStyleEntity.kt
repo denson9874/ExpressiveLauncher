@@ -28,17 +28,16 @@ data class FolderWidgetStyleEntity(
     )
 
     companion object {
-        fun from(folderId: Int, style: FolderWidgetStyle): FolderWidgetStyleEntity =
-            FolderWidgetStyleEntity(
-                folderId = folderId,
-                columns = style.columns,
-                showLabels = style.showLabels,
-                showHeader = style.showHeader,
-                showNameBelow = style.showNameBelow,
-                backgroundColor = style.backgroundColor,
-                backgroundOpacity = style.backgroundOpacity,
-                cornerRadiusPx = style.cornerRadiusPx,
-                iconScale = style.iconScale,
-            )
+        fun from(folderId: Int, style: FolderWidgetStyle): FolderWidgetStyleEntity = FolderWidgetStyleEntity(
+            folderId = folderId,
+            columns = style.columns,
+            showLabels = style.showLabels,
+            showHeader = style.showHeader,
+            showNameBelow = style.showNameBelow,
+            backgroundColor = style.backgroundColor,
+            backgroundOpacity = style.backgroundOpacity,
+            cornerRadiusPx = style.cornerRadiusPx,
+            iconScale = style.iconScale,
+        )
     }
 }

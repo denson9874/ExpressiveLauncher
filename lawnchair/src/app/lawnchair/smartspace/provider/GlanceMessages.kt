@@ -117,8 +117,7 @@ internal enum class Holiday(
     ),
     ;
 
-    fun isOn(date: LocalDate, region: String): Boolean =
-        (regions == null || region.uppercase() in regions) && dateIn(date.year) == date
+    fun isOn(date: LocalDate, region: String): Boolean = (regions == null || region.uppercase() in regions) && dateIn(date.year) == date
 }
 
 internal val GLANCE_QUOTES = listOf(
@@ -152,8 +151,7 @@ internal val CAKEY_NOTES = listOf(
     R.string.glance_cakey_note_6,
 )
 
-internal fun holidayOn(date: LocalDate, region: String): Holiday? =
-    Holiday.entries.firstOrNull { it.isOn(date, region) }
+internal fun holidayOn(date: LocalDate, region: String): Holiday? = Holiday.entries.firstOrNull { it.isOn(date, region) }
 
 /**
  * Picks the message for [now]. The order matters: Laura's own days, then holidays, then her
@@ -212,7 +210,6 @@ internal fun easterSunday(year: Int): LocalDate {
     return LocalDate.of(year, month, day)
 }
 
-private fun nthWeekday(year: Int, month: Month, dayOfWeek: DayOfWeek, n: Int): LocalDate =
-    LocalDate.of(year, month, 1).with(TemporalAdjusters.dayOfWeekInMonth(n, dayOfWeek))
+private fun nthWeekday(year: Int, month: Month, dayOfWeek: DayOfWeek, n: Int): LocalDate = LocalDate.of(year, month, 1).with(TemporalAdjusters.dayOfWeekInMonth(n, dayOfWeek))
 
 private fun List<Int>.rotating(index: Long): Int = get(Math.floorMod(index, size.toLong()).toInt())

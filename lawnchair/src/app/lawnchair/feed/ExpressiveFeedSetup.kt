@@ -81,8 +81,10 @@ object ExpressiveFeedSetup {
         try {
             val metadata = readMetadata(app)
             val status = inspectInstalled(app, metadata)
-            ensure(status.kind == Kind.HELPER_MISSING || status.kind == Kind.UPDATE_AVAILABLE,
-                "The helper is not currently eligible for installation")
+            ensure(
+                status.kind == Kind.HELPER_MISSING || status.kind == Kind.UPDATE_AVAILABLE,
+                "The helper is not currently eligible for installation",
+            )
             ensure(canRequestPackageInstalls(app), "Android has not allowed this app to request installations")
 
             val cache = File(app.cacheDir, ASSET_DIRECTORY)
@@ -100,14 +102,18 @@ object ExpressiveFeedSetup {
             val launcher = pm.getPackageInfo(app.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             validateFeedArchive(metadata, candidate.feedIdentity(), launcher.currentSigningDigests())
             val service = candidate.services?.singleOrNull { it.name == BRIDGE_SERVICE }
-            ensure(service != null && service.enabled && service.exported,
-                "The bundled helper does not expose the expected protected service")
+            ensure(
+                service != null && service.enabled && service.exported,
+                "The bundled helper does not expose the expected protected service",
+            )
 
             // An install/uninstall can finish while the APK is being checked. Never propose a
             // downgrade, reinstall a now-ready helper, or ignore a newly incompatible signer.
             val current = inspectInstalled(app, metadata)
-            ensure(current.kind == Kind.HELPER_MISSING || current.kind == Kind.UPDATE_AVAILABLE,
-                "Helper installation state changed; inspect it again")
+            ensure(
+                current.kind == Kind.HELPER_MISSING || current.kind == Kind.UPDATE_AVAILABLE,
+                "Helper installation state changed; inspect it again",
+            )
             val target = File(cache, "ExpressiveFeed-${metadata.sha256}.apk")
             Files.move(staged.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
             temporary = null
@@ -128,8 +134,7 @@ object ExpressiveFeedSetup {
         }
     }
 
-    fun canRequestPackageInstalls(context: Context): Boolean =
-        context.packageManager.canRequestPackageInstalls()
+    fun canRequestPackageInstalls(context: Context): Boolean = context.packageManager.canRequestPackageInstalls()
 
     fun installationPermissionIntent(context: Context): Intent = Intent(
         Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -214,8 +219,10 @@ internal fun validateFeedBundleMetadata(metadata: FeedBundleMetadata) {
     ensure(metadata.schemaVersion == 1, "Unsupported helper metadata schema")
     ensure(metadata.packageName == ExpressiveFeedSetup.HELPER_PACKAGE, "Unexpected helper package")
     ensure(metadata.fileName == "ExpressiveFeed.apk", "Unexpected helper asset filename")
-    ensure(metadata.versionCode in 1..2_100_000_000L && metadata.versionName.isNotBlank(),
-        "Invalid helper version")
+    ensure(
+        metadata.versionCode in 1..2_100_000_000L && metadata.versionName.isNotBlank(),
+        "Invalid helper version",
+    )
     ensure(metadata.sizeBytes in 1..64L * 1024 * 1024, "Invalid helper APK size")
     ensure(metadata.sha256.matches(Regex("[0-9a-f]{64}")), "Invalid helper APK checksum")
 }
@@ -239,8 +246,7 @@ internal fun evaluateFeedHelper(bundledVersion: Long, installed: FeedInstalledSt
 }
 
 /** Continues a replacement with the bundled install only once Android has removed the old helper. */
-internal fun shouldInstallAfterReplacement(replaceRequested: Boolean, kind: ExpressiveFeedSetup.Kind): Boolean =
-    replaceRequested && kind == ExpressiveFeedSetup.Kind.HELPER_MISSING
+internal fun shouldInstallAfterReplacement(replaceRequested: Boolean, kind: ExpressiveFeedSetup.Kind): Boolean = replaceRequested && kind == ExpressiveFeedSetup.Kind.HELPER_MISSING
 
 internal data class FeedArchiveIdentity(
     val packageName: String,
@@ -251,10 +257,15 @@ internal data class FeedArchiveIdentity(
 )
 
 internal fun validateFeedArchive(metadata: FeedBundleMetadata, archive: FeedArchiveIdentity, launcherSigners: Set<String>) {
-    ensure(archive.packageName == metadata.packageName && archive.versionCode == metadata.versionCode &&
-        archive.versionName == metadata.versionName, "Bundled helper identity differs from its metadata")
-    ensure(launcherSigners.size == 1 && archive.signerDigests == launcherSigners,
-        "Bundled helper is not signed by this installed launcher")
+    ensure(
+        archive.packageName == metadata.packageName && archive.versionCode == metadata.versionCode &&
+            archive.versionName == metadata.versionName,
+        "Bundled helper identity differs from its metadata",
+    )
+    ensure(
+        launcherSigners.size == 1 && archive.signerDigests == launcherSigners,
+        "Bundled helper is not signed by this installed launcher",
+    )
     ensure(archive.debuggable, "Bundled helper cannot connect to the Discover service")
 }
 

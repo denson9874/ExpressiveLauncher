@@ -43,6 +43,7 @@ fun GoogleSearchBarPreference() {
             } else {
                 when (val prepared = GoogleSearchBarSetup.prepare(context)) {
                     GoogleSearchBarSetup.Prepared.Ready -> hotseatMode.onChange(GoogleSearchHotseat)
+
                     is GoogleSearchBarSetup.Prepared.AskAndroid -> try {
                         pendingWidgetId = prepared.widgetId
                         askAndroid.launch(prepared.intent)
@@ -51,6 +52,7 @@ fun GoogleSearchBarPreference() {
                         GoogleSearchBarSetup.onAndroidAnswered(context, prepared.widgetId, granted = false)
                         pendingWidgetId = -1
                     }
+
                     GoogleSearchBarSetup.Prepared.Unavailable -> Unit
                 }
             }

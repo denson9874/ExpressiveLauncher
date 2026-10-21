@@ -80,10 +80,17 @@ object FolderWidgetGridMath {
         // matching FolderGridOrganizer
         return when {
             itemCount <= 2 -> 2.coerceAtMost(maxColsForSpan)
-            itemCount in 3..4 -> 2.coerceAtMost(maxColsForSpan) // 1-4 apps: 2x2 square layout like normal folder
-            itemCount in 5..6 -> 3.coerceAtMost(maxColsForSpan) // 5-6 apps: 3x2 layout (2 rows)
-            itemCount in 7..9 -> 3.coerceAtMost(maxColsForSpan) // 7-9 apps: 3x3 layout
-            else -> 4.coerceAtMost(maxColsForSpan)              // 10+ apps: 4 columns if span allows
+
+            itemCount in 3..4 -> 2.coerceAtMost(maxColsForSpan)
+
+            // 1-4 apps: 2x2 square layout like normal folder
+            itemCount in 5..6 -> 3.coerceAtMost(maxColsForSpan)
+
+            // 5-6 apps: 3x2 layout (2 rows)
+            itemCount in 7..9 -> 3.coerceAtMost(maxColsForSpan)
+
+            // 7-9 apps: 3x3 layout
+            else -> 4.coerceAtMost(maxColsForSpan) // 10+ apps: 4 columns if span allows
         }
     }
 
@@ -192,4 +199,3 @@ object FolderWidgetGridMath {
         )
     }
 }
-

@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Owns the user-facing setup; the included service never has a launcher icon or a feed Activity. */
+@Suppress("ktlint:compose:modifier-missing-check")
 @Composable
 fun ExpressiveFeedPreferences() {
     val context = LocalContext.current
@@ -209,13 +210,16 @@ fun ExpressiveFeedPreferences() {
         }
         when (kind) {
             null -> FeedSetupAction(R.string.expressive_feed_checking, enabled = false)
+
             Kind.HELPER_MISSING, Kind.UPDATE_AVAILABLE -> {
                 if (com.android.launcher3.BuildConfig.TARGET_PLAY_STORE) {
                     // Discover support ships only inside the FOSS builds, signed with the launcher.
                     FeedSetupAction(R.string.expressive_feed_play_unavailable, enabled = false)
                 } else {
                     FeedSetupAction(
-                        title = if (busy) R.string.expressive_feed_preparing else if (kind == Kind.UPDATE_AVAILABLE) {
+                        title = if (busy) {
+                            R.string.expressive_feed_preparing
+                        } else if (kind == Kind.UPDATE_AVAILABLE) {
                             R.string.expressive_feed_update
                         } else {
                             R.string.expressive_feed_setup
@@ -226,6 +230,7 @@ fun ExpressiveFeedPreferences() {
                     )
                 }
             }
+
             Kind.GOOGLE_MISSING -> FeedSetupAction(
                 R.string.expressive_feed_google_install,
                 R.string.expressive_feed_google_description,
@@ -241,21 +246,27 @@ fun ExpressiveFeedPreferences() {
                     }
                 }
             }
+
             Kind.GOOGLE_DISABLED -> FeedSetupAction(R.string.expressive_feed_google_enable, R.string.expressive_feed_google_description) {
                 openDetails(FeedBridge.GOOGLE_APP_PACKAGE)
             }
+
             Kind.HELPER_DISABLED -> FeedSetupAction(R.string.expressive_feed_support_enable, R.string.expressive_feed_support_disabled) {
                 openDetails(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
             }
+
             Kind.HELPER_INCOMPATIBLE -> FeedSetupAction(
                 title = R.string.expressive_feed_support_replace,
                 description = R.string.expressive_feed_support_incompatible,
                 onClick = replaceHelper,
             )
+
             Kind.HELPER_UNAVAILABLE -> FeedSetupAction(R.string.expressive_feed_support_attention, R.string.expressive_feed_support_unavailable) {
                 openDetails(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
             }
+
             Kind.BUNDLE_INVALID -> FeedSetupAction(R.string.expressive_feed_retry, R.string.expressive_feed_setup_unavailable) { refresh++ }
+
             Kind.READY -> Unit
         }
         message?.let {

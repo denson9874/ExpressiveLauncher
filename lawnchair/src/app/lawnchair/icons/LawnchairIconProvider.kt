@@ -164,10 +164,12 @@ class LawnchairIconProvider @Inject constructor(
                 (loadCalendarDrawable(iconDpi, themeData) as? AdaptiveIconDrawable)?.monochrome
                     ?: themeData?.loadPaddedDrawable()
             }
+
             mClock?.packageName -> {
                 ClockDrawableWrapper.forPackage(mContext, packageName, iconDpi)?.monochrome
                     ?: ThemeData(context.resources, R.drawable.themed_icon_static_clock).loadPaddedDrawable()
             }
+
             else -> themeData?.loadPaddedDrawable()
         } ?: (baseIcon as? AdaptiveIconDrawable)?.monochrome
 
@@ -196,8 +198,7 @@ class LawnchairIconProvider @Inject constructor(
         return themeMap[packageName]
     }
 
-    override fun getThemedIconMap(): MutableMap<String, ThemeData> =
-        loadThemedIconMap(themedSourcePackage)
+    override fun getThemedIconMap(): MutableMap<String, ThemeData> = loadThemedIconMap(themedSourcePackage)
 
     private fun loadThemedIconMap(sourcePackage: String): MutableMap<String, ThemeData> {
         val themedIconMap = ArrayMap<String, ThemeData>()

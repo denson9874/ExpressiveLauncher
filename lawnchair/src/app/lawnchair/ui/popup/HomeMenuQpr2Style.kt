@@ -22,14 +22,12 @@ private const val HOME_MENU_MAX_WIDTH_DP = 360
 private const val HOME_MENU_MAX_RECENT_WALLPAPERS = 3
 
 /** Pixel's menu spans about 78% of a phone's width; large screens are capped so rows stay compact. */
-internal fun homeMenuWidthPx(screenWidthPx: Int, density: Float): Int =
-    min((screenWidthPx * HOME_MENU_SCREEN_FRACTION).roundToInt(), (HOME_MENU_MAX_WIDTH_DP * density).roundToInt())
+internal fun homeMenuWidthPx(screenWidthPx: Int, density: Float): Int = min((screenWidthPx * HOME_MENU_SCREEN_FRACTION).roundToInt(), (HOME_MENU_MAX_WIDTH_DP * density).roundToInt())
 
 internal data class HomeMenuCarouselPlan(val currentPreviews: Int, val savedPreviews: Int)
 
 /** QPR2 shows the current home wallpaper, then recent ones; there is no separate lock preview. */
-internal fun homeMenuCarouselPlan(savedCount: Int): HomeMenuCarouselPlan =
-    HomeMenuCarouselPlan(currentPreviews = 1, savedPreviews = savedCount.coerceIn(0, HOME_MENU_MAX_RECENT_WALLPAPERS))
+internal fun homeMenuCarouselPlan(savedCount: Int): HomeMenuCarouselPlan = HomeMenuCarouselPlan(currentPreviews = 1, savedPreviews = savedCount.coerceIn(0, HOME_MENU_MAX_RECENT_WALLPAPERS))
 
 /** Draws the popup as a single tinted card: rows sit directly on it with no gaps or shadows. */
 internal fun applyQpr2HomeMenuStyle(popup: ViewGroup) {

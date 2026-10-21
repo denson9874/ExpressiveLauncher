@@ -79,9 +79,9 @@ import com.android.launcher3.Launcher
 import com.android.launcher3.R
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.google.android.msdl.data.model.MSDLToken
-import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -461,9 +461,9 @@ private fun StyleSliderRow(
     valueText: String,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int = 0,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    steps: Int = 0,
 ) {
     PreferenceTemplate(
         title = {

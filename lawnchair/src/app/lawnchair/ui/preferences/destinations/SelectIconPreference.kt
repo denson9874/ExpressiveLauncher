@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.util.Log
-import app.lawnchair.preferences.PreferenceManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -16,6 +15,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.lawnchair.data.iconoverride.IconOverrideRepository
 import app.lawnchair.icons.picker.IconPickerItem
+import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.ui.preferences.LocalNavController
 import app.lawnchair.ui.preferences.LocalPreferenceInteractor
 import app.lawnchair.ui.preferences.components.AppItem

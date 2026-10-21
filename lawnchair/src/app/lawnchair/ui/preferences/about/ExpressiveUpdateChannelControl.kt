@@ -53,8 +53,11 @@ internal fun ExpressiveUpdateChannelControl(
             }
             Text(
                 stringResource(
-                    if (selectedChannel == ExpressiveUpdateChannel.QA) R.string.expressive_update_channel_qa_description
-                    else R.string.expressive_update_channel_stable_description,
+                    if (selectedChannel == ExpressiveUpdateChannel.QA) {
+                        R.string.expressive_update_channel_qa_description
+                    } else {
+                        R.string.expressive_update_channel_stable_description
+                    },
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -9,6 +9,5 @@ object LiveInformationAvailability {
     fun isAvailable(standardHomeOnly: Boolean): Boolean = !standardHomeOnly
 
     /** The Updates group holds the nightly updater switch and the Live information switch only. */
-    fun showsUpdatesGroup(isNightly: Boolean, liveInformationAvailable: Boolean): Boolean =
-        isNightly || liveInformationAvailable
+    fun showsUpdatesGroup(isNightly: Boolean, liveInformationAvailable: Boolean): Boolean = isNightly || liveInformationAvailable
 }
