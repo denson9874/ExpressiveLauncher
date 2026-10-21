@@ -1,6 +1,7 @@
 package app.lawnchair.pro
 
 import app.lawnchair.util.kotlinxJson
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import okhttp3.MediaType.Companion.toMediaType
@@ -12,7 +13,6 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
-import java.util.concurrent.TimeUnit
 
 interface ProActivationService {
 
@@ -32,6 +32,15 @@ interface ProActivationService {
     suspend fun startTrial(
         @Body request: TrialRequest,
     ): TrialResponse
+
+    /**
+     * Re-signs a key bound to another device ID for this one (after a reset or reinstall).
+     * HTTP 409 once the license has moved to too many devices this month.
+     */
+    @POST("api/rebind")
+    suspend fun rebind(
+        @Body request: RebindRequest,
+    ): LicenseResponse
 
     companion object {
         const val DEFAULT_ACTIVATION_URL = "https://expressive-pro-activation.daryldenson-apps.workers.dev/"
@@ -67,6 +76,13 @@ data class LicenseResponse(
     @SerialName("key") val key: String? = null,
     @SerialName("message") val message: String? = null,
     @SerialName("recipient") val recipient: String? = null,
+    @SerialName("error") val error: String? = null,
+)
+
+@Serializable
+data class RebindRequest(
+    @SerialName("key") val key: String,
+    @SerialName("device_id") val deviceId: String,
 )
 
 @Serializable

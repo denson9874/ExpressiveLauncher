@@ -197,6 +197,7 @@ class ProTrialTest {
     private class FakeService(private val trial: () -> TrialResponse) : ProActivationService {
         override suspend fun checkLicense(deviceId: String?, email: String?) = error("unused")
         override suspend fun verifyDonation(request: VerifyDonationRequest) = error("unused")
+        override suspend fun rebind(request: RebindRequest) = error("unused")
         override suspend fun startTrial(request: TrialRequest): TrialResponse {
             check(request.trialFingerprint.matches(Regex("[0-9a-f]{64}")))
             return trial()

@@ -3,6 +3,10 @@
 
 Uses ECDSA NIST P-256 (prime256v1) digital signatures to generate 100% offline,
 cryptographically unforgeable license keys for Expressive Launcher Pro.
+
+The original master private key now exists only as the activation worker's PRO_PRIVATE_KEY_PEM
+secret, so issue keys with scripts/issue_pro_key.py instead. Don't run `init` to replace a missing
+key: a new key pair signs licenses that every shipped build rejects.
 """
 
 import argparse

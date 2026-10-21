@@ -6,7 +6,8 @@ Automates:
 1. Verification of Cloudflare authentication via Wrangler.
 2. Creation/Lookup of the Cloudflare KV namespace ("EXPRESSIVE_PRO_KV").
 3. Configuration of server/cloudflare-worker/wrangler.toml with the KV ID.
-4. Secure upload of the master private key (pro_master_private.pem) to Cloudflare Secrets.
+4. Upload of the master private key (pro_master_private.pem) to Cloudflare Secrets, only when the
+   worker has none yet (an existing PRO_PRIVATE_KEY_PEM is never replaced).
 5. Deployment of the worker via `wrangler deploy`.
 6. Live health verification of the deployed worker.
 7. Verification & synchronization of the Android launcher's DEFAULT_ACTIVATION_URL in ProActivationService.kt.
@@ -97,11 +98,36 @@ def update_wrangler_toml(kv_id: str):
     print(f"Successfully configured {WRANGLER_TOML}")
 
 
+OPTIONAL_SECRETS = {
+    "ADMIN_TOKEN": "owner key issuing (scripts/issue_pro_key.py)",
+    "PAYPAL_WEBHOOK_ID": "PayPal webhook signature checks; without it webhooks are refused",
+    "PAYPAL_CLIENT_ID": "PayPal API (webhook checks and transaction lookups)",
+    "PAYPAL_CLIENT_SECRET": "PayPal API (webhook checks and transaction lookups)",
+}
+
+
+def existing_secret_names() -> str:
+    code, stdout, stderr = run_command(["wrangler", "secret", "list"], cwd=WORKER_DIR)
+    if code != 0:
+        raise RuntimeError(f"Could not list worker secrets, so none were changed:\n{stderr or stdout}")
+    return stdout
+
+
 def upload_secrets():
-    print("\n>>> Setting master ECDSA private key secret (PRO_PRIVATE_KEY_PEM)...")
+    print("\n>>> Checking master ECDSA private key secret (PRO_PRIVATE_KEY_PEM)...")
+    names = existing_secret_names()
+    for name, purpose in OPTIONAL_SECRETS.items():
+        if name not in names:
+            print(f"[WARN] {name} is not set ({purpose}): wrangler secret put {name}")
+
+    # The worker's secret may be the only copy of the master key. Never replace it: a different key
+    # would sign licenses that every shipped build rejects.
+    if "PRO_PRIVATE_KEY_PEM" in names:
+        print("PRO_PRIVATE_KEY_PEM is already set on the worker; leaving it unchanged.")
+        return
     if not PRIVATE_KEY_PATH.exists():
         raise FileNotFoundError(f"Master private key not found at {PRIVATE_KEY_PATH}")
-    
+
     priv_pem = PRIVATE_KEY_PATH.read_text(encoding="utf-8").strip()
     code, stdout, stderr = run_command(
         ["wrangler", "secret", "put", "PRO_PRIVATE_KEY_PEM"],
