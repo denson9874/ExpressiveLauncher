@@ -56,7 +56,7 @@ class AboutOwnershipTest {
             Link(
                 iconResId = R.drawable.ic_telegram,
                 labelResId = R.string.telegram_announcements,
-                url = "https://t.me/ExpressiveLauncher",
+                url = "https://t.me/ExpressiveGroup",
             ),
             Link(
                 iconResId = R.drawable.ic_github,
