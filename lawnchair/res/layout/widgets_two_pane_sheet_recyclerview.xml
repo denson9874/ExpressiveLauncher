@@ -68,16 +68,15 @@
                     android:tint="?attr/widgetPickerWidgetOptionsMenuColor" />
             </LinearLayout>
 
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:id="@+id/suggestions_header"
                 android:layout_marginHorizontal="@dimen/widget_list_horizontal_margin_two_pane"
-                android:orientation="horizontal"
                 android:paddingBottom="16dp"
                 android:background="?attr/widgetPickerPrimarySurfaceColor"
                 launcher:layout_sticky="true">
-            </LinearLayout>
+            </FrameLayout>
         </LinearLayout>
 
         <com.android.launcher3.widget.picker.WidgetsRecyclerView
