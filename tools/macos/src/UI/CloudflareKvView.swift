@@ -8,7 +8,7 @@ public struct CloudflareKvView: View {
     @State private var isPinging: Bool = false
     @State private var pingError: String?
 
-    @State private var queryDeviceId: String = "DEV-B0TY-D235"
+    @State private var queryDeviceId: String = ""
     @State private var lookupResponse: LicenseLookupResponse?
     @State private var isSearching: Bool = false
     @State private var lookupError: String?

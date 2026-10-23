@@ -6,7 +6,7 @@ public struct SingleKeyView: View {
     @ObservedObject var adb = AdbBridge.shared
 
     @State private var bindingMode: String = "device"
-    @State private var targetValue: String = "DEV-B0TY-D235"
+    @State private var targetValue: String = ""
     @State private var selectedType: LicenseType = .cakey
     @State private var selectedExpires: String = "never"
 
