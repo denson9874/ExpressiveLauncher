@@ -118,15 +118,15 @@ on `https://expressive-pro-activation.daryldenson-apps.workers.dev`.
    (`p >= 0.70f`). `onAnimationEnd` cleanly hides the folder (`GONE`, `alpha = 0f`), restores widget panel content
    visibility and full alpha, and prevents stale translation/scale states from leaking.
 3. **Android Developer Verification & Play Protect clearance.** Integrated developer identity and public certificate
-   validation targeting Google Play Console Android Developer Verification (Developer ID `5547708187557586870`,
-   Developer Name `Daryl Denson`, Verification URL `https://play.google.com/console/u/0/developers/5547708187557586870/android-developer-verification`).
+   validation targeting Google Play Console Android Developer Verification (Developer Name `Daryl Denson`).
    New tooling (`scripts/verify_developer_play_protect.py`) verifies the release APK against certificate SHA-256
    (`C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2`) via `apksigner`
    or `keytool` and emits `artifacts/play-protect-verification/developer_verification_receipt.json`. Packages the
-   required Google Play Console ownership verification token snippet (`D333CTGWPQ5ACAAAAAAAAAAAAA`) into
-   `assets/adi-registration.properties` to complete Android Developer Verification for off-Play package
-   `dev.launcher.expressive.l3`. Integrated as automated Stage 2b in `scripts/release_unified.py` to ensure
-   off-Play standalone distributions (GitHub Releases, Obtainium) clear Google Play Protect developer accountability checks.
+   required Google Play Console ownership verification token snippet from
+   `lawnchair/assets/adi-registration.properties` into the APK's `assets/` to complete Android Developer
+   Verification for off-Play package `dev.launcher.expressive.l3`. Integrated as automated Stage 2b in
+   `scripts/release_unified.py` to ensure off-Play standalone distributions (GitHub Releases, Obtainium) clear
+   Google Play Protect developer accountability checks.
 
 Validation: `ci/tests/test_play_protect_verification.py` (4/4 PASS); `FolderWidgetAnimationsTest`
 (`revealEndpoints_closing_preservesRadiusAcrossEndpoints`) and `FloatingHeaderViewScrollTest`
