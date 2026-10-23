@@ -57,7 +57,7 @@ import app.lawnchair.ui.preferences.destinations.SettingsSearchScreen
 import app.lawnchair.ui.preferences.destinations.ShapePreference
 import app.lawnchair.ui.preferences.destinations.SmartspacePreferences
 import app.lawnchair.ui.preferences.destinations.WidgetPreferences
-import com.android.launcher3.util.ComponentKey
+import app.lawnchair.util.parseComponentKeyLenient
 import soup.compose.material.motion.animation.materialSharedAxisXIn
 import soup.compose.material.motion.animation.materialSharedAxisXOut
 import soup.compose.material.motion.animation.rememberSlideDistance
@@ -211,7 +211,7 @@ fun PreferenceNavigation(
         composable<SelectIcon> { backStackEntry ->
             val args: SelectIcon = backStackEntry.toRoute()
             val componentKey = args.componentKey
-            val key = ComponentKey.fromString(componentKey)!!
+            val key = parseComponentKeyLenient(componentKey) ?: return@composable
             SelectIconPreference(key)
         }
         composable<IconPicker> { backStackEntry ->

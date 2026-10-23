@@ -25,6 +25,7 @@ import app.lawnchair.util.Constants.LAWNICONS_PACKAGE_NAME
 import app.lawnchair.util.getApkVersionComparison
 import app.lawnchair.util.isGestureNavContractCompatible
 import app.lawnchair.util.isOnePlusStock
+import app.lawnchair.util.parseComponentKeyLenient
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.InvariantDeviceProfile.INDEX_DEFAULT
 import com.android.launcher3.LauncherAppState
@@ -121,7 +122,7 @@ class PreferenceManager @Inject constructor(
     }
     val customAppName = object : MutableMapPref<ComponentKey, String>("pref_appNameMap", reloadGrid) {
         override fun flattenKey(key: ComponentKey) = key.toString()
-        override fun unflattenKey(key: String) = ComponentKey.fromString(key)!!
+        override fun unflattenKey(key: String) = parseComponentKeyLenient(key)
         override fun flattenValue(value: String) = value
         override fun unflattenValue(value: String) = value
     }
@@ -209,7 +210,6 @@ class PreferenceManager @Inject constructor(
     }
 
     init {
-        sp.registerOnSharedPreferenceChangeListener(this)
         migratePrefs(CURRENT_VERSION) { oldVersion ->
             if (oldVersion < 2) {
                 val gridState = DeviceGridState(context).toProtoMessage()
@@ -220,12 +220,20 @@ class PreferenceManager @Inject constructor(
                     hotseatColumns.set(gridState.hotseatCount)
                 }
             }
+            if (oldVersion < 3) {
+                // Renaming a gesture shortcut stored a key ComponentKey.fromString cannot read,
+                // which crashed every start. Keep what the lenient parser reads, drop the rest.
+                customAppName.repairStoredEntries()
+            }
         }
+        // Registered after the migrations: a change they write would otherwise run reloadGrid
+        // while this singleton is still being built, and the grid profile needs this manager.
+        sp.registerOnSharedPreferenceChangeListener(this)
         normalizeVibrationFeedbackLevel()
     }
 
     companion object {
-        private const val CURRENT_VERSION = 2
+        private const val CURRENT_VERSION = 3
 
         @JvmField
         val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getPreferenceManager)

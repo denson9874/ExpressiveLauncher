@@ -18,6 +18,7 @@ package app.lawnchair.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.compose.runtime.Stable
 import androidx.core.content.edit
 import app.lawnchair.font.FontCache
@@ -349,10 +350,7 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         private val valueMap = mutableMapOf<K, V>()
 
         init {
-            val obj = JSONObject(sp.getString(key, "{}")!!)
-            obj.keys().forEach {
-                valueMap[unflattenKey(it)] = unflattenValue(obj.getString(it))
-            }
+            valueMap.putAll(readStoredMap(key, sp.getString(key, "{}")!!, ::unflattenKey, ::unflattenValue))
             @Suppress("LeakingThis")
             prefsMap[key] = this
         }
@@ -364,7 +362,9 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
         }
 
         open fun flattenKey(key: K) = key.toString()
-        abstract fun unflattenKey(key: String): K
+
+        /** Returns null for a stored key that cannot be read; init skips that entry. */
+        abstract fun unflattenKey(key: String): K?
 
         open fun flattenValue(value: V) = value.toString()
         abstract fun unflattenValue(value: String): V
@@ -392,5 +392,39 @@ sealed class BasePreferenceManager(private val context: Context) : SharedPrefere
             valueMap.clear()
             saveChanges()
         }
+
+        /**
+         * Stores the entries init could read again, which drops the ones it skipped. An intact map
+         * is written back as the same string, which SharedPreferences treats as no change.
+         */
+        fun repairStoredEntries() {
+            if (sp.contains(key)) saveChanges()
+        }
     }
+}
+
+private const val TAG = "BasePreferenceManager"
+
+/**
+ * Reads the JSON object a [BasePreferenceManager.MutableMapPref] stores. The map is read while the
+ * manager is being built, so an entry whose key or value cannot be parsed is logged and skipped:
+ * throwing here would crash Home on every start.
+ */
+internal fun <K, V> readStoredMap(
+    prefKey: String,
+    json: String,
+    unflattenKey: (String) -> K?,
+    unflattenValue: (String) -> V,
+): Map<K, V> {
+    val obj = runCatching { JSONObject(json) }
+        .onFailure { Log.w(TAG, "Ignoring unreadable $prefKey", it) }
+        .getOrNull() ?: return emptyMap()
+    val map = LinkedHashMap<K, V>()
+    obj.keys().forEach { storedKey ->
+        runCatching {
+            val mapKey = requireNotNull(unflattenKey(storedKey)) { "Unreadable key" }
+            map[mapKey] = unflattenValue(obj.getString(storedKey))
+        }.onFailure { Log.w(TAG, "Skipping an unreadable entry of $prefKey", it) }
+    }
+    return map
 }

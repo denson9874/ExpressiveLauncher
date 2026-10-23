@@ -43,6 +43,7 @@ import app.lawnchair.ui.theme.EdgeToEdge
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.addIf
 import app.lawnchair.util.ProvideLifecycleState
+import java.security.MessageDigest
 
 class LawnchairShortcutActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -101,7 +102,7 @@ class LawnchairShortcutActivity : ComponentActivity() {
 
         val shortcutInfo = ShortcutInfo.Builder(
             context,
-            "$GESTURE_SHORTCUT_ID_PREFIX:$selectedHandler",
+            gestureShortcutId(selectedHandler),
         )
             .apply {
                 setShortLabel(selectedHandler.getDisplayLabel(context))
@@ -123,6 +124,20 @@ class LawnchairShortcutActivity : ComponentActivity() {
         const val EXTRA_HANDLER = "app.lawnchair.EXTRA_HANDLER"
         const val EXTRA_RESULT_RECEIVER = "app.lawnchair.EXTRA_RESULT_RECEIVER"
         const val GESTURE_SHORTCUT_ID_PREFIX = "gesture:"
+
+        /**
+         * The pinned shortcut ID for [handler]: the prefix plus a SHA-256 of its JSON form.
+         *
+         * The ID used to embed the handler's toString, and an "Open app" handler's ComponentKey
+         * put '#' in it, which made a renamed shortcut's label key unreadable. The JSON form is the
+         * stored format, so the ID stays the same across releases and re-pinning keeps it.
+         * Shortcuts pinned earlier keep their old ID.
+         */
+        fun gestureShortcutId(handler: GestureHandlerConfig): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+                .digest(GestureHandlerConfig.toString(handler).toByteArray())
+            return "$GESTURE_SHORTCUT_ID_PREFIX:" + digest.joinToString("") { "%02x".format(it) }
+        }
 
         fun shouldSkipShortcutBadge(context: Context, si: ShortcutInfo): Boolean {
             val value = context.packageName == si.`package` &&
