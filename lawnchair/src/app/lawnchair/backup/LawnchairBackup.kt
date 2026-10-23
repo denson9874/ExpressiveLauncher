@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.core.graphics.drawable.toBitmap
 import app.lawnchair.LawnchairProto.BackupInfo
+import app.lawnchair.data.AppDatabase
 import app.lawnchair.util.hasFlag
 import app.lawnchair.util.scaleDownTo
 import app.lawnchair.util.scaleDownToDisplaySize
@@ -24,6 +25,7 @@ import com.google.protobuf.Timestamp
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -58,31 +60,41 @@ class LawnchairBackup(
     }
 
     suspend fun restore(selectedContents: Int) {
-        val handlers = mutableMapOf<String, suspend (InputStream) -> Unit>()
-        val contents = selectedContents and info.contents
-        if (contents.hasFlag(INCLUDE_LAYOUT_AND_SETTINGS)) {
-            handlers.putAll(
-                getFiles(context, forRestore = true).mapValues { entry ->
-                    {
-                        val file = entry.value
-                        file.parentFile?.mkdirs()
-                        it.copyTo(file.outputStream())
-                    }
-                },
-            )
-        }
-        if (contents.hasFlag(INCLUDE_WALLPAPER)) {
-            handlers[WALLPAPER_FILE_NAME] = {
-                val wallpaperManager = WallpaperManager.getInstance(context)
-                wallpaperManager.setBitmap(BitmapFactory.decodeStream(it))
+        withContext(Dispatchers.IO) {
+            val handlers = mutableMapOf<String, suspend (InputStream) -> Unit>()
+            val contents = selectedContents and info.contents
+            if (contents.hasFlag(INCLUDE_LAYOUT_AND_SETTINGS)) {
+                handlers.putAll(
+                    getFiles(context, forRestore = true).mapValues { entry ->
+                        {
+                            val file = entry.value
+                            file.parentFile?.mkdirs()
+                            it.copyTo(file.outputStream())
+                        }
+                    },
+                )
             }
-        }
-        context.getDatabasePath(LAUNCHER_DB_FILE_NAME).parentFile?.deleteRecursively()
-        DeviceGridState(info.gridState).writeToPrefs(context, true)
-        readZip(handlers)
+            if (contents.hasFlag(INCLUDE_WALLPAPER)) {
+                handlers[WALLPAPER_FILE_NAME] = {
+                    val wallpaperManager = WallpaperManager.getInstance(context)
+                    wallpaperManager.setBitmap(BitmapFactory.decodeStream(it))
+                }
+            }
+            if (!contents.hasFlag(INCLUDE_LAYOUT_AND_SETTINGS)) {
+                // Everything below replaces the home layout: it deletes databases/ (launcher*.db and
+                // the Room DB with custom icons, drawer folders and folder-widget styles) and
+                // overwrites the grid size. A restore without the layout, such as wallpaper only,
+                // must leave both alone.
+                readZip(handlers)
+                return@withContext
+            }
+            context.getDatabasePath(LAUNCHER_DB_FILE_NAME).parentFile?.deleteRecursively()
+            DeviceGridState(info.gridState).writeToPrefs(context, true)
+            readZip(handlers)
 
-        var dbController = ModelDbController(context)
-        RestoreDbTask.performRestore(context, dbController)
+            var dbController = ModelDbController(context)
+            RestoreDbTask.performRestore(context, dbController)
+        }
     }
 
     private suspend fun readZip(handlers: Map<String, suspend (InputStream) -> Unit>) {
@@ -143,6 +155,9 @@ class LawnchairBackup(
 
         @SuppressLint("MissingPermission")
         suspend fun create(context: Context, contents: Int, screenshotBitmap: Bitmap, fileUri: Uri) {
+            val prefsDb = AppDatabase.INSTANCE.get(context)
+            withContext(Dispatchers.IO) { checkpointPrefsDb(prefsDb) }
+
             val idp = LauncherAppState.getIDP(context)
             val createdAt = Timestamp.newBuilder()
                 .setSeconds(System.currentTimeMillis() / 1000)
@@ -185,6 +200,25 @@ class LawnchairBackup(
                             it.value.inputStream().copyTo(out)
                         }
                     }
+                }
+            }
+        }
+
+        /**
+         * Room runs the preferences DB in WAL mode, so recent icon overrides, drawer folders and
+         * folder-widget styles stay in preferences-wal until a checkpoint, and the backup copies
+         * only the main file. The result row is (busy, WAL frames, checkpointed frames): busy alone
+         * only means a reader kept the WAL from being reset, but frames left behind would be lost.
+         */
+        private fun checkpointPrefsDb(db: AppDatabase) {
+            db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").use { result ->
+                result.moveToFirst()
+                val busy = result.getInt(0) != 0
+                val walFrames = result.getInt(1)
+                val checkpointed = result.getInt(2)
+                // A busy checkpoint that could not even read the WAL reports -1 for both counts.
+                if (busy && (walFrames < 0 || walFrames != checkpointed)) {
+                    throw IOException("Recent preferences are still in the WAL and would be missing from the backup")
                 }
             }
         }
