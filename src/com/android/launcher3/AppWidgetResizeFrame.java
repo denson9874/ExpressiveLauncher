@@ -145,6 +145,29 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
     private final @Nullable LauncherAppWidgetHostView.CellChildViewPreLayoutListener
             mCellChildViewPreLayoutListener;
     private final @NonNull OnLayoutChangeListener mWidgetViewLayoutListener;
+    // Lawnchair: close the frame when its widget leaves Home, so it can't outlive the widget.
+    private final @NonNull OnAttachStateChangeListener mWidgetViewAttachListener =
+            new OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(@NonNull View v) {
+                }
+
+                @Override
+                public void onViewDetachedFromWindow(@NonNull View v) {
+                    // A destroyed Launcher detaches its whole window, this frame included.
+                    // Removing the frame from the drag layer while that layer is detaching its
+                    // children would break the traversal.
+                    if (mLauncher.isDestroyed()) {
+                        return;
+                    }
+                    // The widget left Home (removed, rebound or replaced) while the frame was
+                    // open. Close the frame so nothing, accessibility queries included, keeps
+                    // acting on the orphaned widget.
+                    mWidgetViewDetached = true;
+                    close(false);
+                }
+            };
+    private boolean mWidgetViewDetached;
 
     private int mXDown, mYDown;
 
@@ -392,6 +415,7 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
 
         setCornerRadiusFromWidget();
         mWidgetView.addOnLayoutChangeListener(mWidgetViewLayoutListener);
+        mWidgetView.addOnAttachStateChangeListener(mWidgetViewAttachListener);
     }
 
     public boolean beginResizeIfPointInRegion(int x, int y) {
@@ -579,7 +603,11 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
         super.onDetachedFromWindow();
 
         // We are done with resizing the widget. Save the widget size & position to LauncherModel
-        resizeWidgetIfNeeded(true);
+        // Lawnchair: unless the widget has left Home: saving would mark its old cells occupied
+        // again.
+        if (!mWidgetViewDetached) {
+            resizeWidgetIfNeeded(true);
+        }
         mLauncher.getStatsLogManager()
                 .logger()
                 .withInstanceId(logInstanceId)
@@ -805,6 +833,7 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
         }
         mDragLayer.removeView(this);
         mWidgetView.removeOnLayoutChangeListener(mWidgetViewLayoutListener);
+        mWidgetView.removeOnAttachStateChangeListener(mWidgetViewAttachListener);
     }
 
     private void updateInvalidResizeEffect(CellLayout cellLayout, CellLayout pairedCellLayout,

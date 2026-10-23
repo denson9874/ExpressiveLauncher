@@ -20,6 +20,7 @@ import android.util.Log;
 import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewParent;
 import android.view.accessibility.AccessibilityEvent;
 
 import androidx.annotation.Nullable;
@@ -360,12 +361,16 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
             return actions;
         }
 
-        CellLayout layout;
-        if (host.getParent() instanceof DragView) {
-            layout = (CellLayout) ((DragView) host.getParent()).getContentViewParent().getParent();
-        } else {
-            layout = (CellLayout) host.getParent().getParent();
+        ViewParent parent = host.getParent();
+        if (parent instanceof DragView) {
+            parent = ((DragView) parent).getContentViewParent();
         }
+        // Lawnchair: a widget that has left Home (e.g. under a resize frame that outlived it) has
+        // no cell layout to grow into.
+        if (parent == null || !(parent.getParent() instanceof CellLayout)) {
+            return actions;
+        }
+        CellLayout layout = (CellLayout) parent.getParent();
         if ((providerInfo.resizeMode & AppWidgetProviderInfo.RESIZE_HORIZONTAL) != 0) {
             if (layout.isRegionVacant(info.cellX + info.spanX, info.cellY, 1, info.spanY) ||
                     layout.isRegionVacant(info.cellX - 1, info.cellY, 1, info.spanY)) {
@@ -407,6 +412,10 @@ public class LauncherAccessibilityDelegate extends BaseAccessibilityDelegate<Lau
     }
 
     private boolean performResizeAction(int action, View host, LauncherAppWidgetInfo info) {
+        // Lawnchair: the widget may have left Home since its resize options were offered.
+        if (host.getParent() == null || !(host.getParent().getParent() instanceof CellLayout)) {
+            return false;
+        }
         CellLayoutLayoutParams lp = (CellLayoutLayoutParams) host.getLayoutParams();
         CellLayout layout = (CellLayout) host.getParent().getParent();
         layout.markCellsAsUnoccupiedForView(host);
