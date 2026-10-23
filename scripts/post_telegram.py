@@ -7,6 +7,11 @@ transmits the announcement (and optionally the signed APK document) via the
 Telegram Bot API to the designated channel.
 """
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 import html
 import json
@@ -14,7 +19,6 @@ import os
 from pathlib import Path
 import re
 import socket
-import sys
 import time
 import urllib.error
 import urllib.parse
@@ -33,7 +37,9 @@ def _ipv4_getaddrinfo(host, port, family=0, *args, **kwargs):
 
 socket.getaddrinfo = _ipv4_getaddrinfo
 
-DEFAULT_CHANNEL = "@ExpressiveLauncher"
+DEFAULT_CHANNEL = "@ExpressiveGroup"
+# Distinct from API failures (1) and usage errors (2): the notes were rendered but nothing was sent.
+EXIT_NOT_CONFIGURED = 3
 DEFAULT_FEEDBACK_GROUP = "https://t.me/ExpressiveLauncherFeedback"
 CONFIG_PATHS = [
     Path.home() / "Library/Application Support/Expressive CI/config/telegram.json",
@@ -297,15 +303,15 @@ def main():
         return
 
     if not token:
-        print("\nNotice: Telegram bot token not configured.", file=sys.stderr)
+        print("\nNotice: Telegram bot token not configured; the announcement was NOT broadcast.", file=sys.stderr)
         print(
             "To enable automated posting, provide --token <TOKEN>, export TELEGRAM_BOT_TOKEN=<TOKEN>,\n"
             "or create ~/Library/Application Support/Expressive CI/config/telegram.json with {\"bot_token\": \"...\"}.",
             file=sys.stderr,
         )
-        print("\nThe rendered message has been saved to TELEGRAM_CHANGELOG.txt and is ready to post:\n")
+        print(f"\nThe rendered message has been saved to {args.output} and is ready to post:\n")
         print(telegram_html)
-        return
+        sys.exit(EXIT_NOT_CONFIGURED)
 
     print(f"Posting release announcement to Telegram channel: {channel}...")
     chunks = chunk_telegram_html(telegram_html)

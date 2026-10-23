@@ -5,13 +5,17 @@ Authenticates via Google Cloud Service Account, creates an edit, uploads
 an Android App Bundle (.aab), assigns it to a release track, and commits the edit.
 """
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 import base64
 import json
 import os
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 import time
 import urllib.error

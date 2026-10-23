@@ -2,18 +2,22 @@
 """Post a structured poll (and optional announcement message) to Telegram via Bot API.
 
 Supports both direct group chats (e.g. @ExpressiveLauncherFeedback) and broadcast
-channels (e.g. @ExpressiveLauncher).
+channels (e.g. @ExpressiveGroup).
 """
+
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
 
 import argparse
 import json
 import os
 from pathlib import Path
-import sys
 import urllib.error
 import urllib.request
 
-DEFAULT_CHANNEL = "@ExpressiveLauncher"
+DEFAULT_CHANNEL = "@ExpressiveGroup"
 DEFAULT_FEEDBACK_GROUP = "@ExpressiveLauncherFeedback"
 CONFIG_PATHS = [
     Path.home() / "Library/Application Support/Expressive CI/config/telegram.json",

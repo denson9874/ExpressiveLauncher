@@ -10,10 +10,14 @@ Enforces release versioning policy:
 4. Version code increments monotonically by 1 (e.g. 41 -> 42).
 """
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 from pathlib import Path
 import re
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_GRADLE = ROOT / "build.gradle"

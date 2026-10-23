@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """Prepare immutable source and its channel's baseline, or an explicit first stable install."""
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit('Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14' % sys.version_info[:2])
+
 import argparse
 from datetime import datetime, timezone
 import hashlib

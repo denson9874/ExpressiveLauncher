@@ -12,6 +12,11 @@ Jenkins serializes publishers;
 manifest updates also use the previous Git blob SHA to reject concurrent changes.
 """
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 import base64
 import binascii
@@ -22,7 +27,6 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import sys
 import tempfile
 import time
 import urllib.error

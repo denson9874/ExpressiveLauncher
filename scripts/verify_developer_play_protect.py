@@ -7,6 +7,11 @@ match the registered developer identity and public certificate fingerprint regis
 https://play.google.com/console/u/0/developers/5547708187557586870/android-developer-verification
 """
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 import datetime
 import hashlib
@@ -15,7 +20,6 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import sys
 import zipfile
 
 VERIFIED_DEVELOPER_ID = "5547708187557586870"

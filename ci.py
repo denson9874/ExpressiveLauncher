@@ -1,3 +1,8 @@
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import git
 import html
 import os
@@ -98,8 +103,8 @@ def send_update_announcement():
     with open("TELEGRAM_CHANGELOG.txt") as telegram_changelog:
         send_message_to_telegram_chat(chat_id=telegram_news_channel_id, message=telegram_changelog.read(), silent=False)
 
-match action:
-    case "internal_notifications":
-        send_internal_notifications()
-    case "update_announcement":
-        send_update_announcement()
+# if/elif rather than match so that Python 3.9 can parse the file and reach the version check.
+if action == "internal_notifications":
+    send_internal_notifications()
+elif action == "update_announcement":
+    send_update_announcement()

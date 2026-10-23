@@ -5,10 +5,14 @@ Converts release notes Markdown into XDA BBCode with proper [B], [I], [URL],
 [LIST], [CODE], [ICODE], [HR], and [SPOILER] formatting.
 """
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 from pathlib import Path
 import re
-import sys
 
 
 def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: str, channel: str | None = None) -> str:
@@ -127,7 +131,7 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
         f'[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed\n'
         f'[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates\n'
         f'[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion\n'
-        f'[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveLauncher"]@ExpressiveLauncher[/URL]\n'
+        f'[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]\n'
         f'[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]\n'
         f"[/LIST]"
     )

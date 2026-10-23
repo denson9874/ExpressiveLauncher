@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """Small build-specific adapters; Jenkins owns execution, state, retries, and archives."""
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit('Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14' % sys.version_info[:2])
+
 import argparse
 import hashlib
 import json
@@ -59,7 +64,7 @@ def main():
             shutil.copyfile(args.workspace / 'artifacts' / 'source.json', output / 'source.json')
         apk = output / name
         shutil.copyfile(built, apk)
-        command = ['python3', str(here / 'verify_qa.py'), '--apk', str(apk),
+        command = [sys.executable, str(here / 'verify_qa.py'), '--apk', str(apk),
             '--version-name', args.version_name,
             '--version-code', args.version_code, '--build-tools', str(Path(os.environ['ANDROID_HOME']) / 'build-tools/37.0.0'),
             '--output', str(output / 'metadata.json')]
@@ -78,7 +83,7 @@ def main():
         output = artifact_dir(args.workspace, args.variant)
         metadata = json.loads((output / 'metadata.json').read_text())
         evidence = output / 'device-qa'
-        command = ['python3', str(here / 'smoke_qa.py'), '--apk', str(output / metadata['fileName']),
+        command = [sys.executable, str(here / 'smoke_qa.py'), '--apk', str(output / metadata['fileName']),
             '--output-dir', str(evidence), '--source-revision', args.source_revision]
         if args.channel == 'release':
             command += ['--channel', 'release']
@@ -157,7 +162,7 @@ def main():
         script = subprocess.check_output(['git', '-C', str(repository), 'show', revision + ':ci/' + entry_name])
         with tempfile.TemporaryDirectory(prefix='expressive-publish-') as temp:
             entry = Path(temp) / entry_name; entry.write_bytes(script)
-            command = ['python3', str(entry), '--output', str(args.output)]
+            command = [sys.executable, str(entry), '--output', str(args.output)]
             if args.operation == 'publish':
                 # Old Drive publishers reject this flag before performing any upload.
                 command += ['--artifact-dir', str(release), '--expected-provider', 'github']

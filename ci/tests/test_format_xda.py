@@ -44,6 +44,11 @@ class FormatXdaTests(unittest.TestCase):
         out = format_xda.markdown_to_xda_bbcode("# T\n\nBody", "9.9.9", "99", channel="release")
         self.assertIn("/releases/tag/v9.9.9-99", out)
 
+    def test_footer_links_the_live_telegram_channel(self):
+        out = convert("# T\n\nBody")
+        self.assertIn('[URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]', out)
+        self.assertNotRegex(out, r"t\.me/ExpressiveLauncher\b")  # the moved stub; ...LauncherFeedback stays
+
     def test_published_announcement_has_no_leftover_markdown_or_html(self):
         notes = ROOT / "docs" / "release_notes" / "3.1.5_announcement.md"
         out = convert(notes.read_text(encoding="utf-8"))

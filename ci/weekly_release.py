@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """Jenkins adapters for scheduled builds and automatic green stable publication."""
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit('Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14' % sys.version_info[:2])
+
 import argparse
 import json
 import os
@@ -57,7 +62,7 @@ def require_publish_selection(metadata, gate):
 
 
 def live_gate(repository, output):
-    run('python3', repository / 'ci/weekly_release_gate.py', '--output', output)
+    run(sys.executable, repository / 'ci/weekly_release_gate.py', '--output', output)
     gate = json.loads(output.read_text())
     if gate.get('status') != 'eligible':
         raise ValueError('This week is held by the QA gate')
@@ -103,7 +108,7 @@ def prepare(args, repository, ci_home):
     (workspace / 'weekly-gate.json').write_text(json.dumps(gate, indent=2) + '\n')
     script = workspace / 'prepare-stable.py'
     script.write_bytes(subprocess.check_output(['git', '-C', str(repository), 'show', revision + ':ci/prepare_build.py']))
-    command = ['python3', script, '--repository', repository, '--revision', revision,
+    command = [sys.executable, script, '--repository', repository, '--revision', revision,
                '--workspace', workspace, '--channel', 'release', '--qa-release-id', selected['qaReleaseId']]
     bootstrap = stable_feed_missing()
     if bootstrap:
@@ -141,18 +146,18 @@ def main():
         guard(repository)
         if not re.fullmatch(r'release-\d+\.\d+\.\d+-[1-9]\d*-build-[1-9]\d*', args.release_id or ''):
             raise ValueError('Invalid stable release ID')
-        run('python3', repository / 'ci/pipeline.py', 'publish', '--release-id', args.release_id,
+        run(sys.executable, repository / 'ci/pipeline.py', 'publish', '--release-id', args.release_id,
             '--channel', 'release', '--output', args.output)
     else:
         info = json.loads((args.workspace / 'run-info.json').read_text())
         source = args.workspace / 'source'
         if args.operation == 'seal':
-            run('python3', source / 'ci/finalize_qa.py', '--artifact-dir', args.workspace / 'artifacts',
+            run(sys.executable, source / 'ci/finalize_qa.py', '--artifact-dir', args.workspace / 'artifacts',
                 '--source-dir', source, '--release-dir', ci_home / 'releases' / info['releaseId'],
                 '--build-url', os.environ['BUILD_URL'])
             (args.workspace / 'artifacts/sealed-release.json').write_text(json.dumps(info, indent=2) + '\n')
         else:
-            run('python3', source / 'ci/pipeline.py', args.operation, '--workspace', args.workspace,
+            run(sys.executable, source / 'ci/pipeline.py', args.operation, '--workspace', args.workspace,
                 '--channel', 'release', '--version-name', info['versionName'],
                 '--version-code', info['versionCode'], '--source-revision', info['sourceRevision'])
 

@@ -6,9 +6,14 @@ Deploys to all official distribution & community channels in a single command:
 1. GitHub Releases & in-app QA update feed (via Jenkins build & publish)
 2. Google Play Closed Beta / Closed Alpha track ('alpha')
 3. Google Play Internal Testing track ('internal')
-4. Telegram announcement & changelog format/broadcast (@ExpressiveLauncher)
+4. Telegram announcement & changelog format/broadcast (@ExpressiveGroup)
 5. XDA Developers thread announcement BBCode generation
 """
+
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
 
 import argparse
 import json
@@ -16,7 +21,6 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import sys
 import time
 import urllib.request
 
@@ -24,6 +28,9 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTROL_SCRIPT = ROOT / "ci/jenkins/control.py"
 PUBLISH_SCRIPT = ROOT / "scripts/publish_play_bundle.py"
 TELEGRAM_SCRIPT = ROOT / "scripts/post_telegram.py"
+# post_telegram.DEFAULT_CHANNEL and post_telegram.EXIT_NOT_CONFIGURED; ci/tests keeps them in sync.
+TELEGRAM_DEFAULT_CHANNEL = "@ExpressiveGroup"
+TELEGRAM_NOT_CONFIGURED_EXIT = 3
 XDA_SCRIPT = ROOT / "scripts/format_xda.py"
 VERIFY_PLAY_PROTECT_SCRIPT = ROOT / "scripts/verify_developer_play_protect.py"
 XDA_THREAD_URL = "https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/"
@@ -44,16 +51,32 @@ def get_version_info() -> tuple[str, str]:
     return name_match.group(1), code_match.group(1)
 
 
-def run_cmd(cmd: list[str], timeout: int = 600) -> subprocess.CompletedProcess:
-    print(f"\n[RUN] {' '.join(str(c) for c in cmd)}")
+SECRET_FLAGS = ("--token", "--telegram-token")
+
+
+def redact_cmd(cmd: list[str]) -> str:
+    """The command line as printed in logs, with the value after a secret flag masked."""
+    shown = []
+    for i, c in enumerate(cmd):
+        c = str(c)
+        if i > 0 and str(cmd[i - 1]) in SECRET_FLAGS:
+            c = "***"
+        elif c.startswith(tuple(f"{flag}=" for flag in SECRET_FLAGS)):
+            c = c.split("=", 1)[0] + "=***"
+        shown.append(c)
+    return " ".join(shown)
+
+
+def run_cmd(cmd: list[str], timeout: int = 600, ok_codes: tuple[int, ...] = (0,)) -> subprocess.CompletedProcess:
+    print(f"\n[RUN] {redact_cmd(cmd)}")
     result = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
-    if result.returncode != 0:
+    if result.returncode not in ok_codes:
         print(f"[ERROR] Command failed with exit {result.returncode}")
         if result.stdout:
             print(f"[STDOUT]\n{result.stdout[-1500:]}")
         if result.stderr:
             print(f"[STDERR]\n{result.stderr[-1500:]}")
-        raise RuntimeError(f"Command failed: {' '.join(str(c) for c in cmd)}")
+        raise RuntimeError(f"Command failed: {redact_cmd(cmd)}")
     return result
 
 
@@ -111,6 +134,20 @@ def wait_for_jenkins_job(
         time.sleep(5)
 
     raise TimeoutError(f"Timed out waiting for Jenkins {job} job to complete after {max_wait_seconds}s")
+
+
+def run_telegram_stage(tg_cmd: list[str], tg_out: Path, channel: str) -> str:
+    """Run post_telegram.py and report whether the announcement reached the channel; never fails the release."""
+    try:
+        result = run_cmd(tg_cmd, timeout=120, ok_codes=(0, TELEGRAM_NOT_CONFIGURED_EXIT))
+    except Exception as e:
+        print(f"[WARNING] Telegram broadcast failed: {e}")
+        print(f"[INFO] Rendered Telegram message remains saved at {tg_out}")
+        return f"NOT broadcast: post_telegram.py failed, check the channel for partial posts (rendered to {tg_out.name})"
+    if result.returncode == TELEGRAM_NOT_CONFIGURED_EXIT:
+        print(f"[WARNING] Telegram announcement NOT broadcast: no bot token configured. Rendered to {tg_out}")
+        return f"NOT broadcast: no bot token configured (rendered to {tg_out.name})"
+    return f"Rendered & broadcast via {channel or TELEGRAM_DEFAULT_CHANNEL}"
 
 
 def resolve_notes_file(version_name: str, version_code: str, custom_path: str | None = None) -> Path:
@@ -335,13 +372,7 @@ def main():
         if qa_apk_candidates:
             tg_cmd.extend(["--apk", str(qa_apk_candidates[0])])
 
-        try:
-            run_cmd(tg_cmd, timeout=120)
-            tg_status = f"Rendered & broadcast via {args.telegram_channel or '@ExpressiveLauncher'}"
-        except Exception as e:
-            print(f"[WARNING] Telegram broadcast step finished with warning/notice: {e}")
-            print(f"[INFO] Rendered Telegram message remains saved at {tg_out}")
-            tg_status = f"Rendered to {tg_out.name} (Notice logged)"
+        tg_status = run_telegram_stage(tg_cmd, tg_out, args.telegram_channel)
 
     # -------------------------------------------------------------
     # 4. XDA Developers Thread BBCode Flow
@@ -364,7 +395,10 @@ def main():
     # Summary
     # -------------------------------------------------------------
     print("\n" + "=" * 70)
-    print("ALL RELEASE TARGETS COMPLETED SUCCESSFULLY!")
+    if tg_status.startswith("NOT broadcast"):
+        print("RELEASE TARGETS COMPLETED, BUT THE TELEGRAM ANNOUNCEMENT WAS NOT BROADCAST")
+    else:
+        print("ALL RELEASE TARGETS COMPLETED SUCCESSFULLY!")
     print(f"- Version:            {version_name} (Build {version_code})")
     print(f"- GitHub Release:     https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v{version_name}-{version_code}")
     print(f"- QA In-App Feed:     https://raw.githubusercontent.com/denson9874/ExpressiveLauncher/updates/qa-v2/latest.json")

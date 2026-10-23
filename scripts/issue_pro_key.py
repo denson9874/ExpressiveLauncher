@@ -14,11 +14,15 @@ Token: --token, else $EXPRESSIVE_PRO_ADMIN_TOKEN, else ~/.config/expressive/admi
 
 from __future__ import annotations
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 import json
 import os
 from pathlib import Path
-import sys
 import urllib.error
 import urllib.request
 

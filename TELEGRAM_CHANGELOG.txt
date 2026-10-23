@@ -71,4 +71,4 @@ Welcome to <b>Expressive Launcher 5.0.0 (Build 62)</b>! This is our biggest majo
 • <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
 • <b>Community & Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
-• <b>Announcements Channel</b>: <a href="https://t.me/ExpressiveLauncher">@ExpressiveLauncher</a>
+• <b>Announcements Channel</b>: <a href="https://t.me/ExpressiveGroup">@ExpressiveGroup</a>

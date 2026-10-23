@@ -6,6 +6,11 @@ Every run retains its own AVD and evidence; it never wipes an existing AVD.
 """
 from __future__ import annotations
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Python 3.11+ is required (this is %d.%d); run it with /opt/homebrew/bin/python3.14" % sys.version_info[:2])
+
 import argparse
 import hashlib
 import json
@@ -15,7 +20,6 @@ import re
 import signal
 import socket
 import subprocess
-import sys
 import time
 import uuid
 import xml.etree.ElementTree as ET
