@@ -1,0 +1,5 @@
+Expressive Launcher 5.0.1
+• Renaming an "Open app" shortcut no longer makes Home crash on every start
+• Restoring only the wallpaper keeps your Home layout; backups include your latest icon and folder changes
+• Accessibility tools no longer crash Home around removed widgets
+• Widgets open on tablets and unfolded foldables, with or without a work profile
