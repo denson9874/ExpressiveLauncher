@@ -1,0 +1,6 @@
+Expressive Launcher 5.0.2
+• Home icons and widgets no longer pile into the top-left corner after a "No room for a widget here" message
+• Home keeps updating after dark mode, font or theme changes, and no longer crashes from D-pad focus on the search bar
+• No more memory build-up with every theme switch
+• Drawer web suggestions work for multi-word and accented searches
+• Open-app gestures no longer crash Home when the app is gone
