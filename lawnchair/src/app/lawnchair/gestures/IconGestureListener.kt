@@ -2,6 +2,7 @@ package app.lawnchair.gestures
 
 import android.util.Log
 import android.view.ViewConfiguration
+import androidx.annotation.VisibleForTesting
 import androidx.datastore.preferences.core.Preferences
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringForce
@@ -123,15 +124,20 @@ class IconGestureListener(
         Log.d("GESTURE_HANDLER", "Handling gesture: ${gestureType.name}")
 
         animateIconSwipe(gestureType, velocity)
+        triggerGesture(gestureType, gesture)
 
-        context.launcher.lifecycleScope.launch {
+        return true
+    }
+
+    /** Runs [gesture]'s action. A failure is logged instead of crashing Home (R15). */
+    @VisibleForTesting
+    internal fun triggerGesture(gestureType: GestureType, gesture: GestureHandlerConfig) {
+        context.launcher.lifecycleScope.launch(GestureController.exceptionHandler) {
             Log.d("GESTURE_HANDLER", "Triggering gesture: ${gestureType.name}")
             // Lawnchair-TODO: Migrate to MSDL vibration?
             VibratorWrapper.INSTANCE.get(context.launcher).vibrate(VibratorWrapper.OVERVIEW_HAPTIC)
             gesture.createHandler(context).onTrigger(context.launcher)
         }
-
-        return true
     }
 
     /** Animates a spring-back effect on the icon following a swipe gesture.

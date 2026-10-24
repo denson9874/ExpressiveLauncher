@@ -16,6 +16,7 @@
 
 package app.lawnchair.gestures
 
+import android.util.Log
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairApp
 import app.lawnchair.LawnchairLauncher
@@ -25,6 +26,7 @@ import app.lawnchair.gestures.handlers.NoOpGestureHandler
 import app.lawnchair.preferences2.PreferenceManager2
 import com.android.launcher3.util.VibratorWrapper
 import com.patrykmichalik.opto.domain.Preference
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -32,10 +34,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 
 class GestureController(private val launcher: LawnchairLauncher) {
     private val prefs = PreferenceManager2.getInstance(launcher)
-    private val scope = launcher.lifecycleScope
+
+    // R15: each action and handler flow is its own child of the launcher's SupervisorJob, so a
+    // failure is logged by exceptionHandler instead of reaching the default handler and
+    // crashing Home, and it never cancels the other gestures.
+    private val scope = launcher.lifecycleScope + exceptionHandler
 
     private val doubleTapHandler = handler(prefs.doubleTapGestureHandler)
     private val swipeUpHandler = handler(prefs.swipeUpGestureHandler)
@@ -74,14 +81,14 @@ class GestureController(private val launcher: LawnchairLauncher) {
     }
 
     fun handle(handler: GestureHandlerConfig) {
-        launcher.lifecycleScope.launch {
+        scope.launch {
             val handler = handler.createHandler(launcher)
             handler.onTrigger(launcher)
         }
     }
 
     private fun triggerHandler(handlerFlow: Flow<GestureHandler>, withHaptic: Boolean = true) {
-        launcher.lifecycleScope.launch {
+        scope.launch {
             val handler = handlerFlow.first()
             if (handler is NoOpGestureHandler) {
                 return@launch
@@ -101,4 +108,13 @@ class GestureController(private val launcher: LawnchairLauncher) {
             SharingStarted.Lazily,
             replay = 1,
         )
+
+    companion object {
+        private const val TAG = "GestureController"
+
+        /** Logs a failed gesture action instead of crashing Home (R15). */
+        internal val exceptionHandler = CoroutineExceptionHandler { _, error ->
+            Log.e(TAG, "Gesture action failed", error)
+        }
+    }
 }
