@@ -104,6 +104,10 @@ public class CellLayoutLayoutParams extends ViewGroup.MarginLayoutParams {
         super(CellLayoutLayoutParams.MATCH_PARENT, CellLayoutLayoutParams.MATCH_PARENT);
         this.mCellX = cellX;
         this.mCellY = cellY;
+        // Lawnchair: start the temporary cell on the item's own cell, so a stray useTmpCoords can
+        // never draw a freshly bound item at (0,0).
+        this.mTmpCellX = cellX;
+        this.mTmpCellY = cellY;
         this.cellHSpan = cellHSpan;
         this.cellVSpan = cellVSpan;
     }

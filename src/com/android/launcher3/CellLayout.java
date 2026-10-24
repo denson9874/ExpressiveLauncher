@@ -1594,8 +1594,12 @@ public class CellLayout extends ViewGroup {
         ItemConfiguration swapSolution = findReorderSolution(pixelXY[0], pixelXY[1], spanX, spanY,
                 spanX,  spanY, direction, dragView,  true);
 
-        setUseTempCoords(true);
         if (swapSolution != null && swapSolution.isSolution) {
+            // Lawnchair: switch to the temporary cells only once there is a solution to fill them.
+            // A failed search sets no temporary cell, so switching first left every child on a
+            // stale one ((0,0) for a freshly bound item) and the next layout drew the whole page
+            // in the top-left corner. A failure now leaves each child as it was.
+            setUseTempCoords(true);
             // If we're just testing for a possible location (MODE_ACCEPT_DROP), we don't bother
             // committing anything or animating anything as we just want to determine if a solution
             // exists
