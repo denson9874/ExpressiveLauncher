@@ -1,0 +1,98 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.0.2 (Build 64) — Everything in Its Place[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+5.0.2 fixes the things that made Home misbehave after you changed something: icons piling into one corner, Home freezing after a dark-mode or font switch, and memory that kept growing with every theme change. It also repairs web suggestions in drawer search, and makes sure a missing app can't take a gesture down with it.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. 📐 Your Home layout stays where you put it[/B][/SIZE]
+[LIST]
+[*][B]The bug[/B]: After a [B]No room for a widget here.[/B] message (for example when turning a folder into a widget on a full page), Home could later draw every icon and widget in the top-left corner, stacked on top of each other and under At a Glance. It usually showed up after visiting Home settings or another app.
+[*][B]The fix[/B]: A move that finds no room now leaves every item exactly where it was. Your layout was never lost, only drawn in the wrong place, so nothing needs restoring after you update.
+
+[/LIST]
+[SIZE=5][B]2. 🌗 Home stays responsive after dark mode, font and theme changes[/B][/SIZE]
+[LIST]
+[*][B]The bug[/B]: Switching dark mode, the font or another setting that rebuilds Home could leave parts of Home frozen: the drawer search bar lost its Clear button, and Customize sheets kept showing old values while their switches stopped responding. Moving keyboard or D-pad focus onto the search bar could then crash Home and reset your default Home app.
+[*][B]The fix[/B]: Rebuilt Home now hooks its new screens up to its live state, so everything keeps updating after any number of theme changes, and the search bar no longer crashes.
+
+[/LIST]
+[SIZE=5][B]3. 🧠 No more memory build-up from theme switches[/B][/SIZE]
+[LIST]
+[*]Every dark-mode or theme switch used to leave a full copy of the previous Home behind in memory, about 20 MB each time. Home now lets go of the old one: in testing, 28 switches in a row left exactly one copy.
+
+[/LIST]
+[SIZE=5][B]4. 🔎 Web suggestions that make sense[/B][/SIZE]
+[LIST]
+[*]Drawer search sent multi-word and accented queries to Google, DuckDuckGo, Startpage and Kagi encoded twice, so "YT Music" came back as "youtube 20music" and many searches got no suggestions at all. Queries now go out correctly.
+
+[/LIST]
+[SIZE=5][B]5. 👆 Gestures survive a missing app[/B][/SIZE]
+[LIST]
+[*]An [B]Open app[/B] gesture or action shortcut whose app had been uninstalled, disabled or paused in a work profile crashed Home. Home now shows "[I]App[/I] isn't available. You can pick another action for this gesture." and keeps your gesture setting for when the app comes back.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]📐 [I]Your icons took "No room for a widget here" personally and all huddled in one corner. We've told them it wasn't about them.[/I]
+
+🌗 [I]Dark mode used to give Home a little stage fright: it kept smiling, but it stopped listening. Now it switches outfits and carries on the conversation.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]Already hit the corner bug on 5.0.1 or 5.0.0?[/B] Updating fixes the drawing; your layout was never changed. On older builds, restarting Home from [B]⋮[/B] in Home settings puts everything back.
+[*][B]Still being worked on[/B] (see the 5.0.0 release notes for workarounds):
+[*]Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
+[*]The headphone battery card in At a Glance doesn't appear yet.
+[*]Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
+[*]The first setting you change after Home starts can restart Home a few times.
+[*][B]Validation[/B]: 595 automated tests pass. The fixes were checked on Android 17 (QPR2) emulators, including 16,000 random monkey events with no crashes and a new automated check that switches dark mode, presses the D-pad onto the search bar and counts leftover Home copies. Physical-device reports are very welcome.
+[*][B]Thank you[/B] for the detailed report and live screenshots that pinned down the corner bug.
+[*][B]Developer Support[/B]: Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I'm where an app ends up when nobody tells it where to stand: zero across, zero down. Since 5.0.2, nobody gets sent to me by mistake. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]Cell (0,0), the top-left corner![/B] It's a lovely spot, just not for everyone at once. 📐[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.0.2[/ICODE] (Build [ICODE]64[/ICODE])
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[*][B]Announcements Channel[/B]: [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.0.2-64"]Download Expressive Launcher v5.0.2 (Build 64)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]

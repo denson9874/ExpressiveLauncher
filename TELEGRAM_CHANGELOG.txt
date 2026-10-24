@@ -1,60 +1,61 @@
-<b>Expressive Launcher 5.0.1 (Build 63) — No Place Like Home</b>
+<b>Expressive Launcher 5.0.2 (Build 64) — Everything in Its Place</b>
 
-5.0.1 is a "stay Home" release. It fixes two ways Home could crash, and two ways it could quietly lose your setup. Nothing flashy, just a launcher that keeps its footing. If your Home screen got stuck crashing after you renamed a shortcut, this is the update for you.
+5.0.2 fixes the things that made Home misbehave after you changed something: icons piling into one corner, Home freezing after a dark-mode or font switch, and memory that kept growing with every theme change. It also repairs web suggestions in drawer search, and makes sure a missing app can't take a gesture down with it.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-<b>1. 🔁 Renaming a shortcut no longer traps Home in a crash loop</b>
-• <b>The bug</b>: Renaming an <b>Open app</b> action shortcut, the kind you add from <b>Widgets → Expressive Launcher L3 → Actions</b>, saved a name Home couldn't read back. From then on, Home crashed every time it started, until you cleared the app's data.
-• <b>The fix</b>: Home now reads those names correctly, so your renamed shortcut keeps its new name. If a saved name can't be read, Home skips it instead of crashing. On first start, 5.0.1 also repairs names that 5.0.0 saved.
-• <b>Already stuck in the loop?</b> Install 5.0.1 from GitHub or Obtainium; the in-app updater can't help while Home keeps crashing. You don't need to clear data.
+<b>1. 📐 Your Home layout stays where you put it</b>
+• <b>The bug</b>: After a <b>No room for a widget here.</b> message (for example when turning a folder into a widget on a full page), Home could later draw every icon and widget in the top-left corner, stacked on top of each other and under At a Glance. It usually showed up after visiting Home settings or another app.
+• <b>The fix</b>: A move that finds no room now leaves every item exactly where it was. Your layout was never lost, only drawn in the wrong place, so nothing needs restoring after you update.
 
-<b>2. 💾 Restores keep your layout, and backups keep your latest changes</b>
-• <b>Wallpaper-only restore</b>: Restoring a backup with only <b>Wallpaper</b> selected used to delete your Home layout, custom icons, drawer folders and folder-widget styles along the way. Now it restores just the wallpaper, as it says.
-• <b>Fresher backups</b>: A custom icon, drawer folder or folder-widget style you changed just before making a backup could be missing from it. Backups now include those latest changes too.
+<b>2. 🌗 Home stays responsive after dark mode, font and theme changes</b>
+• <b>The bug</b>: Switching dark mode, the font or another setting that rebuilds Home could leave parts of Home frozen: the drawer search bar lost its Clear button, and Customize sheets kept showing old values while their switches stopped responding. Moving keyboard or D-pad focus onto the search bar could then crash Home and reset your default Home app.
+• <b>The fix</b>: Rebuilt Home now hooks its new screens up to its live state, so everything keeps updating after any number of theme changes, and the search bar no longer crashes.
 
-<b>3. ♿ Accessibility tools no longer crash Home around widgets</b>
-• If a widget disappeared while its resize handles were open (for example, its app was disabled), the handles stayed on screen. An accessibility service such as TalkBack, an automation app or a password manager could then crash Home just by inspecting them. The handles now close with the widget, and Home ignores resize requests for a widget that's gone.
+<b>3. 🧠 No more memory build-up from theme switches</b>
+• Every dark-mode or theme switch used to leave a full copy of the previous Home behind in memory, about 20 MB each time. Home now lets go of the old one: in testing, 28 switches in a row left exactly one copy.
 
-<b>4. 📱 Widgets open on tablets and unfolded foldables</b>
-• On tablets and unfolded foldables, opening <b>Widgets</b> crashed Home: right away if you have a work profile, or as soon as suggestions loaded if you don't. Both two-pane layouts are fixed, so the picker opens with its Suggestions, Personal and Work tabs.
+<b>4. 🔎 Web suggestions that make sense</b>
+• Drawer search sent multi-word and accented queries to Google, DuckDuckGo, Startpage and Kagi encoded twice, so "YT Music" came back as "youtube 20music" and many searches got no suggestions at all. Queries now go out correctly.
 
-<b>5. 📣 Announcements link updated</b>
-• <b>Settings → About</b> now opens our announcements channel at its new home, <a href="https://t.me/ExpressiveGroup">@ExpressiveGroup</a>.
+<b>5. 👆 Gestures survive a missing app</b>
+• An <b>Open app</b> gesture or action shortcut whose app had been uninstalled, disabled or paused in a work profile crashed Home. Home now shows "<i>App</i> isn't available. You can pick another action for this gesture." and keeps your gesture setting for when the app comes back.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>🔁 <i>Home got a little attached to the old name of your shortcut. Now it just says "nice to meet you" and moves on.</i>
+<blockquote>📐 <i>Your icons took "No room for a widget here" personally and all huddled in one corner. We've told them it wasn't about them.</i>
 
-💾 <i>"Restore wallpaper only" used to mean "restore the wallpaper, and also forget where you put everything". It now means exactly what it says.</i></blockquote>
+🌗 <i>Dark mode used to give Home a little stage fright: it kept smiling, but it stopped listening. Now it switches outfits and carries on the conversation.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
+• <b>Already hit the corner bug on 5.0.1 or 5.0.0?</b> Updating fixes the drawing; your layout was never changed. On older builds, restarting Home from <b>⋮</b> in Home settings puts everything back.
 • <b>Still being worked on</b> (see the 5.0.0 release notes for workarounds):
-• Home can stop updating after a dark-mode or font change. Restart Home from <b>⋮</b> in Home settings.
 • Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
 • The headphone battery card in At a Glance doesn't appear yet.
 • Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
-• <b>Validation</b>: 565 automated tests pass. The fixes were checked on Android 17 (QPR2) emulators: a Pixel phone and a tablet, with and without a work profile. Physical-device reports are very welcome.
+• The first setting you change after Home starts can restart Home a few times.
+• <b>Validation</b>: 595 automated tests pass. The fixes were checked on Android 17 (QPR2) emulators, including 16,000 random monkey events with no crashes and a new automated check that switches dark mode, presses the D-pad onto the search bar and counts leftover Home copies. Physical-device reports are very welcome.
+• <b>Thank you</b> for the detailed report and live screenshots that pinned down the corner bug.
 • <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I have two panes but no glass, a list on my left and a gallery on my right. Big screens used to slam me shut the moment you opened me. What am I?</i></blockquote>
+<blockquote><i>I'm where an app ends up when nobody tells it where to stand: zero across, zero down. Since 5.0.2, nobody gets sent to me by mistake. What am I?</i></blockquote>
 
-<tg-spoiler><b>The widget picker on a tablet!</b> Two panes, zero windows, and as of 5.0.1 it stays open. 🪟📱</tg-spoiler>
+<tg-spoiler><b>Cell (0,0), the top-left corner!</b> It's a lovely spot, just not for everyone at once. 📐</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>5.0.1</code> (Build <code>63</code>)
+• <b>Launcher Version</b>: <code>5.0.2</code> (Build <code>64</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
