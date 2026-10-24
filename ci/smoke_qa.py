@@ -30,9 +30,62 @@ ROLE = "android.app.role.HOME"
 REQUIRED_FLOWS = {
     "guest_identity", "baseline_install", "seed_preference", "same_signer_upgrade",
     "preference_retention", "warm_start", "cold_start", "drawer_swipe",
-    "local_search", "current_date_handoff", "clean_app_logs",
+    "local_search", "relaunch_dpad", "current_date_handoff", "clean_app_logs",
 }
 BOOTSTRAP_FLOWS = (REQUIRED_FLOWS - {'baseline_install', 'same_signer_upgrade'}) | {'first_stable_install', 'same_version_reinstall'}
+# relaunch_dpad (D01/L03/L01): dark mode on and off twice relaunches Home in-process four times
+# with its window kept; D-pad focus then reaches the dock search bar.
+NIGHT_CYCLES = 2
+DPAD_PRESSES = 6
+# Extra DPAD_DOWN presses, one capture each, while focus has not reached the dock search bar yet.
+DPAD_FOCUS_RETRIES = 4
+# The dock search bar (search_container_hotseat) has no id; it is the hotseat child described as
+# @string/label_search. Hotseat app icons sit in a separate child, so their focus never matches.
+DOCK_SEARCH_DESC = "Search"
+RELAUNCH_LOG = "Schedule relaunch activity: app.lawnchair.LawnchairLauncher"
+CLEAR_SEARCH = "Clear search box"
+CRASH_TAGS = ("data_app_crash", "data_app_native_crash")
+
+
+def relaunches_since(logs: str, since: float) -> int:
+    """Count Home relaunches in `logcat -v epoch` output logged after the device epoch `since`."""
+    count = 0
+    for line in logs.splitlines():
+        stamp = re.match(r"\s*(\d+\.\d+)\s", line)
+        if stamp and float(stamp[1]) > since and RELAUNCH_LOG in line:
+            count += 1
+    return count
+
+
+def dock_search_focus(root: ET.Element) -> ET.Element | None:
+    """The focused node inside the dock (hotseat) search bar, or None while focus is elsewhere."""
+    for hotseat in root.iter("node"):
+        if not hotseat.get("resource-id", "").endswith(":id/hotseat"):
+            continue
+        for bar in hotseat.findall("node"):
+            if bar.get("content-desc") == DOCK_SEARCH_DESC:
+                for node in bar.iter("node"):
+                    if node.get("focused") == "true":
+                        return node
+    return None
+
+
+def dropbox_crashes(dump: str, package: str) -> int:
+    """Count crash records in `dumpsys dropbox --print` output for exactly this package."""
+    return len(re.findall(r"(?m)^Process: " + re.escape(package) + r"\s*$", dump))
+
+
+def meminfo_activities(dump: str) -> int:
+    """Activity objects in the heap from `dumpsys meminfo <package>`, which ART counts after a GC."""
+    counts = re.findall(r"\bActivities:\s+(\d+)\b", dump)
+    if len(counts) != 1:
+        raise RuntimeError("dumpsys meminfo did not report exactly one Activities count")
+    return int(counts[0])
+
+
+def running_activities(dump: str, package: str) -> int:
+    """Activities of exactly this package that `dumpsys activity activities` still tracks."""
+    return len(set(re.findall(r"ActivityRecord\{(\w+) u\d+ " + re.escape(package) + r"/", dump)))
 
 
 def keyboard_ready(dump: str, package: str) -> bool:
@@ -328,6 +381,130 @@ class Smoke:
         self.require(len(switches) == 1, "Infinite scrolling switch missing or ambiguous")
         return root, switches[0]
 
+    def device_epoch(self) -> float:
+        return float(self.shell("date", "+%s.%N"))
+
+    def night_mode(self) -> str:
+        output = self.shell("cmd", "uimode", "night")
+        match = re.search(r"Night mode: (\S+)", output)
+        self.require(match is not None, f"Unreadable night mode: {output}")
+        return match[1]
+
+    def front_home(self):
+        output = self.shell("am", "start", "-W", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME")
+        self.require("Status: ok" in output, f"HOME launch failed: {output}")
+
+    def toggle_night(self, mode, pid, name, timeout=15):
+        """Switch dark mode and wait, bounded, until Home (still process `pid`) relaunches for it."""
+        since = self.device_epoch()
+        self.shell("cmd", "uimode", "night", mode)
+        deadline = time.monotonic() + timeout
+        logs = ""
+        while time.monotonic() < deadline:
+            logs = self.adb("logcat", "-d", "-v", "epoch", f"--pid={pid}", "-s", "ActivityThread:I")
+            if relaunches_since(logs, since):
+                break
+            time.sleep(0.5)
+        else:
+            self.save(name + "-relaunch-timeout.txt", logs)
+            raise RuntimeError(f"Home did not relaunch in-process within {timeout}s of night mode {mode}")
+        # Return to Home as a user does after flipping the setting.
+        self.front_home()
+        time.sleep(1)
+
+    def app_crashes(self, name) -> int:
+        dump = "\n".join(self.shell("dumpsys", "dropbox", "--print", tag, timeout=60) for tag in CRASH_TAGS)
+        self.save(name + "-dropbox.txt", dump)
+        return dropbox_crashes(dump, self.package)
+
+    def activity_count(self, name, attempts=3):
+        """Activities in Home's heap and still running, retried because a finalizer can keep a
+        destroyed one alive for one more GC. Any surplus is a destroyed, leaked Activity."""
+        for attempt in range(1, attempts + 1):
+            running = self.shell("dumpsys", "activity", "activities", timeout=60)
+            dump = self.shell("dumpsys", "meminfo", self.package, timeout=60)
+            self.save(f"{name}-activities-{attempt}.txt", running)
+            self.save(f"{name}-meminfo-{attempt}.txt", dump)
+            count, live = meminfo_activities(dump), running_activities(running, self.package)
+            if count <= live or attempt == attempts:
+                return count, live, attempt
+            time.sleep(2)
+
+    def relaunch_dpad(self):
+        """D01/L03/L01: in-process relaunches must leave Home live, focusable and leak-free."""
+        started = time.monotonic()
+        original = self.night_mode()
+        crashes = self.app_crashes("relaunch-before")
+        root = self.home("relaunch-home")
+        pid = self.shell("pidof", "-s", self.package, check=False)
+        self.require(pid, "Home is not running before the relaunch cycles")
+        try:
+            if original != "no":
+                # Start from light mode; this change may or may not relaunch Home.
+                self.shell("cmd", "uimode", "night", "no")
+                time.sleep(2)
+                self.front_home()
+            for cycle in range(1, NIGHT_CYCLES + 1):
+                for mode in ("yes", "no"):
+                    self.toggle_night(mode, pid, f"relaunch-{cycle}-{mode}")
+            self.require(self.shell("pidof", "-s", self.package, check=False) == pid,
+                         "Home restarted instead of relaunching in-process")
+            # D-pad focus walks down to the dock search bar, whose focus ripple threw (D01).
+            for _ in range(DPAD_PRESSES):
+                self.shell("input", "keyevent", "KEYCODE_DPAD_DOWN")
+                time.sleep(0.3)
+            presses = DPAD_PRESSES
+            time.sleep(2)
+            focus = dock_search_focus(self.capture("relaunch-dpad"))
+            # Focus resumes wherever Home last left it, so it may still be on its way down: press a
+            # bounded few more times, capturing after each, and fail if it never reaches the bar.
+            while focus is None and presses < DPAD_PRESSES + DPAD_FOCUS_RETRIES:
+                self.shell("input", "keyevent", "KEYCODE_DPAD_DOWN")
+                presses += 1
+                time.sleep(1)
+                focus = dock_search_focus(self.capture(f"relaunch-dpad-{presses}"))
+            same_process = self.shell("pidof", "-s", self.package, check=False) == pid
+            new_crashes = self.app_crashes("relaunch-after-dpad") - crashes
+            self.require(same_process and new_crashes == 0,
+                         f"Home crashed on D-pad focus after the relaunches ({new_crashes} new crash records)")
+            self.require(focus is not None,
+                         f"D-pad focus did not reach the dock search bar after {presses} DPAD_DOWN presses")
+            focused_bounds = list(bounds(focus))
+            self.metadata("relaunch")
+            # Typing must recompose the drawer search bar: it shows its clear button (L03).
+            x1, y1, x2, y2 = bounds(self.node(root, rid="workspace"))
+            x = (x1 + x2) // 2
+            for attempt in range(1, 4):
+                self.shell("input", "swipe", str(x), str(y1 + (y2 - y1) * 3 // 4), str(x), str(y1 + (y2 - y1) * 15 // 100), "250")
+                time.sleep(2)
+                root = self.capture("relaunch-drawer")
+                if any(n.get("resource-id", "").endswith(":id/apps_view") for n in root.iter("node")):
+                    break
+            self.tap(self.node(root, rid="search_container_all_apps"))
+            root = self.capture("relaunch-search-focused")
+            self.tap(self.node(root, rid="input"))
+            self.wait_for_keyboard("relaunch-search")
+            self.shell("input", "text", "Cal")
+            for attempt in range(1, 4):
+                time.sleep(1)
+                root = self.capture(f"relaunch-search-typed-{attempt}")
+                if any(n.get("content-desc") == CLEAR_SEARCH for n in root.iter("node")):
+                    break
+            self.node(root, desc=CLEAR_SEARCH)
+            self.front_home()
+            # A smoke run has only Home running here (1 Activity); count against what is running
+            # so a Settings screen left in the background is not mistaken for a leak.
+            activities, running, attempts = self.activity_count("relaunch")
+            self.require(activities <= running,
+                         f"Home kept {activities - running} destroyed Activities after {2 * NIGHT_CYCLES} "
+                         f"relaunches ({activities} in memory, {running} running)")
+        finally:
+            # Leave the guest as found, without hiding the flow's own failure.
+            self.shell("cmd", "uimode", "night", original, check=False)
+        self.passed("relaunch_dpad", relaunches=2 * NIGHT_CYCLES, dpadDown=presses, focusedBounds=focused_bounds,
+                    pid=pid, activities=activities, runningActivities=running, meminfoAttempts=attempts,
+                    nightMode=original, seconds=round(time.monotonic() - started, 1))
+
     def quiesce(self):
         self.shell("am", "start", "-W", "-a", "android.settings.SETTINGS")
         self.shell("am", "force-stop", self.package)
@@ -430,6 +607,7 @@ class Smoke:
                    and n.get("content-desc") == "Calendar" and n.get("class") == "android.widget.TextView"]
         self.require(results, "Local Calendar search returned no visible app result")
         self.passed("local_search", query="Calendar")
+        self.relaunch_dpad()
         root = self.home("candidate-date-home")
         date, date_page = self.swipe_to_date(root)
         self.result["dateSwipes"] = date_page
