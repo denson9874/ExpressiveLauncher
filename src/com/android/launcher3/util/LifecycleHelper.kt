@@ -18,6 +18,7 @@ package com.android.launcher3.util
 
 import android.app.Activity
 import android.os.Bundle
+import android.view.View
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -74,12 +75,26 @@ class LifecycleHelper(
 
     override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
         savedStateRegistryController.performRestore(savedInstanceState)
+        // Lawnchair: an in-process relaunch (dark mode, font, recreate()) hands this instance the
+        // destroyed instance's window. Its decor is already attached and still names the
+        // destroyed instance as owner, so content attached in onCreate would bind Compose's
+        // window Recomposer to a DESTROYED lifecycle that never starts it (D01/L03). Repoint the
+        // kept decor now. peekDecorView() never installs a decor, so a fresh window is untouched.
+        activity.window?.peekDecorView()?.let(::setViewTreeOwners)
     }
 
     override fun onActivityPostCreated(activity: Activity, savedInstanceState: Bundle?) {
-        activity.window.decorView.setViewTreeLifecycleOwner(owner)
-        activity.window.decorView.setViewTreeSavedStateRegistryOwner(owner)
+        setViewTreeOwners(activity.window.decorView)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+    }
+
+    /**
+     * Lawnchair: publishes this activity's lifecycle and saved-state owners on [decorView], as
+     * ComponentActivity does before its content view is set.
+     */
+    fun setViewTreeOwners(decorView: View) {
+        decorView.setViewTreeLifecycleOwner(owner)
+        decorView.setViewTreeSavedStateRegistryOwner(owner)
     }
 
     override fun onActivityPostStarted(activity: Activity) {

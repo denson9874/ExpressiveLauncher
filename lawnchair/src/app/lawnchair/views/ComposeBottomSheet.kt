@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import app.lawnchair.qsb.dropStaleWindowRecomposer
 import app.lawnchair.theme.color.tokens.ColorTokens
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.util.ProvideLifecycleState
@@ -66,6 +67,9 @@ class ComposeBottomSheet<T>(context: Context) : AbstractSlideInView<T>(context, 
         }
         removeAllViews()
         addView(mContent)
+        // The sheet composes as it attaches; a dead window Recomposer would leave it showing its
+        // first values while its switches stop updating (L03).
+        mActivityContext.dragLayer?.let(::dropStaleWindowRecomposer)
         attachToContainer()
         animateOpen()
     }

@@ -6,15 +6,18 @@ import android.content.Intent
 import android.graphics.Rect
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.compositionContext
 import androidx.core.view.children
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.findViewTreeLifecycleOwner
@@ -108,20 +111,52 @@ internal fun prepareQsbWindowOwners(view: View): Boolean {
 
     val preparedLifecycleState =
         contentChild.findViewTreeLifecycleOwner()?.lifecycle?.currentState
-    return preparedLifecycleState != null &&
+    val prepared = preparedLifecycleState != null &&
         preparedLifecycleState != Lifecycle.State.DESTROYED &&
         contentChild.findViewTreeSavedStateRegistryOwner() != null
+    // The caller creates its composition next; it must not join a Recomposer that never runs.
+    if (prepared) dropStaleWindowRecomposer(contentChild)
+    return prepared
 }
+
+/**
+ * Shuts down this window's cached Recomposer if it can never run, so the next composition gets a
+ * fresh one for the window's live lifecycle. Returns whether it did.
+ *
+ * Compose caches one Recomposer per window on the content child and binds it to the
+ * ViewTreeLifecycleOwner it finds when the first composition is created. Bound to a live
+ * lifecycle, it starts as soon as that lifecycle is CREATED. One that is still Inactive while the
+ * window's lifecycle is at least CREATED was bound to a lifecycle that is gone: a relaunch that
+ * kept the window, while the decor still named the destroyed instance (D01). Nothing it hosts
+ * recomposes (L03), and any animation reading its MotionDurationScale throws.
+ */
+internal fun dropStaleWindowRecomposer(view: View): Boolean {
+    val contentChild = findQsbWindowContentChild(view)
+    val recomposer = contentChild.compositionContext as? Recomposer ?: return false
+    if (recomposer.currentState.value != Recomposer.State.Inactive) return false
+    val lifecycle = contentChild.findViewTreeLifecycleOwner()?.lifecycle ?: return false
+    if (!lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) return false
+    contentChild.compositionContext = null
+    recomposer.cancel()
+    Log.w(TAG, "Dropped a window Recomposer bound to a destroyed lifecycle")
+    return true
+}
+
+private const val TAG = "LawnQsbLayout"
 
 /**
  * A Compose host that never creates its composition merely because it was attached.
  *
  * Launcher can attach the hotseat to Activity, taskbar, and preview windows before those hosts
  * publish their view-tree owners. ComposeView normally creates a window recomposer from
- * onAttachedToWindow(), which makes that short ordering gap fatal. LawnQsbLayout explicitly creates
- * this view's composition only after the real host owners are available.
+ * onAttachedToWindow(), which makes that short ordering gap fatal. LawnQsbLayout and
+ * AllAppsSearchInput explicitly create this view's composition only after the real host owners
+ * are available (or when it is first measured).
  */
-private class OwnerDeferredComposeView(context: Context) : AbstractComposeView(context) {
+internal class OwnerDeferredComposeView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+) : AbstractComposeView(context, attrs) {
 
     private var deferredContent: (@Composable () -> Unit)? = null
 
@@ -179,14 +214,18 @@ class LawnQsbLayout(context: Context, attrs: AttributeSet?) : FrameLayout(contex
         true
     }
 
+    // Use this view's own observer, which is attached in both onAttachedToWindow and
+    // onDetachedFromWindow. The child's observer is a detached stand-in at both points: a
+    // listener added through it joins the window's observer but can't be removed through it
+    // again, and an in-process relaunch keeps that window (L01).
     private fun scheduleCompositionAfterAttach() {
         removeCompositionPreDrawListener()
-        composeView.viewTreeObserver.addOnPreDrawListener(createCompositionAfterAttach)
+        viewTreeObserver.addOnPreDrawListener(createCompositionAfterAttach)
         composeView.postInvalidateOnAnimation()
     }
 
     private fun removeCompositionPreDrawListener() {
-        val observer = composeView.viewTreeObserver
+        val observer = viewTreeObserver
         if (observer.isAlive) {
             observer.removeOnPreDrawListener(createCompositionAfterAttach)
         }

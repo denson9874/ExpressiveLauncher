@@ -34,6 +34,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.View;
+import android.view.ViewGroup;
 import android.window.OnBackInvokedDispatcher;
 
 import androidx.activity.ComponentActivity;
@@ -256,6 +257,34 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    // Lawnchair: publish this instance's view-tree owners on the decor before any content
+    // attaches, as ComponentActivity.initializeViewTreeOwners does. After an in-process relaunch
+    // the kept decor is already attached, so content set in onCreate attaches immediately and
+    // must not find the destroyed instance's owners (D01/L03).
+    @Override
+    public void setContentView(int layoutResID) {
+        mLifecycleHelper.setViewTreeOwners(getWindow().getDecorView());
+        super.setContentView(layoutResID);
+    }
+
+    @Override
+    public void setContentView(View view) {
+        mLifecycleHelper.setViewTreeOwners(getWindow().getDecorView());
+        super.setContentView(view);
+    }
+
+    @Override
+    public void setContentView(View view, ViewGroup.LayoutParams params) {
+        mLifecycleHelper.setViewTreeOwners(getWindow().getDecorView());
+        super.setContentView(view, params);
+    }
+
+    @Override
+    public void addContentView(View view, ViewGroup.LayoutParams params) {
+        mLifecycleHelper.setViewTreeOwners(getWindow().getDecorView());
+        super.addContentView(view, params);
     }
 
     @Override

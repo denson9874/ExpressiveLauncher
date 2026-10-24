@@ -23,7 +23,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.ViewCompat
 import androidx.core.view.isGone
@@ -44,6 +43,7 @@ import app.lawnchair.qsb.LawnQsbLayout.Companion.getLensIntent
 import app.lawnchair.qsb.LawnQsbLayout.Companion.getSearchProvider
 import app.lawnchair.qsb.LawnQsbLayout.Companion.getVoiceIntent
 import app.lawnchair.qsb.LawnQsbUi
+import app.lawnchair.qsb.OwnerDeferredComposeView
 import app.lawnchair.qsb.QsbActions
 import app.lawnchair.qsb.QsbIconId
 import app.lawnchair.qsb.buildQsbStyle
@@ -96,7 +96,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     private lateinit var hint: TextView
     private lateinit var input: FallbackSearchInputView
-    private lateinit var qsbShell: ComposeView
+    private lateinit var qsbShell: OwnerDeferredComposeView
 
     private val qsbMarginTopAdjusting = resources.getDimensionPixelSize(R.dimen.qsb_margin_top_adjusting)
     private val allAppsSearchVerticalOffset = resources.getDimensionPixelSize(R.dimen.all_apps_search_vertical_offset)
@@ -170,16 +170,20 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         true
     }
 
+    // Window listeners go through this view's own observer: it is attached in both
+    // onAttachedToWindow and onDetachedFromWindow. A child's observer is a detached stand-in at
+    // both points, so a listener added through it joins the window's observer but can never be
+    // removed through it again. An in-process relaunch keeps that window, and with it every
+    // stranded listener and the destroyed Launcher it holds (L01).
     private fun scheduleQsbCompositionRecreation() {
         if (!::qsbShell.isInitialized || hideSearchBar) return
         removeQsbCompositionPreDrawListener()
-        qsbShell.viewTreeObserver.addOnPreDrawListener(recreateQsbCompositionOnPreDraw)
+        viewTreeObserver.addOnPreDrawListener(recreateQsbCompositionOnPreDraw)
         qsbShell.postInvalidateOnAnimation()
     }
 
     private fun removeQsbCompositionPreDrawListener() {
-        if (!::qsbShell.isInitialized) return
-        val observer = qsbShell.viewTreeObserver
+        val observer = viewTreeObserver
         if (observer.isAlive) {
             observer.removeOnPreDrawListener(recreateQsbCompositionOnPreDraw)
         }
@@ -200,7 +204,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         qsbShell.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
 
-            setContent {
+            // Composed from the pre-draw retry (or the first measure) once this window's live
+            // owners are published, never merely because Launcher attached the tree in onCreate.
+            setDeferredContent {
                 val searchProviderPref by prefs2.hotseatQsbProvider.asState()
                 val searchProvider = remember(searchProviderPref, context) {
                     getSearchProvider(context, searchProviderPref)
@@ -461,7 +467,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         if (::appsView.isInitialized) {
             appsView.appsStore?.addUpdateListener(this)
         }
-        input.viewTreeObserver.addOnGlobalLayoutListener(this)
+        viewTreeObserver.addOnGlobalLayoutListener(this)
 
         // Pre-draw retries until both Compose-required owners belong to the final attached tree.
         scheduleQsbCompositionRecreation()
@@ -474,7 +480,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         if (::appsView.isInitialized) {
             appsView.appsStore?.removeUpdateListener(this)
         }
-        input.viewTreeObserver.removeOnGlobalLayoutListener(this)
+        viewTreeObserver.removeOnGlobalLayoutListener(this)
         setDirectFocus(false)
     }
 
