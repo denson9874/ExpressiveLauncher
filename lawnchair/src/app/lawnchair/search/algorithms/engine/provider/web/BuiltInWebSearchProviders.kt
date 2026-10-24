@@ -5,6 +5,7 @@ import android.util.Log
 import app.lawnchair.util.kotlinxJson
 import com.android.launcher3.R
 import java.lang.reflect.Type
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -13,7 +14,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.ResponseBody
 import org.json.JSONArray
 import retrofit2.Converter
@@ -22,6 +26,26 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
+
+/**
+ * The HTTP transport shared by the built-in web suggestion providers.
+ *
+ * Each provider passes the raw query to Retrofit's @Query, which percent-encodes it exactly once.
+ * Uri.encode belongs only where a URL string is built by hand, as in getSearchUrl.
+ */
+internal object WebSuggestionHttp {
+
+    /** Lets unit tests inspect the exact request each provider issues; never set in production. */
+    @androidx.annotation.VisibleForTesting
+    @Volatile
+    var transportForTests: Call.Factory? = null
+
+    private val client: OkHttpClient by lazy { OkHttpClient() }
+
+    val callFactory: Call.Factory = object : Call.Factory {
+        override fun newCall(request: Request): Call = (transportForTests ?: client).newCall(request)
+    }
+}
 
 /**
  * Provides web search suggestions from Google.
@@ -37,6 +61,7 @@ object GoogleWebSearchProvider : WebSearchProvider {
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://www.google.com/")
+            .callFactory(WebSuggestionHttp.callFactory)
             // Note: We use a custom string converter because Google's response is not valid JSON.
             .addConverterFactory(StringConverterFactory.create())
             .build()
@@ -64,8 +89,8 @@ object GoogleWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit encodes @Query values itself: pass the raw query.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -75,6 +100,9 @@ object GoogleWebSearchProvider : WebSearchProvider {
                 Log.w(TAG, "Failed to retrieve suggestions: ${response.code()}")
                 emit(emptyList())
             }
+        } catch (e: CancellationException) {
+            // A newer keystroke or the suggestion timeout cancelled this fetch; that is not an error.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error during suggestion retrieval", e)
             emit(emptyList())
@@ -120,6 +148,7 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://ac.duckduckgo.com/")
+            .callFactory(WebSuggestionHttp.callFactory)
             .addConverterFactory(kotlinxJson.asConverterFactory("application/json".toMediaType()))
             .build()
     }
@@ -148,9 +177,8 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            // 2. Call the Retrofit service.
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // 2. Call the Retrofit service. Retrofit encodes @Query values itself: pass the raw query.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body()?.string() ?: ""
@@ -160,6 +188,9 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
                 Log.w(TAG, "Failed to retrieve suggestions: ${response.code()}")
                 emit(emptyList())
             }
+        } catch (e: CancellationException) {
+            // A newer keystroke or the suggestion timeout cancelled this fetch; that is not an error.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error during suggestion retrieval", e)
             emit(emptyList())
@@ -203,6 +234,7 @@ object StartPageWebSearchProvider : WebSearchProvider {
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://www.startpage.com/")
+            .callFactory(WebSuggestionHttp.callFactory)
             .addConverterFactory(StringConverterFactory.create()) // StartPage also returns non-standard JSON
             .build()
     }
@@ -231,8 +263,8 @@ object StartPageWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit encodes @Query values itself: pass the raw query.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -242,6 +274,9 @@ object StartPageWebSearchProvider : WebSearchProvider {
                 Log.w(TAG, "Failed to retrieve suggestions: ${response.code()}")
                 emit(emptyList())
             }
+        } catch (e: CancellationException) {
+            // A newer keystroke or the suggestion timeout cancelled this fetch; that is not an error.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error during suggestion retrieval", e)
             emit(emptyList())
@@ -286,6 +321,7 @@ object StartPageEUWebSearchProvider : WebSearchProvider {
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://eu.startpage.com/")
+            .callFactory(WebSuggestionHttp.callFactory)
             .addConverterFactory(StringConverterFactory.create())
             .build()
     }
@@ -311,8 +347,8 @@ object StartPageEUWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit encodes @Query values itself: pass the raw query.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -322,6 +358,9 @@ object StartPageEUWebSearchProvider : WebSearchProvider {
                 Log.w(TAG, "Failed to retrieve EU suggestions: ${response.code()}")
                 emit(emptyList())
             }
+        } catch (e: CancellationException) {
+            // A newer keystroke or the suggestion timeout cancelled this fetch; that is not an error.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error during EU suggestion retrieval", e)
             emit(emptyList())
@@ -351,6 +390,7 @@ object KagiWebSearchProvider : WebSearchProvider {
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://kagi.com/")
+            .callFactory(WebSuggestionHttp.callFactory)
             // Kagi uses a simple JSON array, but we'll use the string converter for consistency
             // in case their API ever wraps the response.
             .addConverterFactory(StringConverterFactory.create())
@@ -378,8 +418,8 @@ object KagiWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit encodes @Query values itself: pass the raw query.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -389,6 +429,9 @@ object KagiWebSearchProvider : WebSearchProvider {
                 Log.w(TAG, "Failed to retrieve suggestions: ${response.code()}")
                 emit(emptyList())
             }
+        } catch (e: CancellationException) {
+            // A newer keystroke or the suggestion timeout cancelled this fetch; that is not an error.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error during suggestion retrieval", e)
             emit(emptyList())

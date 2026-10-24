@@ -6,6 +6,7 @@ import android.util.Log
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
 import com.android.launcher3.R
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -61,8 +62,7 @@ object CustomWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val url = suggestionsUrlTemplate.replace("%s", encodedQuery)
+            val url = fillUrlTemplate(suggestionsUrlTemplate, query)
 
             val request = Request.Builder().url(url).build()
             okHttpClient.newCall(request).execute().use { response ->
@@ -76,6 +76,9 @@ object CustomWebSearchProvider : WebSearchProvider {
                     emit(emptyList())
                 }
             }
+        } catch (e: CancellationException) {
+            // A newer keystroke or the suggestion timeout cancelled this fetch; that is not an error.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error during suggestion retrieval", e)
             emit(emptyList())
@@ -87,9 +90,14 @@ object CustomWebSearchProvider : WebSearchProvider {
             // Fallback to a default search engine if the user's template is invalid.
             return GoogleWebSearchProvider.getSearchUrl(query)
         }
-        val encodedQuery = Uri.encode(query)
-        return searchUrlTemplate.replace("%s", encodedQuery)
+        return fillUrlTemplate(searchUrlTemplate, query)
     }
+
+    /**
+     * Puts [query] into a user URL template at `%s`. The URL is built by hand, so the query is
+     * encoded here, exactly once; OkHttp keeps the existing escapes when it parses the result.
+     */
+    internal fun fillUrlTemplate(template: String, query: String): String = template.replace("%s", Uri.encode(query))
 
     private fun parseOpenSearchResponse(responseBody: String): List<String> {
         return try {
