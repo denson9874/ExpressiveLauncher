@@ -1,0 +1,97 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.0.3 (Build 65) — Back on Track[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+5.0.3 gets Home back on its feet after a restore on Android 12-14, and makes three settings finally do what they say: the Back button gesture, Top shadow and Solid status bar. Back works on Home on Android 12 again, and older-style shortcuts can no longer take Home down.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. 🔁 Android 12-14: Home no longer crash-loops after a restore[/B][/SIZE]
+[LIST]
+[*][B]The bug[/B]: After Android restored Expressive's data, for example while setting up a new phone, after a reinstall, or with a phone-clone tool, Home crashed on every launch on Android 12, 13 and 14. It kept crashing until you cleared the app's data. Android 15 and later weren't affected.
+[*][B]The fix[/B]: On its first start after a restore, Home sends app stores a note about the apps on your first screen. On Android 12-14 that note was built from information only Android 15+ provides. Home now sends the version those Android releases expect, and that note can never stop Home from loading again.
+[*][B]Already stuck in the loop?[/B] Install 5.0.3 from GitHub or Obtainium over the current version. You don't need to clear data: your layout loads on the next start.
+
+[/LIST]
+[SIZE=5][B]2. ↩️ The Back button gesture works[/B][/SIZE]
+[LIST]
+[*][B]Settings → Gestures → Back button[/B] let you pick an action for Back on Home, but the action never ran. Now pressing Back on Home runs your action, once per press: the Back button in 3-button navigation (on the navigation bar or the taskbar) or a hardware Back key. Open folders, menus and sheets still close first, the app drawer still goes back to Home, and [B]Do nothing[/B] still means nothing.
+[*][B]Android 12[/B]: Back on Home did nothing at all: an open folder or the app drawer stayed open until you tapped away. Back closes them again.
+[*][B]Not covered yet[/B]: with gesture navigation, a back swipe on Home doesn't run the action. Like Pixel's own launcher, Home doesn't treat an edge swipe as Back, so for now the action runs only from the Back button or a Back key.
+
+[/LIST]
+[SIZE=5][B]3. 🌗 Top shadow and Solid status bar show up right away[/B][/SIZE]
+[LIST]
+[*][B]The bug[/B]: Whenever Home started (after a restart, an update or a setting that restarts Home), [B]Top shadow[/B] and [B]Solid status bar background[/B] stayed invisible. They appeared only after you opened the app drawer, came back from an app or turned the screen off and on, so they looked broken.
+[*][B]The fix[/B]: Both now draw from the moment Home starts. Turning Solid status bar background on or off updates the bar straight away, and the gentle fade-in when the screen turns on is kept.
+
+[/LIST]
+[SIZE=5][B]4. 📁 Older-style shortcuts can't take Home down[/B][/SIZE]
+[LIST]
+[*]These are shortcuts imported from another launcher or made by older apps, such as a direct-dial contact.
+[*][B]Folder widgets[/B]: dropping one on a Folder widget crashed Home. A Folder widget now takes exactly what a normal folder takes: apps and app shortcuts. Anything else is placed on Home next to it.
+[*][B]Long-press[/B]: long-pressing one that doesn't belong to a specific app crashed Home. Its menu now opens with [B]Remove[/B] and [B]Customize[/B] as it should.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]↩️ [I]The Back button gesture spent a whole release cycle waiting for a call that never came. We've finally given it the right number.[/I]
+
+🌗 [I]Top shadow was so shy it only came out after you opened the drawer. It's had a pep talk and now shows up for work on time.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]Thank you[/B] to the reporter of [URL="https://github.com/denson9874/ExpressiveLauncher/issues/15"]#15[/URL] for the crash log that pinned down the restore crash.
+[*][B]Still being worked on[/B] (see the 5.0.0 release notes for workarounds):
+[*]Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
+[*]The headphone battery card in At a Glance doesn't appear yet.
+[*]Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
+[*]The first setting you change after Home starts can restart Home a few times.
+[*][B]Validation[/B]: 616 automated tests pass. The fixes were checked on Android 17 (QPR2) emulators, with and without Pro, and on an Android 12 emulator where the restore crash loop was reproduced on 5.0.2 and cleared by updating to 5.0.3 with the layout intact. 21,000 random monkey events ran with no crashes. Physical-device reports are very welcome.
+[*][B]Developer Support[/B]: Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I'm pressed a thousand times a day, yet on Home I used to ignore the job you gave me. Since 5.0.3 I finally do what you asked. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]The Back button![/B] It's been waiting for its moment on Home for a long time. ↩️[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.0.3[/ICODE] (Build [ICODE]65[/ICODE])
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[*][B]Announcements Channel[/B]: [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.0.3-65"]Download Expressive Launcher v5.0.3 (Build 65)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
