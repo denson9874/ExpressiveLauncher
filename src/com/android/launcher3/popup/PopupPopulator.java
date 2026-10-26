@@ -117,6 +117,14 @@ public class PopupPopulator {
         final ComponentName activity = originalInfo.getTargetComponent();
         final UserHandle user = originalInfo.user;
         final String targetPackage = originalInfo.getTargetPackage();
+        // Lawnchair: a legacy shortcut (ITEM_TYPE_SHORTCUT) whose intent has no package and no
+        // component, such as a Contacts direct-dial shortcut or one imported from another
+        // launcher, has no app to query: ShortcutRequest.withContainer(null) fails the query and
+        // the popup has no deep shortcut rows. Skip the update instead of building an
+        // ApplicationInfoWrapper with a null package, which crashed Home on the model thread.
+        if (activity == null || targetPackage == null) {
+            return () -> { };
+        }
         return () -> {
             ApplicationInfoWrapper infoWrapper =
                     new ApplicationInfoWrapper(context, targetPackage, user);
