@@ -34,6 +34,9 @@ TELEGRAM_NOT_CONFIGURED_EXIT = 3
 XDA_SCRIPT = ROOT / "scripts/format_xda.py"
 VERIFY_PLAY_PROTECT_SCRIPT = ROOT / "scripts/verify_developer_play_protect.py"
 XDA_THREAD_URL = "https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/"
+# The build job compiles, unit-tests and smoke-tests both Full and Core on an emulator, which can
+# take well over 15 minutes; publish jobs finish in about a minute.
+JENKINS_BUILD_WAIT_SECONDS = 3 * 60 * 60
 
 
 def get_current_commit() -> str:
@@ -264,7 +267,9 @@ def main():
         ]
         run_cmd(trigger_cmd)
         time.sleep(3)
-        build_data = wait_for_jenkins_job("build", min_build_number=prev_build_num + 1)
+        build_data = wait_for_jenkins_job(
+            "build", min_build_number=prev_build_num + 1, max_wait_seconds=JENKINS_BUILD_WAIT_SECONDS
+        )
         build_number = build_data["number"]
         release_id = f"qa-{version_name}-{version_code}-build-{build_number}"
         print(f"\n[SUCCESS] Jenkins build #{build_number} succeeded! Release ID: {release_id}")
