@@ -1,0 +1,6 @@
+Expressive Launcher 5.0.3
+• Android 12-14: Home no longer crash-loops after Android restores its data
+• The Back button gesture action now runs when you press Back on Home
+• Back closes folders and the app drawer again on Android 12
+• Top shadow and Solid status bar show as soon as Home starts
+• Older-style shortcuts no longer crash Home when long-pressed or dropped on a Folder widget
