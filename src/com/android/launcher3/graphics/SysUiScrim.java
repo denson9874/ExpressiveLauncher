@@ -104,7 +104,11 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
     private boolean mSkipScrimAnimationForTest = false;
 
     private boolean mAnimateScrimOnNextDraw = false;
-    private final AnimatedFloat mSysUiAnimMultiplier = new AnimatedFloat(this::reapplySysUiAlpha);
+    // Lawnchair: start the multiplier at full strength (D13). At 0, progress x multiplier stayed 0
+    // after every launcher start until a drawer swipe or the screen-on fade set it to 1, so the Top
+    // shadow and Solid status bar were invisible. The screen-on fade still starts from 0 in draw().
+    private final AnimatedFloat mSysUiAnimMultiplier =
+            new AnimatedFloat(this::reapplySysUiAlpha, 1f);
     private final AnimatedFloat mSysUiProgress = new AnimatedFloat(this::reapplySysUiAlpha);
 
     public SysUiScrim(View view) {
@@ -144,8 +148,7 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
                 preferenceManager2.getSolidStatusBarBackground(),
                 ViewExtensionsKt.getViewAttachedScope(mRoot),
                 (solid) -> {
-                    mSolidStatusBar = solid;
-                    mRoot.invalidate();
+                    setSolidStatusBar(solid);
                     return null;
                 });
         PreferenceExtensionsKt.onEach(
@@ -156,6 +159,8 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
                     mRoot.invalidate();
                     return null;
                 });
+        // Lawnchair: the paints start at the scrim's real strength, not Paint's default (D13).
+        reapplySysUiAlphaNoInvalidate();
     }
 
     /**
@@ -225,6 +230,11 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
     @Override
     public void onViewAttachedToWindow(View view) {
         ScreenOnTracker.INSTANCE.get(mContainer.asContext()).addListener(mScreenOnListener);
+        // Lawnchair: an attached scrim draws at full strength unless the screen-on fade is pending
+        // or an animation (screen-on fade, workspace reveal) is already driving the multiplier (D13).
+        if (!mAnimateScrimOnNextDraw && !mSysUiAnimMultiplier.isAnimating()) {
+            mSysUiAnimMultiplier.updateValue(1f);
+        }
     }
 
     @Override
@@ -248,6 +258,29 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
     public void skipScrimAnimation() {
         mSkipScrimAnimationForTest = true;
         reapplySysUiAlpha();
+    }
+
+    /**
+     * Lawnchair: applies the Solid status bar setting. The alpha is re-applied with it, so the bar
+     * draws at the scrim's current strength as soon as it is turned on (D13).
+     */
+    @VisibleForTesting
+    public void setSolidStatusBar(boolean solid) {
+        mSolidStatusBar = solid;
+        reapplySysUiAlphaNoInvalidate();
+        mRoot.invalidate();
+    }
+
+    /** Lawnchair: the alpha the Top shadow (and the bottom scrim) is drawn with. */
+    @VisibleForTesting
+    public int getScrimAlpha() {
+        return mTopMaskPaint.getAlpha();
+    }
+
+    /** Lawnchair: the alpha the Solid status bar is drawn with. */
+    @VisibleForTesting
+    public int getSolidStatusBarAlpha() {
+        return mSolidStatusBarPaint.getAlpha();
     }
 
     private void reapplySysUiAlpha() {
