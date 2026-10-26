@@ -130,12 +130,24 @@ public abstract class LauncherState implements BaseState<LauncherState> {
             return 0;
         }
 
+        // Lawnchair: Back on Home runs the Back-button gesture action (L04). Every Back path
+        // (predictive back, the 3-button Back key, Launcher#onBackPressed on every API level)
+        // reaches the state through onBackInvoked, and only after auto-cancel action mode, a
+        // drag, the top open floating view and any registered BackPressHandler declined it, so
+        // folders, sheets and popups still close first. Split selection staged on Home cancels
+        // through its handler, which then calls onStateBack(): that Back is the split's alone.
+        // StateManager reports NORMAL as soon as a transition to Home starts (All Apps or
+        // Overview closing, a swipe home from an app), so a Back that lands before Home has
+        // settled belongs to that transition and runs nothing.
+        // GestureController skips "Do nothing".
         @Override
-        public void onBackPressed(Launcher launcher) {
-            if (launcher instanceof LawnchairLauncher) {
+        public void onBackInvoked(Launcher launcher) {
+            if (launcher instanceof LawnchairLauncher
+                    && launcher.getStateManager().isInStableState(this)
+                    && !launcher.isSplitSelectionActive()) {
                 ((LawnchairLauncher) launcher).getGestureController().onBackPressed();
             }
-            super.onBackPressed(launcher);
+            super.onBackInvoked(launcher);
         }
     };
 
@@ -489,14 +501,6 @@ public abstract class LauncherState implements BaseState<LauncherState> {
      */
     protected void onBackAnimationCompleted(boolean success) {
         // Do nothing. To be overridden by child class.
-    }
-
-    public void onBackPressed(Launcher launcher) {
-        if (this != NORMAL) {
-            StateManager<LauncherState, Launcher> lsm = launcher.getStateManager();
-            LauncherState lastState = lsm.getLastState();
-            lsm.goToState(lastState);
-        }
     }
 
     /**

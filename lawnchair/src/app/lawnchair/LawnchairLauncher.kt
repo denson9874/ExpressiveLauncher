@@ -146,7 +146,6 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     private lateinit var colorScheme: ColorScheme
-    private var hasBackGesture = false
 
     val gestureController by unsafeLazy { GestureController(this) }
 
@@ -228,9 +227,6 @@ class LawnchairLauncher : QuickstepLauncher() {
         }.distinctUntilChanged().onEach { darkIcons ->
             systemUiController?.updateUiState(UI_STATE_BASE_WINDOW, darkIcons)
         }.launchIn(lifecycleScope)
-        preferenceManager2.backPressGestureHandler.onEach(launchIn = lifecycleScope) { handler ->
-            hasBackGesture = handler !is GestureHandlerConfig.NoOp
-        }
 
         LauncherOptionsPopup.restoreMissingPopupOptions(launcher)
         LauncherOptionsPopup.migrateLegacyPreferences(launcher)

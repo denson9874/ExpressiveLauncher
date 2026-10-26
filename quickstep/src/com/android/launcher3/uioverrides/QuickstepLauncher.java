@@ -1047,12 +1047,18 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
         // event won't go through ViewRootImpl#InputStage#onProcess.
         // So when receive back key, try to do the same check thing in
         // ViewRootImpl#NativePreImeInputStage#onProcess
-        if (event.getKeyCode() != KeyEvent.KEYCODE_BACK
+        // Lawnchair: below Android 14 leave the Back key to Activity#onKeyUp, which calls
+        // onBackPressed() (Android 12; Android 13 takes Back through the callback that
+        // registerBackDispatcher registers before the key reaches here). Consuming it without
+        // acting made Back do nothing on Home on Android 12: folders and All Apps stayed open
+        // and the Back-button action never ran (L04).
+        if (!Utilities.ATLEAST_U
+                || event.getKeyCode() != KeyEvent.KEYCODE_BACK
                 || event.getAction() != KeyEvent.ACTION_UP || event.isCanceled()) {
             return false;
         }
 
-        if (Utilities.ATLEAST_U) getOnBackAnimationCallback().onBackInvoked();
+        getOnBackAnimationCallback().onBackInvoked();
         return true;
     }
 
