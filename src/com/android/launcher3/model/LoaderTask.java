@@ -228,6 +228,20 @@ public class LoaderTask implements Runnable {
     }
 
     private void sendFirstScreenActiveInstallsBroadcast() {
+        // Lawnchair: The broadcast only informs installers. A failure here must not abort the
+        // load: the transaction would never commit and IS_FIRST_LOAD_AFTER_RESTORE would stay
+        // true, so the same failure would repeat on every launch (issue #15).
+        try {
+            sendFirstScreenActiveInstallsBroadcastUnchecked();
+        } catch (CancellationException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            FileLog.e(TAG, "sendFirstScreenActiveInstallsBroadcast failed, continuing the load", e);
+        }
+    }
+
+    // Lawnchair: Upstream body of sendFirstScreenActiveInstallsBroadcast, guarded above.
+    private void sendFirstScreenActiveInstallsBroadcastUnchecked() {
         // Screen set is never empty
         IntArray allScreens = mBgDataModel.itemsIdMap.collectWorkspaceScreens(mContext);
         final int firstScreen = allScreens.get(0);
@@ -241,9 +255,14 @@ public class LoaderTask implements Runnable {
                 mContext.getContentResolver(),
                 "disable_launcher_broadcast_installed_apps",
                 /* default */ 0);
-        boolean shouldAttachArchivingExtras = mIsRestoreFromBackup
-                && disableArchivingLauncherBroadcast == 0
-                && Flags.enableFirstScreenBroadcastArchivingExtras();
+        // Lawnchair: Decision moved to shouldAttachArchivingExtras, which also requires Android
+        // 15+ and the session map cached by loadWorkspaceImpl.
+        boolean shouldAttachArchivingExtras = shouldAttachArchivingExtras(
+                mIsRestoreFromBackup,
+                disableArchivingLauncherBroadcast,
+                Flags.enableFirstScreenBroadcastArchivingExtras(),
+                Utilities.ATLEAST_V,
+                mInstallingPkgsCached);
         if (shouldAttachArchivingExtras) {
             List<FirstScreenBroadcastModel> broadcastModels =
                     FirstScreenBroadcastHelper.createModelsForFirstScreenBroadcast(
@@ -258,6 +277,25 @@ public class LoaderTask implements Runnable {
             logASplit("Sending first screen broadcast");
             mFirstScreenBroadcast.sendBroadcasts(mContext, firstScreenItems);
         }
+    }
+
+    /**
+     * Lawnchair: Whether the first-screen broadcast after a restore carries the archiving extras.
+     * They are built from the active-session map that loadWorkspaceImpl caches only on Android 15+,
+     * where archived apps exist. Upstream only runs on the newest platform; this fork also runs on
+     * Android 12-14, where the map is null and FirstScreenBroadcastHelper threw on every launch
+     * (issue #15). Without the map the legacy FirstScreenBroadcast, which holds its own copy of the
+     * sessions, is sent instead.
+     */
+    @VisibleForTesting
+    static boolean shouldAttachArchivingExtras(boolean isRestoreFromBackup,
+            int disableArchivingLauncherBroadcast, boolean archivingExtrasEnabled,
+            boolean atLeastV, @Nullable Map<PackageUserKey, SessionInfo> cachedSessions) {
+        return isRestoreFromBackup
+                && disableArchivingLauncherBroadcast == 0
+                && archivingExtrasEnabled
+                && atLeastV
+                && cachedSessions != null;
     }
 
     private void loadAllSurfacesOrdered(
