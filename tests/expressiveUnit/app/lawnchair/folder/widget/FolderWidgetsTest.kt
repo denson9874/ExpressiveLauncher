@@ -5,10 +5,12 @@ import android.content.ContentValues
 import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import com.android.launcher3.LauncherSettings.Favorites
+import com.android.launcher3.model.data.AppPairInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.google.common.truth.Truth.assertThat
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -80,13 +82,47 @@ class FolderWidgetsTest {
         assertThat(FolderWidgets.canDissolve(folder())).isTrue()
     }
 
-    @Test fun acceptsDrop_appsAndShortcutsOnly() {
+    @Test fun acceptsDrop_appsAndDeepShortcutsOnly() {
         fun item(type: Int) = WorkspaceItemInfo().apply { itemType = type }
         assertThat(FolderWidgets.acceptsDrop(item(Favorites.ITEM_TYPE_APPLICATION))).isTrue()
         assertThat(FolderWidgets.acceptsDrop(item(Favorites.ITEM_TYPE_DEEP_SHORTCUT))).isTrue()
-        assertThat(FolderWidgets.acceptsDrop(item(Favorites.ITEM_TYPE_SHORTCUT))).isTrue()
+        // R16: a legacy shortcut (a Nova import, a legacy CREATE_SHORTCUT result) crashed Home.
+        assertThat(FolderWidgets.acceptsDrop(item(Favorites.ITEM_TYPE_SHORTCUT))).isFalse()
         assertThat(FolderWidgets.acceptsDrop(FolderInfo())).isFalse()
+        assertThat(FolderWidgets.acceptsDrop(folder(FolderInfo.FLAG_FOLDER_WIDGET))).isFalse()
+        // A folder is refused whatever its item type says.
+        assertThat(FolderWidgets.acceptsDrop(FolderInfo().apply { itemType = Favorites.ITEM_TYPE_APPLICATION }))
+            .isFalse()
+        // App pairs stay out until the widget grid sizes them like its apps.
+        assertThat(FolderWidgets.acceptsDrop(AppPairInfo())).isFalse()
         assertThat(FolderWidgets.acceptsDrop(LauncherAppWidgetInfo())).isFalse()
+    }
+
+    @Test fun acceptsDrop_neverTakesWhatAFolderThrowsOn() {
+        // FolderInfo.add runs the same check that Folder.addFolderContent throws on.
+        val types = listOf(
+            Favorites.ITEM_TYPE_NON_ACTIONABLE,
+            Favorites.ITEM_TYPE_APPLICATION,
+            Favorites.ITEM_TYPE_SHORTCUT,
+            Favorites.ITEM_TYPE_FOLDER,
+            Favorites.ITEM_TYPE_APPWIDGET,
+            Favorites.ITEM_TYPE_CUSTOM_APPWIDGET,
+            Favorites.ITEM_TYPE_DEEP_SHORTCUT,
+            Favorites.ITEM_TYPE_TASK,
+            Favorites.ITEM_TYPE_QSB,
+            Favorites.ITEM_TYPE_SEARCH_ACTION,
+            Favorites.ITEM_TYPE_APP_PAIR,
+            Favorites.ITEM_TYPE_PRIVATE_SPACE_INSTALL_APP_BUTTON,
+        )
+        val accepted = types.filter { type ->
+            val item = WorkspaceItemInfo().apply { itemType = type }
+            FolderWidgets.acceptsDrop(item).also { accepts ->
+                if (accepts) folder(FolderInfo.FLAG_FOLDER_WIDGET).add(item)
+            }
+        }
+        assertThat(accepted).containsExactly(Favorites.ITEM_TYPE_APPLICATION, Favorites.ITEM_TYPE_DEEP_SHORTCUT)
+        val legacy = WorkspaceItemInfo().apply { itemType = Favorites.ITEM_TYPE_SHORTCUT }
+        assertThrows(RuntimeException::class.java) { folder(FolderInfo.FLAG_FOLDER_WIDGET).add(legacy) }
     }
 
     @Test fun emptyFolderCleanup_skipsFolderWidgets() {

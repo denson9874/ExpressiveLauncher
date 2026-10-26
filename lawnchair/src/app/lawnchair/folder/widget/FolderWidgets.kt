@@ -39,14 +39,18 @@ object FolderWidgets {
     @JvmStatic
     fun canDissolve(info: FolderInfo): Boolean = !isFolderWidget(info)
 
+    /**
+     * What a Folder widget takes when an item is dropped on it: only what a normal folder takes
+     * ([FolderInfo.willAcceptItemType]; Folder.addFolderContent throws on anything else). Legacy
+     * shortcuts ([Favorites.ITEM_TYPE_SHORTCUT], e.g. from a Nova import) and folders are refused
+     * and land on Home, as over a normal folder. App pairs are refused on purpose for now: the
+     * widget grid draws them at the folder icon size, ignoring its own icon size, scale and labels.
+     */
     @JvmStatic
-    fun acceptsDrop(item: ItemInfo): Boolean = when (item.itemType) {
-        Favorites.ITEM_TYPE_APPLICATION,
-        Favorites.ITEM_TYPE_SHORTCUT,
-        Favorites.ITEM_TYPE_DEEP_SHORTCUT,
-        -> true
-        else -> false
-    }
+    fun acceptsDrop(item: ItemInfo): Boolean =
+        item !is FolderInfo &&
+            item.itemType != Favorites.ITEM_TYPE_APP_PAIR &&
+            FolderInfo.willAcceptItemType(item.itemType)
 
     /** Whether [item] (this very object) is already one of the folder's apps. */
     @JvmStatic
