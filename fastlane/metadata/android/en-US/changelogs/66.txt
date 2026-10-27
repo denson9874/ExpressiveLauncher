@@ -1,0 +1,5 @@
+Expressive Launcher 5.0.4
+• Gesture navigation: a back swipe on Home runs your Back button action
+• Shortcuts added from the widget picker no longer vanish when dropped on a folder, Folder widget or app
+• Dropping one into an open folder no longer crashes Home
+• Taskbar: older-style shortcuts no longer offer a split screen that crashed Home
