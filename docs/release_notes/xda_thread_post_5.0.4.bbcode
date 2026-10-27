@@ -45,21 +45,22 @@
 
 [LIST]
 [*][B]Still being worked on[/B] (see the 5.0.0 release notes for workarounds):
+[LIST]
 [*]Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
 [*]The headphone battery card in At a Glance doesn't appear yet.
 [*]Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
 [*]The first setting you change after Home starts can restart Home a few times.
+[/LIST]
 [*][B]Validation[/B]: 632 automated tests pass. Checked on Android 17 (QPR2) emulators:
+[LIST]
 [*][B]Back swipe[/B] (with Pro): both edges, cancelled swipes, folders and the app drawer, and after Home restarts.
 [*][B]Widget-picker shortcuts[/B]: every case was first reproduced on the previous build (three vanished, one crashed Home), then checked on 5.0.4, along with folders that should still take a shortcut and a full page. Random monkey runs on 5.0.4 found no crashes.
 [*][B]Taskbar fix[/B]: covered by automated tests only, because it needs Expressive set up as the recents provider.
-
 [/LIST]
-  Physical-device reports are very welcome.
-[LIST]
+Physical-device reports are very welcome.
 [*][B]Developer Support[/B]: Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
-
 [/LIST]
+
 [HR][/HR]
 
 [SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
