@@ -1429,6 +1429,28 @@ public class Launcher extends StatefulActivity<LauncherState>
             }
         }
 
+        if (container >= 0 && !FolderInfo.willAcceptItemType(info.itemType)) {
+            // Lawnchair: a folder can't hold a legacy shortcut, which is what a shortcut-config
+            // activity dropped into an open folder may return, and Folder.addFolderContent
+            // throws on it (Home crashed). Put it on Home next to the folder instead (R16b).
+            FolderIcon folderIcon = findFolderIcon(container);
+            if (folderIcon == null) {
+                Log.e(TAG, "Could not find folder with id " + container + " to add shortcut.");
+                return;
+            }
+            CellPos folderPos = getCellPosMapper().mapModelToPresenter(folderIcon.mInfo);
+            container = folderIcon.mInfo.container;
+            screenId = folderPos.screenId;
+            cellX = folderPos.cellX;
+            cellY = folderPos.cellY;
+            layout = getCellLayout(container, screenId);
+            if (layout == null) {
+                Log.e(TAG, "Could not find the page of folder " + folderIcon.mInfo.id
+                        + " to add shortcut.");
+                return;
+            }
+        }
+
         if (container < 0) {
             // Adding a shortcut to the Workspace.
             final View view = mItemInflater.inflateItem(info);
@@ -1450,6 +1472,11 @@ public class Launcher extends StatefulActivity<LauncherState>
                         true)) {
                     return;
                 }
+                // Lawnchair: the drop cell can still hold the folder, Folder widget or app that
+                // just refused this shortcut (a legacy result from a shortcut-config activity).
+                // Added there, it overlaps that item: it never shows, and the next load deletes
+                // it. Use the free cell nearest the drop instead (R16b).
+                foundCellSpan = moveToNearestFreeCell(layout, cellXY);
             } else {
                 foundCellSpan = layout.findCellForSpan(cellXY, 1, 1);
             }
@@ -1473,6 +1500,26 @@ public class Launcher extends StatefulActivity<LauncherState>
                 Log.e(TAG, "Could not find folder with id " + container + " to add shortcut.");
             }
         }
+    }
+
+    /**
+     * Lawnchair: when the cell at {@code cellXY} is taken, moves {@code cellXY} to the free cell
+     * nearest it (R16b). "Allow widget overlap" lets an icon sit on a widget, never on an app,
+     * a folder or a Folder widget.
+     *
+     * @return false when {@code layout} has no free cell left
+     */
+    @VisibleForTesting
+    static boolean moveToNearestFreeCell(CellLayout layout, int[] cellXY) {
+        View occupant = layout.getChildAt(cellXY[0], cellXY[1]);
+        if (!layout.isOccupied(cellXY[0], cellXY[1])
+                && !(occupant instanceof BubbleTextView) && !(occupant instanceof FolderIcon)) {
+            return true;
+        }
+        int[] dropCenter = new int[2];
+        layout.cellToCenterPoint(cellXY[0], cellXY[1], dropCenter);
+        layout.findNearestVacantArea(dropCenter[0], dropCenter[1], 1, 1, 1, 1, cellXY, null);
+        return cellXY[0] >= 0 && cellXY[1] >= 0;
     }
 
     @Override
