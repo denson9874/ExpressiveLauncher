@@ -1236,6 +1236,8 @@ public class Launcher extends StatefulActivity<LauncherState>
             mAllAppsSessionLogId = null;
         }
         setTitle(state);
+        // Lawnchair: Home has settled, so it may now take the back swipe (L04b).
+        updateDisallowBack();
     }
 
     protected void setTitle(@NonNull LauncherState state) {
@@ -2733,7 +2735,9 @@ public class Launcher extends StatefulActivity<LauncherState>
         mBackPressedHandlers.remove(callback);
     }
 
-    private void updateDisallowBack() {
+    // Lawnchair: protected so LawnchairLauncher can re-apply it when the Back-button action
+    // changes.
+    protected void updateDisallowBack() {
         try {
             if (BuildCompat.isAtLeastV()
                 && Flags.enableDesktopWindowingMode()
@@ -2750,9 +2754,22 @@ public class Launcher extends StatefulActivity<LauncherState>
             boolean isSplitSelectionEnabled = isSplitSelectionActive();
             boolean disableBack = getStateManager().getState() == NORMAL
                     && AbstractFloatingView.getTopOpenView(this) == null
-                    && !isSplitSelectionEnabled;
+                    && !isSplitSelectionEnabled
+                    // Lawnchair: only once Home has settled, as NORMAL.onBackInvoked runs
+                    // nothing while All Apps or Overview is still closing into it (L04b).
+                    && !(allowBackGestureOnHome() && getStateManager().isInStableState(NORMAL));
             rv.setDisallowBackGesture(disableBack);
         }
+    }
+
+    /**
+     * Lawnchair: whether the system back gesture may reach Home while it is at rest (NORMAL and
+     * settled, nothing open, no split being picked). By default Home excludes the whole screen
+     * from it there, as Pixel's launcher does, so an edge swipe on Home shows no back arrow and
+     * does nothing.
+     */
+    protected boolean allowBackGestureOnHome() {
+        return false;
     }
 
     /** To be overridden by subclasses */

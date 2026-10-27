@@ -3,22 +3,26 @@ package app.lawnchair.gestures
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
+import android.graphics.Rect
 import android.os.Looper
 import android.os.Process
 import android.view.ContextThemeWrapper
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.window.BackEvent
 import android.window.OnBackAnimationCallback
 import androidx.test.core.app.ApplicationProvider
 import app.lawnchair.LawnchairApp
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.gestures.OpenAppGestureFailureTest.ShadowRefusingLauncherApps
+import app.lawnchair.gestures.config.GestureHandlerConfig
 import app.lawnchair.gestures.handlers.GestureHandler
 import app.lawnchair.gestures.handlers.NoOpGestureHandler
 import app.lawnchair.gestures.handlers.OpenAppGestureHandler
 import app.lawnchair.gestures.handlers.OpenAppTarget
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.Launcher
+import com.android.launcher3.LauncherRootView
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
 import com.android.launcher3.dragndrop.DragLayer
@@ -47,6 +51,12 @@ import org.robolectric.util.ReflectionHelpers
  * LauncherState.onBackInvoked, which did nothing in NORMAL. Back on Home now runs the action,
  * once per press, after whatever is open on Home has had its turn to take Back, and only once
  * Home has settled (not while All Apps is still closing into it).
+ *
+ * L04b: with gesture navigation the back swipe never reached Home at rest, which excludes the
+ * whole screen from the system back gesture there. While an action is set it no longer does, so
+ * the swipe runs the action too; "Do nothing" keeps the exclusion. The preference collector
+ * in LawnchairLauncher.onCreate that feeds onBackButtonActionChanged isn't run by this harness;
+ * it is checked on a device.
  *
  * The action is an "Open app" handler, so a run shows up as one recorded launch.
  *
@@ -226,14 +236,103 @@ class HomeBackGestureTest {
         assertThat(ShadowRefusingLauncherApps.launches).containsExactly(MAPS)
     }
 
+    @Test
+    fun backSwipeOnHome_reachesHomeOnlyWhileABackActionIsSet() {
+        val rootView = layOutRootView()
+        val wholeScreen = listOf(Rect(0, 0, ROOT_WIDTH, ROOT_HEIGHT))
+
+        // "Do nothing": Home at rest keeps the whole screen from the system back gesture, as
+        // Pixel's Home does, so an edge swipe shows no back arrow.
+        launcher.onBackButtonActionChanged(GestureHandlerConfig.NoOp)
+        assertThat(rootView.systemGestureExclusionRects).isEqualTo(wholeScreen)
+
+        // L04b: with an action set, the back swipe reaches Home.
+        launcher.onBackButtonActionChanged(GestureHandlerConfig.OpenNotifications)
+        assertThat(rootView.systemGestureExclusionRects).isEmpty()
+
+        // A folder opening and closing makes Home work the exclusion out again; the action
+        // keeps the swipe Home's once the folder is gone.
+        val folder = OpenFloatingView(dragLayer.context)
+        dragLayer.addView(folder)
+        dragLayer.removeView(folder)
+        assertThat(rootView.systemGestureExclusionRects).isEmpty()
+
+        // Back to "Do nothing": excluded again.
+        launcher.onBackButtonActionChanged(GestureHandlerConfig.NoOp)
+        assertThat(rootView.systemGestureExclusionRects).isEqualTo(wholeScreen)
+    }
+
+    @Test
+    fun backSwipeWhileHomeIsSettling_staysExcludedUntilHomeHasSettled() {
+        val rootView = layOutRootView()
+        val stateManager = launcher.stateManager
+
+        // All Apps is closing: StateManager already reports NORMAL, and Home works the
+        // exclusion out as the transition starts. A swipe now would run nothing (L04), so it
+        // gets no back arrow either.
+        ReflectionHelpers.setField(stateManager, "mCurrentStableState", LauncherState.ALL_APPS)
+        launcher.onBackButtonActionChanged(GestureHandlerConfig.OpenNotifications)
+        assertThat(rootView.systemGestureExclusionRects)
+            .isEqualTo(listOf(Rect(0, 0, ROOT_WIDTH, ROOT_HEIGHT)))
+
+        // All Apps finished closing; Launcher#onStateSetEnd works it out again.
+        ReflectionHelpers.setField(stateManager, "mCurrentStableState", LauncherState.NORMAL)
+        ReflectionHelpers.callInstanceMethod<Any>(launcher, "updateDisallowBack")
+        assertThat(rootView.systemGestureExclusionRects).isEmpty()
+    }
+
+    @Test
+    fun backSwipeOnHome_runsTheActionOnlyWhenCommitted() {
+        // The swipe that the exclusion now lets through takes the same callback as the Back
+        // button: this pins that path for a whole swipe on Home at rest.
+        setBackAction(OpenAppGestureHandler(launcher, OpenAppTarget.App(MAPS)))
+        // NORMAL hands the swipe's start, progress and cancel to the launcher's state handlers,
+        // which this harness doesn't build: none of them moves Home at rest.
+        ReflectionHelpers.setField(
+            launcher.stateManager,
+            "mStateHandlers",
+            emptyArray<StateManager.StateHandler<LauncherState>>(),
+        )
+
+        // A swipe let go before the back arrow commits runs nothing.
+        val cancelled = backCallback()
+        cancelled.onBackStarted(BackEvent(0f, 1200f, 0f, BackEvent.EDGE_LEFT))
+        cancelled.onBackProgressed(BackEvent(90f, 1200f, 0.3f, BackEvent.EDGE_LEFT))
+        cancelled.onBackCancelled()
+        idle()
+
+        assertThat(ShadowRefusingLauncherApps.launches).isEmpty()
+
+        // A committed swipe runs the action once.
+        val committed = backCallback()
+        committed.onBackStarted(BackEvent(ROOT_WIDTH.toFloat(), 1200f, 0f, BackEvent.EDGE_RIGHT))
+        committed.onBackProgressed(BackEvent(ROOT_WIDTH - 300f, 1200f, 1f, BackEvent.EDGE_RIGHT))
+        committed.onBackInvoked()
+        idle()
+
+        assertThat(ShadowRefusingLauncherApps.launches).containsExactly(MAPS)
+        assertThat(launcher.stateManager.state).isEqualTo(LauncherState.NORMAL)
+    }
+
     /**
      * Back as Android 14+ delivers it: the predictive-back callback Home registers and the
      * 3-button Back key both take Launcher#getOnBackAnimationCallback and invoke it.
      */
     private fun dispatchBack() {
-        ReflectionHelpers.callInstanceMethod<OnBackAnimationCallback>(launcher, "getOnBackAnimationCallback")
-            .onBackInvoked()
+        backCallback().onBackInvoked()
         idle()
+    }
+
+    /** The handler Home picks for one Back, a press or a whole swipe. */
+    private fun backCallback(): OnBackAnimationCallback =
+        ReflectionHelpers.callInstanceMethod(launcher, "getOnBackAnimationCallback")
+
+    /** Home's root view, laid out full screen: updateDisallowBack sets the exclusion on it. */
+    private fun layOutRootView(): LauncherRootView {
+        val rootView = LauncherRootView(launcher, null)
+        ReflectionHelpers.setField(launcher, "mRootView", rootView)
+        rootView.layout(0, 0, ROOT_WIDTH, ROOT_HEIGHT)
+        return rootView
     }
 
     /**
@@ -268,6 +367,9 @@ class HomeBackGestureTest {
     }
 
     companion object {
+        private const val ROOT_WIDTH = 1080
+        private const val ROOT_HEIGHT = 2400
+
         private val MAPS = ComponentKey(
             ComponentName("com.example.maps", "com.example.maps.MainActivity"),
             Process.myUserHandle(),

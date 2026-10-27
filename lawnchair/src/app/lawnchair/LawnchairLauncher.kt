@@ -147,6 +147,9 @@ class LawnchairLauncher : QuickstepLauncher() {
 
     private lateinit var colorScheme: ColorScheme
 
+    // L04b: set while Gestures > Back button has an action, so a back swipe on Home runs it.
+    private var hasBackButtonAction = false
+
     val gestureController by unsafeLazy { GestureController(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -227,6 +230,9 @@ class LawnchairLauncher : QuickstepLauncher() {
         }.distinctUntilChanged().onEach { darkIcons ->
             systemUiController?.updateUiState(UI_STATE_BASE_WINDOW, darkIcons)
         }.launchIn(lifecycleScope)
+        preferenceManager2.backPressGestureHandler.onEach(launchIn = lifecycleScope) { config ->
+            onBackButtonActionChanged(config)
+        }
 
         LauncherOptionsPopup.restoreMissingPopupOptions(launcher)
         LauncherOptionsPopup.migrateLegacyPreferences(launcher)
@@ -313,6 +319,19 @@ class LawnchairLauncher : QuickstepLauncher() {
         } else {
             super.onStateBack()
         }
+    }
+
+    override fun allowBackGestureOnHome() = hasBackButtonAction
+
+    /**
+     * L04b: while Gestures > Back button has an action, Home no longer excludes the screen from
+     * the system back gesture when it is at rest, so a back swipe reaches NORMAL.onBackInvoked
+     * and runs the action like the Back button does, and shows the back arrow on its way.
+     * "Do nothing" keeps Pixel's Home: no back arrow, no Back.
+     */
+    internal fun onBackButtonActionChanged(action: GestureHandlerConfig) {
+        hasBackButtonAction = action !is GestureHandlerConfig.NoOp
+        updateDisallowBack()
     }
 
     override fun createTouchControllers(): Array<TouchController> {
