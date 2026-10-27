@@ -88,7 +88,11 @@ class AllAppsCategoryTabs @JvmOverloads constructor(
         // No special multi-row dependency required
     }
 
+    // FloatingHeaderView adds up every row's expected height to place the app list, visible or
+    // not, so a hidden row must report none: with Smart Categories off, the list started one
+    // tab row lower, below an empty band.
     override fun getExpectedHeight(): Int {
+        if (visibility == View.GONE) return 0
         return context.resources.getDimensionPixelSize(R.dimen.all_apps_header_pill_height)
     }
 
