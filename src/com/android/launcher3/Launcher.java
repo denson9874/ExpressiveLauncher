@@ -1438,6 +1438,12 @@ public class Launcher extends StatefulActivity<LauncherState>
                 Log.e(TAG, "Could not find folder with id " + container + " to add shortcut.");
                 return;
             }
+            // The folder still holds the empty slot it opened for the drop; closing it lays its
+            // apps out again and shows Home, where the shortcut lands.
+            Folder folder = folderIcon.getFolder();
+            if (folder.isOpen()) {
+                folder.close(true);
+            }
             CellPos folderPos = getCellPosMapper().mapModelToPresenter(folderIcon.mInfo);
             container = folderIcon.mInfo.container;
             screenId = folderPos.screenId;
