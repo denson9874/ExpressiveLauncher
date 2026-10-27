@@ -1,62 +1,63 @@
-<b>Expressive Launcher 5.0.3 (Build 65) — Back on Track</b>
+<b>Expressive Launcher 5.0.4 (Build 66) — No Shortcut Left Behind</b>
 
-5.0.3 gets Home back on its feet after a restore on Android 12-14, and makes three settings finally do what they say: the Back button gesture, Top shadow and Solid status bar. Back works on Home on Android 12 again, and older-style shortcuts can no longer take Home down.
+5.0.4 finishes the Back gesture: with gesture navigation, a back swipe on Home now runs your Back button action too. Shortcuts you add from the widget picker no longer vanish when they land on a folder, a Folder widget or an app, and dropping one into an open folder no longer crashes Home. The taskbar also stops offering split screen for older-style shortcuts it can't open that way.
 
 ───────────────────────
 
 <b>✨ What's New & Improved</b>
 
-<b>1. 🔁 Android 12-14: Home no longer crash-loops after a restore</b>
-• <b>The bug</b>: After Android restored Expressive's data, for example while setting up a new phone, after a reinstall, or with a phone-clone tool, Home crashed on every launch on Android 12, 13 and 14. It kept crashing until you cleared the app's data. Android 15 and later weren't affected.
-• <b>The fix</b>: On its first start after a restore, Home sends app stores a note about the apps on your first screen. On Android 12-14 that note was built from information only Android 15+ provides. Home now sends the version those Android releases expect, and that note can never stop Home from loading again.
-• <b>Already stuck in the loop?</b> Install 5.0.3 from GitHub or Obtainium over the current version. You don't need to clear data: your layout loads on the next start.
+<b>1. ↩️ The back swipe runs your Back action</b>
+• <b>Before</b>: 5.0.3 made <b>Settings → Gestures → Back button</b> work from the Back button and a Back key. With gesture navigation, a back swipe on Home still did nothing, because Home ignored edge swipes, like Pixel's own launcher.
+• <b>Now</b>: when you've picked an action, a back swipe on Home runs it once, from either edge, and shows the system back arrow on the way. Changed your mind? Swipe back to the edge before you let go, and nothing runs. Open folders, menus, sheets and the app drawer still close first.
+• <b>Do nothing</b> keeps Home exactly as before: no back arrow, nothing happens.
+• <b>Good to know</b>: while an action is set, a swipe that starts at the very edge of the screen counts as Back. Start page swipes a little further in (and swipe from slightly in to open the feed from page 1).
 
-<b>2. ↩️ The Back button gesture works</b>
-• <b>Settings → Gestures → Back button</b> let you pick an action for Back on Home, but the action never ran. Now pressing Back on Home runs your action, once per press: the Back button in 3-button navigation (on the navigation bar or the taskbar) or a hardware Back key. Open folders, menus and sheets still close first, the app drawer still goes back to Home, and <b>Do nothing</b> still means nothing.
-• <b>Android 12</b>: Back on Home did nothing at all: an open folder or the app drawer stayed open until you tapped away. Back closes them again.
-• <b>Not covered yet</b>: with gesture navigation, a back swipe on Home doesn't run the action. Like Pixel's own launcher, Home doesn't treat an edge swipe as Back, so for now the action runs only from the Back button or a Back key.
+<b>2. 📌 Shortcuts from the widget picker land where you drop them</b>
+• These are the shortcuts an app sets up for you as you add them, such as a Settings page, a contact or a map route.
+• <b>The bug</b>: some apps hand back an older-style shortcut, which folders can't hold. Dropped on a folder, a Folder widget or an app, it was placed underneath that icon: it never appeared, and the next restart deleted it. Dropped <i>into</i> an open folder, it crashed Home.
+• <b>The fix</b>: it now goes in the free spot nearest where you dropped it, on the same page, and the folder keeps its contents. If the page has no free spot you get the usual "no room" message instead of a ghost icon. Shortcuts that folders can hold still go into the folder.
 
-<b>3. 🌗 Top shadow and Solid status bar show up right away</b>
-• <b>The bug</b>: Whenever Home started (after a restart, an update or a setting that restarts Home), <b>Top shadow</b> and <b>Solid status bar background</b> stayed invisible. They appeared only after you opened the app drawer, came back from an app or turned the screen off and on, so they looked broken.
-• <b>The fix</b>: Both now draw from the moment Home starts. Turning Solid status bar background on or off updates the bar straight away, and the gentle fade-in when the screen turns on is kept.
-
-<b>4. 📁 Older-style shortcuts can't take Home down</b>
-• These are shortcuts imported from another launcher or made by older apps, such as a direct-dial contact.
-• <b>Folder widgets</b>: dropping one on a Folder widget crashed Home. A Folder widget now takes exactly what a normal folder takes: apps and app shortcuts. Anything else is placed on Home next to it.
-• <b>Long-press</b>: long-pressing one that doesn't belong to a specific app crashed Home. Its menu now opens with <b>Remove</b> and <b>Customize</b> as it should.
+<b>3. 🪟 Taskbar: no split screen for shortcuts it can't open</b>
+• For setups where Expressive runs the taskbar and recents (QuickSwitch or root).
+• <b>The bug</b>: an older-style shortcut on the taskbar offered <b>Split screen</b> in its menu and in its accessibility actions, and could be dragged into split. Each of these crashed Home, because the taskbar starts a split by app, and those shortcuts aren't tied to one.
+• <b>The fix</b>: the taskbar no longer offers or starts a split for them. Picking one for split from Overview, or from Home's own menu on large screens, no longer crashes Home either.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>↩️ <i>The Back button gesture spent a whole release cycle waiting for a call that never came. We've finally given it the right number.</i>
+<blockquote>📌 <i>Shortcuts dropped on a folder used to pull a disappearing act worthy of a stage magician. We've revoked their magic licence: now they just sit politely next door.</i>
 
-🌗 <i>Top shadow was so shy it only came out after you opened the drawer. It's had a pep talk and now shows up for work on time.</i></blockquote>
+↩️ <i>Home and the back swipe have finally agreed to talk, as long as you give them something to talk about.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Thank you</b> to the reporter of <a href="https://github.com/denson9874/ExpressiveLauncher/issues/15">#15</a> for the crash log that pinned down the restore crash.
 • <b>Still being worked on</b> (see the 5.0.0 release notes for workarounds):
 • Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
 • The headphone battery card in At a Glance doesn't appear yet.
 • Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
 • The first setting you change after Home starts can restart Home a few times.
-• <b>Validation</b>: 616 automated tests pass. The fixes were checked on Android 17 (QPR2) emulators, with and without Pro, and on an Android 12 emulator where the restore crash loop was reproduced on 5.0.2 and cleared by updating to 5.0.3 with the layout intact. 21,000 random monkey events ran with no crashes. Physical-device reports are very welcome.
+• <b>Validation</b>: 632 automated tests pass. Checked on Android 17 (QPR2) emulators:
+• <b>Back swipe</b> (with Pro): both edges, cancelled swipes, folders and the app drawer, and after Home restarts.
+• <b>Widget-picker shortcuts</b>: every case was first reproduced on the previous build (three vanished, one crashed Home), then checked on 5.0.4, along with folders that should still take a shortcut and a full page. Random monkey runs on 5.0.4 found no crashes.
+• <b>Taskbar fix</b>: covered by automated tests only, because it needs Expressive set up as the recents provider.
+
+  Physical-device reports are very welcome.
 • <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I'm pressed a thousand times a day, yet on Home I used to ignore the job you gave me. Since 5.0.3 I finally do what you asked. What am I?</i></blockquote>
+<blockquote><i>An app builds me while you hold me over a folder, then the folder won't let me in. I used to hide under it until a restart made me vanish. Now I wait right next door. What am I?</i></blockquote>
 
-<tg-spoiler><b>The Back button!</b> It's been waiting for its moment on Home for a long time. ↩️</tg-spoiler>
+<tg-spoiler><b>An older-style shortcut from the widget picker!</b> Since 5.0.4 it lands in the nearest free spot instead of disappearing. 📌</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>5.0.3</code> (Build <code>65</code>)
+• <b>Launcher Version</b>: <code>5.0.4</code> (Build <code>66</code>)
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 

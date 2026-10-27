@@ -1,0 +1,98 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.0.4 (Build 66) — No Shortcut Left Behind[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+5.0.4 finishes the Back gesture: with gesture navigation, a back swipe on Home now runs your Back button action too. Shortcuts you add from the widget picker no longer vanish when they land on a folder, a Folder widget or an app, and dropping one into an open folder no longer crashes Home. The taskbar also stops offering split screen for older-style shortcuts it can't open that way.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. ↩️ The back swipe runs your Back action[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: 5.0.3 made [B]Settings → Gestures → Back button[/B] work from the Back button and a Back key. With gesture navigation, a back swipe on Home still did nothing, because Home ignored edge swipes, like Pixel's own launcher.
+[*][B]Now[/B]: when you've picked an action, a back swipe on Home runs it once, from either edge, and shows the system back arrow on the way. Changed your mind? Swipe back to the edge before you let go, and nothing runs. Open folders, menus, sheets and the app drawer still close first.
+[*][B]Do nothing[/B] keeps Home exactly as before: no back arrow, nothing happens.
+[*][B]Good to know[/B]: while an action is set, a swipe that starts at the very edge of the screen counts as Back. Start page swipes a little further in (and swipe from slightly in to open the feed from page 1).
+
+[/LIST]
+[SIZE=5][B]2. 📌 Shortcuts from the widget picker land where you drop them[/B][/SIZE]
+[LIST]
+[*]These are the shortcuts an app sets up for you as you add them, such as a Settings page, a contact or a map route.
+[*][B]The bug[/B]: some apps hand back an older-style shortcut, which folders can't hold. Dropped on a folder, a Folder widget or an app, it was placed underneath that icon: it never appeared, and the next restart deleted it. Dropped [I]into[/I] an open folder, it crashed Home.
+[*][B]The fix[/B]: it now goes in the free spot nearest where you dropped it, on the same page, and the folder keeps its contents. If the page has no free spot you get the usual "no room" message instead of a ghost icon. Shortcuts that folders can hold still go into the folder.
+
+[/LIST]
+[SIZE=5][B]3. 🪟 Taskbar: no split screen for shortcuts it can't open[/B][/SIZE]
+[LIST]
+[*]For setups where Expressive runs the taskbar and recents (QuickSwitch or root).
+[*][B]The bug[/B]: an older-style shortcut on the taskbar offered [B]Split screen[/B] in its menu and in its accessibility actions, and could be dragged into split. Each of these crashed Home, because the taskbar starts a split by app, and those shortcuts aren't tied to one.
+[*][B]The fix[/B]: the taskbar no longer offers or starts a split for them. Picking one for split from Overview, or from Home's own menu on large screens, no longer crashes Home either.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]📌 [I]Shortcuts dropped on a folder used to pull a disappearing act worthy of a stage magician. We've revoked their magic licence: now they just sit politely next door.[/I]
+
+↩️ [I]Home and the back swipe have finally agreed to talk, as long as you give them something to talk about.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]Still being worked on[/B] (see the 5.0.0 release notes for workarounds):
+[*]Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
+[*]The headphone battery card in At a Glance doesn't appear yet.
+[*]Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
+[*]The first setting you change after Home starts can restart Home a few times.
+[*][B]Validation[/B]: 632 automated tests pass. Checked on Android 17 (QPR2) emulators:
+[*][B]Back swipe[/B] (with Pro): both edges, cancelled swipes, folders and the app drawer, and after Home restarts.
+[*][B]Widget-picker shortcuts[/B]: every case was first reproduced on the previous build (three vanished, one crashed Home), then checked on 5.0.4, along with folders that should still take a shortcut and a full page. Random monkey runs on 5.0.4 found no crashes.
+[*][B]Taskbar fix[/B]: covered by automated tests only, because it needs Expressive set up as the recents provider.
+
+[/LIST]
+  Physical-device reports are very welcome.
+[LIST]
+[*][B]Developer Support[/B]: Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]An app builds me while you hold me over a folder, then the folder won't let me in. I used to hide under it until a restart made me vanish. Now I wait right next door. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]An older-style shortcut from the widget picker![/B] Since 5.0.4 it lands in the nearest free spot instead of disappearing. 📌[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.0.4[/ICODE] (Build [ICODE]66[/ICODE])
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[*][B]Announcements Channel[/B]: [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.0.4-66"]Download Expressive Launcher v5.0.4 (Build 66)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
