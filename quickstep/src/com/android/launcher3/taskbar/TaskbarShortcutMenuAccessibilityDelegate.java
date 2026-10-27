@@ -80,8 +80,11 @@ public class TaskbarShortcutMenuAccessibilityDelegate
         if (ShortcutUtil.supportsShortcuts(item)) {
             out.add(mActions.get(DEEP_SHORTCUTS));
         }
-        out.add(mActions.get(MOVE_TO_TOP_OR_LEFT));
-        out.add(mActions.get(MOVE_TO_BOTTOM_OR_RIGHT));
+        // Lawnchair: only what performAction can start in split (R18b).
+        if (TaskbarPopupController.canStartSplitDirectly(item)) {
+            out.add(mActions.get(MOVE_TO_TOP_OR_LEFT));
+            out.add(mActions.get(MOVE_TO_BOTTOM_OR_RIGHT));
+        }
         if (BubbleAnythingFlagHelper.enableCreateAnyBubble()) {
             out.add(mActions.get(CREATE_APPLICATION_BUBBLE));
         }
@@ -103,7 +106,9 @@ public class TaskbarShortcutMenuAccessibilityDelegate
                 return true;
             }
         } else if (item instanceof ItemInfoWithIcon
-                && (action == MOVE_TO_TOP_OR_LEFT || action == MOVE_TO_BOTTOM_OR_RIGHT)) {
+                && (action == MOVE_TO_TOP_OR_LEFT || action == MOVE_TO_BOTTOM_OR_RIGHT)
+                // Lawnchair: performAccessibilityAction passes on any action id, offered or not.
+                && TaskbarPopupController.canStartSplitDirectly(item)) {
             ItemInfoWithIcon info = (ItemInfoWithIcon) item;
             int side = action == MOVE_TO_TOP_OR_LEFT
                     ? STAGE_POSITION_TOP_OR_LEFT : STAGE_POSITION_BOTTOM_OR_RIGHT;

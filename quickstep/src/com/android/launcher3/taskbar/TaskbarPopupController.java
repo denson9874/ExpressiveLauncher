@@ -309,12 +309,38 @@ public class TaskbarPopupController implements TaskbarControllers.LoggableTaskba
      * "Split right," or "Split top").
      * @param position A SplitPositionOption representing whether we are splitting top, left, or
      *                 right.
-     * @return A factory function to be used in populating the long-press menu.
+     * @return A factory function to be used in populating the long-press menu. Lawnchair: it
+     *         gives no menu item for an item the taskbar can't start in split (R18b).
      */
     SystemShortcut.Factory<BaseTaskbarContext> createSplitShortcutFactory(
             SplitPositionOption position) {
-        return (context, itemInfo, originalView) -> new TaskbarSplitShortcut(context, itemInfo,
-                originalView, position, mAllowInitialSplitSelection);
+        return (context, itemInfo, originalView) -> {
+            // Lawnchair: unless split selection takes over, the shortcut starts the split itself,
+            // which it can't do for a legacy shortcut (R18b).
+            if (!mAllowInitialSplitSelection && !canStartSplitDirectly(itemInfo)) {
+                return null;
+            }
+            return new TaskbarSplitShortcut(context, itemInfo, originalView, position,
+                    mAllowInitialSplitSelection);
+        };
+    }
+
+    /**
+     * Lawnchair: whether the taskbar can start {@code item} in split by itself, as it does from
+     * the long-press menu in an app, its accessibility actions and a drag into split: by the
+     * deep shortcut's id, or else by the launcher activity of the component in the item's
+     * intent ({@link LauncherApps#getMainActivityLaunchIntent}). A legacy shortcut has neither
+     * to offer: its intent names no component, which crashed Home, or one that need not be a
+     * launcher activity, which LauncherApps refuses (R18b).
+     */
+    static boolean canStartSplitDirectly(ItemInfo item) {
+        if (item.itemType == LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
+                && item instanceof WorkspaceItemInfo) {
+            return true;
+        }
+        return item.itemType != LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT
+                && item.getIntent() != null
+                && item.getIntent().getComponent() != null;
     }
 
     /**

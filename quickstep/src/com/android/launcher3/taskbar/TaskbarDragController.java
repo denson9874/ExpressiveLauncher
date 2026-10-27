@@ -359,11 +359,23 @@ public class TaskbarDragController extends DragController<BaseTaskbarContext> im
         // Pre-drag has ended, start the global system drag.
         if (mDisallowGlobalDrag
                 || mControllers.taskbarDesktopModeController
-                    .isInDesktopModeAndNotInOverview(mActivity.getDisplayId())) {
+                    .isInDesktopModeAndNotInOverview(mActivity.getDisplayId())
+                || !canStartSystemDrag(((BubbleTextView) mDragObject.originalView).getTag())) {
             AbstractFloatingView.closeAllOpenViewsExcept(mActivity, TYPE_TASKBAR_ALL_APPS);
             return;
         }
         startSystemDrag((BubbleTextView) mDragObject.originalView);
+    }
+
+    /**
+     * Lawnchair: whether {@link #startSystemDrag} can give the system what it needs to start
+     * {@code tag} where it is dropped. A legacy shortcut stays a taskbar drag (R18b).
+     */
+    @VisibleForTesting
+    static boolean canStartSystemDrag(Object tag) {
+        return !(tag instanceof ItemInfo item)
+                || item.itemType == ITEM_TYPE_SEARCH_ACTION
+                || TaskbarPopupController.canStartSplitDirectly(item);
     }
 
     private void startSystemDrag(BubbleTextView btv) {

@@ -298,7 +298,12 @@ public class SplitSelectStateController {
      * Checks if a given Task is the most recently-active Task of type componentName. Used for
      * selecting already-running Tasks for splitscreen.
      */
-    public boolean isInstanceOfComponent(@Nullable Task task, @NonNull ComponentKey componentKey) {
+    public boolean isInstanceOfComponent(@Nullable Task task, @Nullable ComponentKey componentKey) {
+        // Lawnchair: a legacy shortcut whose intent names no component has no ComponentKey, and
+        // no running task can be an instance of it. Picking one for split crashed Home (R18b).
+        if (componentKey == null) {
+            return false;
+        }
         // Exclude the task that is already staged
         if (task == null || task.key.id == mSplitSelectDataHolder.getInitialTaskId()) {
             return false;
