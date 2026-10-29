@@ -439,10 +439,13 @@ let paypalToken = null; // { value, clientId, expiresAt }
 
 async function getPayPalAccessToken(env) {
   const now = Date.now();
-  if (paypalToken && paypalToken.clientId === env.PAYPAL_CLIENT_ID && now < paypalToken.expiresAt) {
+  // Pasted credentials often carry a stray space or line break, which PayPal refuses.
+  const clientId = String(env.PAYPAL_CLIENT_ID).trim();
+  const secret = String(env.PAYPAL_CLIENT_SECRET).trim();
+  if (paypalToken && paypalToken.clientId === clientId && now < paypalToken.expiresAt) {
     return paypalToken.value;
   }
-  const auth = btoa(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`);
+  const auth = btoa(`${clientId}:${secret}`);
   const tokenRes = await fetch(`${paypalApiBase(env)}/v1/oauth2/token`, {
     method: "POST",
     headers: {
@@ -452,14 +455,20 @@ async function getPayPalAccessToken(env) {
     body: "grant_type=client_credentials",
   });
   if (!tokenRes.ok) {
-    console.error(`PayPal token request returned ${tokenRes.status}`);
+    // PayPal's error names which half is wrong ("Client secret does not match ..."); it never echoes
+    // either value. The lengths tell a swapped or cut-off paste apart without showing anything.
+    const reason = await tokenRes.json().catch(() => ({}));
+    console.error(
+      `PayPal token request returned ${tokenRes.status}: ${reason.error || "?"} ${reason.error_description || ""}` +
+        ` (client ID ${clientId.slice(0, 3)}… ${clientId.length} chars, secret ${secret.length} chars)`
+    );
     return null;
   }
   const tokenData = await tokenRes.json();
   if (!tokenData.access_token) return null;
   // Renew a minute early so a token never expires between this check and PayPal's.
   const lifetimeMs = Math.max(0, (Number(tokenData.expires_in) || 0) - 60) * 1000;
-  paypalToken = { value: tokenData.access_token, clientId: env.PAYPAL_CLIENT_ID, expiresAt: now + lifetimeMs };
+  paypalToken = { value: tokenData.access_token, clientId, expiresAt: now + lifetimeMs };
   return tokenData.access_token;
 }
 
