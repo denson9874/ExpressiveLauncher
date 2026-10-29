@@ -24,3 +24,11 @@ new_sqlite_classes = ["LicenseLedger"]
 # - PAYPAL_WEBHOOK_ID: ID of the webhook in the PayPal dashboard; webhooks are refused without it
 # - PAYPAL_CLIENT_ID: PayPal REST API client ID (webhook checks and transaction lookups)
 # - PAYPAL_CLIENT_SECRET: PayPal REST API client secret
+# - PAYPAL_MERCHANT_ID (optional): the seller's PayPal merchant ID; captures paid to anyone else
+#   are refused. Not secret, but kept out of this public file.
+#
+# The webhook (POST /api/paypal-webhook) needs PAYMENT.CAPTURE.COMPLETED, .DENIED, .REFUNDED and
+# .REVERSED. Optional overrides, as [vars] or secrets:
+# - PRO_PRICE / PRO_CURRENCY: what a capture must pay for Pro (default 4.99 USD). A value that
+#   isn't a price refuses every payment rather than accepting any.
+# - PAYPAL_API_BASE: https://api-m.sandbox.paypal.com for a sandbox test worker, never here.

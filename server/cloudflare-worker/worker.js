@@ -27,6 +27,21 @@ const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const PAYPAL_API_BASE = "https://api-m.paypal.com";
 const RESTORE_NEEDS_TRANSACTION =
   "To restore a contribution, enter the Transaction ID from your PayPal receipt.";
+// The Pro price on the app's PayPal link. A capture for less, or in another currency, is a tip, not a
+// purchase. PRO_PRICE and PRO_CURRENCY ([vars] in wrangler.toml) override them if the price changes.
+const PRO_PRICE = "4.99";
+const PRO_CURRENCY = "USD";
+const VERIFY_RATE_LIMIT_PER_HOUR = 10;
+// PayPal transaction (capture) IDs: 17 letters and digits on receipts; allow some slack, nothing else.
+const PAYPAL_TX_PATTERN = /^[A-Z0-9-]{8,40}$/i;
+// Events that take a payment back: the license stops being handed out (keys already on a device keep
+// working offline; the app cannot be told).
+const PAYMENT_REVOKED_EVENTS = ["PAYMENT.CAPTURE.DENIED", "PAYMENT.CAPTURE.REFUNDED", "PAYMENT.CAPTURE.REVERSED"];
+const PAYMENT_NOT_CONFIRMED =
+  "We couldn't confirm this payment with PayPal. Check the Transaction ID on your PayPal receipt and try again.";
+const PAYMENT_REVOKED = "This payment was refunded or reversed, so it no longer unlocks Pro.";
+const PAYMENT_PENDING =
+  "PayPal is still processing this payment. Please try again once your PayPal receipt shows it as completed.";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -99,11 +114,9 @@ export default {
 
       return jsonResponse({ error: "Endpoint not found" }, 404);
     } catch (err) {
+      // The details stay in the log: an error message can name a secret, a KV key or PayPal's reply.
       console.error("Worker error:", err);
-      return jsonResponse(
-        { success: false, error: err.message || "Internal server error" },
-        500
-      );
+      return jsonResponse({ success: false, error: "Internal server error" }, 500);
     }
   },
 };
@@ -136,6 +149,9 @@ async function handleLicenseLookup(url, env) {
     const raw = await env.EXPRESSIVE_PRO_KV.get(`license:device:${deviceId}`);
     if (raw) {
       const data = JSON.parse(raw);
+      if (data.revokedAt) {
+        return jsonResponse({ success: false, error: "payment_revoked", message: PAYMENT_REVOKED });
+      }
       return jsonResponse({
         success: true,
         key: data.key,
@@ -217,7 +233,7 @@ async function handleTrialRequest(request, env, now = Date.now()) {
  * "payment completed" request can't mint a license. Without PAYPAL_WEBHOOK_ID and the API credentials
  * the endpoint refuses events (PayPal retries them for three days, so none are lost while it is set up).
  */
-async function handlePayPalWebhook(request, env) {
+async function handlePayPalWebhook(request, env, now = Date.now()) {
   let body;
   try {
     body = await request.json();
@@ -235,109 +251,118 @@ async function handlePayPalWebhook(request, env) {
   }
 
   const eventType = body.event_type;
+  const resource = body.resource || {};
 
-  // Supported PayPal capture and payment events
-  const validEvents = [
-    "PAYMENT.CAPTURE.COMPLETED",
-    "CHECKOUT.ORDER.APPROVED",
-    "PAYMENT.SALE.COMPLETED",
-  ];
+  if (PAYMENT_REVOKED_EVENTS.includes(eventType)) {
+    const captureId = captureIdOf(resource, eventType);
+    if (!captureId) {
+      console.warn(`PayPal ${eventType} ${resource.id || "?"} names no capture`);
+    } else {
+      // A refund names the running total refunded on its capture: a partial one can leave Pro paid.
+      const refundedCents = eventType === "PAYMENT.CAPTURE.REFUNDED"
+        ? toCents(resource.seller_payable_breakdown?.total_refunded_amount?.value)
+        : null;
+      await revokePayment(env, { captureId, reason: eventType, refundedCents, now });
+    }
+    return jsonResponse({ received: true });
+  }
 
-  if (!validEvents.includes(eventType)) {
-    // Acknowledge other webhook notifications without error
+  // Only a completed capture is money received. CHECKOUT.ORDER.APPROVED comes before payment (the
+  // capture can still fail), and the app's checkout never sends v1 sale events.
+  if (eventType !== "PAYMENT.CAPTURE.COMPLETED") {
     return jsonResponse({ received: true, ignored: eventType });
   }
-
-  const resource = body.resource || {};
-  const customId = (
-    resource.custom_id ||
-    resource.custom ||
-    resource.invoice_id ||
-    resource.purchase_units?.[0]?.custom_id ||
-    resource.purchase_units?.[0]?.invoice_id ||
-    ""
-  ).trim();
-
-  const transactionId = resource.id || body.id || `TX-${Date.now()}`;
-  const relatedOrderId = resource.supplementary_data?.related_ids?.order_id || "";
-  const invoiceId = resource.invoice_id || resource.purchase_units?.[0]?.invoice_id || "";
-  const captureId = resource.purchase_units?.[0]?.payments?.captures?.[0]?.id || "";
-
-  const payerEmail = (
-    resource.payer?.email_address ||
-    resource.payer_email ||
-    resource.payment_source?.paypal?.email_address ||
-    ""
-  ).toLowerCase().trim();
-
-  // Determine recipient
-  let recipient = "";
-  let isDevice = false;
-
-  if (customId && customId.toUpperCase().startsWith("DEV-")) {
-    recipient = `device:${customId.toUpperCase()}`;
-    isDevice = true;
-  } else if (payerEmail) {
-    recipient = `account:${payerEmail}`;
-  } else if (customId) {
-    recipient = customId;
-  } else {
-    recipient = `device:DEV-DONATION-${transactionId.slice(-8)}`;
+  const problem = capturePaysForPro(resource, env);
+  if (problem || !resource.id) {
+    // HTTP 200 so PayPal doesn't redeliver: the event is genuine, it just isn't a Pro purchase.
+    console.warn(`PayPal capture ${resource.id || "?"} is not a Pro purchase: ${problem || "no id"}`);
+    return jsonResponse({ received: true, ignored: problem || "no_capture_id" });
   }
 
-  // The app sends its device ID as the invoice ID, and a device ID is shown on screen, so it must
-  // never work as proof of payment.
-  const paymentIds = [...new Set(
-    [transactionId, relatedOrderId, invoiceId, captureId]
-      .filter(Boolean)
-      .filter((id) => !DEVICE_ID_PATTERN.test(id.toUpperCase()))
-  )];
+  // The app adds its device ID to the PayPal link (custom / invoice_id). When PayPal passes it on, the
+  // purchase is bound to that device and "Check payment status" finds it. Otherwise the payment waits,
+  // unclaimed, until the buyer restores it with the Transaction ID from their receipt.
+  const deviceId = [resource.custom_id, resource.invoice_id]
+    .map((id) => String(id || "").trim().toUpperCase())
+    .find((id) => DEVICE_ID_PATTERN.test(id)) || null;
+  const orderId = resource.supplementary_data?.related_ids?.order_id || "";
 
-  // PayPal redelivers events and sends several for one payment (order approved, capture completed);
-  // keep the key from the first so a purchase has one license.
-  if (env.EXPRESSIVE_PRO_KV) {
-    for (const id of paymentIds) {
-      const seen = await env.EXPRESSIVE_PRO_KV.get(`tx:${id}`);
-      if (seen) {
-        return jsonResponse({ success: true, duplicate: true, recipient: JSON.parse(seen).recipient });
-      }
-    }
+  const { record } = await claimPayment(env, {
+    captureId: resource.id,
+    deviceId,
+    payment: paymentDetails(resource, { orderId, eventType }),
+    now,
+  });
+  // A restore with the Transaction ID got there first and bound the license to another device: the
+  // device the buyer paid from still gets its copy, as a restore from it would.
+  const bound = boundDeviceOf(record.recipient);
+  if (deviceId && record.key && bound && bound !== deviceId) {
+    await deliverToDevice(record, deviceId, env, now);
   }
-
-  // Generate ECDSA P-256 signed license key
-  const licenseKey = await generateProLicense(recipient, TYPE_VIP, 0, env);
-
-  const record = {
-    key: licenseKey,
-    recipient: recipient,
-    transactionId: transactionId,
-    orderId: relatedOrderId || undefined,
-    invoiceId: invoiceId || undefined,
-    captureId: captureId || undefined,
-    payerEmail: payerEmail,
-    eventType: eventType,
-    createdAt: new Date().toISOString(),
-  };
-
-  if (env.EXPRESSIVE_PRO_KV) {
-    if (isDevice) {
-      const devId = customId.toUpperCase();
-      await env.EXPRESSIVE_PRO_KV.put(
-        `license:device:${devId}`,
-        JSON.stringify(record)
-      );
-    }
-    // Store under all transaction/order identifiers
-    for (const tid of paymentIds) {
-      await env.EXPRESSIVE_PRO_KV.put(
-        `tx:${tid}`,
-        JSON.stringify(record)
-      );
-    }
-  }
-
   // PayPal ignores the body; the key is only ever handed to the app.
-  return jsonResponse({ success: true, recipient, transactionId });
+  return jsonResponse({ success: true, claimed: Boolean(record.key), transactionId: resource.id });
+}
+
+/**
+ * Why a PayPal capture is not a Pro purchase, or null when it is: COMPLETED, in PRO_CURRENCY, for at
+ * least PRO_PRICE and, when PAYPAL_MERCHANT_ID is set, paid to that merchant. A capture that names no
+ * payee passes that last check: the webhook ID and the API credentials already tie it to this account.
+ */
+function capturePaysForPro(capture, env) {
+  const price = proPriceCents(env);
+  if (!price) {
+    // Fail closed: an unreadable price must never let any amount through.
+    console.error(`PRO_PRICE "${env.PRO_PRICE}" is not an amount like 4.99`);
+    return "price_misconfigured";
+  }
+  if (capture?.status !== "COMPLETED") return "not_completed";
+  const amount = capture.amount || {};
+  const currency = String(env.PRO_CURRENCY || PRO_CURRENCY).toUpperCase();
+  if (String(amount.currency_code || "").toUpperCase() !== currency) return "wrong_currency";
+  const paid = toCents(amount.value);
+  if (paid === null || paid < price) return "underpaid";
+  const payee = capture.payee?.merchant_id;
+  if (env.PAYPAL_MERCHANT_ID && payee && payee !== env.PAYPAL_MERCHANT_ID) return "wrong_payee";
+  return null;
+}
+
+/** The Pro price in cents, or null when PRO_PRICE is set to something that isn't an amount. */
+function proPriceCents(env) {
+  const cents = toCents(env.PRO_PRICE || PRO_PRICE);
+  return cents > 0 ? cents : null;
+}
+
+/** "4.99" -> 499, without floating point; null if it is not a plain amount. */
+function toCents(value) {
+  const match = /^(\d{1,9})(?:\.(\d{1,2}))?$/.exec(String(value ?? "").trim());
+  return match ? parseInt(match[1], 10) * 100 + parseInt((match[2] || "0").padEnd(2, "0"), 10) : null;
+}
+
+/**
+ * The capture a refund, reversal or denial is about. REFUNDED and REVERSED describe a refund, which
+ * links "up" to its capture; DENIED describes the capture itself.
+ */
+function captureIdOf(resource, eventType) {
+  const related = resource.supplementary_data?.related_ids?.capture_id;
+  if (related) return related;
+  const up = (resource.links || []).find((link) => link.rel === "up" && /\/captures\//.test(link.href || ""));
+  if (up) return up.href.split("/captures/")[1].split(/[/?#]/)[0];
+  return eventType === "PAYMENT.CAPTURE.DENIED" ? resource.id || null : null;
+}
+
+/** What is kept about a payment: enough to answer support questions, nothing about the payer. */
+function paymentDetails(capture, extra = {}) {
+  return {
+    amount: capture.amount?.value,
+    currency: capture.amount?.currency_code,
+    orderId: extra.orderId || undefined,
+    eventType: extra.eventType || undefined,
+  };
+}
+
+function paypalApiBase(env) {
+  // PAYPAL_API_BASE=https://api-m.sandbox.paypal.com points a separate test worker at PayPal's sandbox.
+  return env.PAYPAL_API_BASE || PAYPAL_API_BASE;
 }
 
 /**
@@ -359,12 +384,13 @@ async function verifyPayPalWebhookSignature(headers, event, env) {
     if (!token) {
       return { valid: false, message: "PayPal authentication failed" };
     }
-    const res = await fetch(`${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`, {
+    const res = await fetch(`${paypalApiBase(env)}/v1/notifications/verify-webhook-signature`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ ...fields, webhook_id: env.PAYPAL_WEBHOOK_ID, webhook_event: event }),
     });
     if (!res.ok) {
+      if (res.status === 401) forgetPayPalAccessToken();
       return { valid: false, message: `PayPal verification returned ${res.status}` };
     }
     const data = await res.json();
@@ -374,9 +400,17 @@ async function verifyPayPalWebhookSignature(headers, event, env) {
   }
 }
 
+// PayPal access tokens last about nine hours. One per isolate saves an OAuth round trip on every
+// webhook and restore; a request PayPal answers with 401 drops it (forgetPayPalAccessToken).
+let paypalToken = null; // { value, clientId, expiresAt }
+
 async function getPayPalAccessToken(env) {
+  const now = Date.now();
+  if (paypalToken && paypalToken.clientId === env.PAYPAL_CLIENT_ID && now < paypalToken.expiresAt) {
+    return paypalToken.value;
+  }
   const auth = btoa(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`);
-  const tokenRes = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+  const tokenRes = await fetch(`${paypalApiBase(env)}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${auth}`,
@@ -384,8 +418,20 @@ async function getPayPalAccessToken(env) {
     },
     body: "grant_type=client_credentials",
   });
+  if (!tokenRes.ok) {
+    console.error(`PayPal token request returned ${tokenRes.status}`);
+    return null;
+  }
   const tokenData = await tokenRes.json();
-  return tokenData.access_token || null;
+  if (!tokenData.access_token) return null;
+  // Renew a minute early so a token never expires between this check and PayPal's.
+  const lifetimeMs = Math.max(0, (Number(tokenData.expires_in) || 0) - 60) * 1000;
+  paypalToken = { value: tokenData.access_token, clientId: env.PAYPAL_CLIENT_ID, expiresAt: now + lifetimeMs };
+  return tokenData.access_token;
+}
+
+function forgetPayPalAccessToken() {
+  paypalToken = null;
 }
 
 /**
@@ -409,59 +455,75 @@ async function handleVerifyDonation(request, env, now = Date.now()) {
   if (!cleanTx || cleanTx.includes("@") || DEVICE_ID_PATTERN.test(cleanTx.toUpperCase())) {
     return jsonResponse({ success: false, error: "transaction_required", message: RESTORE_NEEDS_TRANSACTION });
   }
-
-  if (env.EXPRESSIVE_PRO_KV) {
-    const raw = await env.EXPRESSIVE_PRO_KV.get(`tx:${cleanTx}`);
-    if (raw) {
-      const existingRecord = JSON.parse(raw);
-      return await deliverToDevice(existingRecord, cleanDev, env, now);
-    }
+  if (!env.EXPRESSIVE_PRO_KV) {
+    return jsonResponse({ success: false, message: "Storage backend not configured" }, 503);
   }
 
-  // If PayPal API credentials configured, verify directly via PayPal REST API
-  if (env.PAYPAL_CLIENT_ID && env.PAYPAL_CLIENT_SECRET) {
-    const verified = await verifyWithPayPalApi(cleanTx, env);
-    if (!verified.valid) {
+  // PayPal's IDs are upper case and receipts get retyped in lower case; IDs an admin registered keep
+  // whatever spelling they were registered with.
+  const txId = cleanTx.toUpperCase();
+  const raw =
+    (await env.EXPRESSIVE_PRO_KV.get(`tx:${cleanTx}`)) ||
+    (txId !== cleanTx ? await env.EXPRESSIVE_PRO_KV.get(`tx:${txId}`) : null);
+  const stored = raw ? JSON.parse(raw) : null;
+  if (stored?.key) {
+    return await deliverToDevice(stored, cleanDev, env, now);
+  }
+
+  // A payment the webhook recorded without a device (PayPal dropped the app's device ID) is claimed
+  // by the first device that brings its Transaction ID; an order ID's copy points at its capture.
+  // Anything else is checked with PayPal first.
+  let captureId;
+  let payment;
+  if (stored) {
+    captureId = stored.transactionId || txId;
+    payment = { orderId: stored.orderId };
+  } else {
+    if (!PAYPAL_TX_PATTERN.test(txId)) {
+      return jsonResponse({ success: false, error: "payment_not_confirmed", message: PAYMENT_NOT_CONFIRMED });
+    }
+    if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
       return jsonResponse(
         {
           success: false,
-          message: verified.message || "Invalid or unverified PayPal transaction.",
+          message:
+            "Transaction verification is pending PayPal webhook processing. Please wait 1-2 minutes and tap 'Check Payment Status'.",
         },
-        400
+        202
       );
     }
-
-    const recipient = `device:${cleanDev}`;
-    const key = await generateProLicense(recipient, TYPE_VIP, 0, env);
-    const record = {
-      key,
-      recipient,
-      transactionId: cleanTx,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (env.EXPRESSIVE_PRO_KV) {
-      await env.EXPRESSIVE_PRO_KV.put(
-        `license:device:${cleanDev}`,
-        JSON.stringify(record)
-      );
-      await env.EXPRESSIVE_PRO_KV.put(
-        `tx:${cleanTx}`,
-        JSON.stringify(record)
-      );
+    // Each lookup costs PayPal API calls; a person types a few Transaction IDs at most. HTTP 200 so
+    // older apps show the message (they treat any error status as "server unreachable").
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const rateKey = `verify:rate:${ip}:${Math.floor(now / 3600000)}`;
+    const attempts = parseInt((await env.EXPRESSIVE_PRO_KV.get(rateKey)) || "0", 10);
+    if (attempts >= VERIFY_RATE_LIMIT_PER_HOUR) {
+      return jsonResponse({
+        success: false,
+        error: "rate_limited",
+        message: "Too many attempts. Please try again in an hour.",
+      });
     }
+    await env.EXPRESSIVE_PRO_KV.put(rateKey, String(attempts + 1), { expirationTtl: 7200 });
 
-    return jsonResponse({ success: true, key, recipient });
+    const verified = await verifyWithPayPalApi(txId, env);
+    if (verified.pending) {
+      return jsonResponse({ success: false, error: "payment_pending", message: PAYMENT_PENDING });
+    }
+    if (!verified.valid) {
+      return jsonResponse({ success: false, error: "payment_not_confirmed", message: PAYMENT_NOT_CONFIRMED });
+    }
+    // Claim under PayPal's own spelling of the ID, so one payment has one record whatever was typed.
+    captureId = verified.capture.id || txId;
+    payment = paymentDetails(verified.capture, {
+      orderId: verified.capture.supplementary_data?.related_ids?.order_id,
+      eventType: "api_lookup",
+    });
   }
 
-  return jsonResponse(
-    {
-      success: false,
-      message:
-        "Transaction verification is pending PayPal webhook processing. Please wait 1-2 minutes and tap 'Check Payment Status'.",
-    },
-    202
-  );
+  const { record } = await claimPayment(env, { captureId, deviceId: cleanDev, payment, now });
+  // Signed for this device just now, or earlier for another: delivery moves a copy if needed.
+  return await deliverToDevice(record, cleanDev, env, now);
 }
 
 /**
@@ -469,6 +531,9 @@ async function handleVerifyDonation(request, env, now = Date.now()) {
  * is re-signed for this one, within the license's device-move allowance.
  */
 async function deliverToDevice(record, deviceId, env, now) {
+  if (record.revokedAt) {
+    return jsonResponse({ success: false, error: "payment_revoked", message: PAYMENT_REVOKED });
+  }
   const boundDevice = boundDeviceOf(record.recipient);
   if (!boundDevice || boundDevice === deviceId) {
     return jsonResponse({ success: true, key: record.key, recipient: record.recipient });
@@ -551,18 +616,7 @@ async function handleRebind(request, env, now = Date.now()) {
  * move at a time so parallel requests can't each pass the move limit.
  */
 async function moveLicenseToDevice(license, deviceId, env, now) {
-  if (!env.LICENSE_LEDGER) {
-    throw new Error("LICENSE_LEDGER Durable Object binding is not configured.");
-  }
-  const ledger = env.LICENSE_LEDGER.get(env.LICENSE_LEDGER.idFromName("license-moves"));
-  const res = await ledger.fetch("https://license-ledger/move", {
-    method: "POST",
-    body: JSON.stringify({ license, deviceId, now }),
-  });
-  if (!res.ok) {
-    throw new Error(`License ledger returned ${res.status}`);
-  }
-  return res.json();
+  return callLedger(env, "/move", { license, deviceId, now });
 }
 
 /**
@@ -578,12 +632,134 @@ export class LicenseLedger {
   }
 
   async fetch(request) {
-    const { license, deviceId, now } = await request.json();
-    const result = await this.state.blockConcurrencyWhile(() =>
-      recordMove(this.state.storage, license, deviceId, now, this.env)
-    );
-    return jsonResponse(result);
+    const body = await request.json();
+    const operation = {
+      "/move": () => recordMove(this.state.storage, body.license, body.deviceId, body.now, this.env),
+      "/payment": () => recordPayment(this.state.storage, body, this.env),
+      "/revoke": () => recordRevocation(this.state.storage, body, this.env),
+    }[new URL(request.url).pathname];
+    if (!operation) {
+      return jsonResponse({ error: "unknown_operation" }, 404);
+    }
+    return jsonResponse(await this.state.blockConcurrencyWhile(operation));
   }
+}
+
+/**
+ * The one record of a PayPal payment, keyed by its capture (Transaction) ID. The first claim with a
+ * device ID signs the license; later claims, a redelivered webhook or a webhook racing a restore, get
+ * that same record back, so one payment never becomes two licenses. `seed` is the payment's record
+ * from before the ledger kept them (KV only): it is adopted, never signed again.
+ */
+async function recordPayment(storage, { captureId, deviceId, payment, seed, now }, env) {
+  const storeKey = `payment:${captureId}`;
+  const existing = await storage.get(storeKey);
+  const record = existing || seed || { transactionId: captureId, ...payment, paidAt: new Date(now).toISOString() };
+  if (record.key || record.revokedAt || !deviceId) {
+    if (!existing) await storage.put(storeKey, record);
+    return { record, created: false };
+  }
+  record.recipient = `device:${deviceId}`;
+  record.key = await generateProLicense(record.recipient, TYPE_VIP, 0, env);
+  record.createdAt = new Date(now).toISOString();
+  await storage.put(storeKey, record);
+  return { record, created: true };
+}
+
+/**
+ * Marks a payment refunded, reversed or denied, blocks its license from moving to new devices, and
+ * names every device the license reached (the first one and each move) so their lookups stop handing
+ * the key out. A refund that leaves at least the Pro price paid (a returned tip) revokes nothing.
+ */
+async function recordRevocation(storage, { captureId, reason, refundedCents, seed, now }, env) {
+  const storeKey = `payment:${captureId}`;
+  const record = (await storage.get(storeKey)) || seed || { transactionId: captureId };
+  const paid = toCents(record.amount);
+  const price = proPriceCents(env);
+  if (reason === "PAYMENT.CAPTURE.REFUNDED" && refundedCents != null && paid != null && price) {
+    if (paid - refundedCents >= price) {
+      record.refundedCents = refundedCents;
+      await storage.put(storeKey, record);
+      return { record, devices: [], revoked: false };
+    }
+  }
+  record.revokedAt = record.revokedAt || new Date(now).toISOString();
+  record.revokedReason = reason;
+  await storage.put(storeKey, record);
+
+  const devices = new Set();
+  const bound = boundDeviceOf(record.recipient);
+  if (bound) devices.add(bound);
+  if (record.key) {
+    const id = await keyId(record.key);
+    const rootId = (await storage.get(`keyroot:${id}`)) || id;
+    await storage.put(`revoked:${rootId}`, reason);
+    const moves = await storage.get(`moves:${rootId}`);
+    for (const device of Object.keys(moves?.devices || {})) devices.add(device);
+  }
+  return { record, devices: [...devices], revoked: true };
+}
+
+/** The payment's KV record when it holds a key: one stored before the ledger kept payments. */
+async function legacyPaymentRecord(env, captureId) {
+  const raw = await env.EXPRESSIVE_PRO_KV.get(`tx:${captureId}`);
+  const record = raw ? JSON.parse(raw) : null;
+  return record?.key ? record : null;
+}
+
+/**
+ * Claims a payment through the ledger and mirrors the result into KV, where the lookups read it:
+ * tx:<capture> (and tx:<order>) always, license:device:<id> once a device holds the license.
+ */
+async function claimPayment(env, { captureId, deviceId, payment, now }) {
+  const seed = await legacyPaymentRecord(env, captureId);
+  const result = await callLedger(env, "/payment", { captureId, deviceId, payment, seed, now });
+  const { record } = result;
+  for (const id of new Set([captureId, record.orderId].filter(Boolean))) {
+    await env.EXPRESSIVE_PRO_KV.put(`tx:${id}`, JSON.stringify(record));
+  }
+  const bound = boundDeviceOf(record.recipient);
+  if (record.key && bound) {
+    // Replace whatever the device held before (an expired tester key, a refunded purchase), unless it
+    // already is this payment's record.
+    const raw = await env.EXPRESSIVE_PRO_KV.get(`license:device:${bound}`);
+    const previous = raw ? JSON.parse(raw) : null;
+    if (previous?.transactionId !== record.transactionId) {
+      await env.EXPRESSIVE_PRO_KV.put(`license:device:${bound}`, JSON.stringify(record));
+    }
+  }
+  return result;
+}
+
+async function revokePayment(env, { captureId, reason, refundedCents, now }) {
+  const seed = await legacyPaymentRecord(env, captureId);
+  const { record, devices, revoked } = await callLedger(env, "/revoke", { captureId, reason, refundedCents, seed, now });
+  if (!revoked) return;
+  const marks = { revokedAt: record.revokedAt, revokedReason: reason };
+  const mark = async (kvKey) => {
+    const raw = await env.EXPRESSIVE_PRO_KV.get(kvKey);
+    const current = raw ? JSON.parse(raw) : { transactionId: captureId };
+    await env.EXPRESSIVE_PRO_KV.put(kvKey, JSON.stringify({ ...current, ...marks }));
+  };
+  await mark(`tx:${captureId}`);
+  if (record.orderId) await mark(`tx:${record.orderId}`);
+  for (const device of devices) {
+    const raw = await env.EXPRESSIVE_PRO_KV.get(`license:device:${device}`);
+    // Only that payment's copies: a device may since hold a different license.
+    if (raw && JSON.parse(raw).transactionId === captureId) await mark(`license:device:${device}`);
+  }
+}
+
+async function callLedger(env, path, body) {
+  if (!env.LICENSE_LEDGER) {
+    throw new Error("LICENSE_LEDGER Durable Object binding is not configured.");
+  }
+  const ledger = env.LICENSE_LEDGER.get(env.LICENSE_LEDGER.idFromName("license-moves"));
+  const res = await ledger.fetch(`https://license-ledger${path}`, { method: "POST", body: JSON.stringify(body) });
+  if (!res.ok) {
+    throw new Error(`License ledger returned ${res.status}`);
+  }
+  return res.json();
 }
 
 /**
@@ -594,6 +770,9 @@ export class LicenseLedger {
 async function recordMove(storage, license, deviceId, now, env) {
   const nowSeconds = Math.floor(now / 1000);
   const rootId = (await storage.get(`keyroot:${license.id}`)) || license.id;
+  if (await storage.get(`revoked:${rootId}`)) {
+    return { error: "payment_revoked", message: PAYMENT_REVOKED };
+  }
   const movesKey = `moves:${rootId}`;
   const moves = (await storage.get(movesKey)) || { devices: {} };
 
@@ -937,32 +1116,36 @@ async function secretsEqual(a, b) {
  */
 async function verifyWithPayPalApi(transactionId, env) {
   try {
-    const token = await getPayPalAccessToken(env);
-    if (!token) {
-      return { valid: false, message: "PayPal authentication failed" };
+    // Only this merchant's captures are visible with its credentials; a receipt's Transaction ID is
+    // the capture ID. A cached token PayPal no longer accepts gets one retry with a fresh one.
+    let captureRes;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const token = await getPayPalAccessToken(env);
+      if (!token) return { valid: false };
+      captureRes = await fetch(
+        `${paypalApiBase(env)}/v2/payments/captures/${encodeURIComponent(transactionId)}`,
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
+      if (captureRes.status !== 401) break;
+      forgetPayPalAccessToken();
     }
-
-    // Check capture
-    const captureRes = await fetch(
-      `${PAYPAL_API_BASE}/v2/payments/captures/${encodeURIComponent(transactionId)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (captureRes.ok) {
-      const captureData = await captureRes.json();
-      if (captureData.status === "COMPLETED") {
-        return { valid: true };
-      }
+    if (!captureRes.ok) {
+      console.warn(`PayPal capture lookup for ${transactionId} returned ${captureRes.status}`);
+      return { valid: false };
     }
-
-    return { valid: false, message: "PayPal capture status is not COMPLETED." };
+    const capture = await captureRes.json();
+    if (capture.status === "PENDING") {
+      return { valid: false, pending: true };
+    }
+    const problem = capturePaysForPro(capture, env);
+    if (problem) {
+      console.warn(`PayPal capture ${transactionId} is not a Pro purchase: ${problem}`);
+      return { valid: false };
+    }
+    return { valid: true, capture };
   } catch (err) {
-    return { valid: false, message: err.message };
+    console.error("PayPal capture lookup failed:", err);
+    return { valid: false };
   }
 }
 
@@ -1419,6 +1602,7 @@ function escapeHtml(str) {
 
 // Exported for unit tests (node --test server/cloudflare-worker/).
 export {
+  forgetPayPalAccessToken,
   handleAdminIssued,
   handleTrialRequest,
   handleRebind,
