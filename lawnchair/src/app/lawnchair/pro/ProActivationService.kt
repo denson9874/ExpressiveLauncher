@@ -4,6 +4,7 @@ import app.lawnchair.util.kotlinxJson
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -44,6 +45,16 @@ interface ProActivationService {
 
     companion object {
         const val DEFAULT_ACTIVATION_URL = "https://expressive-pro-activation.daryldenson-apps.workers.dev/"
+
+        /**
+         * The browser page that buys Pro for [deviceId]: the worker makes a PayPal order carrying the
+         * device ID, sends the buyer to PayPal and unlocks Pro for this device once they have paid.
+         */
+        fun checkoutUrl(deviceId: String, baseUrl: String = DEFAULT_ACTIVATION_URL): String = baseUrl.toHttpUrl().newBuilder()
+            .addPathSegments("api/checkout")
+            .addQueryParameter("device_id", deviceId)
+            .build()
+            .toString()
 
         fun create(baseUrl: String = DEFAULT_ACTIVATION_URL): ProActivationService {
             val okHttpClient = OkHttpClient.Builder()

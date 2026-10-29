@@ -3,6 +3,7 @@ package app.lawnchair.pro
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -118,6 +119,49 @@ class ProManager(private val context: Context) {
     private fun isSavedTrialKey(key: String): Boolean =
         ProLicenseVerifier.verify(key, nowSeconds = 0L).getOrNull()?.isTrial == true
 
+    /**
+     * Remembers that Donate sent this install to the activation worker's checkout. Until a paid
+     * license is active (or [CHECKOUT_PENDING_MS] has passed), returning to the launcher or the Pro
+     * sheet fetches it: [claimPendingCheckout].
+     */
+    fun markCheckoutStarted() {
+        prefs.edit().putLong(KEY_CHECKOUT_STARTED_AT, clock()).apply()
+        lastCheckoutCheck = Long.MIN_VALUE
+    }
+
+    /** A checkout started in the last [CHECKOUT_PENDING_MS] while no paid license is active (a trial isn't). */
+    val hasPendingCheckout: Boolean
+        get() {
+            val startedAt = prefs.getLong(KEY_CHECKOUT_STARTED_AT, 0L)
+            return startedAt > 0L && clock() - startedAt in 0..CHECKOUT_PENDING_MS &&
+                _licenseDetails.value?.isTrial != false
+        }
+
+    private var lastCheckoutCheck = Long.MIN_VALUE
+
+    /**
+     * After a checkout, fetches this device's license from the activation worker and activates it.
+     * Null when there is nothing to do: no pending checkout, checked under a minute ago, nothing paid
+     * yet (cancelled, still processing) or the worker unreachable.
+     */
+    suspend fun claimPendingCheckout(
+        service: ProActivationService = ProActivationService.create(),
+    ): Result<ProLicenseDetails>? {
+        if (!hasPendingCheckout) return null
+        val now = clock()
+        if (lastCheckoutCheck != Long.MIN_VALUE && now - lastCheckoutCheck in 0 until CHECKOUT_CHECK_INTERVAL_MS) return null
+        lastCheckoutCheck = now
+        val response = try {
+            service.checkLicense(ProDeviceId.get(context))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return null
+        }
+        val key = response.key?.takeIf { response.success && it.isNotBlank() } ?: return null
+        return activateOrMove(key, service)
+    }
+
     /** Whether this install already started its trial (the server enforces one per device too). */
     val hasUsedTrial: Boolean get() = prefs.getBoolean(KEY_TRIAL_STARTED, false)
 
@@ -157,7 +201,10 @@ class ProManager(private val context: Context) {
         val nowSeconds = nowSecondsFor(rawKey)
         val result = ProLicenseVerifier.verify(rawKey, nowSeconds).mapCatching { details ->
             verifyDeviceBinding(details).getOrThrow()
-            prefs.edit().putString(KEY_LICENSE_CODE, details.rawKeyCode).commit()
+            prefs.edit().putString(KEY_LICENSE_CODE, details.rawKeyCode).apply {
+                // A paid license ends the wait for one; a trial doesn't.
+                if (!details.isTrial) remove(KEY_CHECKOUT_STARTED_AT)
+            }.commit()
             _isPro.value = true
             _licenseDetails.value = details
             _isCakey.value = details.isCakey
@@ -242,6 +289,13 @@ class ProManager(private val context: Context) {
         private const val KEY_TRUSTED_ELAPSED_SECONDS = "trusted_elapsed_seconds"
         private const val KEY_TRIAL_STARTED = "trial_started"
         private const val KEY_TRIAL_ENDED_NOTICE = "trial_ended_notice"
+        private const val KEY_CHECKOUT_STARTED_AT = "checkout_started_at"
+
+        /** How long after Donate a returning buyer's license is fetched by itself. */
+        const val CHECKOUT_PENDING_MS = 24L * 60 * 60 * 1000
+
+        /** At most one automatic fetch a minute: Home resumes often. */
+        const val CHECKOUT_CHECK_INTERVAL_MS = 60_000L
         private const val MAX_EXPIRY_CHECK_DELAY_MS = 6L * 60 * 60 * 1000
 
         /** Wall clock in milliseconds; replaced by unit tests. */

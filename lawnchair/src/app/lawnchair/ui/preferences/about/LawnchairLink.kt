@@ -61,7 +61,7 @@ fun LawnchairLink(
             .height(64.dp)
             .clip(MaterialTheme.shapes.medium)
             .clickable {
-                val webpage = url.toUri()
+                val webpage = AboutDestinations.launchUrl(context, url).toUri()
                 val intent = Intent(Intent.ACTION_VIEW, webpage)
                 try {
                     context.startActivity(intent)
@@ -103,7 +103,7 @@ fun HorizontalLawnchairLink(
     PreferenceTemplate(
         modifier = modifier,
         onClick = {
-            val webpage = url.toUri()
+            val webpage = AboutDestinations.launchUrl(context, url).toUri()
             val intent = Intent(Intent.ACTION_VIEW, webpage)
             try {
                 context.startActivity(intent)

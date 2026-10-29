@@ -517,7 +517,12 @@ class LawnchairLauncher : QuickstepLauncher() {
         super.onResume()
         restartIfPending()
         // Re-check time-limited Pro licenses (trials) whenever Home returns.
-        app.lawnchair.pro.ProManager.INSTANCE.get(this).refreshState()
+        val proManager = app.lawnchair.pro.ProManager.INSTANCE.get(this)
+        proManager.refreshState()
+        // Back from buying Pro: picks the license up once the payment has gone through.
+        if (proManager.hasPendingCheckout) {
+            lifecycleScope.launch { proManager.claimPendingCheckout() }
+        }
 
         dragLayer.viewTreeObserver.addOnDrawListener(
             object : ViewTreeObserver.OnDrawListener {

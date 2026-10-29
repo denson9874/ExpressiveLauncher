@@ -1,11 +1,15 @@
 package app.lawnchair.ui.preferences.about
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
+import app.lawnchair.pro.ProActivationService
+import app.lawnchair.pro.ProDeviceId
+import app.lawnchair.pro.ProManager
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import java.io.File
@@ -26,6 +30,17 @@ internal object AboutDestinations {
     const val TELEGRAM_ANNOUNCEMENTS_URL = "https://t.me/ExpressiveGroup"
     const val OBTAINIUM_ADD_URL = "obtainium://add/https://github.com/denson9874/ExpressiveLauncher"
     const val OBTAINIUM_WEB_URL = "https://github.com/ImranR98/Obtainium"
+
+    /**
+     * The URL a link opens. Donate buys Pro for this device through the activation worker's checkout,
+     * which carries the device ID that PayPal's own link drops, and is remembered so Pro turns on
+     * when the buyer comes back.
+     */
+    fun launchUrl(context: Context, url: String): String {
+        if (url != PAYPAL_PAYMENT_URL) return url
+        ProManager.INSTANCE.get(context).markCheckoutStarted()
+        return ProActivationService.checkoutUrl(ProDeviceId.get(context))
+    }
 }
 
 internal fun expressiveProductOwners(): List<TeamMember> = listOf(

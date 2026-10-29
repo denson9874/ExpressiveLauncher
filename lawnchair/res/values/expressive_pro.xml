@@ -67,6 +67,7 @@
     <string name="expressive_pro_verify_button">Verify &amp; Unlock</string>
     <string name="expressive_pro_verifying">Verifying with PayPal…</string>
     <string name="expressive_pro_payment_not_found">No completed $4.99 contribution found yet for this device ID (%1$s). If you just paid, please wait a moment and try again.</string>
+    <string name="expressive_pro_no_browser">No browser is installed to open PayPal. Install or enable a browser, then try again.</string>
     <string name="cakey_edition_title">Cakey Edition 🍰</string>
     <string name="cakey_edition_badge">🍰 LAURA</string>
     <string name="cakey_edition_banner_desc">Handcrafted with love for Laura by Daryl ❤️</string>

@@ -53,6 +53,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,12 +75,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.lawnchair.pro.ProActivationService
 import app.lawnchair.pro.ProDeviceId
 import app.lawnchair.pro.ProLicenseDetails
 import app.lawnchair.pro.VerifyDonationRequest
 import app.lawnchair.pro.proManager
-import app.lawnchair.ui.preferences.about.AboutDestinations
 import com.android.launcher3.R
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -117,6 +120,30 @@ fun RedeemProDialog(
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val deviceId = remember { ProDeviceId.get(context) }
+    // Back from PayPal: Pro turns on by itself once the worker has the payment. ProManager remembers
+    // the checkout, so the launcher does the same if this sheet is gone by then.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && proManager.hasPendingCheckout && !isCheckingStatus) {
+                scope.launch {
+                    isCheckingStatus = true
+                    try {
+                        proManager.claimPendingCheckout()
+                            ?.onSuccess { if (it.isCakey) showCakeyCelebration = true }
+                            ?.onFailure {
+                                errorMessage = it.message ?: "Activation failed"
+                                showSupportCard = true
+                            }
+                    } finally {
+                        isCheckingStatus = false
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(initialKey) {
         if (initialKey.isNotBlank()) {
@@ -296,12 +323,16 @@ fun RedeemProDialog(
                     // Primary Button: Pay $4.99 with PayPal
                     Button(
                         onClick = {
-                            val paypalUrl = Uri.parse(AboutDestinations.PAYPAL_PAYMENT_URL)
-                                .buildUpon()
-                                .appendQueryParameter("custom", deviceId)
-                                .appendQueryParameter("invoice_id", deviceId)
-                                .build()
-                            context.startActivity(Intent(Intent.ACTION_VIEW, paypalUrl))
+                            // The worker makes a PayPal order carrying this device ID, so the payment
+                            // unlocks Pro here by itself (PayPal's own link drops the ID).
+                            val checkout = Uri.parse(ProActivationService.checkoutUrl(deviceId))
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, checkout))
+                                proManager.markCheckoutStarted()
+                                errorMessage = null
+                            } catch (_: Exception) {
+                                errorMessage = context.getString(R.string.expressive_pro_no_browser)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
