@@ -456,11 +456,13 @@ async function getPayPalAccessToken(env) {
   });
   if (!tokenRes.ok) {
     // PayPal's error names which half is wrong ("Client secret does not match ..."); it never echoes
-    // either value. The lengths tell a swapped or cut-off paste apart without showing anything.
+    // either value. Lengths and shape tell a wrong paste apart without logging a single character.
     const reason = await tokenRes.json().catch(() => ({}));
+    const shape = (value) =>
+      `${value.length} chars${/^[A-Za-z0-9_-]{60,}$/.test(value) ? "" : ", not shaped like a PayPal credential"}`;
     console.error(
       `PayPal token request returned ${tokenRes.status}: ${reason.error || "?"} ${reason.error_description || ""}` +
-        ` (client ID ${clientId.slice(0, 3)}… ${clientId.length} chars, secret ${secret.length} chars)`
+        ` (client ID ${shape(clientId)}, secret ${shape(secret)})`
     );
     return null;
   }
