@@ -350,6 +350,7 @@ const restore = (env, transactionId, deviceId, ip) =>
   );
 const lookup = async (env, deviceId) =>
   (await worker.fetch(new Request(`https://worker.test/api/license?device_id=${deviceId}`), env, {})).json();
+const VERIFY_ATTEMPTS = 10;
 const keysWith = (env, prefix) => [...env.EXPRESSIVE_PRO_KV.map.keys()].filter((k) => k.startsWith(prefix));
 
 test("webhook refuses events while signature verification is not configured", async () => {
@@ -419,13 +420,23 @@ test("only a completed capture of the Pro price mints: approvals, sales and shor
   assert.ok((await lookup(env, NEW_DEVICE)).key);
 });
 
-test("PAYPAL_MERCHANT_ID refuses captures paid to someone else", async (t) => {
-  const env = await testEnv({ ...PAYPAL_SECRETS, PAYPAL_MERCHANT_ID: "MERCHANT-A" });
+test("PAYPAL_MERCHANT_ID refuses captures paid to someone else, and PayPal retries them", async (t) => {
+  const env = await testEnv({ ...PAYPAL_SECRETS, PAYPAL_MERCHANT_ID: " ABCDEFGH23456 " });
   stubFetch(t, paypal());
-  await webhook(env, captureEvent("C-OTHER", { custom_id: NEW_DEVICE, payee: { merchant_id: "MERCHANT-B" } }));
+  // On this webhook another payee means the setting is wrong: 503 keeps PayPal retrying until it's fixed.
+  const other = await webhook(env, captureEvent("C-OTHER", { custom_id: NEW_DEVICE, payee: { merchant_id: "JKLMNPQRSTUVW" } }));
+  assert.equal(other.status, 503);
   assert.equal((await lookup(env, NEW_DEVICE)).success, false);
-  await webhook(env, captureEvent("C-OURS", { custom_id: NEW_DEVICE, payee: { merchant_id: "MERCHANT-A" } }));
-  assert.ok((await lookup(env, NEW_DEVICE)).key);
+  await webhook(env, captureEvent("C-OURS", { custom_id: NEW_DEVICE, payee: { merchant_id: "ABCDEFGH23456" } }));
+  assert.ok((await lookup(env, NEW_DEVICE)).key, "the setting is trimmed");
+});
+
+test("an email in PAYPAL_MERCHANT_ID refuses with a retry, never silently", async (t) => {
+  const env = await testEnv({ ...PAYPAL_SECRETS, PAYPAL_MERCHANT_ID: "seller@example.com" });
+  stubFetch(t, paypal());
+  const res = await webhook(env, captureEvent("CAPMERCHEMAIL001", { custom_id: NEW_DEVICE, payee: { merchant_id: "ABCDEFGH23456" } }));
+  assert.equal(res.status, 503);
+  assert.equal((await lookup(env, NEW_DEVICE)).success, false);
 });
 
 test("a payment without the device ID waits, unsigned, for the first restore with its Transaction ID", async (t) => {
@@ -510,8 +521,11 @@ test("a refund or reversal stops the license being handed out, on every device i
   assert.equal(viaOrder.error, "payment_revoked");
   assert.equal(viaOrder.key, undefined);
 
-  // The license can't move on with its own key either.
-  const viaKey = await (await rebind(env, moved.key, "DEV-QQ11-RR22", NOW, "192.0.2.50")).json();
+  // The license can't move on with its own key either, and 5.0.x apps (any 409 = move limit) aren't
+  // told it moved too often.
+  const viaKeyRes = await rebind(env, moved.key, "DEV-QQ11-RR22", NOW, "192.0.2.50");
+  assert.equal(viaKeyRes.status, 403);
+  const viaKey = await viaKeyRes.json();
   assert.equal(viaKey.error, "payment_revoked");
   assert.equal(viaKey.key, undefined);
 
@@ -664,9 +678,117 @@ test("a PayPal token that stopped working is replaced once, and PAYPAL_API_BASE 
 
 test("a PRO_PRICE that isn't a price refuses every payment", async (t) => {
   const env = await testEnv({ ...PAYPAL_SECRETS, PRO_PRICE: "4,99" });
-  stubFetch(t, paypal());
+  stubFetch(t, paypal({ "CAPBADPRICE00002": capture("CAPBADPRICE00002") }));
   const res = await webhook(env, captureEvent("CAPBADPRICE00001", { custom_id: NEW_DEVICE }));
-  assert.equal(res.status, 200);
+  assert.equal(res.status, 503, "PayPal retries while the price is fixed");
+  const restored = await (await restore(env, "CAPBADPRICE00002", NEW_DEVICE)).json();
+  assert.equal(restored.error, "paypal_unavailable", "the buyer isn't told their Transaction ID is wrong");
+  assert.equal((await lookup(env, NEW_DEVICE)).success, false);
+});
+
+test("events the worker doesn't act on are answered without asking PayPal", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  const calls = stubFetch(t, paypal());
+  for (const type of ["JUNK", "CHECKOUT.ORDER.APPROVED", undefined]) {
+    const res = await webhook(env, { event_type: type, resource: {} });
+    assert.equal(res.status, 200);
+  }
+  assert.deepEqual(calls, []);
+});
+
+test("a keyless tx: record the ledger didn't make is checked with PayPal, not signed", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, { ...paypal(), "/v2/payments/captures/TESTNOKEY0000001": () => ({ status: 404, body: {} }) });
+  await env.EXPRESSIVE_PRO_KV.put("tx:TESTNOKEY0000001", JSON.stringify({ transactionId: "TESTNOKEY0000001" }));
+  const res = await (await restore(env, "TESTNOKEY0000001", NEW_DEVICE)).json();
+  assert.equal(res.error, "payment_not_confirmed");
+  assert.deepEqual(keysWith(env, "license:device:"), []);
+});
+
+test("PayPal failing is not reported as a wrong Transaction ID and uses no attempt", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  let down = true;
+  stubFetch(t, {
+    ...paypal(),
+    "/v2/payments/captures/5AB12345CD678901E": () => (down ? { status: 503, body: {} } : capture("5AB12345CD678901E")),
+  });
+  for (let i = 0; i < VERIFY_ATTEMPTS + 2; i++) {
+    const res = await restore(env, "5AB12345CD678901E", NEW_DEVICE);
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).error, "paypal_unavailable");
+  }
+  down = false;
+  assert.equal((await (await restore(env, "5AB12345CD678901E", NEW_DEVICE)).json()).success, true);
+});
+
+test("bad PayPal credentials say PayPal is unavailable", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, { "/v1/oauth2/token": () => ({ status: 401, body: { error: "invalid_client" } }) });
+  const res = await (await restore(env, "6AB12345CD678901E", NEW_DEVICE)).json();
+  assert.equal(res.error, "paypal_unavailable");
+});
+
+test("restoring a refunded capture says it was refunded", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, paypal({
+    "7RF12345CD678901E": capture("7RF12345CD678901E", { status: "REFUNDED" }),
+    "8RF12345CD678901E": capture("8RF12345CD678901E", { status: "PARTIALLY_REFUNDED" }),
+  }));
+  for (const tx of ["7RF12345CD678901E", "8RF12345CD678901E"]) {
+    assert.equal((await (await restore(env, tx, NEW_DEVICE)).json()).error, "payment_revoked");
+  }
+  assert.deepEqual(keysWith(env, "license:device:"), []);
+});
+
+test("a device keeps its paid license: a duplicate purchase, its refund and a late redelivery change nothing", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, paypal());
+  await webhook(env, captureEvent("CAPKEEP000000001", { custom_id: OLD_DEVICE }));
+  const first = (await lookup(env, OLD_DEVICE)).key;
+  await webhook(env, captureEvent("CAPKEEP000000002", { custom_id: OLD_DEVICE }));
+  assert.equal((await lookup(env, OLD_DEVICE)).key, first, "the duplicate doesn't replace it");
+  await webhook(env, refundEvent("CAPKEEP000000002", "4.99"));
+  assert.equal((await lookup(env, OLD_DEVICE)).key, first, "refunding the duplicate leaves it");
+
+  // Refunded, then bought again: PayPal redelivering the refunded capture doesn't bring the refund back.
+  await webhook(env, refundEvent("CAPKEEP000000001", "4.99"));
+  await webhook(env, captureEvent("CAPKEEP000000003", { custom_id: OLD_DEVICE }));
+  const rebought = (await lookup(env, OLD_DEVICE)).key;
+  assert.ok(rebought);
+  await webhook(env, captureEvent("CAPKEEP000000001", { custom_id: OLD_DEVICE }));
+  assert.equal((await lookup(env, OLD_DEVICE)).key, rebought);
+});
+
+test("a late redelivery of a refunded capture doesn't replace a key the owner issued since", async (t) => {
+  const env = await testEnv({ ...PAYPAL_SECRETS, ADMIN_TOKEN: "admin-secret" });
+  stubFetch(t, paypal());
+  await webhook(env, captureEvent("CAPADMIN00000001", { custom_id: OLD_DEVICE }));
+  await webhook(env, refundEvent("CAPADMIN00000001", "4.99"));
+  assert.equal((await admin(env, { type: "VIP", device: OLD_DEVICE })).status, 200);
+  const issued = (await lookup(env, OLD_DEVICE)).key;
+  assert.ok(issued);
+  await webhook(env, captureEvent("CAPADMIN00000001", { custom_id: OLD_DEVICE }));
+  assert.equal((await lookup(env, OLD_DEVICE)).key, issued);
+});
+
+test("restore attempts are counted per IPv6 /64, not per address", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, { ...paypal(), "/v2/payments/captures/9AB12345CD678901F": () => ({ status: 404, body: {} }) });
+  const errors = [];
+  for (let i = 0; i < VERIFY_ATTEMPTS + 1; i++) {
+    const ip = i % 2 ? `2001:db8:1:2::${i.toString(16)}` : `2001:0db8:0001:0002:${i}:0:0:1`;
+    errors.push((await (await restore(env, "9AB12345CD678901F", NEW_DEVICE, ip)).json()).error);
+  }
+  assert.equal(errors.at(-1), "rate_limited");
+  assert.equal(errors.filter((e) => e === "rate_limited").length, 1);
+});
+
+test("PAYPAL_API_BASE can only name PayPal's live or sandbox API", async (t) => {
+  const env = await testEnv({ ...PAYPAL_SECRETS, PAYPAL_API_BASE: "https://evil.example" });
+  const calls = stubFetch(t, paypal());
+  assert.equal((await webhook(env, captureEvent("CAPEVIL000000001", { custom_id: NEW_DEVICE }))).status, 401);
+  assert.equal((await (await restore(env, "CAPEVIL000000001", NEW_DEVICE)).json()).error, "paypal_unavailable");
+  assert.deepEqual(calls, []);
   assert.equal((await lookup(env, NEW_DEVICE)).success, false);
 });
 

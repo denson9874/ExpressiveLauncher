@@ -31,4 +31,6 @@ new_sqlite_classes = ["LicenseLedger"]
 # .REVERSED. Optional overrides, as [vars] or secrets:
 # - PRO_PRICE / PRO_CURRENCY: what a capture must pay for Pro (default 4.99 USD). A value that
 #   isn't a price refuses every payment rather than accepting any.
-# - PAYPAL_API_BASE: https://api-m.sandbox.paypal.com for a sandbox test worker, never here.
+# - PAYPAL_API_BASE: https://api-m.sandbox.paypal.com for a sandbox test worker, never here (nothing
+#   but PayPal's live and sandbox APIs is accepted). A sandbox copy needs its own kv_namespaces id:
+#   sharing this one would let sandbox payments sign real licenses.

@@ -25,6 +25,7 @@ const DEVICE_ID_PATTERN = /^DEV-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 const FINGERPRINT_PATTERN = /^[0-9a-f]{64}$/;
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const PAYPAL_API_BASE = "https://api-m.paypal.com";
+const PAYPAL_SANDBOX_API_BASE = "https://api-m.sandbox.paypal.com";
 const RESTORE_NEEDS_TRANSACTION =
   "To restore a contribution, enter the Transaction ID from your PayPal receipt.";
 // The Pro price on the app's PayPal link. A capture for less, or in another currency, is a tip, not a
@@ -42,6 +43,11 @@ const PAYMENT_NOT_CONFIRMED =
 const PAYMENT_REVOKED = "This payment was refunded or reversed, so it no longer unlocks Pro.";
 const PAYMENT_PENDING =
   "PayPal is still processing this payment. Please try again once your PayPal receipt shows it as completed.";
+const PAYPAL_UNAVAILABLE = "PayPal couldn't be reached to confirm this payment. Please try again in a few minutes.";
+const PAYMENT_EVENTS = ["PAYMENT.CAPTURE.COMPLETED", ...PAYMENT_REVOKED_EVENTS];
+// Refusals caused by the worker's own settings, not by the payment: PayPal is told to retry (503).
+// A capture on this account's webhook or API paid to another payee means PAYPAL_MERCHANT_ID is wrong.
+const CONFIG_PROBLEMS = ["price_misconfigured", "wrong_payee"];
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -245,6 +251,10 @@ async function handlePayPalWebhook(request, env, now = Date.now()) {
     console.error("PayPal webhook received but PAYPAL_WEBHOOK_ID / API credentials are not configured");
     return jsonResponse({ success: false, error: "webhook_verification_not_configured" }, 503);
   }
+  // Events the worker doesn't act on change nothing, so they aren't worth a PayPal API call each.
+  if (!PAYMENT_EVENTS.includes(body?.event_type)) {
+    return jsonResponse({ received: true, ignored: String(body?.event_type ?? "") });
+  }
   const verification = await verifyPayPalWebhookSignature(request.headers, body, env);
   if (!verification.valid) {
     return jsonResponse({ success: false, error: "invalid_signature" }, 401);
@@ -273,6 +283,10 @@ async function handlePayPalWebhook(request, env, now = Date.now()) {
     return jsonResponse({ received: true, ignored: eventType });
   }
   const problem = capturePaysForPro(resource, env);
+  if (CONFIG_PROBLEMS.includes(problem)) {
+    // The worker's settings are wrong, not the payment: PayPal retries for 3 days while they're fixed.
+    return jsonResponse({ success: false, error: problem }, 503);
+  }
   if (problem || !resource.id) {
     // HTTP 200 so PayPal doesn't redeliver: the event is genuine, it just isn't a Pro purchase.
     console.warn(`PayPal capture ${resource.id || "?"} is not a Pro purchase: ${problem || "no id"}`);
@@ -315,14 +329,18 @@ function capturePaysForPro(capture, env) {
     console.error(`PRO_PRICE "${env.PRO_PRICE}" is not an amount like 4.99`);
     return "price_misconfigured";
   }
+  const merchantId = String(env.PAYPAL_MERCHANT_ID || "").trim();
   if (capture?.status !== "COMPLETED") return "not_completed";
   const amount = capture.amount || {};
-  const currency = String(env.PRO_CURRENCY || PRO_CURRENCY).toUpperCase();
+  const currency = String(env.PRO_CURRENCY || PRO_CURRENCY).trim().toUpperCase();
   if (String(amount.currency_code || "").toUpperCase() !== currency) return "wrong_currency";
   const paid = toCents(amount.value);
   if (paid === null || paid < price) return "underpaid";
   const payee = capture.payee?.merchant_id;
-  if (env.PAYPAL_MERCHANT_ID && payee && payee !== env.PAYPAL_MERCHANT_ID) return "wrong_payee";
+  if (merchantId && payee && payee !== merchantId) {
+    console.error(`PayPal capture ${capture.id} was paid to ${payee}, not PAYPAL_MERCHANT_ID ${merchantId}`);
+    return "wrong_payee";
+  }
   return null;
 }
 
@@ -336,6 +354,16 @@ function proPriceCents(env) {
 function toCents(value) {
   const match = /^(\d{1,9})(?:\.(\d{1,2}))?$/.exec(String(value ?? "").trim());
   return match ? parseInt(match[1], 10) * 100 + parseInt((match[2] || "0").padEnd(2, "0"), 10) : null;
+}
+
+/** An IPv6 address's /64 (one subscriber's whole range) or the IPv4 address, for rate limits. */
+function addressBucket(ip) {
+  if (!ip.includes(":")) return ip;
+  const [head, tail = ""] = ip.toLowerCase().split("::");
+  const left = head ? head.split(":") : [];
+  const right = ip.includes("::") && tail ? tail.split(":") : [];
+  const groups = ip.includes("::") ? [...left, ...Array(8 - left.length - right.length).fill("0"), ...right] : left;
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/64`;
 }
 
 /**
@@ -362,7 +390,12 @@ function paymentDetails(capture, extra = {}) {
 
 function paypalApiBase(env) {
   // PAYPAL_API_BASE=https://api-m.sandbox.paypal.com points a separate test worker at PayPal's sandbox.
-  return env.PAYPAL_API_BASE || PAYPAL_API_BASE;
+  // Nothing else: the client secret goes to this host, and its answers decide who gets a license.
+  const base = env.PAYPAL_API_BASE || PAYPAL_API_BASE;
+  if (base !== PAYPAL_API_BASE && base !== PAYPAL_SANDBOX_API_BASE) {
+    throw new Error("PAYPAL_API_BASE must be PayPal's live or sandbox API");
+  }
+  return base;
 }
 
 /**
@@ -475,7 +508,8 @@ async function handleVerifyDonation(request, env, now = Date.now()) {
   // Anything else is checked with PayPal first.
   let captureId;
   let payment;
-  if (stored) {
+  if (stored?.paidAt) {
+    // paidAt marks a record the ledger made from a verified payment; anything else is checked with PayPal.
     captureId = stored.transactionId || txId;
     payment = { orderId: stored.orderId };
   } else {
@@ -494,7 +528,7 @@ async function handleVerifyDonation(request, env, now = Date.now()) {
     }
     // Each lookup costs PayPal API calls; a person types a few Transaction IDs at most. HTTP 200 so
     // older apps show the message (they treat any error status as "server unreachable").
-    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const ip = addressBucket(request.headers.get("CF-Connecting-IP") || "unknown");
     const rateKey = `verify:rate:${ip}:${Math.floor(now / 3600000)}`;
     const attempts = parseInt((await env.EXPRESSIVE_PRO_KV.get(rateKey)) || "0", 10);
     if (attempts >= VERIFY_RATE_LIMIT_PER_HOUR) {
@@ -504,11 +538,18 @@ async function handleVerifyDonation(request, env, now = Date.now()) {
         message: "Too many attempts. Please try again in an hour.",
       });
     }
-    await env.EXPRESSIVE_PRO_KV.put(rateKey, String(attempts + 1), { expirationTtl: 7200 });
 
     const verified = await verifyWithPayPalApi(txId, env);
+    if (verified.unavailable) {
+      // PayPal (or the worker's PayPal settings) failed, not the buyer: no attempt is used up.
+      return jsonResponse({ success: false, error: "paypal_unavailable", message: PAYPAL_UNAVAILABLE });
+    }
+    await env.EXPRESSIVE_PRO_KV.put(rateKey, String(attempts + 1), { expirationTtl: 7200 });
     if (verified.pending) {
       return jsonResponse({ success: false, error: "payment_pending", message: PAYMENT_PENDING });
+    }
+    if (verified.revoked) {
+      return jsonResponse({ success: false, error: "payment_revoked", message: PAYMENT_REVOKED });
     }
     if (!verified.valid) {
       return jsonResponse({ success: false, error: "payment_not_confirmed", message: PAYMENT_NOT_CONFIRMED });
@@ -606,7 +647,9 @@ async function handleRebind(request, env, now = Date.now()) {
 
   const moved = await moveLicenseToDevice(license, deviceId, env, now);
   if (moved.error) {
-    return jsonResponse({ success: false, error: moved.error, message: moved.message }, 409);
+    // 5.0.x apps read any 409 as the move limit; a refunded license must not say "3 devices".
+    const status = moved.error === "transfer_limit" ? 409 : 403;
+    return jsonResponse({ success: false, error: moved.error, message: moved.message }, status);
   }
   return jsonResponse({ success: true, key: moved.key, recipient: `device:${deviceId}`, movesLeft: moved.movesLeft });
 }
@@ -719,12 +762,13 @@ async function claimPayment(env, { captureId, deviceId, payment, now }) {
     await env.EXPRESSIVE_PRO_KV.put(`tx:${id}`, JSON.stringify(record));
   }
   const bound = boundDeviceOf(record.recipient);
-  if (record.key && bound) {
-    // Replace whatever the device held before (an expired tester key, a refunded purchase), unless it
-    // already is this payment's record.
+  if (record.key && bound && !record.revokedAt) {
+    // A device keeps the paid license it holds (a duplicate purchase stays reachable by its own
+    // Transaction ID). Only nothing, a key without a payment (tester, admin) or a refunded purchase
+    // is replaced.
     const raw = await env.EXPRESSIVE_PRO_KV.get(`license:device:${bound}`);
     const previous = raw ? JSON.parse(raw) : null;
-    if (previous?.transactionId !== record.transactionId) {
+    if (!previous?.transactionId || previous.revokedAt) {
       await env.EXPRESSIVE_PRO_KV.put(`license:device:${bound}`, JSON.stringify(record));
     }
   }
@@ -1121,7 +1165,7 @@ async function verifyWithPayPalApi(transactionId, env) {
     let captureRes;
     for (let attempt = 0; attempt < 2; attempt++) {
       const token = await getPayPalAccessToken(env);
-      if (!token) return { valid: false };
+      if (!token) return { valid: false, unavailable: true };
       captureRes = await fetch(
         `${paypalApiBase(env)}/v2/payments/captures/${encodeURIComponent(transactionId)}`,
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
@@ -1131,21 +1175,27 @@ async function verifyWithPayPalApi(transactionId, env) {
     }
     if (!captureRes.ok) {
       console.warn(`PayPal capture lookup for ${transactionId} returned ${captureRes.status}`);
-      return { valid: false };
+      // Not found or not ours is the buyer's answer; PayPal failing (or a token it refuses) is not.
+      const unavailable = captureRes.status >= 500 || captureRes.status === 429 || captureRes.status === 401;
+      return { valid: false, unavailable };
     }
     const capture = await captureRes.json();
     if (capture.status === "PENDING") {
       return { valid: false, pending: true };
     }
+    // A capture refunded in part has no refunded total here, so it is treated like a full refund.
+    if (capture.status === "REFUNDED" || capture.status === "PARTIALLY_REFUNDED") {
+      return { valid: false, revoked: true };
+    }
     const problem = capturePaysForPro(capture, env);
     if (problem) {
       console.warn(`PayPal capture ${transactionId} is not a Pro purchase: ${problem}`);
-      return { valid: false };
+      return { valid: false, unavailable: CONFIG_PROBLEMS.includes(problem) };
     }
     return { valid: true, capture };
   } catch (err) {
     console.error("PayPal capture lookup failed:", err);
-    return { valid: false };
+    return { valid: false, unavailable: true };
   }
 }
 
