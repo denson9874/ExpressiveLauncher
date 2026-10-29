@@ -33,6 +33,15 @@ const RESTORE_NEEDS_TRANSACTION =
 const PRO_PRICE = "4.99";
 const PRO_CURRENCY = "USD";
 const VERIFY_RATE_LIMIT_PER_HOUR = 10;
+// Every checkout visit creates a PayPal order; a buyer taps Buy a few times at most.
+const CHECKOUT_RATE_LIMIT_PER_HOUR = 20;
+// The no-code checkout link 5.0.x apps open. /api/checkout falls back to it whenever it can't create
+// an order itself, so buying never depends on the worker reaching PayPal.
+const NO_CODE_CHECKOUT_LINK = "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2";
+// PayPal order IDs: letters and digits.
+const PAYPAL_ORDER_PATTERN = /^[A-Z0-9]{8,40}$/;
+// Capture refusals PayPal answers by sending the buyer back to it (declined, or another step needed).
+const BACK_TO_PAYPAL_ISSUES = ["INSTRUMENT_DECLINED", "PAYER_ACTION_REQUIRED", "REDIRECT_PAYER_FOR_ALTERNATE_FUNDING"];
 // PayPal transaction (capture) IDs: 17 letters and digits on receipts; allow some slack, nothing else.
 const PAYPAL_TX_PATTERN = /^[A-Z0-9-]{8,40}$/i;
 // Events that take a payment back: the license stops being handed out (keys already on a device keep
@@ -113,7 +122,18 @@ export default {
         return await handleAdminRegister(request, env);
       }
 
-      // 8. Web Deep Link Redirect / Launcher Activation Page
+      // 8. Buy Pro: a PayPal order made for this device, and the buyer's way back from PayPal
+      if (url.pathname === "/api/checkout" && request.method === "GET") {
+        return await handleCheckout(request, env);
+      }
+      if (url.pathname === "/api/checkout/return" && request.method === "GET") {
+        return await handleCheckoutReturn(request, env);
+      }
+      if (url.pathname === "/api/checkout/cancel" && request.method === "GET") {
+        return checkoutPage(200, "Payment cancelled", "Nothing was charged. You can close this page and go back to Expressive Launcher.");
+      }
+
+      // 9. Web Deep Link Redirect / Launcher Activation Page
       if (url.pathname === "/activate" && request.method === "GET") {
         return handleActivationRedirect(url);
       }
@@ -293,9 +313,10 @@ async function handlePayPalWebhook(request, env, now = Date.now()) {
     return jsonResponse({ received: true, ignored: problem || "no_capture_id" });
   }
 
-  // The app adds its device ID to the PayPal link (custom / invoice_id). When PayPal passes it on, the
-  // purchase is bound to that device and "Check payment status" finds it. Otherwise the payment waits,
-  // unclaimed, until the buyer restores it with the Transaction ID from their receipt.
+  // Orders made by /api/checkout carry the device ID as custom_id, so the purchase is bound to that
+  // device and "Check Activation Status" finds it. Purchases through the no-code link (5.0.x apps, the
+  // checkout fallback) carry none: they wait, unclaimed, until the buyer restores them with the
+  // Transaction ID from their receipt.
   const deviceId = [resource.custom_id, resource.invoice_id]
     .map((id) => String(id || "").trim().toUpperCase())
     .find((id) => DEVICE_ID_PATTERN.test(id)) || null;
@@ -476,6 +497,23 @@ async function getPayPalAccessToken(env) {
 
 function forgetPayPalAccessToken() {
   paypalToken = null;
+}
+
+/**
+ * A PayPal API call with this app's token. A token PayPal stopped accepting (401) is replaced once.
+ * Null when no token can be had (credentials missing or refused).
+ */
+async function paypalFetch(env, path, init = {}) {
+  for (let attempt = 0; ; attempt++) {
+    const token = await getPayPalAccessToken(env);
+    if (!token) return null;
+    const res = await fetch(`${paypalApiBase(env)}${path}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...init.headers },
+    });
+    if (res.status !== 401 || attempt > 0) return res;
+    forgetPayPalAccessToken();
+  }
 }
 
 /**
@@ -1172,18 +1210,9 @@ async function secretsEqual(a, b) {
 async function verifyWithPayPalApi(transactionId, env) {
   try {
     // Only this merchant's captures are visible with its credentials; a receipt's Transaction ID is
-    // the capture ID. A cached token PayPal no longer accepts gets one retry with a fresh one.
-    let captureRes;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const token = await getPayPalAccessToken(env);
-      if (!token) return { valid: false, unavailable: true };
-      captureRes = await fetch(
-        `${paypalApiBase(env)}/v2/payments/captures/${encodeURIComponent(transactionId)}`,
-        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-      );
-      if (captureRes.status !== 401) break;
-      forgetPayPalAccessToken();
-    }
+    // the capture ID.
+    const captureRes = await paypalFetch(env, `/v2/payments/captures/${encodeURIComponent(transactionId)}`);
+    if (!captureRes) return { valid: false, unavailable: true };
     if (!captureRes.ok) {
       console.warn(`PayPal capture lookup for ${transactionId} returned ${captureRes.status}`);
       // Not found or not ours is the buyer's answer; PayPal failing (or a token it refuses) is not.
@@ -1211,18 +1240,260 @@ async function verifyWithPayPalApi(transactionId, env) {
 }
 
 /**
+ * Handle GET /api/checkout?device_id=...: the app's Buy button.
+ *
+ * Creates a PayPal order for Pro carrying the device ID and sends the buyer to PayPal to pay. PayPal
+ * brings them back to /api/checkout/return, which unlocks Pro on that device at once. Whenever an
+ * order can't be made (PayPal settings missing, PayPal down, too many visits) the buyer goes to the
+ * no-code checkout link instead, which still sells Pro (restored with the Transaction ID).
+ */
+async function handleCheckout(request, env, now = Date.now()) {
+  const url = new URL(request.url);
+  const deviceId = String(url.searchParams.get("device_id") || "").trim().toUpperCase();
+  if (!DEVICE_ID_PATTERN.test(deviceId)) {
+    return checkoutPage(400, "Open this from the app", "Buy Pro from Expressive Launcher's Pro screen, so the purchase reaches your device.");
+  }
+  const fallback = Response.redirect(NO_CODE_CHECKOUT_LINK, 302);
+  if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET || !env.EXPRESSIVE_PRO_KV) {
+    return fallback;
+  }
+  const ip = addressBucket(request.headers.get("CF-Connecting-IP") || "unknown");
+  const rateKey = `checkout:rate:${ip}:${Math.floor(now / 3600000)}`;
+  try {
+    const attempts = parseInt((await env.EXPRESSIVE_PRO_KV.get(rateKey)) || "0", 10);
+    if (attempts >= CHECKOUT_RATE_LIMIT_PER_HOUR) {
+      return fallback;
+    }
+    await env.EXPRESSIVE_PRO_KV.put(rateKey, String(attempts + 1), { expirationTtl: 7200 });
+  } catch (err) {
+    // KV trouble (quota, a busy key) must not stop a purchase; the order is still worth making.
+    console.error("Checkout rate limit unavailable:", err);
+  }
+
+  const price = proPriceCents(env);
+  if (!price) {
+    console.error(`PRO_PRICE "${env.PRO_PRICE}" is not an amount like 4.99`);
+    return fallback;
+  }
+  const money = {
+    currency_code: String(env.PRO_CURRENCY || PRO_CURRENCY).trim().toUpperCase(),
+    value: (price / 100).toFixed(2),
+  };
+  const res = await paypalFetch(env, "/v2/checkout/orders", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          description: "Expressive Launcher Pro",
+          // PayPal echoes custom_id on the capture and its webhook. Not invoice_id: PayPal requires those
+          // to be unique per account, and a device may buy again after a refund.
+          custom_id: deviceId,
+          amount: { ...money, breakdown: { item_total: money } },
+          items: [{ name: "Expressive Launcher Pro", quantity: "1", unit_amount: money, category: "DIGITAL_GOODS" }],
+        },
+      ],
+      payment_source: {
+        paypal: {
+          experience_context: {
+            brand_name: "Expressive Launcher",
+            shipping_preference: "NO_SHIPPING",
+            user_action: "PAY_NOW",
+            // Card, balance or instant bank transfer: no eCheck that leaves the capture pending for days.
+            payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
+            return_url: `${url.origin}/api/checkout/return`,
+            cancel_url: `${url.origin}/api/checkout/cancel`,
+          },
+        },
+      },
+    }),
+  }).catch((err) => {
+    console.error("PayPal order creation failed:", err);
+    return null;
+  });
+  if (!res?.ok) {
+    console.warn(`PayPal order creation returned ${res?.status ?? "no token"}`);
+    return fallback;
+  }
+  const approve = payerActionLink(await res.json().catch(() => null));
+  return approve ? Response.redirect(approve, 302) : fallback;
+}
+
+/** Where PayPal wants the buyer to go next for an order, when that is PayPal's own site. */
+function payerActionLink(order) {
+  const link = (order?.links || []).find((l) => ["payer-action", "approve", "redirect"].includes(l.rel));
+  try {
+    const host = new URL(link?.href).hostname;
+    return host === "paypal.com" || host.endsWith(".paypal.com") ? link.href : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Handle GET /api/checkout/return?token=<order ID>: the buyer is back from PayPal having approved it.
+ *
+ * Captures the order, signs the license for the device the order was made for and hands the buyer to
+ * the app. Reloads and second tabs are safe: an order is captured once (PayPal refuses a second
+ * capture, and the order then shows the first), and the ledger keeps one license per capture. The
+ * PAYMENT.CAPTURE.COMPLETED webhook for the same capture finds it already claimed.
+ */
+async function handleCheckoutReturn(request, env, now = Date.now()) {
+  const url = new URL(request.url);
+  const orderId = String(url.searchParams.get("token") || "").trim();
+  if (!PAYPAL_ORDER_PATTERN.test(orderId)) {
+    return checkoutPage(400, "Payment not found", "This page needs the link PayPal sends you back with. Open Expressive Launcher and tap Check Activation Status.");
+  }
+  const unavailable = checkoutPage(
+    503,
+    "Almost there",
+    "PayPal couldn't be reached to finish your payment. Reload this page in a minute; you won't be charged twice."
+  );
+  if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET || !env.EXPRESSIVE_PRO_KV) {
+    return unavailable;
+  }
+  try {
+    // A reload after Pro was unlocked: the stored license, without asking PayPal again.
+    const raw = await env.EXPRESSIVE_PRO_KV.get(`tx:${orderId}`);
+    const known = raw ? JSON.parse(raw) : null;
+    const knownDevice = boundDeviceOf(known?.recipient);
+    if (known?.key && knownDevice) {
+      return await unlockedPage(known, knownDevice, env, now);
+    }
+
+    const outcome = await captureOrder(orderId, env);
+    if (outcome.redirect) return Response.redirect(outcome.redirect, 302);
+    if (!outcome.order) return unavailable;
+    const order = outcome.order;
+    const unit = order.purchase_units?.[0] || {};
+    const capture = unit.payments?.captures?.[0];
+    if (!capture?.id) {
+      // No capture on the order: no money moved.
+      return checkoutPage(
+        402,
+        "Payment not completed",
+        "PayPal didn't complete this payment, so nothing was charged. Go back to Expressive Launcher and try again."
+      );
+    }
+    const deviceId = [capture.custom_id, unit.custom_id]
+      .map((id) => String(id || "").trim().toUpperCase())
+      .find((id) => DEVICE_ID_PATTERN.test(id));
+    if (!deviceId) {
+      console.warn(`PayPal order ${orderId} names no device`);
+      return unavailable;
+    }
+    if (capture.status === "PENDING") {
+      return checkoutPage(
+        200,
+        "Payment processing",
+        "PayPal is still processing your payment. Pro unlocks by itself once it completes: open Expressive Launcher later, or tap Check Activation Status."
+      );
+    }
+    const problem = capturePaysForPro(capture, env);
+    if (problem) {
+      console.warn(`PayPal capture ${capture.id} (order ${orderId}) is not a Pro purchase: ${problem}`);
+      return CONFIG_PROBLEMS.includes(problem) ? unavailable : checkoutPage(
+        402,
+        "Payment not completed",
+        "PayPal didn't complete this payment for Pro. If you were charged, restore it in the app with the Transaction ID from your PayPal receipt."
+      );
+    }
+
+    const { record } = await claimPayment(env, {
+      captureId: capture.id,
+      deviceId,
+      payment: paymentDetails(capture, { orderId: order.id || orderId, eventType: "checkout" }),
+      now,
+    });
+    return await unlockedPage(record, deviceId, env, now);
+  } catch (err) {
+    // A network or storage failure after the buyer paid: reloading retries safely.
+    console.error(`Checkout return for order ${orderId} failed:`, err);
+    return unavailable;
+  }
+}
+
+/**
+ * Captures a worker-made order. Returns { order } (captured now or before, or not at all: its
+ * captures say), { redirect } when PayPal needs the buyer back, or {} when PayPal can't be reached.
+ */
+async function captureOrder(orderId, env) {
+  const path = `/v2/checkout/orders/${orderId}`;
+  const res = await paypalFetch(env, `${path}/capture`, {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: "{}",
+  });
+  if (!res) return {};
+  const body = await res.json().catch(() => ({}));
+  if (res.ok) return { order: body };
+  const issue = body.details?.[0]?.issue;
+  console.warn(`PayPal capture of order ${orderId} returned ${res.status} ${issue || ""}`);
+  if (res.status >= 500 || res.status === 429) return {};
+  const read = async () => {
+    const got = await paypalFetch(env, path);
+    return got?.ok ? await got.json() : null;
+  };
+  if (BACK_TO_PAYPAL_ISSUES.includes(issue)) {
+    // Declined, or another step needed: back to PayPal to finish or pick another way to pay. PayPal's
+    // error carries the link; otherwise the order's own one.
+    const retry = payerActionLink(body) || payerActionLink(await read());
+    if (retry) return { redirect: retry };
+  }
+  // Already captured (a reload, another tab), or a refusal PayPal didn't explain: the order says
+  // whether money moved.
+  const order = await read();
+  return order ? { order } : {};
+}
+
+/** The page that hands the buyer's device its license, or says why it can't. */
+async function unlockedPage(record, deviceId, env, now) {
+  const delivered = await (await deliverToDevice(record, deviceId, env, now)).json();
+  if (!delivered.key) {
+    return checkoutPage(409, "Pro couldn't be unlocked", delivered.message || "Open Expressive Launcher and tap Check Activation Status.");
+  }
+  return checkoutPage(200, "Pro unlocked", "Thank you for supporting Expressive Launcher! Tap below to finish on your device.", delivered.key);
+}
+
+/** A page in the activation page's style; with a key, its button opens the app to activate it. */
+function checkoutPage(status, title, message, key = null) {
+  return new Response(pageHtml(title, message, key), {
+    status,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", ...CORS_HEADERS },
+  });
+}
+
+/**
  * Handle GET /activate?key=...
  */
 function handleActivationRedirect(url) {
   const key = url.searchParams.get("key") || "";
   const deepLink = `expressive://pro/activate?key=${encodeURIComponent(key)}`;
+  const html = pageHtml(
+    "Expressive Pro Activated",
+    "Thank you for supporting Expressive Launcher development! Tap below to finish activation on your device.",
+    key
+  );
 
-  const html = `<!DOCTYPE html>
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      Location: deepLink,
+    },
+    status: 200,
+  });
+}
+
+/** The activation page's markup. A key (even an empty one) adds the button that opens the app with it. */
+function pageHtml(title, message, key) {
+  const deepLink = `expressive://pro/activate?key=${encodeURIComponent(key ?? "")}`;
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activate Expressive Pro</title>
+  <title>${escapeHtml(title)}</title>
   <style>
     body {
       background: #101216;
@@ -1271,21 +1542,13 @@ function handleActivationRedirect(url) {
 </head>
 <body>
   <div class="card">
-    <h1>Expressive Pro Activated</h1>
-    <p>Thank you for supporting Expressive Launcher development! Tap below to finish activation on your device.</p>
-    <a href="${deepLink}" class="btn">Open Expressive Launcher</a>
-    <div class="key-box">${escapeHtml(key)}</div>
+    <h1>${escapeHtml(title)}</h1>
+    <p>${escapeHtml(message)}</p>${key === null ? "" : `
+    <a href="${escapeHtml(deepLink)}" class="btn">Open Expressive Launcher</a>
+    <div class="key-box">${escapeHtml(key)}</div>`}
   </div>
 </body>
 </html>`;
-
-  return new Response(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      Location: deepLink,
-    },
-    status: 200,
-  });
 }
 
 /**
@@ -1664,6 +1927,8 @@ function escapeHtml(str) {
 // Exported for unit tests (node --test server/cloudflare-worker/).
 export {
   forgetPayPalAccessToken,
+  handleCheckout,
+  handleCheckoutReturn,
   handleAdminIssued,
   handleTrialRequest,
   handleRebind,

@@ -21,8 +21,10 @@ new_sqlite_classes = ["LicenseLedger"]
 # - PRO_PRIVATE_KEY_PEM: Master ECDSA P-256 private key. The worker holds the only copy: never
 #   delete or replace it (`wrangler deploy` keeps it).
 # - ADMIN_TOKEN: Long random token for POST /api/admin/issue (scripts/issue_pro_key.py)
-# - PAYPAL_WEBHOOK_ID: ID of the webhook in the PayPal dashboard; webhooks are refused without it
-# - PAYPAL_CLIENT_ID: PayPal REST API client ID (webhook checks and transaction lookups)
+# - PAYPAL_WEBHOOK_ID: ID of the webhook in the PayPal dashboard; webhooks are refused without it. It
+#   must belong to the same REST app as the credentials below.
+# - PAYPAL_CLIENT_ID: PayPal REST API client ID (webhook checks, transaction lookups, and creating and
+#   capturing the /api/checkout orders)
 # - PAYPAL_CLIENT_SECRET: PayPal REST API client secret
 # - PAYPAL_MERCHANT_ID (optional): the seller's PayPal merchant ID; captures paid to anyone else
 #   are refused. Not secret, but kept out of this public file.

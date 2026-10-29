@@ -3,6 +3,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import worker, {
+  handleCheckout,
+  handleCheckoutReturn,
   handleRebind,
   handleVerifyDonation,
   handleAdminIssue,
@@ -113,7 +115,7 @@ function stubFetch(t, routes) {
   forgetPayPalAccessToken();
   globalThis.fetch = async (url, init = {}) => {
     const path = new URL(url).pathname;
-    calls.push({ path, body: init.body });
+    calls.push({ path, body: init.body, method: init.method || "GET", headers: new Headers(init.headers) });
     const handler = routes[path];
     if (!handler) throw new Error(`unexpected fetch ${path}`);
     const out = handler(init);
@@ -972,4 +974,225 @@ test("admin can list issued keys newest first, and only with the token", async (
   assert.equal(data.records[2].keys[0].recipient, `device:${OLD_DEVICE}`);
   assert.ok(data.records[2].keys[0].key.startsWith("EXPR-PRO-"));
   assert.equal(data.cursor, null);
+});
+
+// --- Buy Pro through an order the worker makes (/api/checkout) ---
+
+const NO_CODE_LINK = "https://www.paypal.com/ncp/payment/9RB3TYYQ6FWE2";
+const WORKER = "https://worker.test";
+const checkout = (env, deviceId, ip = "203.0.113.7") =>
+  handleCheckout(new Request(`${WORKER}/api/checkout?device_id=${deviceId}`, { headers: { "CF-Connecting-IP": ip } }), env, NOW);
+const backFromPayPal = (env, orderId) =>
+  handleCheckoutReturn(new Request(`${WORKER}/api/checkout/return?token=${orderId}&PayerID=PAYER1`), env, NOW);
+const createdOrder = (orderId) => ({
+  id: orderId,
+  status: "PAYER_ACTION_REQUIRED",
+  links: [
+    { rel: "self", href: `https://api-m.paypal.com/v2/checkout/orders/${orderId}` },
+    { rel: "payer-action", href: `https://www.paypal.com/checkoutnow?token=${orderId}` },
+  ],
+});
+const capturedOrder = (orderId, captureId, deviceId = NEW_DEVICE, extra = {}) => ({
+  id: orderId,
+  status: "COMPLETED",
+  purchase_units: [{ reference_id: "default", payments: { captures: [capture(captureId, { custom_id: deviceId, ...extra })] } }],
+});
+const keyFromPage = async (res) => {
+  const html = await res.text();
+  return html.match(/expressive:\/\/pro\/activate\?key=([^"&]+)/)?.[1];
+};
+
+test("checkout makes a PayPal order for this device and sends the buyer to PayPal", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  const calls = stubFetch(t, { ...paypal(), "/v2/checkout/orders": () => createdOrder("5O190127TN364715T") });
+  const res = await checkout(env, NEW_DEVICE.toLowerCase());
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("Location"), "https://www.paypal.com/checkoutnow?token=5O190127TN364715T");
+  const order = JSON.parse(calls.find((c) => c.path === "/v2/checkout/orders").body);
+  assert.equal(order.intent, "CAPTURE");
+  assert.equal(order.purchase_units[0].custom_id, NEW_DEVICE);
+  const { currency_code, value } = order.purchase_units[0].amount;
+  assert.deepEqual({ currency_code, value }, { currency_code: "USD", value: "4.99" });
+  const context = order.payment_source.paypal.experience_context;
+  assert.equal(context.return_url, `${WORKER}/api/checkout/return`);
+  assert.equal(context.cancel_url, `${WORKER}/api/checkout/cancel`);
+  assert.equal(context.shipping_preference, "NO_SHIPPING");
+  assert.equal(context.user_action, "PAY_NOW");
+  assert.equal(order.purchase_units[0].invoice_id, undefined, "invoice IDs must be unique per PayPal account");
+  assert.equal(order.purchase_units[0].items[0].category, "DIGITAL_GOODS");
+  assert.deepEqual(order.purchase_units[0].amount.breakdown.item_total, { currency_code: "USD", value: "4.99" });
+  assert.equal(context.payment_method_preference, "IMMEDIATE_PAYMENT_REQUIRED");
+});
+
+test("checkout falls back to the no-code link whenever it can't make an order", async (t) => {
+  let reply = { status: 500, body: {} };
+  const calls = stubFetch(t, { ...paypal(), "/v2/checkout/orders": () => reply });
+  const plain = await testEnv();
+  assert.equal((await checkout(plain, NEW_DEVICE)).headers.get("Location"), NO_CODE_LINK, "PayPal not set up");
+  assert.deepEqual(calls, [], "without PayPal settings it doesn't try");
+
+  const env = await testEnv(PAYPAL_SECRETS);
+  assert.equal((await checkout(env, NEW_DEVICE)).headers.get("Location"), NO_CODE_LINK, "PayPal down");
+  reply = { ...createdOrder("6O190127TN364715T"), links: [{ rel: "payer-action", href: "https://evil.example/pay" }] };
+  assert.equal((await checkout(env, NEW_DEVICE)).headers.get("Location"), NO_CODE_LINK, "never a non-PayPal link");
+
+  reply = createdOrder("7O190127TN364715T");
+  const locations = [];
+  for (let i = 0; i < 20; i++) locations.push((await checkout(env, NEW_DEVICE, "198.51.100.40")).headers.get("Location"));
+  assert.ok(locations.every((l) => l.includes("checkoutnow")));
+  assert.equal((await checkout(env, NEW_DEVICE, "198.51.100.40")).headers.get("Location"), NO_CODE_LINK, "too many orders");
+
+  const bad = await checkout(env, "not-a-device");
+  assert.equal(bad.status, 400);
+  assert.match(await bad.text(), /Open this from the app/);
+});
+
+test("back from PayPal: the order is captured once and Pro unlocks on the device it was made for", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  let captured = false;
+  const calls = stubFetch(t, {
+    ...paypal(),
+    "/v2/checkout/orders/5O190127TN364715T/capture": () => {
+      if (captured) return { status: 422, body: { name: "UNPROCESSABLE_ENTITY", details: [{ issue: "ORDER_ALREADY_CAPTURED" }] } };
+      captured = true;
+      return capturedOrder("5O190127TN364715T", "CAPCHECKOUT00001");
+    },
+    "/v2/checkout/orders/5O190127TN364715T": () => capturedOrder("5O190127TN364715T", "CAPCHECKOUT00001"),
+  });
+  const res = await backFromPayPal(env, "5O190127TN364715T");
+  assert.equal(res.status, 200);
+  const key = decodeURIComponent(await keyFromPage(res));
+  assert.equal((await parseSignedKey(key, env)).recipient, `device:${NEW_DEVICE}`);
+  assert.equal((await lookup(env, NEW_DEVICE)).key, key, "Check payment status finds it too");
+  const captureCall = calls.find((c) => c.path.endsWith("/capture"));
+  assert.equal(captureCall.method, "POST");
+  assert.equal(captureCall.headers.get("PayPal-Request-Id"), null, "a fixed key would replay a decline after re-approval");
+
+  // A reload shows the same license without asking PayPal again; PayPal's webhook changes nothing.
+  const before = calls.length;
+  assert.equal(decodeURIComponent(await keyFromPage(await backFromPayPal(env, "5O190127TN364715T"))), key);
+  assert.equal(calls.length, before);
+  await webhook(env, captureEvent("CAPCHECKOUT00001", { custom_id: NEW_DEVICE }));
+  assert.equal((await lookup(env, NEW_DEVICE)).key, key);
+  const payments = env.LICENSE_LEDGER.storageKeys().filter((k) => k.startsWith("payment:"));
+  assert.deepEqual(payments, ["payment:CAPCHECKOUT00001"]);
+  assert.ok(env.EXPRESSIVE_PRO_KV.map.has("tx:5O190127TN364715T"), "the order ID restores it as well");
+});
+
+test("PayPal asking for the buyer again sends them back with PayPal's own link", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, {
+    ...paypal(),
+    "/v2/checkout/orders/7P190127TN364715T/capture": () => ({
+      status: 422,
+      body: {
+        details: [{ issue: "PAYER_ACTION_REQUIRED" }],
+        links: [
+          { rel: "information_link", href: "https://developer.paypal.com/api/orders/v2/#error-PAYER_ACTION_REQUIRED" },
+          { rel: "payer-action", href: "https://www.paypal.com/checkoutnow?token=7P190127TN364715T" },
+        ],
+      },
+    }),
+  });
+  const res = await backFromPayPal(env, "7P190127TN364715T");
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("Location"), "https://www.paypal.com/checkoutnow?token=7P190127TN364715T");
+});
+
+test("a declined card goes back to PayPal to pay another way", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  // An approved order lists no payer-action link: the link in PayPal's error is the way back.
+  const approved = (id) => ({ id, status: "APPROVED", links: [{ rel: "self", href: `https://api-m.paypal.com/v2/checkout/orders/${id}` }] });
+  const declined = (id, issue) => ({
+    status: 422,
+    body: { details: [{ issue }], links: [{ rel: "redirect", href: `https://www.paypal.com/checkoutnow?token=${id}` }] },
+  });
+  stubFetch(t, {
+    ...paypal(),
+    "/v2/checkout/orders/8O190127TN364715T/capture": () => declined("8O190127TN364715T", "INSTRUMENT_DECLINED"),
+    "/v2/checkout/orders/8O190127TN364715T": () => approved("8O190127TN364715T"),
+    "/v2/checkout/orders/8S190127TN364715T/capture": () => declined("8S190127TN364715T", "REDIRECT_PAYER_FOR_ALTERNATE_FUNDING"),
+    "/v2/checkout/orders/8S190127TN364715T": () => approved("8S190127TN364715T"),
+  });
+  for (const id of ["8O190127TN364715T", "8S190127TN364715T"]) {
+    const res = await backFromPayPal(env, id);
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("Location"), `https://www.paypal.com/checkoutnow?token=${id}`);
+  }
+  assert.deepEqual(keysWith(env, "license:device:"), []);
+});
+
+test("an unexplained capture refusal asks the order whether money moved", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, {
+    ...paypal(),
+    "/v2/checkout/orders/9T190127TN364715T/capture": () => ({ status: 422, body: { details: [{ issue: "SOMETHING_NEW" }] } }),
+    "/v2/checkout/orders/9T190127TN364715T": () => capturedOrder("9T190127TN364715T", "CAPUNEXPLAINED01"),
+  });
+  const res = await backFromPayPal(env, "9T190127TN364715T");
+  assert.equal(res.status, 200, "the order was captured after all: the buyer gets Pro");
+  assert.ok(await keyFromPage(res));
+});
+
+test("PayPal or storage failing after the buyer paid shows the reload page, never raw JSON", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (new URL(url).pathname === "/v1/oauth2/token") return new Response(JSON.stringify({ access_token: "t", expires_in: 32400 }));
+    throw new TypeError("network connection lost");
+  };
+  t.after(() => { globalThis.fetch = original; forgetPayPalAccessToken(); });
+  forgetPayPalAccessToken();
+  const res = await backFromPayPal(env, "9U190127TN364715T");
+  assert.equal(res.status, 503);
+  assert.match(res.headers.get("Content-Type"), /text\/html/);
+});
+
+test("checkout still makes the order when KV can't count visits", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  env.EXPRESSIVE_PRO_KV.get = async () => { throw new Error("KV GET failed: 503"); };
+  stubFetch(t, { ...paypal(), "/v2/checkout/orders": () => createdOrder("6P190127TN364715T") });
+  const res = await checkout(env, NEW_DEVICE);
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("Location"), "https://www.paypal.com/checkoutnow?token=6P190127TN364715T");
+});
+
+test("a pending capture waits for PayPal's webhook; short or failed payments unlock nothing", async (t) => {
+  const env = await testEnv(PAYPAL_SECRETS);
+  stubFetch(t, {
+    ...paypal(),
+    "/v2/checkout/orders/9O190127TN364715T/capture": () => capturedOrder("9O190127TN364715T", "CAPPENDING000001", NEW_DEVICE, { status: "PENDING" }),
+    "/v2/checkout/orders/9P190127TN364715T/capture": () =>
+      capturedOrder("9P190127TN364715T", "CAPSHORT00000001", OLD_DEVICE, { amount: { currency_code: "USD", value: "1.00" } }),
+    "/v2/checkout/orders/9Q190127TN364715T/capture": () => ({ status: 422, body: { details: [{ issue: "ORDER_NOT_APPROVED" }] } }),
+    "/v2/checkout/orders/9Q190127TN364715T": () => ({ id: "9Q190127TN364715T", status: "PAYER_ACTION_REQUIRED", purchase_units: [{}] }),
+    "/v2/checkout/orders/9R190127TN364715T/capture": () => ({ status: 503, body: {} }),
+    // PayPal failing to capture an approved order: the buyer reloads to retry, not starts over.
+    "/v2/checkout/orders/9R190127TN364715T": () => ({ id: "9R190127TN364715T", status: "APPROVED", purchase_units: [{}] }),
+    "/v2/checkout/orders/9V190127TN364715T/capture": () => capturedOrder("9V190127TN364715T", "CAPNODEVICE00001", ""),
+  });
+  const pending = await backFromPayPal(env, "9O190127TN364715T");
+  assert.equal(pending.status, 200);
+  assert.match(await pending.text(), /still processing/);
+  assert.equal((await lookup(env, NEW_DEVICE)).success, false);
+  await webhook(env, captureEvent("CAPPENDING000001", { custom_id: NEW_DEVICE }));
+  assert.ok((await lookup(env, NEW_DEVICE)).key, "the completed webhook unlocks it");
+
+  assert.equal((await backFromPayPal(env, "9P190127TN364715T")).status, 402);
+  assert.equal((await backFromPayPal(env, "9Q190127TN364715T")).status, 402);
+  assert.equal((await backFromPayPal(env, "9R190127TN364715T")).status, 503);
+  assert.equal((await backFromPayPal(env, "9V190127TN364715T")).status, 503, "an order naming no device unlocks nothing");
+  assert.equal((await lookup(env, OLD_DEVICE)).success, false);
+  assert.equal((await backFromPayPal(env, "../admin")).status, 400);
+});
+
+test("the cancel page and pages answer through the router, escaped", async () => {
+  const env = await testEnv();
+  const res = await worker.fetch(new Request(`${WORKER}/api/checkout/cancel?token=X`), env, {});
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("Content-Type"), /text\/html/);
+  assert.match(await res.text(), /Nothing was charged/);
+  const activate = await (await worker.fetch(new Request(`${WORKER}/activate?key=<script>`), env, {})).text();
+  assert.doesNotMatch(activate, /<script>/);
+  assert.match(activate, /expressive:\/\/pro\/activate\?key=%3Cscript%3E/);
 });
