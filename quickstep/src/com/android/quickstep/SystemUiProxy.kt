@@ -439,11 +439,13 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         }
     }
 
-    fun takeScreenshot(request: ScreenshotRequest) =
+    fun takeScreenshot(request: ScreenshotRequest) {
+        // LC-Note: Transaction 51 is takeScreenshot in the Android 16 and 17 SystemUI only.
+        if (!ATLEAST_BAKLAVA) return
         executeWithErrorLog({ "Failed call takeScreenshot" }) {
-            // LC-Ignored
-            //systemUiProxy?.takeScreenshot(request)
+            systemUiProxy?.takeScreenshot(request)
         }
+    }
 
     fun expandNotificationPanel() =
         executeWithErrorLog({ "Failed call expandNotificationPanel" }) {

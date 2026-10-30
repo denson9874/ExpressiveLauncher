@@ -84,10 +84,6 @@ object CinnamonBunCompat {
         runCatching { TaskSnapshot::class.java.getMethod("closeBuffer") }.getOrNull()
     }
 
-    private val getDensityDpiMethod: Method? by lazy {
-        runCatching { TaskSnapshot::class.java.getMethod("getDensityDpi") }.getOrNull()
-    }
-
     private val createInputConsumerMethod: Method? by lazy {
         runCatching {
             IWindowManager::class.java.getMethod(
@@ -167,17 +163,17 @@ object CinnamonBunCompat {
 
     /**
      * Wraps the snapshot's buffer in a bitmap. Android 17 no longer hands out the hardware buffer,
-     * so this goes through `wrapToBitmap()`, then releases the snapshot's own reference and applies
-     * the density the snapshot was taken at, as SystemUI's ThumbnailData does.
+     * so this goes through `wrapToBitmap()`, then releases the snapshot's own reference.
+     *
+     * The bitmap gets no density: PreviewPositionHelper places it in bitmap pixels and, unlike
+     * Android 17's, has no density scale, so a snapshot taken at another display density (after a
+     * Display size or Screen resolution change) would otherwise be drawn too large or too small.
      */
     @JvmStatic
     fun wrapSnapshotToBitmap(snapshot: TaskSnapshot): Bitmap? {
         val bitmap = invoke(wrapToBitmapMethod, snapshot) as Bitmap?
         invoke(closeBufferMethod, snapshot)
-        val densityDpi = invoke(getDensityDpiMethod, snapshot) as Int? ?: 0
-        if (bitmap != null && densityDpi > 0 && bitmap.density != densityDpi) {
-            bitmap.density = densityDpi
-        }
+        bitmap?.density = Bitmap.DENSITY_NONE
         return bitmap
     }
 
