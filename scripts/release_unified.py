@@ -28,9 +28,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTROL_SCRIPT = ROOT / "ci/jenkins/control.py"
 PUBLISH_SCRIPT = ROOT / "scripts/publish_play_bundle.py"
 TELEGRAM_SCRIPT = ROOT / "scripts/post_telegram.py"
-# post_telegram.DEFAULT_CHANNEL and post_telegram.EXIT_NOT_CONFIGURED; ci/tests keeps them in sync.
+# post_telegram.DEFAULT_CHANNEL, EXIT_NOT_CONFIGURED and EXIT_NOT_POSTABLE; ci/tests keeps them in sync.
 TELEGRAM_DEFAULT_CHANNEL = "@ExpressiveGroup"
 TELEGRAM_NOT_CONFIGURED_EXIT = 3
+TELEGRAM_NOT_POSTABLE_EXIT = 4
 XDA_SCRIPT = ROOT / "scripts/format_xda.py"
 VERIFY_PLAY_PROTECT_SCRIPT = ROOT / "scripts/verify_developer_play_protect.py"
 XDA_THREAD_URL = "https://xdaforums.com/t/app-qa-android-17-expressive-launcher-looking-for-pixel-11-pro-pro-xl-feedback.4801792/"
@@ -142,7 +143,7 @@ def wait_for_jenkins_job(
 def run_telegram_stage(tg_cmd: list[str], tg_out: Path, channel: str) -> str:
     """Run post_telegram.py and report whether the announcement reached the channel; never fails the release."""
     try:
-        result = run_cmd(tg_cmd, timeout=120, ok_codes=(0, TELEGRAM_NOT_CONFIGURED_EXIT))
+        result = run_cmd(tg_cmd, timeout=120, ok_codes=(0, TELEGRAM_NOT_CONFIGURED_EXIT, TELEGRAM_NOT_POSTABLE_EXIT))
     except Exception as e:
         print(f"[WARNING] Telegram broadcast failed: {e}")
         print(f"[INFO] Rendered Telegram message remains saved at {tg_out}")
@@ -150,6 +151,9 @@ def run_telegram_stage(tg_cmd: list[str], tg_out: Path, channel: str) -> str:
     if result.returncode == TELEGRAM_NOT_CONFIGURED_EXIT:
         print(f"[WARNING] Telegram announcement NOT broadcast: no bot token configured. Rendered to {tg_out}")
         return f"NOT broadcast: no bot token configured (rendered to {tg_out.name})"
+    if result.returncode == TELEGRAM_NOT_POSTABLE_EXIT:
+        print(f"[WARNING] Telegram announcement NOT broadcast: Telegram would refuse it. {result.stderr.strip()}")
+        return f"NOT broadcast: Telegram would refuse the rendered notes, nothing was sent (rendered to {tg_out.name})"
     return f"Rendered & broadcast via {channel or TELEGRAM_DEFAULT_CHANNEL}"
 
 

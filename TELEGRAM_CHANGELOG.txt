@@ -1,68 +1,100 @@
-<b>Expressive Launcher 5.0.4 (Build 66) — No Shortcut Left Behind</b>
+<b>Expressive Launcher 5.0.8 (Build 70) — Catch the Handoff</b>
 
-5.0.4 finishes the Back gesture: with gesture navigation, a back swipe on Home now runs your Back button action too. Shortcuts you add from the widget picker no longer vanish when they land on a folder, a Folder widget or an app, and dropping one into an open folder no longer crashes Home. The taskbar also stops offering split screen for older-style shortcuts it can't open that way.
+5.0.8 brings Expressive's recents and gestures up to Android 17, and gives Overview its pictures and buttons back. Android 17 changed how the system hands a swipe-up to the launcher, so on ROMs that make Expressive the recents provider, 5.0.4 could only be your Home screen there: the swipe started, and then nothing caught it. 5.0.8 speaks Android 17's language and still speaks Android 16's. (5.0.5, 5.0.6 and 5.0.7 never left the test bench: phone tests and code checks caught two crashes, blank Overview cards and a crash in Overview's Share and Lens buttons, and 5.0.8 fixes all four.)
 
 ───────────────────────
 
-<b>✨ What's New & Improved</b>
+<b>✨ What's New &amp; Improved</b>
 
-<b>1. ↩️ The back swipe runs your Back action</b>
-• <b>Before</b>: 5.0.3 made <b>Settings → Gestures → Back button</b> work from the Back button and a Back key. With gesture navigation, a back swipe on Home still did nothing, because Home ignored edge swipes, like Pixel's own launcher.
-• <b>Now</b>: when you've picked an action, a back swipe on Home runs it once, from either edge, and shows the system back arrow on the way. Changed your mind? Swipe back to the edge before you let go, and nothing runs. Open folders, menus, sheets and the app drawer still close first.
-• <b>Do nothing</b> keeps Home exactly as before: no back arrow, nothing happens.
-• <b>Good to know</b>: while an action is set, a swipe that starts at the very edge of the screen counts as Back. Start page swipes a little further in (and swipe from slightly in to open the feed from page 1).
+<b>1. 🖼️ Overview shows your apps again</b>
+• For every setup where Expressive runs recents, on any Android version.
+• <b>Before</b>: Overview cards were see-through. The launcher fetched each app's preview, then a slip in the card code threw it away before it reached the screen, so you saw only the wallpaper behind the app's name. The action row's Screenshot, Share and Lens buttons and the cards' app timers never set up either, so tapping a button did nothing.
+• <b>Now</b>: every card shows its app's preview (and its app timer, if you set one in Digital Wellbeing), and the action row works. Share and Lens open with the preview (checked in code, not yet on a phone). The row has Screenshot on most phones and Share in its place on OnePlus phones with OxygenOS (if you turned Share on in an older version, it stays on). Lens shows only if the Google Lens app is installed. On Android 16 and 17, Screenshot (in the row and in the card's menu) opens the preview in the system's screenshot tool, where you can save or share it; on older versions it still does nothing.
+• An app the system has no preview for yet shows its own color instead of a see-through card.
+• On Android 17, previews come from the system's new snapshot service, and a preview taken before you changed Display size or Screen resolution keeps the card's size instead of being drawn too big or too small.
 
-<b>2. 📌 Shortcuts from the widget picker land where you drop them</b>
-• These are the shortcuts an app sets up for you as you add them, such as a Settings page, a contact or a map route.
-• <b>The bug</b>: some apps hand back an older-style shortcut, which folders can't hold. Dropped on a folder, a Folder widget or an app, it was placed underneath that icon: it never appeared, and the next restart deleted it. Dropped <i>into</i> an open folder, it crashed Home.
-• <b>The fix</b>: it now goes in the free spot nearest where you dropped it, on the same page, and the folder keeps its contents. If the page has no free spot you get the usual "no room" message instead of a ghost icon. Shortcuts that folders can hold still go into the folder.
+<b>2. 🧹 Clear all moves into the action row</b>
+• Clear all is now a button at the end of Overview's action row, so you can clear your recent apps without scrolling to the end of the list first. When Expressive is also your Home screen, it takes the place of the Clear all at the end of the list. There's no setting to move it back yet.
+• It works even while the centred app has no preview, which greys out the other buttons.
+• If the row runs out of room (more buttons, a long translation or a large font), it shows icons only instead of pushing buttons off the screen. Touch and hold an icon to see its name.
 
-<b>3. 🪟 Taskbar: no split screen for shortcuts it can't open</b>
-• For setups where Expressive runs the taskbar and recents (QuickSwitch or root).
-• <b>The bug</b>: an older-style shortcut on the taskbar offered <b>Split screen</b> in its menu and in its accessibility actions, and could be dragged into split. Each of these crashed Home, because the taskbar starts a split by app, and those shortcuts aren't tied to one.
-• <b>The fix</b>: the taskbar no longer offers or starts a split for them. Picking one for split from Overview, or from Home's own menu on large screens, no longer crashes Home either.
+<b>3. 👆 Swipe up works on Android 17</b>
+• For setups where Expressive runs recents: an Android 17 ROM that sets it as the recents provider, or QuickSwitch/root.
+• <b>Before</b>: Android 17 changed the message that starts the swipe-up animation and the one that tells the launcher Home is showing. 5.0.4 read both the Android 16 way, so a swipe up, Overview or quick switch stalled until the system gave up.
+• <b>Now</b>: swipe up to Home, Overview, quick switch and the back gesture to Home follow Android 17's handoff, and Android 16 keeps the old one.
+
+<b>4. 🔓 No more crashes at boot or after you unlock</b>
+• When Expressive is the recents provider, the system starts it during boot, before you unlock. It used to read its settings right away, and Android keeps those locked until you unlock, so Home crashed. It now waits for the unlock.
+• After the unlock, the taskbar and the 3-button navigation bar looked up system settings that Android 17 moved out of reach, so Home kept crashing. They now read those settings the Android 17 way.
+
+<b>5. 🧈 Smoother gestures</b>
+• Expressive wrote a debug warning, with a full stack trace, on every touch during a gesture. It now writes it once.
+• Tapping an app, opening its long-press menu or refreshing the app drawer no longer looks up a missing Android system setting each time on Android 17. Expressive remembers the answer.
+
+<b>6. 🧩 Split screen, taskbar, widgets and keyboard shortcuts follow the new rules</b>
+• Android 17 renumbered the markers for the split-screen divider and removed a batch of settings the launcher used to check. 5.0.4 could miss the divider, or crash Home when it looked up a setting that no longer exists.
+• Tapping a widget that opens an app through a trampoline no longer risks a crash on Android 17.
+• Keyboard shortcuts for Recents and All apps are only taken over when Android 17 allows it; otherwise the system keeps handling them.
+• Adding or changing a display no longer risks taking Home down on Android 17.
+• Circle to Search from the navigation handle, the phone taskbar's height, and taskbar and bubble colors now look up the system's own values by name. Before, Expressive used Android 16's numbering, which points at other values on Android 17.
+• On Android 17, Overview cards update when an app's screen changes, an app you swipe into picture-in-picture keeps its rounded corners and shadow, and a few more spots in Overview, split screen and the bubble bar no longer risk a crash.
+
+<b>7. 🏠 Also on a plain Home screen</b>
+These came in since 5.0.4 and work whether or not Expressive runs recents:
+• <b>Frosted glass</b> on Android 17 QPR2 and later, on phones that support blur: long-press menus and the app drawer header blur the icons behind them (not the wallpaper). When an app asks to add a widget or shortcut to your Home screen, the app behind that box is blurred. Folders blur too if you set Folder background opacity below 100% (a Pro setting under Folders). It's on by default; to turn it off, go to Settings &gt; Icons &amp; appearance &gt; Colors &gt; Frosted glass. It also turns off when Android turns blur off, for example in Battery Saver.
+• The full-screen app drawer's search bar no longer rides up over the camera cutout.
+• With Smart Categories off, the app list no longer starts below an empty band.
+• On Android 17, the Home screen preview in Wallpaper &amp; style (for example under App grid) no longer closes Home.
+• Donate (in the Pro sheet and on the About screen) now opens a PayPal checkout made for your phone. After you pay, Pro turns on by itself when you come back to Expressive. You don't need to email for a key or tap Check Activation Status. If that checkout can't open, Donate shows PayPal's usual page, and you can unlock Pro with the Transaction ID from your PayPal receipt.
+• The fixes in sections 5 and 6 for tapping apps, long-press menus, the app drawer and widgets apply here too.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>📌 <i>Shortcuts dropped on a folder used to pull a disappearing act worthy of a stage magician. We've revoked their magic licence: now they just sit politely next door.</i>
+<blockquote>🤝 <i>Android 17 changed the secret handshake, and 5.0.4 kept offering the old one. 5.0.8 learned the new one, and it still remembers the old one for Android 16.</i>
 
-↩️ <i>Home and the back swipe have finally agreed to talk, as long as you give them something to talk about.</i></blockquote>
+🔐 <i>Older builds tried to read their diary before the phone was even unlocked. 5.0.8 has learned some patience.</i>
+
+🖼️ <i>Overview took a photo of every app, then put each one face down. 5.0.7 turned them over and handed the Share button to the wrong person. 5.0.8 checks who's holding it.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Still being worked on</b> (see the 5.0.0 release notes for workarounds):
-• Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
-• The headphone battery card in At a Glance doesn't appear yet.
-• Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
-• The first setting you change after Home starts can restart Home a few times.
-• <b>Validation</b>: 632 automated tests pass. Checked on Android 17 (QPR2) emulators:
-• <b>Back swipe</b> (with Pro): both edges, cancelled swipes, folders and the app drawer, and after Home restarts.
-• <b>Widget-picker shortcuts</b>: every case was first reproduced on the previous build (three vanished, one crashed Home), then checked on 5.0.4, along with folders that should still take a shortcut and a full page. Random monkey runs on 5.0.4 found no crashes.
-• <b>Taskbar fix</b>: covered by automated tests only, because it needs Expressive set up as the recents provider.
-
-  Physical-device reports are very welcome.
+• <b>Who notices</b>: sections 1 to 4, and most of 5 and 6, only matter where Expressive is the recents provider. Section 7 is for everyone.
+• <b>Still being worked on</b>:
+    ◦ Swiping up on a cover folder doesn't open it yet; tap still opens the cover app.
+    ◦ The headphone battery card in At a Glance doesn't appear yet.
+    ◦ Lowering Dock pages or Dock rows, or folding a foldable, can remove dock icons that no longer fit.
+    ◦ The first setting you change after Home starts can restart Home a few times.
+    ◦ On tablets, on unfolded foldables, and when Overview opens sideways on a phone with Home screen rotation off, the action row is hidden, so there's no Clear all button there. Swipe cards away one at a time for now.
+• <b>Validation</b>: this build passed 650 unit tests, and 12 automated checks (install, upgrade, settings kept, start-up, app drawer and search) on an Android 17 QPR2 emulator. The emulator runs Expressive as a plain Home screen, so it doesn't test recents. On a Pixel 7 Pro running a custom Android 17 ROM with 5.0.8 built in as the recents provider, Overview showed real app previews, including one for a background app. These all worked there: tapping a card, quick switch, Back, dismissing a card, opening All apps, Clear all and Screenshot. The phone's logs showed no crashes. That phone's action row has only Screenshot and Clear all, so Overview's Share and Lens buttons haven't been tried on a phone yet. Swipe up to Home was last checked on the same phone with the 5.0.6 test build.
+   More phone reports are very welcome from phones where Expressive runs Overview (a ROM that builds it in, or QuickSwitch/root), especially if its Overview shows Share or Lens. Post them in the feedback group linked below.
 • <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>An app builds me while you hold me over a folder, then the folder won't let me in. I used to hide under it until a restart made me vanish. Now I wait right next door. What am I?</i></blockquote>
+<blockquote><i>Every time you leave an app, I'm taken, and Overview hangs me on its wall. Until 5.0.8, I was taken and then thrown away before anyone could see me. What am I?</i></blockquote>
 
-<tg-spoiler><b>An older-style shortcut from the widget picker!</b> Since 5.0.4 it lands in the nearest free spot instead of disappearing. 📌</tg-spoiler>
+<tg-spoiler><b>An app's Overview preview!</b> Since 5.0.8 it makes it from the system's snapshot all the way to the card. 🖼️</tg-spoiler>
 
 ───────────────────────
 
-<b>🛡️ Verification & Technical Details</b>
-• <b>Launcher Version</b>: <code>5.0.4</code> (Build <code>66</code>)
+<b>🛡️ Verification &amp; Technical Details</b>
+• <b>Launcher Version</b>: <code>5.0.8</code> (Build <code>70</code>), QA channel
+• <b>Source revision</b>: <code>83ccf446736f807ff3000837dbbf38e960af39e9</code>
+• <b>APK SHA-256</b>: <code>c1f3546e79910de6bc8b008e320192c54ab8a4faea664aba238bd03b4f452030</code>
+• <b>Validation</b>: Jenkins QA build #17 passed 650 unit tests and all 12 smoke flows on the pinned Android 17 QPR2 emulator (CP41.260831.007), including an in-place upgrade.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
-🔗 <b>Links & Downloads</b>:
-• <b>1-Click Add to Obtainium</b>: [Add to Obtainium](obtainium://add/https://github.com/denson9874/ExpressiveLauncher)
+🔗 <b>Links &amp; Downloads</b>:
+• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.0.8-70">Expressive Launcher 5.0.8 on GitHub</a>
+• <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
-• <b>Community & Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
+• <b>Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
 • <b>Announcements Channel</b>: <a href="https://t.me/ExpressiveGroup">@ExpressiveGroup</a>
+
+Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
