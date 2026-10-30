@@ -156,6 +156,7 @@ import com.android.launcher3.util.ActivityOptionsWrapper;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.ComponentKey;
+import com.android.launcher3.util.DimensionUtils;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.Executors;
 import com.android.launcher3.util.LauncherBindableItemsContainer;
@@ -1363,7 +1364,7 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
 
         if (isPhoneMode()) {
             return isThreeButtonNav() ?
-                    resources.getDimensionPixelSize(R.dimen.taskbar_phone_size) :
+                    DimensionUtils.getTaskbarPhoneSize(resources) :
                     resources.getDimensionPixelSize(R.dimen.taskbar_stashed_size);
         }
 

@@ -270,9 +270,22 @@ public class BubbleBarController extends IBubblesListener.Stub {
     @Override
     public void onBubbleStateChange(Bundle bundle) {
         bundle.setClassLoader(BubbleBarUpdate.class.getClassLoader());
-        BubbleBarUpdate update = Utilities.ATLEAST_T
-                ? bundle.getParcelable("update", BubbleBarUpdate.class)
-                : bundle.getParcelable("update");
+        BubbleBarUpdate update;
+        try {
+            update = Utilities.ATLEAST_T
+                    ? bundle.getParcelable("update", BubbleBarUpdate.class)
+                    : bundle.getParcelable("update");
+        } catch (RuntimeException e) {
+            // The Shell parcels BubbleBarUpdate by class name, and its nested bubble parcelables
+            // throw more than BadParcelableException when their layout differs from our copy.
+            Log.w(TAG, "Could not read bubble update, skipping it", e);
+            return;
+        }
+        if (update == null) {
+            // The typed lookup also returns null when the parcelled class is not ours.
+            Log.w(TAG, "Bubble state change without an update, skipping it");
+            return;
+        }
         BubbleBarViewUpdate viewUpdate = new BubbleBarViewUpdate(update);
         if (update.addedBubble != null
                 || update.updatedBubble != null

@@ -25,6 +25,7 @@ import android.widget.LinearLayout
 import android.widget.Space
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
+import com.android.launcher3.util.DimensionUtils
 
 class PhoneSeascapeNavLayoutter(
     resources: Resources,
@@ -63,7 +64,7 @@ class PhoneSeascapeNavLayoutter(
         startContextualContainer.removeAllViews()
 
         val roundedCornerContentMargin =
-            resources.getDimensionPixelSize(R.dimen.taskbar_phone_rounded_corner_content_margin)
+            DimensionUtils.getTaskbarPhoneRoundedCornerContentMargin(resources)
         val contentPadding = resources.getDimensionPixelSize(R.dimen.taskbar_phone_content_padding)
         repositionContextualContainer(
             startContextualContainer,

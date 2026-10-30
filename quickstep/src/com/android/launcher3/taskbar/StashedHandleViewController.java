@@ -40,6 +40,7 @@ import com.android.launcher3.R;
 import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.anim.RevealOutlineAnimation;
 import com.android.launcher3.anim.RoundedRectRevealOutlineProvider;
+import com.android.launcher3.util.DimensionUtils;
 import com.android.launcher3.util.Executors;
 import com.android.launcher3.util.MultiValueAlpha;
 import com.android.quickstep.NavHandle;
@@ -126,7 +127,7 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
         Resources resources = mActivity.getResources();
         if (mActivity.isPhoneGestureNavMode() || mActivity.isTinyTaskbar()
                 || mActivity.isBubbleBarOnPhone()) {
-            mTaskbarSize = resources.getDimensionPixelSize(R.dimen.taskbar_phone_size);
+            mTaskbarSize = DimensionUtils.getTaskbarPhoneSize(resources);
             mStashedHandleWidth =
                     resources.getDimensionPixelSize(R.dimen.taskbar_stashed_small_screen);
         } else {

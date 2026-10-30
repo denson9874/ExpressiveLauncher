@@ -242,8 +242,12 @@ public class TaskbarOverflowView extends FrameLayout implements Reorderable {
     private void init() {
         mIsRtlLayout = Utilities.isRtl(getResources());
         mItemBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mItemBackgroundColor = getContext().getColor(
-                com.android.internal.R.color.materialColorInverseOnSurface);
+        // The framework color id is private and changes between releases, so it is looked up by
+        // name. The launcher's own token is the fallback.
+        int itemBackgroundColorId = getResources().getIdentifier(
+                "materialColorInverseOnSurface", "color", "android");
+        mItemBackgroundColor = getContext().getColor(itemBackgroundColorId != 0
+                ? itemBackgroundColorId : R.color.materialColorInverseOnSurface);
         mLeaveBehindColor = Themes.getAttrColor(getContext(), android.R.attr.textColorTertiary);
 
         setWillNotDraw(false);

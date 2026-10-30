@@ -75,7 +75,9 @@ public class RemoteAnimationTargetCompat {
         final ArrayList<RemoteAnimationTarget> out = new ArrayList<>();
         for (int i = 0; i < info.getChanges().size(); i++) {
             TransitionInfo.Change change = info.getChanges().get(i);
-            if (TransitionUtil.isOrderOnly(change)) continue;
+            // Android 17 also skips interactive-state-only changes here; on Android 16 this is
+            // isOrderOnly.
+            if (TransitionUtil.isStationary(change)) continue;
             if (filter.test(change)) {
                 out.add(TransitionUtil.newTarget(
                         change, info.getChanges().size() - i, info, t, leashMap));

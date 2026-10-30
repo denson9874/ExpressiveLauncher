@@ -18,10 +18,10 @@ package com.android.wm.shell.shared;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.content.res.Resources;
 import android.os.SystemProperties;
 import android.os.Build;
 
-import com.android.internal.R;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.window.flags2.Flags;
 
@@ -152,7 +152,17 @@ public class DesktopModeStatus {
     @VisibleForTesting
     public static boolean isDesktopModeSupported(@NonNull Context context) {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
-                && context.getResources().getBoolean(R.bool.config_isDesktopModeSupported);
+                && isDesktopModeSupportedConfig(context);
+    }
+
+    /**
+     * Reads config_isDesktopModeSupported by name. javac inlines the Android 16 id, and private
+     * resource ids change between releases. Falls back to the framework default, false.
+     */
+    private static boolean isDesktopModeSupportedConfig(@NonNull Context context) {
+        int resId = Resources.getSystem().getIdentifier(
+                "config_isDesktopModeSupported", "bool", "android");
+        return resId != 0 && context.getResources().getBoolean(resId);
     }
 
     /**

@@ -26,16 +26,23 @@ import android.view.View
 /** Shows a drop target within this view. */
 class DropTargetView(context: Context) : View(context) {
 
+    // materialColorPrimaryFixed has a private framework id that changes between releases, so it
+    // is looked up by name. The fallback is primary tone 90, which the fixed color uses.
+    private val primaryFixedColor =
+        context.resources.getIdentifier("materialColorPrimaryFixed", "color", "android").let {
+            context.getColor(if (it != 0) it else android.R.color.system_accent1_100)
+        }
+
     private val rectPaint =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = context.getColor(com.android.internal.R.color.materialColorPrimaryFixed)
+            color = primaryFixedColor
             style = Paint.Style.FILL
             alpha = (0.35f * 255).toInt()
         }
 
     private val strokePaint =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = context.getColor(com.android.internal.R.color.materialColorPrimaryFixed)
+            color = primaryFixedColor
             style = Paint.Style.STROKE
             strokeWidth = 2.dpToPx()
         }

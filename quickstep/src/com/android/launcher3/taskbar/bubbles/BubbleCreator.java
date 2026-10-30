@@ -63,16 +63,39 @@ public class BubbleCreator {
     private final Context mContext;
     private final LauncherApps mLauncherApps;
     private final BubbleIconFactory mIconFactory;
+    private final int mIconMaskResId;
 
     public BubbleCreator(Context context) {
         mContext = context;
         mLauncherApps = mContext.getSystemService(LauncherApps.class);
+        int ringWidthResId = getSystemResId(context, "importance_ring_stroke_width", "dimen");
         mIconFactory = new BubbleIconFactory(context,
                 context.getResources().getDimensionPixelSize(R.dimen.bubblebar_icon_size),
                 context.getResources().getDimensionPixelSize(R.dimen.bubblebar_badge_size),
                 context.getResources().getColor(R.color.important_conversation),
-                context.getResources().getDimensionPixelSize(
-                        com.android.internal.R.dimen.importance_ring_stroke_width));
+                ringWidthResId != 0
+                        ? context.getResources().getDimensionPixelSize(ringWidthResId) : 0);
+        mIconMaskResId = getSystemResId(context, "config_icon_mask", "string");
+    }
+
+    /**
+     * Looks up a framework resource by name. Private framework ids change between releases, so
+     * the Android 16 ids compiled into the app point at other resources on Android 17.
+     */
+    private static int getSystemResId(Context context, String name, String type) {
+        return context.getResources().getIdentifier(name, type, "android");
+    }
+
+    /** Returns the system icon mask, or a circle if the framework has none. */
+    private Path getIconMaskPath(Context context) {
+        if (mIconMaskResId == 0) {
+            float radius = BubbleView.DEFAULT_PATH_SIZE / 2f;
+            Path circle = new Path();
+            circle.addCircle(radius, radius, radius, Path.Direction.CW);
+            return circle;
+        }
+        return PathParser.createPathFromPathData(
+                context.getResources().getString(mIconMaskResId));
     }
 
     /**
@@ -146,9 +169,7 @@ public class BubbleCreator {
         bubbleBitmap = mIconFactory.getBubbleBitmap(bubbleDrawable, bubbleBitmapScale);
 
         // Dot color & placement
-        Path iconPath = PathParser.createPathFromPathData(
-                context.getResources().getString(
-                        com.android.internal.R.string.config_icon_mask));
+        Path iconPath = getIconMaskPath(context);
         Matrix matrix = new Matrix();
         float scale = bubbleBitmapScale[0];
         float radius = BubbleView.DEFAULT_PATH_SIZE / 2f;

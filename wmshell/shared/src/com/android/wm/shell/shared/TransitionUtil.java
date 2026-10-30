@@ -31,7 +31,6 @@ import static android.view.WindowManager.TRANSIT_PREPARE_BACK_NAVIGATION;
 import static android.view.WindowManager.TRANSIT_OPEN;
 import static android.view.WindowManager.TRANSIT_TO_BACK;
 import static android.view.WindowManager.TRANSIT_TO_FRONT;
-import static android.window.TransitionInfo.FLAG_FIRST_CUSTOM;
 import static android.window.TransitionInfo.FLAG_IN_TASK_WITH_EMBEDDED_ACTIVITY;
 import static android.window.TransitionInfo.FLAG_IS_DISPLAY;
 import static android.window.TransitionInfo.FLAG_IS_WALLPAPER;
@@ -44,6 +43,7 @@ import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.WindowConfiguration;
 import android.graphics.Rect;
+import android.os.Build;
 import android.util.ArrayMap;
 import android.util.SparseBooleanArray;
 import android.view.RemoteAnimationTarget;
@@ -55,6 +55,19 @@ import java.util.function.Predicate;
 
 /** Various utility functions for transitions. */
 public class TransitionUtil {
+    /**
+     * {@link TransitionInfo#FLAG_FIRST_CUSTOM} of the running platform. Android 17 added
+     * FLAG_ALWAYS_ON_TOP and FLAG_CHANGED_INTERACTIVE and moved it from {@code 1 << 24} to
+     * {@code 1 << 26}, where its Shell starts the divider, dim layer and desktop wallpaper flags
+     * below. This is not a compile-time constant, so callers read it here instead of inlining the
+     * Android 16 bit.
+     */
+    public static final int FLAG_FIRST_CUSTOM =
+            Build.VERSION.SDK_INT >= 37 ? 1 << 26 : TransitionInfo.FLAG_FIRST_CUSTOM;
+
+    /** Android 17's TransitionInfo.FLAG_CHANGED_INTERACTIVE, missing from the Android 16 jar. */
+    private static final int FLAG_CHANGED_INTERACTIVE = 1 << 25;
+
     /** Flag applied to a transition change to identify it as a divider bar for animation. */
     public static final int FLAG_IS_DIVIDER_BAR = FLAG_FIRST_CUSTOM;
     public static final int FLAG_IS_DIM_LAYER = FLAG_FIRST_CUSTOM << 1;
@@ -143,6 +156,26 @@ public class TransitionUtil {
                 && change.getStartAbsBounds().equals(change.getEndAbsBounds())
                 && (change.getLastParent() == null
                         || change.getLastParent().equals(change.getParent()));
+    }
+
+    /**
+     * Returns `true` if a `change` is stationary. Stationary changes are those that do not change
+     * task's visual representation and don't need an animation, but do not prevent them either.
+     *
+     * <p>Android 17 also reports a task whose interactive state changed this way, and its SystemUI
+     * skips stationary rather than order-only changes when it wraps remote animation targets. On
+     * Android 16 this is {@link #isOrderOnly}.
+     */
+    public static boolean isStationary(TransitionInfo.Change change) {
+        if (Build.VERSION.SDK_INT < 37) {
+            return isOrderOnly(change);
+        }
+        return change.getMode() == TRANSIT_CHANGE
+                && (change.getFlags() & (FLAG_MOVED_TO_TOP | FLAG_CHANGED_INTERACTIVE)) != 0
+                && change.getStartAbsBounds().equals(change.getEndAbsBounds())
+                && (change.getLastParent() == null
+                        || change.getLastParent().equals(change.getParent()))
+                && change.getStartRotation() == change.getEndRotation();
     }
 
     /**

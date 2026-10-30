@@ -86,6 +86,7 @@ import com.android.launcher3.taskbar.bubbles.BubbleBarController;
 import com.android.launcher3.taskbar.bubbles.BubbleControllers;
 import com.android.launcher3.taskbar.customization.TaskbarAllAppsButtonContainer;
 import com.android.launcher3.taskbar.customization.TaskbarDividerContainer;
+import com.android.launcher3.util.DimensionUtils;
 import com.android.launcher3.util.ItemInfoMatcher;
 import com.android.launcher3.util.LauncherBindableItemsContainer;
 import com.android.launcher3.util.MultiPropertyFactory;
@@ -270,7 +271,7 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
         // controllers state initialization before evaluating the feature.
         mControllers.runAfterInit(mTaskbarView::updatePinningPopupEventHandlers);
         mTaskbarView.getLayoutParams().height = mActivity.isPhoneMode()
-                ? mActivity.getResources().getDimensionPixelSize(R.dimen.taskbar_phone_size)
+                ? DimensionUtils.getTaskbarPhoneSize(mActivity.getResources())
                 : mActivity.getDeviceProfile().getTaskbarProfile().getHeight();
 
         mTaskbarIconScaleForStash.updateValue(1f);
@@ -1249,10 +1250,9 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
         }
         int taskbarWindowSize;
         if (mActivity.isPhoneMode()) {
-            taskbarWindowSize = mActivity.getResources().getDimensionPixelSize(
-                    mActivity.isThreeButtonNav()
-                            ? R.dimen.taskbar_phone_size
-                            : R.dimen.taskbar_stashed_size);
+            taskbarWindowSize = mActivity.isThreeButtonNav()
+                    ? DimensionUtils.getTaskbarPhoneSize(mActivity.getResources())
+                    : mActivity.getResources().getDimensionPixelSize(R.dimen.taskbar_stashed_size);
         } else {
             taskbarWindowSize = mActivity.getDefaultTaskbarWindowSize();
         }

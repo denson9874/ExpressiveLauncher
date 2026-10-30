@@ -18,10 +18,10 @@ package com.android.wm.shell.shared.desktopmode
 
 import android.app.TaskInfo
 import android.content.Context
+import android.content.res.Resources
 import android.os.SystemProperties
 import android.util.IndentingPrintWriter
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.internal.R
 import com.android.internal.annotations.VisibleForTesting
 import com.android.wm.shell.shared.desktopmode.DesktopConfigImpl.Companion.WINDOW_DECOR_PRE_WARM_SIZE
@@ -37,7 +37,9 @@ class DesktopConfigImpl(
 
     override val shouldMaximizeWhenDragToTopEdge: Boolean
         get() {
-            if (!DesktopExperienceFlags.ENABLE_DRAG_TO_MAXIMIZE.isTrue) return false
+            // Android 17 removed this flag and the config below. Its Shell only maximizes on
+            // desktop-first displays, so the removed flag reads as off.
+            if (!DesktopFlagsCompat.experience("ENABLE_DRAG_TO_MAXIMIZE", false)) return false
             return SystemProperties.getBoolean(
                 ENABLE_DRAG_TO_MAXIMIZE_SYS_PROP,
                 context.getResources().getBoolean(R.bool.config_dragToMaximizeInDesktopMode),
@@ -57,7 +59,7 @@ class DesktopConfigImpl(
 
     override val windowDecorScvhPoolSize: Int
         get() {
-            if (!DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_SCVH_CACHE.isTrue) return 0
+            if (!DesktopFlagsCompat.mode("ENABLE_DESKTOP_WINDOWING_SCVH_CACHE", true)) return 0
 
             if (maxTaskLimit > 0) return maxTaskLimit
 
@@ -84,19 +86,28 @@ class DesktopConfigImpl(
     override fun shouldSetBackground(taskInfo: TaskInfo): Boolean =
         taskInfo.isFreeform &&
             (!isVeiledResizeEnabled ||
-                DesktopModeFlags.ENABLE_OPAQUE_BACKGROUND_FOR_TRANSPARENT_WINDOWS.isTrue)
+                DesktopFlagsCompat.mode("ENABLE_OPAQUE_BACKGROUND_FOR_TRANSPARENT_WINDOWS", true))
 
     override val maxTaskLimit: Int =
         SystemProperties.getInt(
             MAX_TASK_LIMIT_SYS_PROP,
-            context.getResources().getInteger(R.integer.config_maxDesktopWindowingActiveTasks),
+            frameworkInteger("config_maxDesktopWindowingActiveTasks", /* fallback= */ 0),
         )
 
     override val maxDeskLimit: Int =
         SystemProperties.getInt(
             MAX_DESK_LIMIT_SYS_PROP,
-            context.getResources().getInteger(R.integer.config_maxDesktopWindowingDesks),
+            frameworkInteger("config_maxDesktopWindowingDesks", /* fallback= */ 4),
         )
+
+    /**
+     * Reads a framework integer config by name. kotlinc inlines the Android 16 ids, and private
+     * resource ids change between releases. Falls back to the framework default.
+     */
+    private fun frameworkInteger(name: String, fallback: Int): Int {
+        val resId = Resources.getSystem().getIdentifier(name, "integer", "android")
+        return if (resId != 0) context.getResources().getInteger(resId) else fallback
+    }
 
     override val desktopDensityOverride: Int =
         SystemProperties.getInt("persist.wm.debug.desktop_mode_density", 284)
@@ -109,8 +120,7 @@ class DesktopConfigImpl(
 
         pw.print(
             "maxTaskLimit config override=${
-                context.getResources()
-                    .getInteger(R.integer.config_maxDesktopWindowingActiveTasks)
+                frameworkInteger("config_maxDesktopWindowingActiveTasks", /* fallback= */ 0)
             }"
         )
 

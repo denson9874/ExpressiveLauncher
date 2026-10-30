@@ -24,6 +24,7 @@ import static java.util.stream.Collectors.toList;
 import android.app.WindowConfiguration;
 import android.content.Context;
 import android.graphics.Rect;
+import android.os.BadParcelableException;
 import android.util.Log;
 import android.view.RemoteAnimationTarget;
 import android.window.TransitionInfo;
@@ -158,9 +159,15 @@ public class RemoteTargetGluer {
         // If both of these are null, we are in a 1-app or 1-app-plus-assistant case.
         if (mSplitBounds == null && targets.extras != null
                 && targets.extras.containsKey(KEY_EXTRA_SPLIT_BOUNDS)) {
-            mSplitBounds = Utilities.ATLEAST_T
-                    ? targets.extras.getParcelable(KEY_EXTRA_SPLIT_BOUNDS, SplitBounds.class)
-                    : targets.extras.getParcelable(KEY_EXTRA_SPLIT_BOUNDS);
+            try {
+                mSplitBounds = Utilities.ATLEAST_T
+                        ? targets.extras.getParcelable(KEY_EXTRA_SPLIT_BOUNDS, SplitBounds.class)
+                        : targets.extras.getParcelable(KEY_EXTRA_SPLIT_BOUNDS);
+            } catch (BadParcelableException e) {
+                // The Shell parcels SplitBounds by class name. If our copy is renamed or no longer
+                // matches, animate the apps without split bounds instead of crashing.
+                Log.w(TAG, "Could not read split bounds from the recents extras", e);
+            }
         }
 
         boolean containsSplitTargets = mSplitBounds != null;

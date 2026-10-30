@@ -43,7 +43,6 @@ import android.view.MotionEvent
 import android.view.RemoteAnimationTarget
 import android.view.SurfaceControl
 import android.view.SurfaceControl.Transaction
-import android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS
 import android.window.IOnBackInvokedCallback
 import android.window.RemoteTransition
 import android.window.TaskSnapshot
@@ -55,6 +54,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 //import app.lawnchair.gestures.type.GestureType
 import app.lawnchair.compat.CinnamonBunCompat
+import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.internal.logging.InstanceId
 import com.android.internal.util.ScreenshotRequest
 import com.android.internal.view.AppearanceRegion
@@ -1118,7 +1118,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     private fun shouldEnableRunningTasksForDesktopMode(): Boolean =
         DesktopModeStatus.canEnterDesktopMode(context) &&
             if (ATLEAST_BAKLAVA) {
-                ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS.isTrue
+                DesktopFlagsCompat.mode("ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS", true)
             } else {
                 false
             }

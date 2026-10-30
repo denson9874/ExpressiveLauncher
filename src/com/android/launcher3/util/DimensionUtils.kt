@@ -21,8 +21,30 @@ import android.graphics.Point
 import android.view.ViewGroup
 import com.android.launcher3.DeviceProfile
 import com.android.launcher3.R
+import kotlin.math.roundToInt
 
 object DimensionUtils {
+    /**
+     * Height of the phone taskbar, the framework's navigation_bar_frame_height. That dimen is
+     * private, so its id changes between Android releases, and the id aapt2 baked into
+     * R.dimen.taskbar_phone_size from the compile SDK can point at another dimen on the device.
+     * It is read by name instead, through [res] so the orientation-specific value applies.
+     */
+    @JvmStatic
+    fun getTaskbarPhoneSize(res: Resources): Int =
+        getFrameworkDimensionPixelSize(res, "navigation_bar_frame_height", 48f)
+
+    /** The framework's rounded_corner_content_padding, read by name like [getTaskbarPhoneSize]. */
+    @JvmStatic
+    fun getTaskbarPhoneRoundedCornerContentMargin(res: Resources): Int =
+        getFrameworkDimensionPixelSize(res, "rounded_corner_content_padding", 0f)
+
+    private fun getFrameworkDimensionPixelSize(res: Resources, name: String, fallbackDp: Float) =
+        res.getIdentifier(name, "dimen", "android").let { id ->
+            if (id != 0) res.getDimensionPixelSize(id)
+            else (fallbackDp * res.displayMetrics.density).roundToInt()
+        }
+
     /**
      * Point where x is width, and y is height of taskbar based on provided [deviceProfile] x or y
      * could also be -1 to indicate there is no dimension specified
@@ -52,12 +74,12 @@ object DimensionUtils {
         // Taskbar on phone, portrait
         if (!deviceProfile.deviceProperties.isLandscape) {
             p.x = ViewGroup.LayoutParams.MATCH_PARENT
-            p.y = res.getDimensionPixelSize(R.dimen.taskbar_phone_size)
+            p.y = getTaskbarPhoneSize(res)
             return p
         }
 
         // Taskbar on phone, landscape
-        p.x = res.getDimensionPixelSize(R.dimen.taskbar_phone_size)
+        p.x = getTaskbarPhoneSize(res)
         p.y = ViewGroup.LayoutParams.MATCH_PARENT
         return p
     }

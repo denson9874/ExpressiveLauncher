@@ -17,16 +17,27 @@
 package com.android.wm.shell.shared.bubbles
 
 import android.content.Context
+import android.content.res.Resources
 import android.view.View
 import android.view.WindowManagerPolicyConstants
 
 /** Simplifies accessing context fields. */
 object ContextUtils {
 
+    // The framework id is private and changes between releases, so it is looked up by name.
+    private val navBarInteractionModeResId: Int by lazy {
+        Resources.getSystem().getIdentifier("config_navBarInteractionMode", "integer", "android")
+    }
+
     /** Gets navigation mode. */
     @JvmStatic
     val Context.navigationMode: Int
-        get() = resources.getInteger(com.android.internal.R.integer.config_navBarInteractionMode)
+        get() =
+            if (navBarInteractionModeResId != 0) {
+                resources.getInteger(navBarInteractionModeResId)
+            } else {
+                WindowManagerPolicyConstants.NAV_BAR_MODE_3BUTTON
+            }
 
     /** Returns whether the navigation mode is gestures. */
     @JvmStatic

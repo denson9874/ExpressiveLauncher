@@ -17,7 +17,6 @@ package com.android.launcher3.taskbar
 
 import android.content.Context
 import android.util.Log
-import android.window.DesktopModeFlags
 import androidx.annotation.VisibleForTesting
 import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.launcher3.BubbleTextView.RunningAppState
@@ -52,7 +51,7 @@ class TaskbarRecentAppsController(
     var canShowRunningApps =
         DesktopModeStatus.canEnterDesktopMode(context) &&
             if (Utilities.ATLEAST_BAKLAVA_1) {
-                DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS.isTrue
+                DesktopFlagsCompat.mode("ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS", true)
             } else {
                 false
             }
