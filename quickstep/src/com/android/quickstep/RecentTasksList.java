@@ -457,8 +457,11 @@ public class RecentTasksList {
                     allTasks.add(new SingleTask(task1));
                 }
             } else {
-                TaskInfo taskInfo1 = rawTask.getTaskInfo1();
-                TaskInfo taskInfo2 = rawTask.getTaskInfo2();
+                // A Shell with enable_shell_top_task_tracking on can send TYPE_MIXED groups,
+                // whose getTaskInfo1() throws. Read their base group instead.
+                final GroupedTaskInfo baseTask = rawTask.getBaseGroupedTask();
+                TaskInfo taskInfo1 = baseTask.getTaskInfo1();
+                TaskInfo taskInfo2 = baseTask.getTaskInfo2();
                 Task.TaskKey task1Key = new Task.TaskKey(taskInfo1);
                 Task task1 = loadKeysOnly
                         ? new Task(task1Key)
@@ -488,8 +491,8 @@ public class RecentTasksList {
                     isFirstVisibleTaskFound = true;
                 }
                 if (task2 != null) {
-                    Objects.requireNonNull(rawTask.getSplitBounds());
-                    allTasks.add(new SplitTask(task1, task2, rawTask.getSplitBounds()));
+                    Objects.requireNonNull(baseTask.getSplitBounds());
+                    allTasks.add(new SplitTask(task1, task2, baseTask.getSplitBounds()));
                 } else {
                     allTasks.add(new SingleTask(task1));
                 }

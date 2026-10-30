@@ -1,12 +1,14 @@
 package app.lawnchair.compat
 
 import android.graphics.Bitmap
+import android.graphics.Rect
 import android.os.IBinder
 import android.os.Parcel
 import android.os.RemoteException
 import android.util.Log
 import android.view.IWindowManager
 import android.view.InputChannel
+import android.view.SurfaceControl
 import android.window.RemoteTransition
 import android.window.TaskSnapshot
 import android.window.TaskSnapshotListener
@@ -104,6 +106,18 @@ object CinnamonBunCompat {
             .getOrNull()
     }
 
+    private val captureLayersMethod: Method? by lazy {
+        runCatching {
+            Class.forName("android.window.ScreenCaptureInternal").getMethod(
+                "captureLayers",
+                SurfaceControl::class.java,
+                Rect::class.java,
+                Float::class.javaPrimitiveType,
+            )
+        }.onFailure { Log.e(TAG, "ScreenCaptureInternal.captureLayers not found", it) }
+            .getOrNull()
+    }
+
     // IShellTransitions transaction codes, IBinder.FIRST_CALL_TRANSACTION + the AIDL id. The
     // generated constants are package-private, and Android 17 kept the ids but changed the args.
     private const val TRANSACTION_REGISTER_REMOTE = IBinder.FIRST_CALL_TRANSACTION + 1
@@ -165,6 +179,17 @@ object CinnamonBunCompat {
             bitmap.density = densityDpi
         }
         return bitmap
+    }
+
+    /**
+     * `ScreenCaptureInternal.captureLayers(layer, sourceCrop, 1f).asBitmap()`. Android 17 moved
+     * layer capture out of ScreenCapture, so the Android 16 builder no longer exists.
+     */
+    @JvmStatic
+    fun captureLayers(layer: SurfaceControl, sourceCrop: Rect): Bitmap? {
+        val buffer = invoke(captureLayersMethod, null, layer, sourceCrop, 1f) ?: return null
+        val asBitmap = runCatching { buffer.javaClass.getMethod("asBitmap") }.getOrNull()
+        return invoke(asBitmap, buffer) as Bitmap?
     }
 
     /** `IWindowManager.createInputConsumer(token, name, displayId)`, which now returns the channel. */

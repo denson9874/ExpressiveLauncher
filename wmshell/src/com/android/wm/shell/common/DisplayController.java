@@ -498,6 +498,11 @@ public class DisplayController {
 
         @Override
         public void onDisplayRemoveSystemDecorations(int displayId) { }
+
+        // Android 17 added this to IDisplayWindowListener. Without it the system's call fails
+        // with AbstractMethodError on a binder thread. No @Override: the Android 16 prebuilt
+        // does not have it.
+        public void onDisplayAnimationsDisabledChanged(int displayId, boolean disabled) { }
     }
 
     /**
