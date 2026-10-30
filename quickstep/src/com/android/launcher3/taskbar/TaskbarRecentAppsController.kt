@@ -17,9 +17,9 @@ package com.android.launcher3.taskbar
 
 import android.content.Context
 import android.util.Log
-import android.window.DesktopExperienceFlags
 import android.window.DesktopModeFlags
 import androidx.annotation.VisibleForTesting
+import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.launcher3.BubbleTextView.RunningAppState
 import com.android.launcher3.Flags
 import com.android.launcher3.Flags.enableRecentsInTaskbar
@@ -66,7 +66,7 @@ class TaskbarRecentAppsController(
 
     val enableRecentTasksThrottle =
         if (Utilities.ATLEAST_BAKLAVA_1) {
-            DesktopExperienceFlags.ENABLE_TASKBAR_RECENT_TASKS_THROTTLE_BUGFIX.isTrue
+            DesktopFlagsCompat.experience("ENABLE_TASKBAR_RECENT_TASKS_THROTTLE_BUGFIX", true)
         } else {
             false
         }

@@ -35,7 +35,6 @@ import android.content.Intent;
 import android.os.SystemProperties;
 import android.util.Log;
 import android.view.RemoteAnimationTarget;
-import android.window.DesktopExperienceFlags;
 import android.window.TransitionInfo;
 
 import androidx.annotation.NonNull;
@@ -68,6 +67,8 @@ import dagger.assisted.AssistedInject;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Locale;
+
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAnimationListener {
 
@@ -172,9 +173,19 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
                 Log.e(TAG, msg, new Exception());
             }
         }
+        final BaseContainerInterface containerInterface = gestureState.getContainerInterface();
+        RecentsAnimationCallbacks newCallbacks = new RecentsAnimationCallbacks(
+                containerInterface.getCreatedContainer());
+        // Android 17's Shell drops a recents request while the previous one is still running on
+        // the display, so start this one only after the previous one has finished.
+        boolean waitForRunningAnimation = Utilities.ATLEAST_CINNAMON_BUN && mController != null;
+
         // But force-finish it anyways
         finishRunningRecentsAnimation(false /* toHome */, true /* forceFinish */,
-                null /* forceFinishCb */);
+                waitForRunningAnimation
+                        ? () -> startRecentsAnimationInternal(
+                                gestureState, intent, listener, newCallbacks)
+                        : null /* forceFinishCb */);
 
         if (mCallbacks != null) {
             // If mCallbacks still != null, that means we are getting this startRecentsAnimation()
@@ -183,10 +194,18 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
             cleanUpRecentsAnimation(mCallbacks);
         }
 
+        if (!waitForRunningAnimation) {
+            startRecentsAnimationInternal(gestureState, intent, listener, newCallbacks);
+        }
+        return newCallbacks;
+    }
+
+    @UiThread
+    private void startRecentsAnimationInternal(@NonNull GestureState gestureState,
+            Intent intent, RecentsAnimationCallbacks.RecentsAnimationListener listener,
+            RecentsAnimationCallbacks newCallbacks) {
         final BaseContainerInterface containerInterface = gestureState.getContainerInterface();
         mLastGestureState = gestureState;
-        RecentsAnimationCallbacks newCallbacks = new RecentsAnimationCallbacks(
-                containerInterface.getCreatedContainer());
         mCallbacks = newCallbacks;
         mLauncherDestroyCallbackSet = false;
         final Runnable recentsAnimationStartTimeoutCallback = () -> {
@@ -380,7 +399,6 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
         if (Utilities.ATLEAST_S) ActiveGestureProtoLogProxy.logSettingRecentsAnimationStartPending(
                 mRecentsAnimationStartPending);
         gestureState.setState(STATE_RECENTS_ANIMATION_INITIALIZED);
-        return mCallbacks;
     }
 
     /**
@@ -391,7 +409,7 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
      * @param homeAction The lambda to execute for the standard home action on the default display.
      */
     public void maybeStartHomeAction(Runnable homeAction) {
-        if (!DesktopExperienceFlags.ENABLE_REJECT_HOME_TRANSITION.isTrue()) {
+        if (!DesktopFlagsCompat.experience("ENABLE_REJECT_HOME_TRANSITION", true)) {
           homeAction.run();
           return;
         }

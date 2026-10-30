@@ -163,6 +163,13 @@ public final class Utilities {
                 && (Build.VERSION.SDK_INT_FULL >= 3600001); // pE-TODO(): Why Build.VERSION_CODES_FULL.BAKLAVA_1 failed?
 
     /**
+     * Android 17 (API 37): the Recents and gesture IPC the system Shell talks to changed shape. A
+     * literal, because the framework-16 prebuilt shadows android.jar's Build constants for javac.
+     */
+    @ChecksSdkIntAtLeast(api = 37, codename = "CINNAMON_BUN")
+    public static final boolean ATLEAST_CINNAMON_BUN = Build.VERSION.SDK_INT >= 37;
+
+    /**
      * Android 17 QPR2 (API 37.2): backdrop render effects and window dim colors. Literals because
      * the framework-16 prebuilt shadows android.jar's Build constants for javac.
      */

@@ -17,7 +17,6 @@ package com.android.launcher3.taskbar;
 
 import static android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED;
 import static android.window.DesktopModeFlags.ENABLE_TASKBAR_OVERFLOW;
-import static android.window.DesktopModeFlags.ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION;
 
 import static com.android.launcher3.BubbleTextView.DISPLAY_TASKBAR;
 import static com.android.launcher3.Flags.enableCursorHoverStates;
@@ -78,6 +77,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import app.lawnchair.flags.DesktopFlagsCompat;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import app.lawnchair.hotseat.HotseatMode;
 import app.lawnchair.preferences2.PreferenceManager2;
@@ -713,6 +713,14 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
         }
     }
 
+    /**
+     * DesktopModeFlags.ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION, read by name because Android 17
+     * removed the constant. Falls back to off, like the other sites that ignore this flag.
+     */
+    static boolean recentsLayoutTransitionEnabled() {
+        return DesktopFlagsCompat.mode("ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION", false);
+    }
+
     private void updateRecents(List<GroupTask> recentTasks, int hotseatSize) {
         boolean supportsOverflow = false && recentTasks.size() > 1; // LC-Ignored: Intentional, all Android desktop flags are disabled - ENABLE_TASKBAR_OVERFLOW.isTrue()
         int overflowSize = 0;
@@ -725,9 +733,9 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
             overflowSize = mIdealNumIcons - mMaxNumIcons;
             hasOverflow = overflowSize > 0;
 
-            if (!ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION.isTrue() && hasOverflow) {
+            if (!recentsLayoutTransitionEnabled() && hasOverflow) {
                 addView(mTaskbarOverflowView, mNextViewIndex++);
-            } else if (ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION.isTrue()) {
+            } else if (recentsLayoutTransitionEnabled()) {
                 // RTL case is handled after we add the recent icons, because the button needs to
                 // then be to the right of them.
                 if (hasOverflow && !mIsRtl) {
@@ -784,7 +792,7 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
 
             View recentIcon = null;
             // If a task is new, we should not reuse a view so that it animates in when it is added.
-            final boolean canReuseView = !ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION.isTrue()
+            final boolean canReuseView = !recentsLayoutTransitionEnabled()
                     || (mPrevRecentTasks.contains(task) && !mPrevOverflowTasks.contains(task));
             while (canReuseView && isNextViewInSection(GroupTask.class)) {
                 recentIcon = getChildAt(mNextViewIndex);
@@ -794,7 +802,7 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
                 if ((recentIcon.getSourceLayoutResId() != expectedLayoutResId)
                         || (isCollection && tag != task)
                         // Remove view corresponding to removed task so that it animates out.
-                        || (ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION.isTrue()
+                        || (recentsLayoutTransitionEnabled()
                                 && (!recentTasksSet.contains(tag)
                                         || overflownRecentsSet.contains(tag)))) {
                     removeAndRecycle(recentIcon);

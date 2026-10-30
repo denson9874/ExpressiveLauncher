@@ -22,7 +22,6 @@ import static android.view.WindowManager.TRANSIT_OLD_NONE;
 import static android.view.WindowManager.TRANSIT_OPEN;
 import static android.view.WindowManager.TRANSIT_TO_BACK;
 import static android.view.WindowManager.TRANSIT_TO_FRONT;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_BY_MINIMIZE_TRANSITION_BUGFIX;
 import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX;
 import static android.window.TransitionInfo.FLAG_IS_WALLPAPER;
 
@@ -48,6 +47,8 @@ import android.window.RemoteTransitionStub;
 import android.window.TransitionInfo;
 
 import com.android.wm.shell.shared.CounterRotator;
+
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner.Stub {
     private static final String TAG = "RemoteAnimRunnerCompat";
@@ -274,7 +275,8 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
     ) {
         checkArgument(isOpeningMode(launcherChange.getMode()));
         if (!isClosingType(info.getType())
-                && !ENABLE_DESKTOP_WINDOWING_EXIT_BY_MINIMIZE_TRANSITION_BUGFIX.isTrue()) {
+                && !DesktopFlagsCompat.mode(
+                        "ENABLE_DESKTOP_WINDOWING_EXIT_BY_MINIMIZE_TRANSITION_BUGFIX", true)) {
             return;
         }
         for (int i = info.getChanges().size() - 1; i >= 0; --i) {
