@@ -127,17 +127,14 @@ class QuickstepKeyGestureEventsManager(context: Context) {
     fun registerAllAppsKeyGestureEvent(allAppsPendingIntent: PendingIntent) {
         if (handlesKeyGestures) {
             this.allAppsPendingIntent = allAppsPendingIntent
-            inputManager.registerKeyGestureEventHandler(
-                listOf(KEY_GESTURE_TYPE_ALL_APPS),
-                allAppsKeyGestureEventHandler,
-            )
+            registerHandler(listOf(KEY_GESTURE_TYPE_ALL_APPS), allAppsKeyGestureEventHandler)
         }
     }
 
     /** Unregisters the all apps key gesture events. */
     fun unregisterAllAppsKeyGestureEvent() {
         if (handlesKeyGestures) {
-            inputManager.unregisterKeyGestureEventHandler(allAppsKeyGestureEventHandler)
+            unregisterHandler(allAppsKeyGestureEventHandler)
         }
     }
 
@@ -145,7 +142,7 @@ class QuickstepKeyGestureEventsManager(context: Context) {
     fun registerOverviewKeyGestureEvent(overviewGestureHandler: OverviewGestureHandler) {
         if (handlesKeyGestures) {
             this.overviewGestureHandler = overviewGestureHandler
-            inputManager.registerKeyGestureEventHandler(
+            registerHandler(
                 listOf(KEY_GESTURE_TYPE_RECENT_APPS, KEY_GESTURE_TYPE_RECENT_APPS_SWITCHER),
                 overviewKeyGestureEventHandler,
             )
@@ -155,7 +152,25 @@ class QuickstepKeyGestureEventsManager(context: Context) {
     /** Unregisters the overview key gesture events. */
     fun unregisterOverviewKeyGestureEvent() {
         if (handlesKeyGestures) {
-            inputManager.unregisterKeyGestureEventHandler(overviewKeyGestureEventHandler)
+            unregisterHandler(overviewKeyGestureEventHandler)
+        }
+    }
+
+    // The system can still refuse MANAGE_KEY_GESTURES, for example when the recents role moved
+    // after the check above. The system then keeps handling these gestures itself.
+    private fun registerHandler(gestures: List<Int>, handler: KeyGestureEventHandler) {
+        try {
+            inputManager.registerKeyGestureEventHandler(gestures, handler)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Not allowed to handle key gestures $gestures", e)
+        }
+    }
+
+    private fun unregisterHandler(handler: KeyGestureEventHandler) {
+        try {
+            inputManager.unregisterKeyGestureEventHandler(handler)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Not allowed to unregister a key gesture handler", e)
         }
     }
 
