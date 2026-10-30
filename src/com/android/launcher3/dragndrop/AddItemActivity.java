@@ -88,6 +88,9 @@ import com.android.launcher3.widget.WidgetSections;
 
 import java.util.function.Supplier;
 
+import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.util.BackdropGlass;
+
 /**
  * Activity to show pin widget dialog.
  */
@@ -143,6 +146,7 @@ public class AddItemActivity extends BaseActivity
         // Set flag to allow activity to draw over navigation and status bar.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+        BackdropGlass.applyBehindWindow(getWindow(), ColorTokens.Surface.resolveColor(this));
         mDragLayer = findViewById(R.id.add_item_drag_layer);
         mDragLayer.recreateControllers();
         mWidgetCell = findViewById(R.id.widget_cell);

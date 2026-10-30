@@ -8,7 +8,7 @@ For official signed APKs, use the [GitHub Releases](https://github.com/denson987
 | Dependency | Required configuration |
 | --- | --- |
 | Java | JDK 21; point `JAVA_HOME` or Android Studio's Gradle JDK to it |
-| Android SDK | Compile platform API 37, minor API level 1 (Android SDK 37.1), plus Android SDK Build-Tools and Platform-Tools |
+| Android SDK | Compile platform API 37, minor API level 2 (Android SDK 37.2), plus Android SDK Build-Tools and Platform-Tools |
 | Gradle | Use the included wrapper, pinned to Gradle 9; a separate Gradle installation is unnecessary |
 | Device or emulator | **Android 12 (API 31) through Android 17 (API 37)**; `minSdk 31`, `targetSdk 37`, `compileSdk 37` |
 | Git | Submodule support and access to GitHub |

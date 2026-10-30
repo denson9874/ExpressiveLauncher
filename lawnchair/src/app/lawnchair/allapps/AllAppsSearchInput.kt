@@ -569,7 +569,11 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 launcher.deviceProfile.shouldShowAllAppsOnSheet() ->
                     resources.getDimensionPixelSize(R.dimen.bottom_sheet_handle_area_height)
 
-                else -> max(-allAppsSearchVerticalOffset, insets.top - qsbMarginTopAdjusting)
+                // Tucked up into the status bar for tighter spacing, but never over a camera cutout.
+                else -> max(
+                    max(-allAppsSearchVerticalOffset, insets.top - qsbMarginTopAdjusting),
+                    launcher.window?.decorView?.rootWindowInsets?.displayCutout?.safeInsetTop ?: 0,
+                )
             }
         }
         requestLayout()

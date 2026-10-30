@@ -210,6 +210,13 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
 
         PreferenceGroup(heading = stringResource(id = R.string.colors)) {
             ThemePreference()
+            if (Utilities.ATLEAST_CINNAMON_BUN_2) {
+                SwitchPreference(
+                    adapter = prefs.frostedGlass.getAdapter(),
+                    label = stringResource(id = R.string.frosted_glass_label),
+                    description = stringResource(id = R.string.frosted_glass_description),
+                )
+            }
             ProGate(
                 lockedTitle = stringResource(id = R.string.accent_color),
             ) {

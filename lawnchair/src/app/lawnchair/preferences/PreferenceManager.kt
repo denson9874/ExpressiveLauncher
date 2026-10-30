@@ -172,6 +172,9 @@ class PreferenceManager @Inject constructor(
     val wallpaperBlur = IntPref("pref_wallpaperBlur", 25, recreate)
     val wallpaperBlurFactorThreshold = FloatPref("pref_wallpaperBlurFactor", 3.0F, recreate)
 
+    // Android 17 QPR2 backdrop blur (BackdropGlass); the toggle only shows on API 37.2+.
+    val frostedGlass = BoolPref("pref_frostedGlass", true, recreate)
+
     val drawerList = BoolPref("pref_drawerList", true, recreate)
     val drawerSmartCategories = BoolPref("drawer_smart_categories", true, recreate)
     val folderApps = BoolPref("pref_hideFolderApps", true, reloadGrid)

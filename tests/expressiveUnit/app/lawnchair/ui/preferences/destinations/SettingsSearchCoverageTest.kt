@@ -66,6 +66,8 @@ class SettingsSearchCoverageTest {
         "auto_updater_label" to "nightly-only",
         // Only drawn while at least one custom icon exists, so it cannot be a stable destination.
         "reset_custom_icons" to "conditional row",
+        // Only drawn on Android 17 QPR2 (API 37.2) and later; older devices would land on nothing.
+        "frosted_glass_label" to "API 37.2 only",
     )
 
     private val labelPattern = Regex("""\blabel\s*=\s*(?:stringResource\(\s*(?:id\s*=\s*)?)?\(?R\.string\.(\w+)""")

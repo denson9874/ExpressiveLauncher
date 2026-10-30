@@ -823,6 +823,8 @@
     <string name="live_information_description">Displays announcement, and set the default feature flags</string>
 
     <string name="wallpaper_blur">Blur wallpaper (experimental)</string>
+    <string name="frosted_glass_label">Frosted glass</string>
+    <string name="frosted_glass_description">Blur what\'s behind folders, menus and the app drawer header</string>
     <string name="wallpaper_background_blur">Blur intensity</string>
     <string name="wallpaper_background_blur_factor">Factor threshold</string>
 

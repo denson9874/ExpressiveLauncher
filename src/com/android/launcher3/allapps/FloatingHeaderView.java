@@ -120,6 +120,8 @@ public class FloatingHeaderView extends LinearLayout implements
     private boolean mHeaderCollapsed;
     // Whether floating rows like predicted apps are hidden.
     private boolean mFloatingRowsCollapsed;
+    // App lists scroll under the header, where the drawer's frosted band blurs them (API 37.2).
+    private boolean mListsUnderHeader;
     // Total height of all current floating rows. Collapsed rows == 0 height.
     private int mFloatingRowsHeight;
     // Offset of search bar. Adds to the floating view height when multi-line is supported.
@@ -367,7 +369,7 @@ public class FloatingHeaderView extends LinearLayout implements
             // Add back spacing that is otherwise covered by the tabs.
             clipTop += mTabsAdditionalPaddingTop;
         }
-        mRVClip.top = mTabsHidden || mFloatingRowsCollapsed ? clipTop : 0;
+        mRVClip.top = !mListsUnderHeader && (mTabsHidden || mFloatingRowsCollapsed) ? clipTop : 0;
         mHeaderClip.top = clipTop;
         // clipping on a draw might cause additional redraw
         setClipBounds(mHeaderClip);
@@ -380,6 +382,11 @@ public class FloatingHeaderView extends LinearLayout implements
         if (mSearchRV != null) {
             mSearchRV.setClipBounds(mRVClip);
         }
+    }
+
+    /** Lets the app lists scroll under the header instead of clipping them at its bottom. */
+    public void setListsUnderHeader(boolean underHeader) {
+        mListsUnderHeader = underHeader;
     }
 
     /**

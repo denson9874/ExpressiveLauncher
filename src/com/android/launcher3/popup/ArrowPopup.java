@@ -58,6 +58,7 @@ import com.android.launcher3.views.BaseDragLayer;
 
 import app.lawnchair.theme.color.tokens.ColorTokens;
 import app.lawnchair.theme.drawable.DrawableTokens;
+import app.lawnchair.util.BackdropGlass;
 
 /**
  * A container for shortcuts to deep links and notifications associated with an app.
@@ -329,6 +330,9 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
         assignMarginsAndBackgrounds(this);
         if (shouldAddArrow()) {
             addArrow();
+        }
+        if (BackdropGlass.isEnabled(getContext())) {
+            BackdropGlass.applyToPieces(this);
         }
         animateOpen();
     }

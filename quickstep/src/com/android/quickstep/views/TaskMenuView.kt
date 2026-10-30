@@ -34,6 +34,7 @@ import android.view.ViewOutlineProvider
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
+import app.lawnchair.util.BackdropGlass
 import com.android.app.animation.Interpolators
 import com.android.app.animation.Interpolators.clampToProgress
 import com.android.launcher3.AbstractFloatingView
@@ -287,6 +288,8 @@ constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int = 0) :
     }
 
     private fun animateOpen() {
+        // Menu options frost the task thumbnail behind them (API 37.2).
+        if (BackdropGlass.isEnabled(context)) BackdropGlass.applyToPieces(this)
         menuTranslationYBeforeOpen = translationY
         menuTranslationXBeforeOpen = translationX
         animateOpenOrClosed(closing = false)

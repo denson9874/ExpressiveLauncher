@@ -148,6 +148,7 @@ import app.lawnchair.theme.color.ColorOption;
 import app.lawnchair.theme.color.tokens.ColorTokens;
 import app.lawnchair.theme.drawable.DrawableTokens;
 import app.lawnchair.util.EditTextExtensions;
+import app.lawnchair.util.BackdropGlass;
 import app.lawnchair.util.LawnchairUtilsKt;
 
 /**
@@ -986,6 +987,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             @Override
             public void onAnimationEnd(Animator animation) {
                 setState(STATE_OPEN);
+                applyGlass();
                 announceAccessibilityChanges();
                 AccessibilityManagerCompat.sendTestProtocolEventToTest(getContext(),
                         FOLDER_OPENED_MESSAGE);
@@ -1096,6 +1098,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     @Override
     protected void handleClose(boolean animate) {
         mIsOpen = false;
+        // The close animation shrinks a clip path, but the backdrop follows the outline.
+        BackdropGlass.clear(this);
         mContent.setCanAnnouncePageDescriptionForFolder(false);
 
         if (!animate && mCurrentAnimator != null && mCurrentAnimator.isRunning()) {
@@ -1121,6 +1125,16 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         // longer occludes the workspace items
         mActivityContext.getDragLayer().sendAccessibilityEvent(
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED);
+    }
+
+    /**
+     * Frosts the icons behind a translucent folder once it is open (API 37.2). No opaque base:
+     * the wallpaper stays as visible as the user's folder opacity allows.
+     */
+    private void applyGlass() {
+        if (mBackground.getAlpha() < 255 && BackdropGlass.isEnabled(getContext())) {
+            BackdropGlass.apply(this);
+        }
     }
 
     private void cancelRunningAnimations() {

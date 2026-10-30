@@ -124,6 +124,7 @@ import app.lawnchair.data.category.AllAppsCategoryTabs;
 import app.lawnchair.data.category.AppCategory;
 import app.lawnchair.data.category.AppCategoryManager;
 import app.lawnchair.theme.color.tokens.ColorTokens;
+import app.lawnchair.util.BackdropGlass;
 import app.lawnchair.util.LawnchairUtilsKt;
 import app.lawnchair.ui.StretchRecyclerViewContainer;
 
@@ -220,6 +221,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     @Nullable private AllAppsTransitionController mAllAppsTransitionController;
 
     @Nullable private java.util.function.Consumer<Boolean> mCrossWindowBlurListener;
+    // Frosted band behind the search bar and tabs that blurs apps scrolling under them (API 37.2).
+    @Nullable private View mHeaderGlass;
+    private boolean mHeaderGlassEnabled;
 
     private final PreferenceManager2 pref2;
     private final PreferenceManager pref;
@@ -314,6 +318,26 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         getLayoutInflater().inflate(R.layout.all_apps_content, this);
         mHeader = findViewById(R.id.all_apps_header);
+        if (Utilities.ATLEAST_CINNAMON_BUN_2) {
+            mHeaderGlass = new View(getContext());
+            // A view with nothing to draw is skipped, and its backdrop with it.
+            mHeaderGlass.setBackgroundColor(0x01000000);
+            mHeaderGlass.setAlpha(0f);
+            mHeaderGlass.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+            mHeaderGlass.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    // Round the top like the sheet; the bottom runs past the view to stay square.
+                    float radius = mActivityContext.getDeviceProfile().shouldShowAllAppsOnSheet()
+                            ? mBottomSheetCornerRadii[0] : 0;
+                    outline.setRoundRect(0, 0, view.getWidth(),
+                            view.getHeight() + (int) radius, radius);
+                }
+            });
+            // Drawn after the app lists, before the header.
+            addView(mHeaderGlass, indexOfChild(mHeader),
+                    new LayoutParams(LayoutParams.MATCH_PARENT, 0));
+        }
         AllAppsCategoryTabs categoryTabs = findViewById(R.id.category_tabs);
         if (categoryTabs != null) {
             boolean showCategories = PreferenceManager.getInstance(mActivityContext).getDrawerSmartCategories().get();
@@ -379,6 +403,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         // LC-Note: Update our allapps cached colour
         updateBottomSheetBackgroundColor();
+        updateHeaderGlass();
 
         updateBackgroundVisibility(mActivityContext.getDeviceProfile());
         mSearchUiManager.initializeSearch(this);
@@ -397,6 +422,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 if (updateBottomSheetBackgroundColor(enabled)) {
                     invalidate();
                 }
+                updateHeaderGlass();
             };
             mCrossWindowBlurListener = listener;
             UI_HELPER_EXECUTOR.execute(() -> {
@@ -926,6 +952,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             mTabsProtectionAlpha = tabsAlpha;
             invalidateHeader();
         }
+        updateHeaderGlassBounds(transparentOnScroll ? 0f : prog);
         if (mSearchUiManager.getEditText() == null) {
             return;
         }
@@ -1765,6 +1792,48 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                     tabBottomWithScale,
                     mHeaderPaint);
         }
+    }
+
+    /** Turns the frosted header band on or off as glass support changes (e.g. Battery Saver). */
+    private void updateHeaderGlass() {
+        if (mHeaderGlass == null) {
+            return;
+        }
+        mHeaderGlassEnabled = BackdropGlass.isEnabled(getContext());
+        mHeader.setListsUnderHeader(mHeaderGlassEnabled);
+        if (mHeaderGlassEnabled) {
+            BackdropGlass.apply(mHeaderGlass, getBackgroundColor());
+            mHeaderGlass.setVisibility(VISIBLE);
+        } else {
+            BackdropGlass.clear(mHeaderGlass);
+            mHeaderGlass.setVisibility(GONE);
+        }
+    }
+
+    /**
+     * Fits the frosted band to the header protection area and fades it in with scroll. Its
+     * backdrop is skipped while it is transparent, so it costs nothing at the top of the list.
+     */
+    private void updateHeaderGlassBounds(float alpha) {
+        if (mHeaderGlass == null || !mHeaderGlassEnabled) {
+            return;
+        }
+        boolean onSheet = mActivityContext.getDeviceProfile().shouldShowAllAppsOnSheet();
+        int top = onSheet ? mBottomSheetBackground.getTop() : 0;
+        int left = onSheet ? mBottomSheetBackground.getLeft() : 0;
+        int right = onSheet ? getWidth() - mBottomSheetBackground.getRight() : 0;
+        int height = Math.max(0, (int) getHeaderProtectionHeight() - top);
+        LayoutParams lp = (LayoutParams) mHeaderGlass.getLayoutParams();
+        // Only relayout when the header itself changes, not on every scrolled pixel.
+        if (lp.height != height || lp.topMargin != top || lp.leftMargin != left
+                || lp.rightMargin != right) {
+            lp.height = height;
+            lp.topMargin = top;
+            lp.leftMargin = left;
+            lp.rightMargin = right;
+            mHeaderGlass.setLayoutParams(lp);
+        }
+        mHeaderGlass.setAlpha(alpha);
     }
 
     /**

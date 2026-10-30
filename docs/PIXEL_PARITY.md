@@ -4,6 +4,43 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Frosted glass on Android 17 QPR2 and drawer search bar cutout clearance — 2026-10-30 (unreleased)
+
+Source: Android 17 QPR2 (API 37.2) backdrop blur APIs announced at Android Dev Summit 2026-10-29;
+owner report of the drawer search bar hitting the camera cutout.
+
+The compile SDK is now 37.2. `View.setBackdropRenderEffect` blurs what the same window drew behind a
+view. It never sees the wallpaper, which is another surface, and the blur is composited over the
+original pixels, so glass over the transparent home window needs an opaque base inside the effect.
+Spike evidence: `artifacts/backdrop-blur-spike-20261030/` (git-ignored). Every call goes through
+`BackdropGlass`, which is on with the new *Frosted glass* toggle (General > Colors, API 37.2+ only)
+and off whenever Android switches cross-window blur off (Battery Saver).
+
+1. **Frosted drawer header.** A band behind the search bar and tabs frosts apps scrolling under it,
+   fading in with the existing header-protection scroll progress. The lists now scroll under the header
+   while glass is on (`FloatingHeaderView.setListsUnderHeader`).
+2. **Glass menus.** Long-press shortcut menus and home options menus frost what is behind each piece
+   over an opaque base of its own color, so over bare wallpaper they look unchanged. The Overview task
+   menu uses the same helper, unverified on the emulator because the system Pixel Launcher owns Recents
+   there.
+3. **Glass folders.** Folders below 100% opacity frost the icons behind them once open, without a base,
+   so the wallpaper stays as visible as the opacity setting allows. Glass is cleared before the close
+   animation, whose clip path the backdrop does not follow.
+4. **Frosted pin dialog.** The add-widget/shortcut confirmation blurs the requesting app (window blur
+   behind) and tints the dim with the theme surface color through `Window.setDimColor`, new in 37.2.
+5. **Drawer search bar clears the camera.** The full-screen drawer tucks the search bar up into the
+   status bar; it now never goes above the display cutout's safe inset (Pixel 8 Pro centered hole,
+   151 px), and devices without a cutout keep the old spacing.
+
+Not done: replacing the workspace depth blur with one backdrop scrim. An opaque base would hide the
+cross-window-blurred wallpaper and a translucent one leaks crisp labels, so the RenderEffect path stays.
+
+Validation: `BackdropGlassTest` (2/2); full app unit suite 645/645 and CI contracts 369/369 locally.
+Emulator (Android 17 QPR2, SDK 37.2, debug build): frosted header over scrolled drawer rows, glass
+drawer and home popups, a 60% folder keeping wallpaper see-through, the blurred and tinted pin dialog
+(`BLUR_BEHIND`, `blurBehindRadius=72`), and the search bar below both the native centered cutout and
+the emulated corner hole.
+
 ## Expressive Core build, search exit icon size stabilization, and dual-variant CI pipeline — 2026-10-07 (candidate 4.1.2 / code 61)
 
 Source: XDA feedback (XDA-021), Telegram feedback (TG-011), 2026-10-06 and 2026-10-07.
