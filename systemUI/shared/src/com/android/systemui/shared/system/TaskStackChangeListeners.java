@@ -198,9 +198,9 @@ public class TaskStackChangeListeners {
                 }
                 if (mRegistered && LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN) {
                     try {
-                        SnapshotListener listener = new SnapshotListener();
-                        if (CinnamonBunCompat.registerTaskSnapshotListener(listener)) {
-                            mSnapshotListener = listener;
+                        SnapshotListener snapshotListener = new SnapshotListener();
+                        if (CinnamonBunCompat.registerTaskSnapshotListener(snapshotListener)) {
+                            mSnapshotListener = snapshotListener;
                         }
                     } catch (LinkageError | RuntimeException e) {
                         Log.w(TAG, "Failed to call registerTaskSnapshotListener", e);
