@@ -440,7 +440,8 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     }
 
     fun takeScreenshot(request: ScreenshotRequest) {
-        // LC-Note: Transaction 51 is takeScreenshot in the Android 16 and 17 SystemUI only.
+        // LC-Note: ImageActionUtils builds the request with setDisplayId, which only Android 16+
+        // has; keep older SystemUIs out even if that changes.
         if (!ATLEAST_BAKLAVA) return
         executeWithErrorLog({ "Failed call takeScreenshot" }) {
             systemUiProxy?.takeScreenshot(request)

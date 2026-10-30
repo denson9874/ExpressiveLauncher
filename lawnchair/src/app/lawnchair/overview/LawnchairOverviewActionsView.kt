@@ -3,6 +3,7 @@ package app.lawnchair.overview
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
+import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Space
@@ -12,6 +13,7 @@ import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.util.isOnePlusStock
 import com.android.launcher3.R
 import com.android.quickstep.views.OverviewActionsView
+import kotlin.math.ceil
 
 class LawnchairOverviewActionsView @JvmOverloads constructor(
     context: Context,
@@ -26,6 +28,11 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
     private lateinit var lensAction: Button
     private lateinit var clearAllAction: Button
     private lateinit var lockedAction: Button
+    private lateinit var labels: Map<Button, CharSequence>
+    private var labelledMinWidth = 0
+    private var labelledMinimumWidth = 0
+    private var labelledDrawablePadding = 0
+    private var iconOnly = false
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -36,6 +43,11 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
         lensAction = ViewCompat.requireViewById(this, R.id.action_lens)
         screenshotAction = ViewCompat.requireViewById(this, R.id.action_screenshot)
         lockedAction = ViewCompat.requireViewById(this, R.id.action_locked)
+        labels = listOf(screenshotAction, shareAction, lensAction, lockedAction, clearAllAction)
+            .associateWith { it.text }
+        labelledMinWidth = screenshotAction.minWidth
+        labelledMinimumWidth = screenshotAction.minimumWidth
+        labelledDrawablePadding = screenshotAction.compoundDrawablePadding
 
         shareAction.setOnClickListener { mCallbacks?.onShare() }
         lensAction.setOnClickListener { mCallbacks?.onLens() }
@@ -78,6 +90,52 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
             view.isVisible = true
             container.addView(view)
             container.addView(createSpace())
+        }
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // Buttons in a LinearLayout don't shrink, so a row that doesn't fit (four or more actions,
+        // a long translation or a large font) would push the last ones, often Clear all, off
+        // screen. Show icons only then; each button keeps its label as description and tooltip.
+        if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED) {
+            val available = MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight -
+                container.paddingLeft - container.paddingRight
+            setIconOnly(labelledRowWidth() > available)
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    }
+
+    private fun labelledRowWidth(): Int = labels.entries
+        .filter { (button, _) -> button.parent == container && button.isVisible }
+        .sumOf { (button, label) ->
+            val icon = button.compoundDrawablesRelative[0]?.intrinsicWidth ?: 0
+            val text = ceil(button.paint.measureText(label, 0, label.length)).toInt()
+            val padding = button.paddingStart + button.paddingEnd + labelledDrawablePadding
+            val width = padding + icon + text
+            val params = button.layoutParams as? MarginLayoutParams
+            maxOf(width, labelledMinWidth, labelledMinimumWidth) +
+                (params?.marginStart ?: 0) + (params?.marginEnd ?: 0)
+        }
+
+    private fun setIconOnly(iconOnly: Boolean) {
+        if (this.iconOnly == iconOnly) return
+        this.iconOnly = iconOnly
+        labels.forEach { (button, label) ->
+            button.text = if (iconOnly) null else label
+            button.contentDescription = if (iconOnly) label else null
+            button.tooltipText = if (iconOnly) label else null
+            button.compoundDrawablePadding = if (iconOnly) 0 else labelledDrawablePadding
+            button.minWidth = if (iconOnly) 0 else labelledMinWidth
+            button.minimumWidth = if (iconOnly) 0 else labelledMinimumWidth
+        }
+    }
+
+    override fun updateDisabledFlags(disabledFlags: Int, enable: Boolean) {
+        super.updateDisabledFlags(disabledFlags, enable)
+        // Clear all doesn't act on the centred task, so a missing or rotated preview mustn't
+        // disable it the way it disables Screenshot, Share and Lens. Scrolling still does.
+        if (::clearAllAction.isInitialized) {
+            clearAllAction.isEnabled = (mDisabledFlags and DISABLED_SCROLLING) == 0
         }
     }
 

@@ -165,15 +165,15 @@ object CinnamonBunCompat {
      * Wraps the snapshot's buffer in a bitmap. Android 17 no longer hands out the hardware buffer,
      * so this goes through `wrapToBitmap()`, then releases the snapshot's own reference.
      *
-     * The bitmap gets no density: PreviewPositionHelper places it in bitmap pixels and, unlike
-     * Android 17's, has no density scale, so a snapshot taken at another display density (after a
-     * Display size or Screen resolution change) would otherwise be drawn too large or too small.
+     * The bitmap keeps the process density, as `Bitmap.wrapHardwareBuffer` gives it on Android 16.
+     * Android 17's SystemUI applies the snapshot's own density instead, but its PreviewPositionHelper
+     * scales for that and ours doesn't, so a snapshot taken at another density (after a Display
+     * size or Screen resolution change) would be drawn too large or too small.
      */
     @JvmStatic
     fun wrapSnapshotToBitmap(snapshot: TaskSnapshot): Bitmap? {
         val bitmap = invoke(wrapToBitmapMethod, snapshot) as Bitmap?
         invoke(closeBufferMethod, snapshot)
-        bitmap?.density = Bitmap.DENSITY_NONE
         return bitmap
     }
 
