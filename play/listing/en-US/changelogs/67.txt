@@ -1,0 +1,5 @@
+Expressive Launcher 5.0.5
+• Android 17: Expressive can be the recents and gesture provider again: swipe up, Overview and quick switch work on ROMs that set it up
+• Android 17: Overview thumbnails and the grid preview show your apps instead of blank cards
+• Android 17: split screen, the taskbar and Recents/All apps keyboard shortcuts follow the new system rules instead of failing
+• Android 17: Circle to Search, taskbar height and bubble colors use the system's real values
