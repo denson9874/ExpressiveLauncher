@@ -91,28 +91,34 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
         quoted_lines.append("[QUOTE]" + "\n".join(quote_buffer) + "[/QUOTE]")
     text = "\n".join(quoted_lines)
 
-    # 11. Convert Bullet Lists: consecutive lines starting with - or * into [LIST]...[/LIST]
+    # 11. Convert Bullet Lists: consecutive lines starting with - or * into [LIST]...[/LIST]. A bullet
+    # indented past its parent opens a nested [LIST]; another indented line continues the item above.
     lines = text.split("\n")
     processed_lines = []
-    in_list = False
+    indents = []  # indent of each open [LIST], outermost first
 
     for line in lines:
         stripped = line.strip()
+        indent = len(line) - len(line.lstrip(" \t"))
         bullet_match = re.match(r"^[-*]\s+(.+)$", stripped)
         if bullet_match:
-            if not in_list:
+            while len(indents) > 1 and indent < indents[-1]:
+                processed_lines.append("[/LIST]")
+                indents.pop()
+            if not indents or indent > indents[-1]:
                 processed_lines.append("[LIST]")
-                in_list = True
+                indents.append(indent)
             item_text = bullet_match.group(1).strip()
             processed_lines.append(f"[*]{item_text}")
+        elif indents and indent > 0 and stripped:
+            processed_lines.append(stripped)
         else:
-            if in_list and stripped != "":
-                processed_lines.append("[/LIST]")
-                in_list = False
+            if indents and stripped != "":
+                processed_lines.extend("[/LIST]" for _ in indents)
+                indents = []
             processed_lines.append(line)
 
-    if in_list:
-        processed_lines.append("[/LIST]")
+    processed_lines.extend("[/LIST]" for _ in indents)
 
     body = "\n".join(processed_lines)
 

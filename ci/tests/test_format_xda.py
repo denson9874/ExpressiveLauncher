@@ -49,6 +49,25 @@ class FormatXdaTests(unittest.TestCase):
         self.assertIn('[URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]', out)
         self.assertNotRegex(out, r"t\.me/ExpressiveLauncher\b")  # the moved stub; ...LauncherFeedback stays
 
+    def test_indented_bullets_become_a_nested_list(self):
+        out = convert("# T\n\n- **Open**:\n  - One\n  - Two\n- Three\n\nAfter")
+        self.assertIn("[LIST]\n[*][B]Open[/B]:\n[LIST]\n[*]One\n[*]Two\n[/LIST]\n[*]Three\n\n[/LIST]\nAfter", out)
+
+    def test_an_indented_paragraph_stays_in_its_list_item(self):
+        out = convert("# T\n\n- One\n\n  More about one.\n- Two")
+        self.assertIn("[LIST]\n[*]One\n\nMore about one.\n[*]Two\n[/LIST]", out)
+
+    def test_every_announcement_has_balanced_lists_and_no_indented_lines(self):
+        for notes in sorted((ROOT / "docs" / "release_notes").glob("*_announcement.md")):
+            with self.subTest(notes=notes.name):
+                out = convert(notes.read_text(encoding="utf-8"))
+                depth = 0
+                for line in out.split("\n"):
+                    depth += line.count("[LIST]") - line.count("[/LIST]")
+                    self.assertGreaterEqual(depth, 0)
+                    self.assertNotRegex(line, r"^[ \t]+\S", line)
+                self.assertEqual(0, depth)
+
     def test_published_announcement_has_no_leftover_markdown_or_html(self):
         notes = ROOT / "docs" / "release_notes" / "3.1.5_announcement.md"
         out = convert(notes.read_text(encoding="utf-8"))

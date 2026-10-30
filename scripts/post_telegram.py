@@ -38,6 +38,19 @@ def _ipv4_getaddrinfo(host, port, family=0, *args, **kwargs):
 socket.getaddrinfo = _ipv4_getaddrinfo
 
 DEFAULT_CHANNEL = "@ExpressiveGroup"
+# Telegram's limit is 4,096 characters of visible text (tags don't count), measured in UTF-16 code units.
+TELEGRAM_MESSAGE_LIMIT = 4096
+DIVIDER = "───────────────────────"
+# Raw HTML the notes may contain on purpose; any other <, > or & is text and gets escaped.
+NOTES_HTML = re.compile(
+    r"</?(?:b|strong|i|em|u|ins|s|strike|del|code|pre|details|summary|tg-spoiler|blockquote)>"
+    r"|<br\s*/?>|<a href=\"[^\"<>]*\">|</a>",
+    re.IGNORECASE,
+)
+TELEGRAM_TAGS = {"b", "strong", "i", "em", "u", "ins", "s", "strike", "del", "a", "code", "pre", "blockquote",
+                 "tg-spoiler"}
+MARKUP = re.compile(r"<[^<>]*>|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);")
+TAG = re.compile(r"<(/?)([a-zA-Z][\w-]*)([^<>]*)>")
 # Distinct from API failures (1) and usage errors (2): the notes were rendered but nothing was sent.
 EXIT_NOT_CONFIGURED = 3
 DEFAULT_FEEDBACK_GROUP = "https://t.me/ExpressiveLauncherFeedback"
@@ -76,6 +89,14 @@ def markdown_to_telegram_html(markdown_text: str) -> str:
     # 1. Remove HTML comments (e.g. <!-- expressive-qa ... -->)
     text = re.sub(r"<!--[\s\S]*?-->", "", text)
 
+    # 1b. Escape text so a stray <, > or & can't break Telegram's HTML parser. A leading "> " stays a
+    # quote marker (step 5 reads it as "&gt; ").
+    parts = NOTES_HTML.split(text)
+    tags = NOTES_HTML.findall(text)
+    text = "".join(
+        html.escape(part, quote=False) + (tags[i] if i < len(tags) else "") for i, part in enumerate(parts)
+    )
+
     # 2. Convert <details> / <summary> riddles into <tg-spoiler>
     def replace_details(match):
         inner_content = match.group(2).strip()
@@ -89,6 +110,8 @@ def markdown_to_telegram_html(markdown_text: str) -> str:
         text,
         flags=re.IGNORECASE,
     )
+    # Telegram has no <br>.
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
 
     # 3. Clean up horizontal rules
     text = re.sub(r"^[ \t]*---[ \t]*$", "───────────────────────", text, flags=re.MULTILINE)
@@ -104,9 +127,9 @@ def markdown_to_telegram_html(markdown_text: str) -> str:
     quote_buffer = []
 
     for line in lines:
-        if line.startswith("> ") or line == ">":
+        if line.startswith("&gt; ") or line == "&gt;":
             in_quote = True
-            quote_buffer.append(line[2:] if line.startswith("> ") else "")
+            quote_buffer.append(line[5:] if line.startswith("&gt; ") else "")
         else:
             if in_quote:
                 quote_text = "\n".join(quote_buffer).strip()
@@ -131,10 +154,15 @@ def markdown_to_telegram_html(markdown_text: str) -> str:
     # 8. Convert inline code (`code`) -> <code>code</code>
     text = re.sub(r"`([^`\n]+?)`", r"<code>\1</code>", text)
 
-    # 9. Convert markdown links [label](url) -> <a href="url">label</a>
+    # 9. Convert markdown links [label](url) -> <a href="url">label</a>. Telegram only opens web links,
+    # so another scheme (obtainium://) shows its address as code, which a tap copies.
     text = re.sub(r"\[([^\]]+)\]\((https?://[^\)]+)\)", r'<a href="\2">\1</a>', text)
+    text = re.sub(r"\[([^\]]+)\]\(([a-zA-Z][a-zA-Z0-9+.-]*://[^\s)]+)\)", r"\1: <code>\2</code>", text)
 
-    # 10. Clean bullet points: replace "- " with "• "
+    # 10. Bullets: "- " becomes "• ", an indented "- " a nested "◦ ", and other indented lines (a list
+    # item's second paragraph) lose their indent.
+    text = re.sub(r"^[ \t]+(?![ \t]|-\s)", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^[ \t]+-\s+", "    ◦ ", text, flags=re.MULTILINE)
     text = re.sub(r"^\s*-\s+", "• ", text, flags=re.MULTILINE)
 
     # 11. Normalize excess newlines (3+ to 2)
@@ -168,31 +196,108 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str, disable_previ
             time.sleep(2)
 
 
+def visible_length(html_text: str) -> int:
+    """Characters Telegram counts toward its limit: text without tags, entities decoded, in UTF-16 units."""
+    text = html.unescape(re.sub(r"<[^<>]*>", "", html_text))
+    return len(text.encode("utf-16-le")) // 2
+
+
+def _visible_prefix(html_text: str) -> list[int]:
+    """prefix[i] is the visible length of html_text[:i]; a tag adds nothing, an entity adds its character."""
+    prefix = [0]
+    position = 0
+
+    def add_text(chunk):
+        for character in chunk:
+            prefix.append(prefix[-1] + (2 if ord(character) > 0xFFFF else 1))
+
+    for match in MARKUP.finditer(html_text):
+        add_text(html_text[position:match.start()])
+        markup = match.group()
+        width = 0 if markup.startswith("<") else visible_length(markup)
+        prefix.extend([prefix[-1]] * (len(markup) - 1))
+        prefix.append(prefix[-1] + width)
+        position = match.end()
+    add_text(html_text[position:])
+    return prefix
+
+
+def _balance_tags(chunks: list[str]) -> list[str]:
+    """Close the tags still open at the end of each chunk and reopen them at the start of the next."""
+    balanced = []
+    open_tags = []
+    for chunk in chunks:
+        reopened = "".join(markup for _, markup in open_tags)
+        for match in TAG.finditer(chunk):
+            name = match.group(2).lower()
+            if match.group(1):
+                if open_tags and open_tags[-1][0] == name:
+                    open_tags.pop()
+            elif not match.group(3).rstrip().endswith("/"):
+                open_tags.append((name, match.group()))
+        closing = "".join(f"</{name}>" for name, _ in reversed(open_tags))
+        balanced.append(reopened + chunk + closing)
+    return balanced
+
+
 def chunk_telegram_html(html_text: str, max_chars: int = 3800) -> list[str]:
-    """Split HTML text into clean chunks below Telegram limit without breaking delimiters."""
-    if len(html_text) <= max_chars:
-        return [html_text]
+    """Split rendered HTML into messages of at most max_chars visible characters.
 
-    delimiter = "───────────────────────"
-    sections = html_text.split(delimiter)
+    Each message ends at the last divider that fits, else the last blank line, line break or space, and
+    never inside a tag or entity. A tag left open at a split (a quote, say) is closed there and reopened in
+    the next message, so every message parses on its own.
+    """
+    text = html_text.strip()
+    prefix = _visible_prefix(text)
+    if prefix[-1] <= max_chars:
+        return [text] if text else []
+
+    inside_markup = [False] * (len(text) + 1)
+    for match in MARKUP.finditer(text):
+        for index in range(match.start() + 1, match.end()):
+            inside_markup[index] = True
+    breaks = []  # (priority, start, end): a message may end at start and the next start at end.
+    for priority, pattern in enumerate((r"[ \t]+", r"\n", r"\n[ \t]*\n\s*", rf"\s*{DIVIDER}\s*")):
+        breaks += [(priority, m.start(), m.end()) for m in re.finditer(pattern, text) if not inside_markup[m.start()]]
+
     chunks = []
-    current_chunk = []
-    current_len = 0
-
-    for idx, sec in enumerate(sections):
-        sec_str = (delimiter + sec) if idx > 0 else sec
-        if current_len + len(sec_str) > max_chars and current_chunk:
-            chunks.append("".join(current_chunk).strip())
-            current_chunk = [sec.strip()]
-            current_len = len(sec.strip())
+    start = 0
+    while prefix[-1] - prefix[start] > max_chars:
+        limit = prefix[start] + max_chars
+        fitting = [b for b in breaks if b[1] > start and prefix[b[1]] <= limit]
+        if fitting:
+            _, cut, start_next = max(fitting)
         else:
-            current_chunk.append(sec_str)
-            current_len += len(sec_str)
+            # One word longer than a message: cut it at the last character that fits.
+            cuts = [i for i in range(start + 1, len(text)) if not inside_markup[i] and prefix[i] <= limit]
+            if not cuts:
+                raise ValueError(f"can't split the announcement near character {start}")
+            cut = cuts[-1]
+            start_next = cut
+        chunks.append(text[start:cut].strip())
+        start = start_next
+    chunks.append(text[start:].strip())
+    return _balance_tags([chunk for chunk in chunks if chunk])
 
-    if current_chunk:
-        chunks.append("".join(current_chunk).strip())
 
-    return [c for c in chunks if c]
+def check_telegram_chunks(chunks: list[str], limit: int = TELEGRAM_MESSAGE_LIMIT) -> None:
+    """Raise ValueError if any message would be refused, so a post never stops halfway."""
+    for number, chunk in enumerate(chunks, 1):
+        length = visible_length(chunk)
+        if length > limit:
+            raise ValueError(f"message {number} has {length} characters; Telegram allows {limit}")
+        stack = []
+        for match in re.finditer(r"<[^<>]*>|<", chunk):
+            tag = TAG.fullmatch(match.group())
+            name = tag.group(2).lower() if tag else ""
+            if name not in TELEGRAM_TAGS:
+                raise ValueError(f"message {number} has markup Telegram can't parse: {match.group()!r}")
+            if not tag.group(1):
+                stack.append(name)
+            elif not stack or stack.pop() != name:
+                raise ValueError(f"message {number} closes <{name}> out of order")
+        if stack:
+            raise ValueError(f"message {number} leaves <{stack[-1]}> open")
 
 
 def send_telegram_document(bot_token: str, chat_id: str, file_path: Path, caption: str = ""):
@@ -296,6 +401,15 @@ def main():
     args.output.write_text(telegram_html, encoding="utf-8")
     print(f"Rendered Telegram changelog saved to {args.output}")
 
+    try:
+        chunks = chunk_telegram_html(telegram_html)
+        check_telegram_chunks(chunks)
+    except ValueError as error:
+        print(f"The rendered announcement can't be posted, so nothing was sent: {error}", file=sys.stderr)
+        sys.exit(1)
+    sizes = ", ".join(str(visible_length(chunk)) for chunk in chunks)
+    print(f"Announcement fits in {len(chunks)} message(s) of {sizes} characters.")
+
     if args.dry_run:
         print("\n--- Rendered Telegram HTML (Dry Run) ---")
         print(telegram_html)
@@ -314,8 +428,6 @@ def main():
         sys.exit(EXIT_NOT_CONFIGURED)
 
     print(f"Posting release announcement to Telegram channel: {channel}...")
-    chunks = chunk_telegram_html(telegram_html)
-    print(f"Announcement split into {len(chunks)} message chunk(s).")
     try:
         for idx, chunk in enumerate(chunks, 1):
             if idx > 1:
