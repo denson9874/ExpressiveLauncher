@@ -33,6 +33,7 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
     private var labelledMinimumWidth = 0
     private var labelledDrawablePadding = 0
     private var iconOnly = false
+    private val minimumGap = resources.getDimensionPixelSize(R.dimen.overview_actions_min_gap)
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -105,17 +106,21 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 
-    private fun labelledRowWidth(): Int = labels.entries
-        .filter { (button, _) -> button.parent == container && button.isVisible }
-        .sumOf { (button, label) ->
+    private fun labelledRowWidth(): Int {
+        val buttons = labels.entries
+            .filter { (button, _) -> button.parent == container && button.isVisible }
+        val width = buttons.sumOf { (button, label) ->
             val icon = button.compoundDrawablesRelative[0]?.intrinsicWidth ?: 0
             val text = ceil(button.paint.measureText(label, 0, label.length)).toInt()
             val padding = button.paddingStart + button.paddingEnd + labelledDrawablePadding
-            val width = padding + icon + text
             val params = button.layoutParams as? MarginLayoutParams
-            maxOf(width, labelledMinWidth, labelledMinimumWidth) +
+            maxOf(padding + icon + text, labelledMinWidth, labelledMinimumWidth) +
                 (params?.marginStart ?: 0) + (params?.marginEnd ?: 0)
         }
+        // The Spaces around the buttons are the row's only gaps. Keep a small one at each, which
+        // also covers glyphs that draw a little past their advance.
+        return width + (buttons.size + 1) * minimumGap
+    }
 
     private fun setIconOnly(iconOnly: Boolean) {
         if (this.iconOnly == iconOnly) return

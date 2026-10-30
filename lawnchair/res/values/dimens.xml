@@ -28,6 +28,9 @@
 
     <dimen name="lawnchair_dialog_corner_radius">24dp</dimen>
 
+    <!-- Overview action row: smallest gap around each button before it shows icons only -->
+    <dimen name="overview_actions_min_gap">8dp</dimen>
+
     <!-- Edit Mode page strip (bottom of DragLayer) -->
     <dimen name="edit_mode_page_strip_height">88dp</dimen>
     <dimen name="edit_mode_workspace_bottom_gap">8dp</dimen>
