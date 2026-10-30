@@ -15,6 +15,8 @@ import scripts.post_poll as post_poll
 import scripts.post_telegram as post_telegram
 import scripts.release_unified as release_unified
 
+ROOT = Path(__file__).parents[2]
+
 
 class PostTelegramFormattingTests(unittest.TestCase):
     def test_strip_html_comments(self):
@@ -95,7 +97,7 @@ class TelegramMarkupTests(unittest.TestCase):
 
 
 class TelegramChunkTests(unittest.TestCase):
-    NOTES = Path(__file__).parents[2] / "docs" / "release_notes"
+    NOTES = ROOT / "docs" / "release_notes"
 
     def assert_postable(self, chunks, max_chars=3800):
         post_telegram.check_telegram_chunks(chunks)
@@ -153,6 +155,38 @@ class TelegramChunkTests(unittest.TestCase):
         post_telegram.check_telegram_chunks(["😀" * 2048, "<a href=\"https://x\">x</a> &lt; <tg-spoiler>y</tg-spoiler>"])
         with self.assertRaises(ValueError):
             post_telegram.check_telegram_chunks(["😀" * 2049])  # 4,098 UTF-16 units
+
+
+class TelegramDesktopMarkdownTests(unittest.TestCase):
+    def test_tags_become_telegram_desktop_markdown(self):
+        html = ('<b>Title</b> &amp; <i>joke</i>\n<blockquote>🤝 <i>quote</i></blockquote>\n'
+                '<tg-spoiler><b>Answer</b></tg-spoiler> <code>5.0.8</code>\n'
+                '• <a href="https://t.me/ExpressiveGroup">@ExpressiveGroup</a>\n'
+                '• <a href="https://github.com/x/y">https://github.com/x/y</a>\n'
+                '• <a href="https://github.com/x/y/releases">Release</a>')
+        self.assertEqual(
+            "**Title** & __joke__\n🤝 __quote__\n||**Answer**|| `5.0.8`\n"
+            "• @ExpressiveGroup\n• https://github.com/x/y\n• Release: https://github.com/x/y/releases",
+            post_telegram.telegram_html_to_desktop_markdown(html),
+        )
+
+    def test_dry_run_writes_one_desktop_part_per_message(self):
+        with tempfile.TemporaryDirectory() as directory:
+            notes = ROOT / "docs" / "release_notes" / "5.0.8_announcement.md"
+            parts = Path(directory) / "parts"
+            parts.mkdir()
+            (parts / "part-9.txt").write_text("stale", encoding="utf-8")
+            argv = ["post_telegram.py", "--notes-file", str(notes), "--output", str(Path(directory) / "out.txt"),
+                    "--desktop-parts", str(parts), "--dry-run"]
+            with patch.object(sys, "argv", argv), contextlib.redirect_stdout(io.StringIO()):
+                post_telegram.main()
+            written = sorted(parts.glob("part-*.txt"))
+            self.assertEqual([f"part-{n}.txt" for n in range(1, len(written) + 1)], [p.name for p in written])
+            self.assertGreater(len(written), 1)
+            for part in written:
+                text = part.read_text(encoding="utf-8")
+                self.assertLessEqual(len(text.encode("utf-16-le")) // 2, post_telegram.TELEGRAM_MESSAGE_LIMIT)
+                self.assertNotRegex(text, r"<[a-z/]|&(?:amp|lt|gt);")
 
 
 class TelegramChannelTests(unittest.TestCase):

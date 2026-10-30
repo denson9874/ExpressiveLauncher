@@ -300,6 +300,25 @@ def check_telegram_chunks(chunks: list[str], limit: int = TELEGRAM_MESSAGE_LIMIT
             raise ValueError(f"message {number} leaves <{stack[-1]}> open")
 
 
+def telegram_html_to_desktop_markdown(html_text: str) -> str:
+    """One message as Telegram Desktop's own markdown, for posting by hand without a bot.
+
+    Telegram Desktop formats **bold**, __italic__, ||spoiler|| and `code` when the message is sent, and
+    links bare web addresses itself. It has no markdown for quotes, so a quote's lines stay as they are.
+    """
+    def link(match):
+        url, label = html.unescape(match.group(1)), match.group(2)
+        # A bare address, or an @name for its own t.me link, is linked by Telegram already.
+        if html.unescape(label) in (url, "@" + url.removeprefix("https://t.me/")):
+            return label
+        return f"{label}: {url}"
+
+    text = re.sub(r'<a href="([^"]*)">([\s\S]*?)</a>', link, html_text)
+    for tags, marker in ((r"b|strong", "**"), (r"i|em", "__"), (r"tg-spoiler", "||"), (r"code", "`")):
+        text = re.sub(rf"</?(?:{tags})>", marker, text)
+    return html.unescape(re.sub(r"<[^<>]*>", "", text))
+
+
 def send_telegram_document(bot_token: str, chat_id: str, file_path: Path, caption: str = ""):
     """Send a document file (such as an APK) via multipart/form-data."""
     import mimetypes
@@ -379,6 +398,12 @@ def main():
         help="Path to write rendered Telegram changelog (default: TELEGRAM_CHANGELOG.txt).",
     )
     parser.add_argument(
+        "--desktop-parts",
+        type=Path,
+        default=None,
+        help="Also write each message as Telegram Desktop markdown to DIR/part-N.txt, for posting by hand.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Only render and save the changelog without transmitting via Telegram API.",
@@ -409,6 +434,14 @@ def main():
         sys.exit(1)
     sizes = ", ".join(str(visible_length(chunk)) for chunk in chunks)
     print(f"Announcement fits in {len(chunks)} message(s) of {sizes} characters.")
+    if args.desktop_parts:
+        args.desktop_parts.mkdir(parents=True, exist_ok=True)
+        for stale in args.desktop_parts.glob("part-*.txt"):
+            stale.unlink()
+        for number, chunk in enumerate(chunks, 1):
+            part = args.desktop_parts / f"part-{number}.txt"
+            part.write_text(telegram_html_to_desktop_markdown(chunk) + "\n", encoding="utf-8")
+            print(f"Telegram Desktop message {number}: {part}")
 
     if args.dry_run:
         print("\n--- Rendered Telegram HTML (Dry Run) ---")
