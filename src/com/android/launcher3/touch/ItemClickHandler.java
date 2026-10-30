@@ -15,8 +15,6 @@
  */
 package com.android.launcher3.touch;
 
-import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
-
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_BIND_PENDING_APPWIDGET;
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_RECONFIGURE_APPWIDGET;
 import static com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT;
@@ -45,6 +43,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Toast;
 
+import app.lawnchair.flags.FrameworkFlagsCompat;
 import app.lawnchair.folder.widget.FolderWidgetView;
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.BuildConfig;
@@ -435,18 +434,9 @@ public class ItemClickHandler {
             }
         }
 
-        boolean enableMovingContentIntoPrivateSpace = false;
-        if (ATLEAST_BAKLAVA) {
-            try {
-                /* LC-Note: Some devices (Android 16 QPR) doesn't have or expose this flag to user.
-                 * Let's assume no, because (the flags) enableMovingContentIntoPrivateSpace seems
-                 * to be False for R8 by default.
-                 * */
-                enableMovingContentIntoPrivateSpace = enableMovingContentIntoPrivateSpace();
-            } catch (NoClassDefFoundError | NoSuchMethodError e) {
-                enableMovingContentIntoPrivateSpace = false;
-            }
-        }
+        // LC-Note: Some devices (Android 16 QPR) don't have or expose this flag; assume no.
+        boolean enableMovingContentIntoPrivateSpace = ATLEAST_BAKLAVA
+                && FrameworkFlagsCompat.enableMovingContentIntoPrivateSpace();
         if (enableMovingContentIntoPrivateSpace &&
                 Objects.equals(item.getTargetPackage(), PRIVATE_SPACE_PACKAGE)
                 && item.itemType != ITEM_TYPE_DEEP_SHORTCUT) {

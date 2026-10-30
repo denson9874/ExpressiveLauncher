@@ -17,8 +17,6 @@
  */
 package com.android.launcher3.allapps;
 
-import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
-
 import static com.android.launcher3.Utilities.ATLEAST_BAKLAVA;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_MASK_PRIVATE_SPACE_HEADER;
@@ -38,6 +36,8 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.recyclerview.widget.DiffUtil;
+
+import app.lawnchair.flags.FrameworkFlagsCompat;
 
 import com.android.launcher3.Flags;
 import com.android.launcher3.R;
@@ -391,18 +391,9 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
     private int addPrivateSpaceApps(int position) {
 
         /* LC-Note: Fix for missing flags and account for NCDFE */
-        boolean enableMovingContentIntoPrivateSpace = false;
-        if (ATLEAST_BAKLAVA) {
-            try {
-                /* LC-Note: Some devices (Android 16 QPR) doesn't have or expose this flag to user.
-                 * Let's assume no, because (the flags) enableMovingContentIntoPrivateSpace seems
-                 * to be False for R8 by default.
-                 * */
-                enableMovingContentIntoPrivateSpace = enableMovingContentIntoPrivateSpace();
-            } catch (NoClassDefFoundError e) {
-                /* LC-Ignored: we already set it false by default. */
-            }
-        }
+        // LC-Note: Some devices (Android 16 QPR) don't have or expose this flag; assume no.
+        boolean enableMovingContentIntoPrivateSpace = ATLEAST_BAKLAVA
+                && FrameworkFlagsCompat.enableMovingContentIntoPrivateSpace();
         
         // Add Install Apps Button first.
         if (!ATLEAST_BAKLAVA) {

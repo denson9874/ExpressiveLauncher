@@ -18,6 +18,7 @@ public final class FrameworkFlagsCompat {
     private static final String TAG = "FrameworkFlagsCompat";
 
     private static volatile Boolean sImeSwitcherRevamp;
+    private static volatile Boolean sEnableMovingContentIntoPrivateSpace;
 
     private FrameworkFlagsCompat() {}
 
@@ -29,6 +30,27 @@ public final class FrameworkFlagsCompat {
                     ? read("android.view.inputmethod", "ime_switcher_revamp", true)
                     : android.view.inputmethod.Flags.imeSwitcherRevamp();
             sImeSwitcherRevamp = value;
+        }
+        return value;
+    }
+
+    /**
+     * {@code android.multiuser.Flags.enableMovingContentIntoPrivateSpace()} on Android 16, false
+     * when the flag class is missing (some Android 16 builds, and every Android 17 build). Cached,
+     * because a missing class is looked up again, and throws again, on every call.
+     */
+    public static boolean enableMovingContentIntoPrivateSpace() {
+        Boolean value = sEnableMovingContentIntoPrivateSpace;
+        if (value == null) {
+            value = false;
+            if (Build.VERSION.SDK_INT < 37) {
+                try {
+                    value = android.multiuser.Flags.enableMovingContentIntoPrivateSpace();
+                } catch (LinkageError e) {
+                    Log.w(TAG, "android.multiuser.Flags is missing, assuming false", e);
+                }
+            }
+            sEnableMovingContentIntoPrivateSpace = value;
         }
         return value;
     }
