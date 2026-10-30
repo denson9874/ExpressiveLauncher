@@ -71,6 +71,9 @@ public interface TaskStackChangeListener {
     default void onTaskProfileLocked(RunningTaskInfo taskInfo, int userId) { }
     default void onTaskCreated(int taskId, ComponentName componentName) { }
     default void onTaskRemoved(int taskId) { }
+
+    /** Android 17: a recent task was removed because a new task is replacing it. */
+    default void onRecentTaskRemovedForAddTask(int taskId) { }
     default void onTaskMovedToFront(int taskId) { }
 
     default void onTaskMovedToFront(RunningTaskInfo taskInfo) {

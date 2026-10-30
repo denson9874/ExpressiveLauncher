@@ -17,6 +17,10 @@
   public static final ** CREATOR;
 }
 
+# The system Shell sends its shared parcelables by class name (Bundle values such as the split
+# bounds in the recents animation extras), and the launcher resolves them with Class.forName.
+-keepnames class com.android.wm.shell.shared.** implements android.os.Parcelable
+
 # Material3's SheetState.Saver stores SheetValue directly in Compose saved state. After process
 # death, Parcel restores it through Java enum serialization, which reflects on values(). R8
 # otherwise removes that method and the values array, crashing Preferences restoration. Keep this
