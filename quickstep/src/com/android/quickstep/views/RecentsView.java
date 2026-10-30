@@ -131,7 +131,6 @@ import android.view.animation.Interpolator;
 import android.widget.ListView;
 import android.widget.OverScroller;
 import android.widget.Toast;
-import android.window.DesktopModeFlags;
 import android.window.PictureInPictureSurfaceTransaction;
 import android.window.TransitionInfo;
 
@@ -270,6 +269,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 /**
  * A list of recent tasks.
@@ -4404,8 +4405,8 @@ public abstract class RecentsView<
                                     SystemUiProxy.INSTANCE
                                             .get(getContext())
                                             .removeDesk(desktopTask.getDeskId());
-                                } else if (DesktopModeFlags
-                                        .ENABLE_DESKTOP_WINDOWING_BACK_NAVIGATION.isTrue()) {
+                                } else if (DesktopFlagsCompat.mode(
+                                        "ENABLE_DESKTOP_WINDOWING_BACK_NAVIGATION", true)) {
                                     SystemUiProxy.INSTANCE
                                             .get(getContext())
                                             .removeDefaultDeskInDisplay(

@@ -38,8 +38,15 @@ class LawnchairBugReporter(private val context: Context) {
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            sendNotification(throwable)
-            defaultHandler?.uncaughtException(thread, throwable)
+            try {
+                sendNotification(throwable)
+            } catch (e: Throwable) {
+                // Before the user unlocks, the report can't be saved to credential encrypted
+                // storage. The default handler must still run so the process dies cleanly.
+                Log.e(TAG, "Could not save the bug report", e)
+            } finally {
+                defaultHandler?.uncaughtException(thread, throwable)
+            }
         }
 
         removeDismissedLogs()
@@ -126,6 +133,8 @@ class LawnchairBugReporter(private val context: Context) {
     }
 
     companion object {
+        private const val TAG = "LawnchairBugReporter"
+
         val INSTANCE = MainThreadInitializedObject(::LawnchairBugReporter)
     }
 }

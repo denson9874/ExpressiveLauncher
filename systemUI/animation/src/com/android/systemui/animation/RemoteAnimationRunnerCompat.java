@@ -22,7 +22,6 @@ import static android.view.WindowManager.TRANSIT_OLD_NONE;
 import static android.view.WindowManager.TRANSIT_OPEN;
 import static android.view.WindowManager.TRANSIT_TO_BACK;
 import static android.view.WindowManager.TRANSIT_TO_FRONT;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX;
 import static android.window.TransitionInfo.FLAG_IS_WALLPAPER;
 
 import static com.android.internal.util.Preconditions.checkArgument;
@@ -166,7 +165,8 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
                         t.show(wallpapers[i].leash);
                         t.setAlpha(wallpapers[i].leash, 1.f);
                     }
-                    if (ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX.isTrue()) {
+                    if (DesktopFlagsCompat.mode(
+                            "ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX", true)) {
                         resetLauncherAlphaOnDesktopExit(info, launcherTask, leashMap, t);
                     }
                 } else {

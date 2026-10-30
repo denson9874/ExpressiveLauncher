@@ -1,0 +1,5 @@
+Expressive Launcher 5.0.6
+• Android 17: Expressive can be the recents and gesture provider: swipe up, Overview and quick switch work on ROMs that set it up
+• Android 17 recents setups: Home no longer crashes at boot or after you unlock
+• Android 17: Overview thumbnails and the grid preview show your apps
+• Android 17: split screen, taskbar, 3-button nav, widgets and keyboard shortcuts follow the new system rules

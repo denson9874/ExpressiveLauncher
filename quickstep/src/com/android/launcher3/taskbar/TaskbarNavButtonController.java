@@ -45,7 +45,6 @@ import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.Flags;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
@@ -64,6 +63,8 @@ import com.android.systemui.shared.system.QuickStepContract.SystemUiStateFlags;
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+
+import app.lawnchair.flags.FrameworkFlagsCompat;
 
 /**
  * Controller for 3 button mode in the taskbar.
@@ -239,7 +240,7 @@ public class TaskbarNavButtonController implements TaskbarControllers.LoggableTa
                 }
                 return true;
             case BUTTON_IME_SWITCH:
-                if (Flags.imeSwitcherRevamp()) {
+                if (FrameworkFlagsCompat.imeSwitcherRevamp()) {
                     logEvent(LAUNCHER_TASKBAR_IME_SWITCHER_BUTTON_LONGPRESS);
                     onImeSwitcherLongPress();
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS,
