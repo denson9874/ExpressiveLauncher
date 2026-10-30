@@ -13,14 +13,16 @@ confuse it.
 import os
 from pathlib import Path
 import re
+import time
 import unittest
 
 ROOT = Path(__file__).parents[2]
 SKIPPED_DIRS = {".git", ".gradle", "build", "node_modules"}
 # Cheap filter: only files with `) = {` (comments allowed around the `=`) or a `where` clause
-# need the full scan.
-GAP = r"(?:\s|//[^\n]*|/\*.*?\*/)*"
-CANDIDATE = re.compile(rf"\){GAP}={GAP}\{{|\bwhere\b", re.S)
+# need the full scan. Each comment can match only one way (a line comment runs to the end of
+# its line), or a run of comments after a `)` backtracks exponentially and stalls the build.
+GAP = r"(?:\s|//[^\n]*(?![^\n])|/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)*"
+CANDIDATE = re.compile(rf"\){GAP}={GAP}\{{|\bwhere\b")
 FUN = re.compile(r"\bfun\b")
 WHERE = re.compile(r"where\b")
 CHAR_LITERAL = re.compile(r"'(?:\\u[0-9a-fA-F]{4}|\\.|[^'\\\n])'")
@@ -30,7 +32,7 @@ def kotlin_sources():
     for directory, subdirs, files in os.walk(ROOT):
         subdirs[:] = [name for name in subdirs if name not in SKIPPED_DIRS]
         for name in files:
-            if name.endswith(".kt"):
+            if name.endswith((".kt", ".kts")):
                 yield Path(directory, name)
 
 
@@ -39,7 +41,7 @@ def blank(text):
 
 
 def strip_comments_and_strings(text):
-    """Blank out comments and string and char literals, keeping every newline in place."""
+    """Blank out comments, string and char literals and quoted names, keeping every newline."""
     out = []
     i, n = 0, len(text)
     while i < n:
@@ -70,6 +72,12 @@ def strip_comments_and_strings(text):
             end = min(end + 1, n)
         elif text[i] == "'" and (literal := CHAR_LITERAL.match(text, i)):
             end = literal.end()
+        elif text[i] == "`":
+            # A quoted name, `fun \`parse(x) = {}\`()`, can hold anything but a newline.
+            end = i + 1
+            while end < n and text[end] not in "`\n":
+                end += 1
+            end = min(end + 1, n)
         else:
             out.append(text[i])
             i += 1
@@ -189,8 +197,11 @@ class KotlinFunctionBodiesTest(unittest.TestCase):
             "    fun <T, U> f(x: T, y: U)\n        where T : Comparable<T>,\n              U : (Int) -> Unit = {\n",
             "    fun bind() = // x\n        {\n",
             "    fun bind() = /* x */ {\n",
+            "    fun bind() = // x // y\n        {\n",
+            "    fun bind() /* a */ = /** b **/ /* c */ {\n",
             '    val s = """"q""""; fun bind() = {\n',
             "    fun bind() = {\n        run()\n    }\n    (a)\n",
+            "    fun `my (test)`() = {\n",
         ]
         for case in cases:
             with self.subTest(case=case):
@@ -222,10 +233,23 @@ class KotlinFunctionBodiesTest(unittest.TestCase):
             "    fun f() = { compute() }()\n",
             "    fun f() = {\n        compute()\n    }.invoke()\n",
             "    fun r() = { work() }.let { Runnable(it) }\n",
+            "    @Test fun `parse(x) = {} is rejected`() {\n    }\n",
         ]
         for case in cases:
             with self.subTest(case=case):
                 self.assertEqual(lambda_bodies(case), [])
+
+    def test_comment_runs_scan_quickly(self):
+        cases = [
+            "val x = f()\n" + "/" * 80 + "\n",
+            "val x = f()\n" + "// See https://example.com/a // b\n" * 40,
+            "val x = f()\n" + "/* c */ " * 40 + "\n",
+        ]
+        for case in cases:
+            with self.subTest(case=case[:40]):
+                start = time.monotonic()
+                self.assertEqual(lambda_bodies(case), [])
+                self.assertLess(time.monotonic() - start, 1)
 
     def test_reports_the_line_of_fun(self):
         self.assertEqual(lambda_bodies("class A {\n\n    fun bind(\n        a: Int,\n    ) = {\n"), [3])
