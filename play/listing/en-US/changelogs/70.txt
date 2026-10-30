@@ -1,0 +1,7 @@
+Expressive Launcher 5.0.8
+• Overview shows app previews again; Screenshot, Share, Lens, Select and app timers work
+• New: Clear all button in the Overview action row
+• Android 17: Expressive can be the recents and gesture provider: swipe up, Overview, quick switch
+• Android 17: no Home crash at boot or after unlock with Expressive as recents
+• Smoother gestures: no debug log on every touch
+• Android 17: split screen, taskbar, 3-button nav, widgets and shortcuts follow the new rules
