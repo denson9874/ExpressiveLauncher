@@ -3,5 +3,5 @@ Expressive Launcher 5.0.8
 • Clear all moves into the Overview action row
 • Android 17: swipe up, Overview and quick switch work with Expressive as the recents provider
 • Android 17: no Home crash at boot or after unlock with Expressive as recents
-• Frosted glass behind folders and menus on Android 17 QPR2
+• Frosted glass behind menus and the drawer header on Android 17 QPR2
 • Android 17: split screen, taskbar, 3-button nav, widgets and shortcuts follow the new rules
