@@ -35,6 +35,7 @@ import android.util.Log;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.graphics.BitmapCreationCheck;
 import com.android.launcher3.logging.FileLog;
+import com.android.launcher3.util.LockedUserState;
 import com.android.launcher3.util.ResourceBasedOverride;
 
 import org.chickenhook.restrictionbypass.Unseal;
@@ -58,7 +59,9 @@ public class MainProcessInitializer implements ResourceBasedOverride {
             Log.e(TAG, "Unseal fail!");
             e.printStackTrace();
         }
-        PreferenceManager.getInstance(context);
+        // TouchInteractionService is direct boot aware, so this can run before the user unlocks,
+        // while the preferences in credential encrypted storage can't be read.
+        LockedUserState.get(context).runOnUserUnlocked(() -> PreferenceManager.getInstance(context));
         Overrides.getObject(
                 MainProcessInitializer.class, context, R.string.main_process_initializer_class)
                 .init(context);

@@ -56,6 +56,7 @@ import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherApplication
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
+import com.android.launcher3.util.LockedUserState
 import com.android.quickstep.RecentsActivity
 import com.android.systemui.shared.system.QuickStepContract
 import java.io.File
@@ -71,13 +72,19 @@ class LawnchairApp : LauncherApplication() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        QuickStepContract.sRecentsDisabled = !recentsEnabled
+        Flowerpot.Manager.getInstance(this)
+        registerActivityLifecycleCallbacks(activityHandler)
+        // SystemUI starts this process for TouchInteractionService, which is direct boot aware,
+        // before the user unlocks. Preferences live in credential encrypted storage until then.
+        LockedUserState.get(this).runOnUserUnlocked(::onUserUnlocked)
+    }
+
+    private fun onUserUnlocked() {
         val pref2 = PreferenceManager2.getInstance(this)
         FeatureFlagsImpl.sAllAppsSheetForHandheldSupplier = java.util.function.BooleanSupplier {
             pref2.allAppsSheetForHandheld.firstCached(pref2)
         }
-        QuickStepContract.sRecentsDisabled = !recentsEnabled
-        Flowerpot.Manager.getInstance(this)
-        registerActivityLifecycleCallbacks(activityHandler)
         ExpressiveUpdateScheduler.ensureScheduled(this)
     }
 

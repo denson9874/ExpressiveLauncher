@@ -30,6 +30,9 @@
 -keepclassmembers class * extends android.app.TaskStackListener {
   public void onRecentTaskRemovedForAddTask(int);
 }
+-keepclassmembers class * extends android.window.IOnBackInvokedCallback$Stub {
+  public void onBackStarted(android.window.BackMotionEvent, boolean);
+}
 
 # Material3's SheetState.Saver stores SheetValue directly in Compose saved state. After process
 # death, Parcel restores it through Java enum serialization, which reflects on values(). R8

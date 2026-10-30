@@ -249,6 +249,14 @@ public class LauncherBackAnimationController {
             });
         }
 
+        /**
+         * The Android 17 QPR2 signature of {@link #onBackStarted(BackMotionEvent)}. It is not an
+         * override at compile time, so proguard.pro keeps it.
+         */
+        public void onBackStarted(BackMotionEvent backEvent, boolean unused) {
+            onBackStarted(backEvent);
+        }
+
         @Override
         public void setTriggerBack(boolean triggerBack) {
             // TODO(b/261654570): track touch from the Launcher process.

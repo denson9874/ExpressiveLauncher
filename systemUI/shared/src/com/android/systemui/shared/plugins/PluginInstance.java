@@ -440,7 +440,8 @@ public class PluginInstance<T extends Plugin>
                 T result = (T) mInstanceFactory.create(instanceClass);
                 Log.v(TAG, "Created plugin: " + result);
                 return PluginProtector.protectIfAble(result, listener);
-            } catch (ReflectiveOperationException ex) {
+            } catch (ReflectiveOperationException | LinkageError ex) {
+                // LinkageError: PluginProtector is not part of the launcher build.
                 Log.wtf(TAG, "Failed to load plugin", ex);
             }
             return null;

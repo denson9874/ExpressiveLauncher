@@ -110,7 +110,6 @@ import android.view.WindowManager;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.view.animation.PathInterpolator;
-import android.window.DesktopModeFlags;
 import android.window.RemoteTransition;
 import android.window.TransitionFilter;
 import android.window.WindowAnimationState;
@@ -184,6 +183,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import app.lawnchair.compat.LawnchairQuickstepCompat;
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 /**
  * Manages the opening and closing app transitions from Launcher
@@ -1640,7 +1640,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
     private boolean isFreeformAnimation(RemoteAnimationTarget[] appTargets) {
         return DesktopModeStatus.canEnterDesktopMode(mLauncher.getApplicationContext())
-                && DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX.isTrue()
+                && DesktopFlagsCompat.mode("ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX", true)
                 && Arrays.stream(appTargets)
                         .anyMatch(app -> app.taskInfo != null && app.taskInfo.isFreeform());
     }

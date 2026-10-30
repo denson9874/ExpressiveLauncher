@@ -98,8 +98,10 @@ class QuickstepInteractionHandler implements RemoteViews.InteractionHandler,
                             pendingIntent.getCreatorPackage(),
                             activityOptions.options.getRemoteAnimationAdapter());
                 }
-            } catch (NullPointerException | RemoteException e) {
+            } catch (NullPointerException | RemoteException | LinkageError e) {
                 // pE-TODO(C7evQZDJ): Remove NullPointerException after fixing
+                // LinkageError: Android 17 changed getLaunchCookie() and this call's signature, so
+                // the trampoline launch keeps the default animation there.
                 // Do nothing.
             }
         }

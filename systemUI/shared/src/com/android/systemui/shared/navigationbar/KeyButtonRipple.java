@@ -19,7 +19,6 @@ package com.android.systemui.shared.navigationbar;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
-import android.companion.virtualdevice.flags.Flags;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.CanvasProperty;
@@ -28,8 +27,6 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.RecordingCanvas;
 import android.graphics.drawable.Drawable;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES_FULL;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Trace;
@@ -105,11 +102,9 @@ public class KeyButtonRipple extends Drawable {
         mMaxWidthResource = maxWidthResource;
         mMaxWidth = ctx.getResources().getDimensionPixelSize(maxWidthResource);
         mTargetView = targetView;
-        if ((VERSION.SDK_INT_FULL >= 3600001) && Flags.viewconfigurationApis()) {
-            mTapTimeoutMillis = ViewConfiguration.get(mTargetView.getContext()).getTapTimeoutMillis();
-        } else {
-            mTapTimeoutMillis = ViewConfiguration.getTapTimeout();
-        }
+        // Not the per-context ViewConfiguration value: its flag class,
+        // android.companion.virtualdevice.flags.Flags, is gone on Android 17.
+        mTapTimeoutMillis = ViewConfiguration.getTapTimeout();
     }
 
     public void updateResources() {

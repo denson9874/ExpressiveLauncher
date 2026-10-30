@@ -87,7 +87,6 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.view.inputmethod.Flags;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -125,6 +124,8 @@ import java.util.ArrayList;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntPredicate;
+
+import app.lawnchair.flags.FrameworkFlagsCompat;
 
 /**
  * Controller for managing nav bar buttons in taskbar
@@ -316,7 +317,7 @@ public class NavbarButtonsViewController implements TaskbarControllers.LoggableT
         mIsImeRenderingNavButtons = mContext.imeDrawsImeNavBar();
         if (!mIsImeRenderingNavButtons) {
             // IME switcher
-            final int switcherResId = Flags.imeSwitcherRevamp()
+            final int switcherResId = FrameworkFlagsCompat.imeSwitcherRevamp()
                     ? getRevampedImeSwitcherResId()
                     : R.drawable.ic_ime_switcher;
             mImeSwitcherButton = addButton(switcherResId, BUTTON_IME_SWITCH,

@@ -274,7 +274,8 @@ public interface TaskShortcutFactory {
                                 animationSpecFuture.getFuture(),
                                 RecentsTransition.wrapStartedListener(animStartedCallbackHandler,
                                         animStartedCallback), scaleUp, displayId);
-            } catch (RemoteException e) {
+            } catch (RemoteException | NoSuchMethodError e) {
+                // NoSuchMethodError: Android 17 removed this window manager call.
                 Log.w(TAG, "Failed to override pending app transition (multi-thumbnail future): ",
                         e);
             }
