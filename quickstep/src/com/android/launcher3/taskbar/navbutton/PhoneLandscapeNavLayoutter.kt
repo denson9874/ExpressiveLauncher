@@ -27,6 +27,7 @@ import android.widget.Space
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.taskbar.TaskbarActivityContext
+import com.android.launcher3.util.DimensionUtils
 
 open class PhoneLandscapeNavLayoutter(
     resources: Resources,
@@ -52,7 +53,7 @@ open class PhoneLandscapeNavLayoutter(
         val homeButtonHeight =
             resources.getDimensionPixelSize(R.dimen.taskbar_phone_home_button_size)
         val roundedCornerContentMargin =
-            resources.getDimensionPixelSize(R.dimen.taskbar_phone_rounded_corner_content_margin)
+            DimensionUtils.getTaskbarPhoneRoundedCornerContentMargin(resources)
         val contentPadding = resources.getDimensionPixelSize(R.dimen.taskbar_phone_content_padding)
         val contentWidth = totalHeight - roundedCornerContentMargin * 2 - contentPadding * 2
 
@@ -129,7 +130,7 @@ open class PhoneLandscapeNavLayoutter(
         startContextualContainer.removeAllViews()
 
         val roundedCornerContentMargin =
-            resources.getDimensionPixelSize(R.dimen.taskbar_phone_rounded_corner_content_margin)
+            DimensionUtils.getTaskbarPhoneRoundedCornerContentMargin(resources)
         val contentPadding = resources.getDimensionPixelSize(R.dimen.taskbar_phone_content_padding)
         repositionContextualContainer(
             startContextualContainer,

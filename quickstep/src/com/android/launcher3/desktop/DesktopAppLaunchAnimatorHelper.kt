@@ -27,11 +27,11 @@ import android.view.SurfaceControl.Transaction
 import android.view.WindowManager.TRANSIT_CLOSE
 import android.view.WindowManager.TRANSIT_OPEN
 import android.view.WindowManager.TRANSIT_TO_BACK
-import android.window.DesktopModeFlags
 import android.window.TransitionInfo
 import android.window.TransitionInfo.Change
 import androidx.core.animation.addListener
 import androidx.core.util.Supplier
+import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.app.animation.Interpolators
 import com.android.internal.jank.Cuj
 import com.android.internal.jank.InteractionJankMonitor
@@ -112,7 +112,7 @@ class DesktopAppLaunchAnimatorHelper(
     private fun getTrampolineCloseChange(info: TransitionInfo): Change? {
         if (
             info.changes.size < 2 ||
-            !DesktopModeFlags.ENABLE_DESKTOP_TRAMPOLINE_CLOSE_ANIMATION_BUGFIX.isTrue
+            !DesktopFlagsCompat.mode("ENABLE_DESKTOP_TRAMPOLINE_CLOSE_ANIMATION_BUGFIX", true)
         ) {
             return null
         }

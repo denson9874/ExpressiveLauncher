@@ -747,9 +747,12 @@ public class RotationButtonController {
             Log.w(TAG, "Error checking foldable via DeviceStateManager, using legacy method", e);
         }
 
-        // Old method: works on all Android versions and ROMs
-        return mContext.getResources().getIntArray(
-                com.android.internal.R.array.config_foldedDeviceStates).length != 0;
+        // Old method: works on all Android versions and ROMs. The array id is private and
+        // changes between releases, so it is looked up by name.
+        int foldedDeviceStatesId = mContext.getResources().getIdentifier(
+                "config_foldedDeviceStates", "array", "android");
+        return foldedDeviceStatesId != 0
+                && mContext.getResources().getIntArray(foldedDeviceStatesId).length != 0;
     }
 
     private class TaskStackListenerImpl implements TaskStackChangeListener {

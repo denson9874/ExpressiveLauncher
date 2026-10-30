@@ -80,7 +80,6 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.window.DesktopExperienceFlags;
-import android.window.DesktopModeFlags;
 import android.window.DesktopModeFlags.DesktopModeFlag;
 import android.window.RemoteTransition;
 
@@ -157,6 +156,7 @@ import com.android.launcher3.util.ActivityOptionsWrapper;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.ComponentKey;
+import com.android.launcher3.util.DimensionUtils;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.Executors;
 import com.android.launcher3.util.LauncherBindableItemsContainer;
@@ -194,6 +194,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 /**
  * The {@link ActivityContext} with which we inflate Taskbar-related Views. This allows UI elements
@@ -1362,7 +1364,7 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
 
         if (isPhoneMode()) {
             return isThreeButtonNav() ?
-                    resources.getDimensionPixelSize(R.dimen.taskbar_phone_size) :
+                    DimensionUtils.getTaskbarPhoneSize(resources) :
                     resources.getDimensionPixelSize(R.dimen.taskbar_stashed_size);
         }
 
@@ -1707,7 +1709,7 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
                 mControllers.taskbarRecentAppsController.getRunningAppState(taskId);
         Log.d(TAG, "Task id=" + taskId + ", Running app state=" + runningAppState);
         return runningAppState == RunningAppState.MINIMIZED
-                && DesktopModeFlags.ENABLE_DESKTOP_APP_LAUNCH_ALTTAB_TRANSITIONS_BUGFIX.isTrue();
+                && DesktopFlagsCompat.mode("ENABLE_DESKTOP_APP_LAUNCH_ALTTAB_TRANSITIONS_BUGFIX", true);
     }
 
     private RemoteTransition createDesktopAppLaunchRemoteTransition(
@@ -1859,17 +1861,17 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
     }
 
     private boolean shouldLaunchInDesktop(int displayId, ItemInfo info) {
-        if (!DesktopModeFlags.ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX.isTrue()) {
+        if (!DesktopFlagsCompat.mode("ENABLE_DESKTOP_APP_LAUNCH_TRANSITIONS_BUGFIX", true)) {
             return false;
         }
-        if (DesktopExperienceFlags.ENABLE_DESKTOP_FIRST_FULLSCREEN_REFOCUS_BUGFIX.isTrue()
+        if (DesktopFlagsCompat.experience("ENABLE_DESKTOP_FIRST_FULLSCREEN_REFOCUS_BUGFIX", true)
                 && DisplayController.isInDesktopFirstMode(this)
                 && mControllers.taskbarRecentAppsController.hasSingleTask(info)) {
             // Keep the fullscreen mode in desktop-first mode.
             return false;
         }
         // Always launch in freeform if in external display.
-        return (DesktopExperienceFlags.ENABLE_FREEFORM_DISPLAY_LAUNCH_PARAMS.isTrue()
+        return (DesktopFlagsCompat.experience("ENABLE_FREEFORM_DISPLAY_LAUNCH_PARAMS", true)
                 && isExternalDisplay(displayId)) || isTaskbarShowingDesktopTasks();
     }
 
@@ -1891,7 +1893,7 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
         }
         // There is no task associated with this launch - launch a new task through an intent
         ActivityOptionsWrapper opts = getActivityLaunchDesktopOptions();
-        if (DesktopModeFlags.ENABLE_START_LAUNCH_TRANSITION_FROM_TASKBAR_BUGFIX.isTrue()) {
+        if (DesktopFlagsCompat.mode("ENABLE_START_LAUNCH_TRANSITION_FROM_TASKBAR_BUGFIX", true)) {
             mSysUiProxy.startLaunchIntentTransition(intent, opts.options.toBundle(), displayId);
         } else {
             startActivity(intent, opts.options.toBundle());

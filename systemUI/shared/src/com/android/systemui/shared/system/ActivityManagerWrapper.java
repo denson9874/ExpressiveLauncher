@@ -45,6 +45,7 @@ import android.util.Log;
 import android.view.Display;
 import android.window.TaskSnapshot;
 
+import app.lawnchair.compat.CinnamonBunCompat;
 import app.lawnchair.compat.LawnchairQuickstepCompat;
 import com.android.internal.app.IVoiceInteractionManagerService;
 import com.android.systemui.shared.recents.model.Task;
@@ -137,7 +138,9 @@ public class ActivityManagerWrapper {
     public @NonNull ThumbnailData getTaskThumbnail(int taskId, boolean isLowResolution) {
         TaskSnapshot snapshot = null;
         try {
-            snapshot = getService().getTaskSnapshot(taskId, isLowResolution);
+            snapshot = LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN
+                    ? CinnamonBunCompat.getTaskSnapshot(taskId, isLowResolution)
+                    : getService().getTaskSnapshot(taskId, isLowResolution);
         } catch (RemoteException e) {
             Log.w(TAG, "Failed to retrieve task snapshot", e);
         }
@@ -157,7 +160,9 @@ public class ActivityManagerWrapper {
     public ThumbnailData takeTaskThumbnail(int taskId) {
         TaskSnapshot snapshot = null;
         try {
-            snapshot = getService().takeTaskSnapshot(taskId, /* updateCache= */ true);
+            snapshot = LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN
+                    ? CinnamonBunCompat.takeTaskSnapshot(taskId, /* updateCache= */ true)
+                    : getService().takeTaskSnapshot(taskId, /* updateCache= */ true);
         } catch (RemoteException e) {
             Log.w(TAG, "Failed to take task snapshot", e);
         }

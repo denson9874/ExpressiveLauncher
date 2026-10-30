@@ -300,7 +300,11 @@ class DesktopTaskView @JvmOverloads constructor(context: Context, attrs: Attribu
                 }
             }
 
-            if (enableDesktopRecentsTransitionsCornersBugfix() && enableRefactorTaskThumbnail()) {
+            // Android 17 launched the corners fix and removed its flag from the framework.
+            if (
+                (Utilities.ATLEAST_CINNAMON_BUN || enableDesktopRecentsTransitionsCornersBugfix()) &&
+                    enableRefactorTaskThumbnail()
+            ) {
                 // When exploded view is disabled, these scale factors will be 1.0. This secondary
                 // scale factor is needed because a scale transform is applied to the thumbnail.
                 val thumbnailScaleWidth =

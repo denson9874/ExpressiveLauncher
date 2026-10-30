@@ -27,6 +27,7 @@ import android.os.Message;
 import android.os.Trace;
 import android.util.Log;
 import android.window.TaskSnapshot;
+import android.window.TaskSnapshotListener;
 
 import androidx.annotation.VisibleForTesting;
 
@@ -36,6 +37,7 @@ import com.android.systemui.shared.recents.model.ThumbnailData;
 import java.util.ArrayList;
 import java.util.List;
 
+import app.lawnchair.compat.CinnamonBunCompat;
 import app.lawnchair.compat.LawnchairQuickstepCompat;
 
 /**
@@ -144,6 +146,7 @@ public class TaskStackChangeListeners {
         private static final int ON_ACTIVITY_ROTATION = 22;
         private static final int ON_LOCK_TASK_MODE_CHANGED = 23;
         private static final int ON_TASK_SNAPSHOT_INVALIDATED = 24;
+        private static final int ON_RECENT_TASK_REMOVED_FOR_ADD_TASK = 25;
 
         /**
          * List of {@link TaskStackChangeListener} registered from {@link #addListener}.
@@ -153,6 +156,23 @@ public class TaskStackChangeListeners {
 
         private final Handler mHandler;
         private boolean mRegistered;
+        // Android 17 delivers snapshot changes through TaskSnapshotManager instead.
+        private SnapshotListener mSnapshotListener;
+
+        /** Only loaded on Android 17, where {@link TaskSnapshotListener} exists. */
+        private final class SnapshotListener extends TaskSnapshotListener {
+            @Override
+            protected void onTaskSnapshotChanged(int taskId, TaskSnapshot snapshot) {
+                mHandler.obtainMessage(ON_TASK_SNAPSHOT_CHANGED, taskId, 0, snapshot)
+                        .sendToTarget();
+            }
+
+            @Override
+            protected void onTaskSnapshotReleased(int taskId) {
+                mHandler.obtainMessage(ON_TASK_SNAPSHOT_INVALIDATED, taskId, 0 /* unused */)
+                        .sendToTarget();
+            }
+        }
 
         private Impl(Looper looper) {
             mHandler = new Handler(looper, this);
@@ -176,6 +196,16 @@ public class TaskStackChangeListeners {
                     // pE-TODO(CompatTier2): Find a way to deal with LawnchairQuickstepCompat instead of NoClassDefFoundError | ExceptionInInitializerError catch
                     Log.w(TAG, "Failed to call registerTaskStackListener", e);
                 }
+                if (mRegistered && LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN) {
+                    try {
+                        SnapshotListener snapshotListener = new SnapshotListener();
+                        if (CinnamonBunCompat.registerTaskSnapshotListener(snapshotListener)) {
+                            mSnapshotListener = snapshotListener;
+                        }
+                    } catch (LinkageError | RuntimeException e) {
+                        Log.w(TAG, "Failed to call registerTaskSnapshotListener", e);
+                    }
+                }
             }
         }
 
@@ -194,6 +224,14 @@ public class TaskStackChangeListeners {
                 } catch (NoClassDefFoundError | ExceptionInInitializerError | Exception e) {
                     // pE-TODO(CompatTier2): Find a way to deal with LawnchairQuickstepCompat instead of NoClassDefFoundError | ExceptionInInitializerError catch
                     Log.w(TAG, "Failed to call unregisterTaskStackListener", e);
+                }
+                if (mSnapshotListener != null) {
+                    try {
+                        CinnamonBunCompat.unregisterTaskSnapshotListener(mSnapshotListener);
+                    } catch (LinkageError | RuntimeException e) {
+                        Log.w(TAG, "Failed to call unregisterTaskSnapshotListener", e);
+                    }
+                    mSnapshotListener = null;
                 }
             }
         }
@@ -276,6 +314,12 @@ public class TaskStackChangeListeners {
         @Override
         public void onTaskSnapshotChanged(int taskId, TaskSnapshot snapshot) {
             mHandler.obtainMessage(ON_TASK_SNAPSHOT_CHANGED, taskId, 0, snapshot).sendToTarget();
+        }
+
+        // Android 17: the recent task was replaced by a new one. Not an override at compile time.
+        public void onRecentTaskRemovedForAddTask(int taskId) {
+            mHandler.obtainMessage(ON_RECENT_TASK_REMOVED_FOR_ADD_TASK, taskId, 0 /* unused */)
+                    .sendToTarget();
         }
 
         @Override
@@ -516,6 +560,12 @@ public class TaskStackChangeListeners {
                             mTaskStackListeners.get(i).onTaskSnapshotChanged(msg.arg1, thumbnail);
                         }
                         Trace.endSection();
+                        break;
+                    }
+                    case ON_RECENT_TASK_REMOVED_FOR_ADD_TASK: {
+                        for (int i = mTaskStackListeners.size() - 1; i >= 0; i--) {
+                            mTaskStackListeners.get(i).onRecentTaskRemovedForAddTask(msg.arg1);
+                        }
                         break;
                     }
                 }

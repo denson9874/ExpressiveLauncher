@@ -30,6 +30,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Message
+import android.os.Parcel
 import android.os.RemoteException
 import android.os.Trace
 import android.os.Trace.traceBegin
@@ -42,7 +43,6 @@ import android.view.MotionEvent
 import android.view.RemoteAnimationTarget
 import android.view.SurfaceControl
 import android.view.SurfaceControl.Transaction
-import android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS
 import android.window.IOnBackInvokedCallback
 import android.window.RemoteTransition
 import android.window.TaskSnapshot
@@ -53,11 +53,14 @@ import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 //import app.lawnchair.gestures.type.GestureType
+import app.lawnchair.compat.CinnamonBunCompat
+import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.internal.logging.InstanceId
 import com.android.internal.util.ScreenshotRequest
 import com.android.internal.view.AppearanceRegion
 import com.android.launcher3.Flags
 import com.android.launcher3.Utilities.ATLEAST_BAKLAVA
+import com.android.launcher3.Utilities.ATLEAST_CINNAMON_BUN
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.dagger.LauncherAppSingleton
@@ -908,7 +911,13 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     fun registerRemoteTransition(remoteTransition: RemoteTransition?, filter: TransitionFilter) {
         remoteTransition ?: return
         executeWithErrorLog({ "Failed call registerRemoteTransition" }) {
-            shellTransitions?.registerRemote(filter, remoteTransition)
+            shellTransitions?.let {
+                if (!ATLEAST_CINNAMON_BUN) {
+                    it.registerRemote(filter, remoteTransition)
+                } else if (!CinnamonBunCompat.registerRemote(it, filter, remoteTransition)) {
+                    Log.e(TAG, "Skipped registerRemoteTransition: couldn't attach its filter")
+                }
+            }
         }
         remoteTransitions.putIfAbsent(remoteTransition, filter)
     }
@@ -1109,7 +1118,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     private fun shouldEnableRunningTasksForDesktopMode(): Boolean =
         DesktopModeStatus.canEnterDesktopMode(context) &&
             if (ATLEAST_BAKLAVA) {
-                ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS.isTrue
+                DesktopFlagsCompat.mode("ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS", true)
             } else {
                 false
             }
@@ -1295,6 +1304,33 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
 
     private class RecentsAnimationListenerStub(val listener: RecentsAnimationListener) :
         IRecentsAnimationRunner.Stub() {
+
+        override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+            if (ATLEAST_CINNAMON_BUN && code == TRANSACTION_ON_ANIMATION_START) {
+                // Android 17 dropped minimizedHomeBounds from onAnimationStart, so the Android 16
+                // stub would read the extras where the second Rect used to be. Read the new
+                // layout here. The Android 16 Shell always sent an empty Rect for it.
+                data.enforceInterface(IRecentsAnimationRunner.DESCRIPTOR)
+                val controller = IRecentsAnimationController.Stub.asInterface(data.readStrongBinder())
+                val apps = data.createTypedArray(RemoteAnimationTarget.CREATOR)
+                val wallpapers = data.createTypedArray(RemoteAnimationTarget.CREATOR)
+                val homeContentInsets = data.readTypedObject(Rect.CREATOR)
+                val extras = data.readTypedObject(Bundle.CREATOR)
+                val transitionInfo = data.readTypedObject(TransitionInfo.CREATOR)
+                onAnimationStart(
+                    controller,
+                    apps,
+                    wallpapers,
+                    homeContentInsets,
+                    Rect(),
+                    extras,
+                    transitionInfo,
+                )
+                return true
+            }
+            return super.onTransact(code, data, reply, flags)
+        }
+
         override fun onAnimationStart(
             controller: IRecentsAnimationController,
             apps: Array<RemoteAnimationTarget>?,
@@ -1327,6 +1363,11 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
             transitionInfo: TransitionInfo?,
         ) {
             listener.onTasksAppeared(apps, transitionInfo)
+        }
+
+        companion object {
+            // IBinder.FIRST_CALL_TRANSACTION + 2. The generated constant is package-private.
+            private const val TRANSACTION_ON_ANIMATION_START = IBinder.FIRST_CALL_TRANSACTION + 2
         }
     }
 

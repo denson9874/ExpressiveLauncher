@@ -98,7 +98,6 @@ import android.view.ViewTreeObserver.OnScrollChangedListener;
 import android.view.WindowInsets;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
-import android.window.DesktopExperienceFlags;
 import android.window.DesktopModeFlags;
 import android.window.PictureInPictureSurfaceTransaction;
 import android.window.TransitionInfo;
@@ -186,6 +185,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
+
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 /**
  * Handles the navigation gestures when Launcher is the default home activity.
@@ -576,7 +577,17 @@ public abstract class AbsSwipeUpHandler<
 
             HashMap<Integer, ThumbnailData> snapshots =
                     mGestureState.consumeRecentsAnimationCanceledSnapshot();
-            if (snapshots != null) {
+            if (snapshots == null) return;
+            if (Utilities.ATLEAST_CINNAMON_BUN) {
+                // Android 17's Shell waits for this finish after a cancel with screenshots, and
+                // force-finishes to home after 200 ms if it never comes.
+                mRecentsView.switchToScreenshot(snapshots, () -> {
+                    if (mRecentsAnimationController != null) {
+                        mRecentsAnimationController.finish(true /* toRecents */, () -> {});
+                    }
+                    mRecentsView.onRecentsAnimationComplete();
+                });
+            } else {
                 mRecentsView.switchToScreenshot(snapshots, () -> {});
                 mRecentsView.onRecentsAnimationComplete();
             }
@@ -1562,7 +1573,7 @@ public abstract class AbsSwipeUpHandler<
                 events.add(mLogDirectionUpOrLeft ? LAUNCHER_QUICKSWITCH_LEFT
                         : LAUNCHER_QUICKSWITCH_RIGHT);
                 if (targetTaskView != null && DesktopModeStatus.canEnterDesktopMode(mContext)
-                        && DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_QUICK_SWITCH.isTrue()) {
+                        && DesktopFlagsCompat.mode("ENABLE_DESKTOP_WINDOWING_QUICK_SWITCH", true)) {
                     if (targetTaskView.getType() == TaskViewType.DESKTOP) {
                         events.add(LAUNCHER_QUICKSWITCH_ENTER_DESKTOP_MODE);
                     } else if (mPreviousTaskViewType == TaskViewType.DESKTOP) {
@@ -1688,7 +1699,7 @@ public abstract class AbsSwipeUpHandler<
                     && runningTaskTarget.leash != null
                     && runningTaskTarget.leash.isValid();
             final boolean swipeUpInDesktopWindowing =
-                    DesktopExperienceFlags.ENABLE_DESKTOP_WINDOWING_PIP.isTrue()
+                    DesktopFlagsCompat.experience("ENABLE_DESKTOP_WINDOWING_PIP", true)
                             && runningTaskTarget != null
                             && runningTaskTarget.taskInfo.getWindowingMode()
                             == WINDOWING_MODE_FREEFORM;

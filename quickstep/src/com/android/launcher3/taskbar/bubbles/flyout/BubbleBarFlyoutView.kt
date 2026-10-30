@@ -422,12 +422,18 @@ class BubbleBarFlyoutView(
         val defaultBackgroundColor = if (isNightModeOn) Color.BLACK else Color.WHITE
         val defaultTextColor = if (isNightModeOn) Color.WHITE else Color.BLACK
 
-        backgroundColor =
-            context.getColor(com.android.internal.R.color.materialColorSurfaceContainer)
-        title.setTextColor(context.getColor(com.android.internal.R.color.materialColorOnSurface))
-        message.setTextColor(
-            context.getColor(com.android.internal.R.color.materialColorOnSurfaceVariant)
-        )
+        backgroundColor = getSystemColor("materialColorSurfaceContainer", defaultBackgroundColor)
+        title.setTextColor(getSystemColor("materialColorOnSurface", defaultTextColor))
+        message.setTextColor(getSystemColor("materialColorOnSurfaceVariant", defaultTextColor))
         backgroundPaint.color = backgroundColor
+    }
+
+    /**
+     * Looks up a framework color by name. Its id is private and changes between releases, so the
+     * Android 16 id compiled into the app points at another color on Android 17.
+     */
+    private fun getSystemColor(name: String, fallback: Int): Int {
+        val resId = resources.getIdentifier(name, "color", "android")
+        return if (resId != 0) context.getColor(resId) else fallback
     }
 }

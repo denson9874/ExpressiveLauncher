@@ -44,6 +44,11 @@ object LawnchairQuickstepCompat {
     @JvmField
     val ATLEAST_BAKLAVA: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
 
+    /** Android 17. A literal, because the framework-16 prebuilt has no CINNAMON_BUN constant. */
+    @ChecksSdkIntAtLeast(api = 37)
+    @JvmField
+    val ATLEAST_CINNAMON_BUN: Boolean = Build.VERSION.SDK_INT >= 37
+
     @JvmStatic
     val factory: QuickstepCompatFactory by lazy {
         when {

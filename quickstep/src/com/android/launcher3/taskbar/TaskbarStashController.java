@@ -67,6 +67,7 @@ import com.android.launcher3.R;
 import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.anim.AnimationSuccessListener;
 import com.android.launcher3.anim.AnimatorListeners;
+import com.android.launcher3.util.DimensionUtils;
 import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
 import com.android.quickstep.SystemUiProxy;
 import com.android.quickstep.util.SystemUiFlagUtils;
@@ -318,8 +319,7 @@ public class TaskbarStashController implements TaskbarControllers.LoggableTaskba
         mTaskbarBackgroundDuration = activity.getResources().getInteger(
                 R.integer.taskbar_background_duration);
         if (mActivity.isPhoneMode()) {
-            mUnstashedHeight = mActivity.getResources().getDimensionPixelSize(
-                    R.dimen.taskbar_phone_size);
+            mUnstashedHeight = DimensionUtils.getTaskbarPhoneSize(mActivity.getResources());
             mStashedHeight = mActivity.getResources().getDimensionPixelSize(
                     R.dimen.taskbar_stashed_size);
         } else {

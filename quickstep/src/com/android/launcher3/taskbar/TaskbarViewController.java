@@ -21,7 +21,6 @@ import static android.animation.LayoutTransition.CHANGE_DISAPPEARING;
 import static android.animation.LayoutTransition.DISAPPEARING;
 import static android.view.Display.DEFAULT_DISPLAY;
 import static android.window.DesktopModeFlags.ENABLE_TASKBAR_OVERFLOW;
-import static android.window.DesktopModeFlags.ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION;
 
 import static com.android.app.animation.Interpolators.EMPHASIZED;
 import static com.android.app.animation.Interpolators.FINAL_FRAME;
@@ -87,6 +86,7 @@ import com.android.launcher3.taskbar.bubbles.BubbleBarController;
 import com.android.launcher3.taskbar.bubbles.BubbleControllers;
 import com.android.launcher3.taskbar.customization.TaskbarAllAppsButtonContainer;
 import com.android.launcher3.taskbar.customization.TaskbarDividerContainer;
+import com.android.launcher3.util.DimensionUtils;
 import com.android.launcher3.util.ItemInfoMatcher;
 import com.android.launcher3.util.LauncherBindableItemsContainer;
 import com.android.launcher3.util.MultiPropertyFactory;
@@ -271,7 +271,7 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
         // controllers state initialization before evaluating the feature.
         mControllers.runAfterInit(mTaskbarView::updatePinningPopupEventHandlers);
         mTaskbarView.getLayoutParams().height = mActivity.isPhoneMode()
-                ? mActivity.getResources().getDimensionPixelSize(R.dimen.taskbar_phone_size)
+                ? DimensionUtils.getTaskbarPhoneSize(mActivity.getResources())
                 : mActivity.getDeviceProfile().getTaskbarProfile().getHeight();
 
         mTaskbarIconScaleForStash.updateValue(1f);
@@ -1250,10 +1250,9 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
         }
         int taskbarWindowSize;
         if (mActivity.isPhoneMode()) {
-            taskbarWindowSize = mActivity.getResources().getDimensionPixelSize(
-                    mActivity.isThreeButtonNav()
-                            ? R.dimen.taskbar_phone_size
-                            : R.dimen.taskbar_stashed_size);
+            taskbarWindowSize = mActivity.isThreeButtonNav()
+                    ? DimensionUtils.getTaskbarPhoneSize(mActivity.getResources())
+                    : mActivity.getResources().getDimensionPixelSize(R.dimen.taskbar_stashed_size);
         } else {
             taskbarWindowSize = mActivity.getDefaultTaskbarWindowSize();
         }
@@ -1292,7 +1291,7 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
     /** Called when there's a change in running apps to update the UI. */
     public void commitRunningAppsToUI() {
         mModelCallbacks.commitRunningAppsToUI();
-        if (ENABLE_TASKBAR_RECENTS_LAYOUT_TRANSITION.isTrue()
+        if (TaskbarView.recentsLayoutTransitionEnabled()
                 && !mActivity.isTransientTaskbar()
                 && mTaskbarView.getLayoutTransition() == null) {
             // Set up after the first commit so that the initial recents do not animate (janky).

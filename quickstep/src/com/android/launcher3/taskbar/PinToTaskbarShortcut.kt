@@ -19,8 +19,8 @@ package com.android.launcher3.taskbar
 import android.content.Context
 import android.util.SparseArray
 import android.view.View
-import android.window.DesktopExperienceFlags
 import androidx.annotation.VisibleForTesting
+import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.launcher3.DeviceProfile
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_ALL_APPS
@@ -106,7 +106,7 @@ class PinToTaskbarShortcut<T>(
 
     companion object {
         fun isPinningAppWithContextMenuEnabled(context: TaskbarActivityContext): Boolean =
-            DesktopExperienceFlags.ENABLE_PINNING_APP_WITH_CONTEXT_MENU.isTrue &&
+            DesktopFlagsCompat.experience("ENABLE_PINNING_APP_WITH_CONTEXT_MENU", true) &&
                 context.isTaskbarShowingDesktopTasks
     }
 }

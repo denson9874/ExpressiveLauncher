@@ -31,6 +31,9 @@ import android.view.InputChannel;
 import android.view.InputEvent;
 import android.view.WindowManagerGlobal;
 
+import app.lawnchair.compat.CinnamonBunCompat;
+import app.lawnchair.compat.LawnchairQuickstepCompat;
+
 import java.io.PrintWriter;
 
 /**
@@ -137,12 +140,21 @@ public class InputConsumerController {
      */
     public void registerInputConsumer() {
         if (mInputEventReceiver == null) {
-            final InputChannel inputChannel = new InputChannel();
+            // Android 17 returns the channel instead of filling one in.
+            InputChannel inputChannel = LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN
+                    ? null : new InputChannel();
             boolean success = false;
             try {
                 destroyInputConsumerSafely();
-                mWindowManager.createInputConsumer(mToken, mName, DEFAULT_DISPLAY, inputChannel);
-                success = true;
+                if (LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN) {
+                    inputChannel = CinnamonBunCompat.createInputConsumer(
+                            mWindowManager, mToken, mName, DEFAULT_DISPLAY);
+                    success = inputChannel != null;
+                } else {
+                    mWindowManager.createInputConsumer(mToken, mName, DEFAULT_DISPLAY,
+                            inputChannel);
+                    success = true;
+                }
             } catch (RemoteException | LinkageError | RuntimeException e) {
                 Log.e(TAG, "Failed to create input consumer: " + mName, e);
             }
@@ -152,7 +164,7 @@ public class InputConsumerController {
                 if (mRegistrationListener != null) {
                     mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
                 }
-            } else {
+            } else if (inputChannel != null) {
                 inputChannel.dispose();
             }
         }

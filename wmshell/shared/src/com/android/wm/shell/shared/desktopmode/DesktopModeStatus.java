@@ -20,6 +20,7 @@ import static android.hardware.display.DisplayManager.DISPLAY_CATEGORY_ALL_INCLU
 
 import static com.android.wm.shell.shared.bubbles.BubbleAnythingFlagHelper.enableBubbleToFullscreen;
 
+import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.os.Build;
 import androidx.annotation.NonNull;
@@ -37,6 +38,8 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.window.flags2.Flags;
 
 import java.util.Arrays;
+
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 /**
  * Constants for desktop mode feature
@@ -349,11 +352,21 @@ public class DesktopModeStatus {
         if (DesktopExperienceFlags.ENABLE_DESKTOP_FIRST_BASED_DEFAULT_TO_DESKTOP_BUGFIX.isTrue()) {
             return true;
         }
-        if (!DesktopExperienceFlags.ENTER_DESKTOP_BY_DEFAULT_ON_FREEFORM_DISPLAYS.isTrue()) {
+        if (!DesktopFlagsCompat.experience("ENTER_DESKTOP_BY_DEFAULT_ON_FREEFORM_DISPLAYS", true)) {
             return false;
         }
         return SystemProperties.getBoolean(ENTER_DESKTOP_BY_DEFAULT_ON_FREEFORM_DISPLAY_SYS_PROP,
-                context.getResources().getBoolean(
-                        R.bool.config_enterDesktopByDefaultOnFreeformDisplay));
+                enterDesktopByDefaultOnFreeformDisplayConfig(context));
+    }
+
+    /**
+     * Reads config_enterDesktopByDefaultOnFreeformDisplay by name. javac inlines the Android 16
+     * id, and private resource ids change between releases. Falls back to the framework default,
+     * false.
+     */
+    private static boolean enterDesktopByDefaultOnFreeformDisplayConfig(@NonNull Context context) {
+        int resId = Resources.getSystem().getIdentifier(
+                "config_enterDesktopByDefaultOnFreeformDisplay", "bool", "android");
+        return resId != 0 && context.getResources().getBoolean(resId);
     }
 }

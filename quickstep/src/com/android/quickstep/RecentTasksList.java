@@ -31,7 +31,6 @@ import android.content.pm.ParceledListSlice;
 import android.os.Process;
 import android.os.RemoteException;
 import android.util.SparseBooleanArray;
-import android.window.DesktopExperienceFlags;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -72,6 +71,7 @@ import java.util.stream.Collectors;
 
 import app.lawnchair.LawnchairApp;
 import app.lawnchair.compat.LawnchairQuickstepCompat;
+import app.lawnchair.flags.DesktopFlagsCompat;
 
 /**
  * Manages the recent task list from the system, caching it as necessary.
@@ -457,8 +457,11 @@ public class RecentTasksList {
                     allTasks.add(new SingleTask(task1));
                 }
             } else {
-                TaskInfo taskInfo1 = rawTask.getTaskInfo1();
-                TaskInfo taskInfo2 = rawTask.getTaskInfo2();
+                // A Shell with enable_shell_top_task_tracking on can send TYPE_MIXED groups,
+                // whose getTaskInfo1() throws. Read their base group instead.
+                final GroupedTaskInfo baseTask = rawTask.getBaseGroupedTask();
+                TaskInfo taskInfo1 = baseTask.getTaskInfo1();
+                TaskInfo taskInfo2 = baseTask.getTaskInfo2();
                 Task.TaskKey task1Key = new Task.TaskKey(taskInfo1);
                 Task task1 = loadKeysOnly
                         ? new Task(task1Key)
@@ -488,8 +491,8 @@ public class RecentTasksList {
                     isFirstVisibleTaskFound = true;
                 }
                 if (task2 != null) {
-                    Objects.requireNonNull(rawTask.getSplitBounds());
-                    allTasks.add(new SplitTask(task1, task2, rawTask.getSplitBounds()));
+                    Objects.requireNonNull(baseTask.getSplitBounds());
+                    allTasks.add(new SplitTask(task1, task2, baseTask.getSplitBounds()));
                 } else {
                     allTasks.add(new SingleTask(task1));
                 }
@@ -514,7 +517,7 @@ public class RecentTasksList {
         Set<Integer> minimizedTaskIds = minimizedTaskIdArray != null
                 ? CollectionsKt.toSet(ArraysKt.asIterable(minimizedTaskIdArray))
                 : Collections.emptySet();
-        if (!DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_BACKEND.isTrue()) {
+        if (!DesktopFlagsCompat.experience("ENABLE_MULTIPLE_DESKTOPS_BACKEND", true)) {
             // This code is not needed when the multiple desktop feature is enabled, since Shell
             // will send a single `GroupedTaskInfo` for each desk with a unique `deskId` across
             // all displays.

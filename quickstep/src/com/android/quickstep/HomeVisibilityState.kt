@@ -16,13 +16,18 @@
 
 package com.android.quickstep
 
+import android.os.IBinder
+import android.os.Parcel
 import android.os.RemoteException
+import android.os.UserHandle
 import android.util.Log
 import android.view.InsetsState
 import android.view.WindowInsets
+import app.lawnchair.compat.CinnamonBunCompat
 import com.android.launcher3.Utilities
 import com.android.launcher3.config.FeatureFlags
 import com.android.launcher3.util.Executors
+import com.android.wm.shell.shared.IHomeTransitionListener
 import com.android.wm.shell.shared.IHomeTransitionListener.Stub
 import com.android.wm.shell.shared.IShellTransitions
 
@@ -42,44 +47,72 @@ class HomeVisibilityState {
 
     fun init(transitions: IShellTransitions?) {
         if (!FeatureFlags.enableHomeTransitionListener()) return
-        try {
-            transitions?.setHomeTransitionListener(
-                object : Stub() {
-                    override fun onHomeVisibilityChanged(isVisible: Boolean) {
-                        Utilities.postAsyncCallback(Executors.MAIN_EXECUTOR.handler) {
-                            isHomeVisible = isVisible
-                            val copiedListeners = listeners.toSet()
-                            copiedListeners.forEach { it.onHomeVisibilityChanged(isVisible) }
-                        }
+        transitions ?: return
+        val listener =
+            object : Stub() {
+                override fun onTransact(
+                    code: Int,
+                    data: Parcel,
+                    reply: Parcel?,
+                    flags: Int,
+                ): Boolean {
+                    if (Utilities.ATLEAST_CINNAMON_BUN && code == TRANSACTION_HOME_VISIBILITY) {
+                        // Android 17 sends (isVisible, keyguardGoingAwayOrWaking,
+                        // behindDesktop). Home behind a desktop never happens here.
+                        data.enforceInterface(IHomeTransitionListener.DESCRIPTOR)
+                        val isVisible = data.readBoolean()
+                        data.readBoolean()
+                        data.readBoolean()
+                        onHomeVisibilityChanged(isVisible)
+                        return true
                     }
+                    return super.onTransact(code, data, reply, flags)
+                }
 
-                    override fun onDisplayInsetsChanged(insetsState: InsetsState) {
-                        val displayFrame = insetsState.displayFrame
-                        val bottomInset =
-                            if (Utilities.ATLEAST_BAKLAVA_1) {
-                                insetsState
-                                    .calculateInsets(
-                                        displayFrame,
-                                        displayFrame,
-                                        WindowInsets.Type.navigationBars(),
-                                        false,
-                                    )
-                                    .bottom
-                            } else {
-                                // pE-TODO(QuickSwitch-Baklava): Investigate
-                                val method = InsetsState::class.java.getMethod(
-                                    "calculateInsets",
-                                    android.graphics.Rect::class.java,
-                                    Integer.TYPE,
-                                    java.lang.Boolean.TYPE
-                                )
-                                val insets = method.invoke(insetsState, displayFrame, WindowInsets.Type.navigationBars(), false) as android.graphics.Insets
-                                insets.bottom
-                            }
-                        navbarInsetPosition = displayFrame.bottom - bottomInset
+                override fun onHomeVisibilityChanged(isVisible: Boolean) {
+                    Utilities.postAsyncCallback(Executors.MAIN_EXECUTOR.handler) {
+                        isHomeVisible = isVisible
+                        val copiedListeners = listeners.toSet()
+                        copiedListeners.forEach { it.onHomeVisibilityChanged(isVisible) }
                     }
                 }
-            )
+
+                override fun onDisplayInsetsChanged(insetsState: InsetsState) {
+                    val displayFrame = insetsState.displayFrame
+                    val bottomInset =
+                        if (Utilities.ATLEAST_BAKLAVA_1) {
+                            insetsState
+                                .calculateInsets(
+                                    displayFrame,
+                                    displayFrame,
+                                    WindowInsets.Type.navigationBars(),
+                                    false,
+                                )
+                                .bottom
+                        } else {
+                            // pE-TODO(QuickSwitch-Baklava): Investigate
+                            val method = InsetsState::class.java.getMethod(
+                                "calculateInsets",
+                                android.graphics.Rect::class.java,
+                                Integer.TYPE,
+                                java.lang.Boolean.TYPE
+                            )
+                            val insets = method.invoke(insetsState, displayFrame, WindowInsets.Type.navigationBars(), false) as android.graphics.Insets
+                            insets.bottom
+                        }
+                    navbarInsetPosition = displayFrame.bottom - bottomInset
+                }
+            }
+        try {
+            if (Utilities.ATLEAST_CINNAMON_BUN) {
+                CinnamonBunCompat.setHomeTransitionListener(
+                    transitions,
+                    listener,
+                    UserHandle.myUserId(),
+                )
+            } else {
+                transitions.setHomeTransitionListener(listener)
+            }
         } catch (e: RemoteException) {
             Log.w(TAG, "Failed call setHomeTransitionListener", e)
         }
@@ -94,5 +127,8 @@ class HomeVisibilityState {
     companion object {
 
         private const val TAG = "HomeVisibilityState"
+
+        // IBinder.FIRST_CALL_TRANSACTION + 0. The generated constant is package-private.
+        private const val TRANSACTION_HOME_VISIBILITY = IBinder.FIRST_CALL_TRANSACTION
     }
 }

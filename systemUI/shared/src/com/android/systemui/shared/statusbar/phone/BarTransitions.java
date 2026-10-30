@@ -192,11 +192,16 @@ public class BarTransitions {
         /**
          * Internal framework color; may be absent for non-system / themed contexts.
          * Fallback matches typical AOSP semi-transparent system bar scrim (~40% black).
+         * The id is private and changes between releases, so it is looked up by name.
          */
         private static int loadSystemBarSemiTransparentColor(Context context) {
+            int resId = context.getResources().getIdentifier(
+                    "system_bar_background_semi_transparent", "color", "android");
+            if (resId == 0) {
+                return 0x66000000;
+            }
             try {
-                return context.getColor(
-                        com.android.internal.R.color.system_bar_background_semi_transparent);
+                return context.getColor(resId);
             } catch (Resources.NotFoundException e) {
                 return 0x66000000;
             }

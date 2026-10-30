@@ -317,7 +317,7 @@ public class NavbarButtonsViewController implements TaskbarControllers.LoggableT
         if (!mIsImeRenderingNavButtons) {
             // IME switcher
             final int switcherResId = Flags.imeSwitcherRevamp()
-                    ? com.android.internal.R.drawable.ic_ime_switcher_new
+                    ? getRevampedImeSwitcherResId()
                     : R.drawable.ic_ime_switcher;
             mImeSwitcherButton = addButton(switcherResId, BUTTON_IME_SWITCH,
                     isThreeButtonNav ? mStartContextualContainer : mEndContextualContainer,
@@ -913,6 +913,20 @@ public class NavbarButtonsViewController implements TaskbarControllers.LoggableT
         if (mContext.isPhoneMode()) {
             mTaskbarTransitions.onDarkIntensityChanged(getTaskbarNavButtonDarkIntensity().value);
         }
+    }
+
+    /**
+     * Returns the framework's revamped IME switcher icon. Its id is private and changes between
+     * releases, so it is looked up by name. Android 17 ships the icon as ic_ime_switcher.
+     */
+    @DrawableRes
+    private static int getRevampedImeSwitcherResId() {
+        Resources system = Resources.getSystem();
+        int resId = system.getIdentifier("ic_ime_switcher_new", "drawable", "android");
+        if (resId == 0 && Utilities.ATLEAST_CINNAMON_BUN) {
+            resId = system.getIdentifier("ic_ime_switcher", "drawable", "android");
+        }
+        return resId != 0 ? resId : R.drawable.ic_ime_switcher;
     }
 
     protected ImageView addButton(@DrawableRes int drawableId, @TaskbarButton int buttonType,

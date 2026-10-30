@@ -24,6 +24,8 @@ import android.graphics.Rect
 import android.util.Log
 import android.view.WindowInsetsController.Appearance
 import android.window.TaskSnapshot
+import app.lawnchair.compat.CinnamonBunCompat
+import app.lawnchair.compat.LawnchairQuickstepCompat
 
 /** Data for a single thumbnail. */
 data class ThumbnailData(
@@ -48,8 +50,13 @@ data class ThumbnailData(
         private fun makeThumbnail(snapshot: TaskSnapshot): Bitmap {
             var thumbnail: Bitmap? = null
             try {
-                snapshot.hardwareBuffer?.use { buffer ->
-                    thumbnail = Bitmap.wrapHardwareBuffer(buffer, snapshot.colorSpace)
+                if (LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN) {
+                    // Android 17 hides the hardware buffer behind wrapToBitmap().
+                    thumbnail = CinnamonBunCompat.wrapSnapshotToBitmap(snapshot)
+                } else {
+                    snapshot.hardwareBuffer?.use { buffer ->
+                        thumbnail = Bitmap.wrapHardwareBuffer(buffer, snapshot.colorSpace)
+                    }
                 }
             } catch (ex: IllegalArgumentException) {
                 // TODO(b/157562905): Workaround for a crash when we get a snapshot without this

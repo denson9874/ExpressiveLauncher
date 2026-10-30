@@ -20,8 +20,7 @@ import android.Manifest.permission.SYSTEM_ALERT_WINDOW
 import android.app.TaskInfo
 import android.content.Context
 import android.content.pm.PackageManager
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import app.lawnchair.flags.DesktopFlagsCompat
 import com.android.internal.R
 import com.android.internal.policy.DesktopModeCompatUtils
 import java.util.function.Supplier
@@ -53,7 +52,7 @@ class DesktopModeCompatPolicy(private val context: Context) {
         val packageName = task.baseActivity?.packageName ?: return false
 
         return when {
-            !DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_MODALS_POLICY.isTrue -> false
+            !DesktopFlagsCompat.mode("ENABLE_DESKTOP_WINDOWING_MODALS_POLICY", true) -> false
             // If activity is not being displayed, window mode change has no visual affect so leave
             // unchanged.
             task.isTopActivityNoDisplay -> false
@@ -116,7 +115,7 @@ class DesktopModeCompatPolicy(private val context: Context) {
 
     // Checks if the app for the given package has the SYSTEM_ALERT_WINDOW permission.
     private fun hasFullscreenTransparentPermission(packageName: String, userId: Int): Boolean {
-        if (DesktopModeFlags.ENABLE_MODALS_FULLSCREEN_WITH_PERMISSIONS.isTrue) {
+        if (DesktopFlagsCompat.mode("ENABLE_MODALS_FULLSCREEN_WITH_PERMISSIONS", true)) {
             return packageInfoCache.getOrPut("$userId@$packageName") {
                 try {
                     val packageInfo = pkgManager.getPackageInfoAsUser(
@@ -132,17 +131,20 @@ class DesktopModeCompatPolicy(private val context: Context) {
         }
         // If the ENABLE_MODALS_FULLSCREEN_WITH_PERMISSIONS flag is disabled, make neutral condition
         // dependant on the ENABLE_MODALS_FULLSCREEN_WITH_PLATFORM_SIGNATURE flag.
-        return !DesktopExperienceFlags.ENABLE_MODALS_FULLSCREEN_WITH_PLATFORM_SIGNATURE.isTrue
+        return !DesktopFlagsCompat.experience(
+            "ENABLE_MODALS_FULLSCREEN_WITH_PLATFORM_SIGNATURE", true)
     }
 
     // Checks if the app is signed with the platform signature.
     private fun hasPlatformSignature(task: TaskInfo): Boolean {
-        if (DesktopExperienceFlags.ENABLE_MODALS_FULLSCREEN_WITH_PLATFORM_SIGNATURE.isTrue) {
+        if (
+            DesktopFlagsCompat.experience("ENABLE_MODALS_FULLSCREEN_WITH_PLATFORM_SIGNATURE", true)
+        ) {
             return task.topActivityInfo?.applicationInfo?.isSignedWithPlatformKey ?: false
         }
         // If the ENABLE_MODALS_FULLSCREEN_WITH_PLATFORM_SIGNATURE flag is disabled, make neutral
         // condition dependant on the ENABLE_MODALS_FULLSCREEN_WITH_PERMISSIONS flag.
-        return !DesktopModeFlags.ENABLE_MODALS_FULLSCREEN_WITH_PERMISSIONS.isTrue
+        return !DesktopFlagsCompat.mode("ENABLE_MODALS_FULLSCREEN_WITH_PERMISSIONS", true)
     }
 
     /**

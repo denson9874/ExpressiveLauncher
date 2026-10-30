@@ -342,6 +342,11 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
         mIconCache.onTaskRemoved(stubKey);
     }
 
+    @Override
+    public void onRecentTaskRemovedForAddTask(int taskId) {
+        onTaskRemoved(taskId);
+    }
+
     public void onTrimMemory(int level) {
         if (level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
             mThumbnailCache.getHighResLoadingState().setVisible(false);

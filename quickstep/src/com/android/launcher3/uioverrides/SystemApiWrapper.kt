@@ -40,6 +40,7 @@ import android.window.RemoteTransition
 import android.window.ScreenCapture
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import app.lawnchair.compat.CinnamonBunCompat
 import com.android.launcher3.BaseActivity
 import com.android.launcher3.Flags.enablePrivateSpace
 import com.android.launcher3.Flags.privateSpaceSysAppsSeparation
@@ -286,8 +287,20 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
     override fun isFileDrawable(shortcutInfo: ShortcutInfo) =
         shortcutInfo.hasIconFile() || (Utilities.ATLEAST_U && shortcutInfo.hasIconUri())
 
-    override fun captureSnapshot(host: SurfaceControlViewHost, width: Int, height: Int): Bitmap =
-        ScreenCapture.captureLayers(
+    override fun captureSnapshot(host: SurfaceControlViewHost, width: Int, height: Int): Bitmap {
+        if (Utilities.ATLEAST_CINNAMON_BUN) {
+            // The caller catches Exception, so a failed capture must not surface as an Error.
+            return checkNotNull(
+                    CinnamonBunCompat.captureLayers(
+                        host.surfacePackage!!.surfaceControl,
+                        Rect(0, 0, width, height),
+                    )
+                ) {
+                    "Layer capture failed"
+                }
+                .copy(Bitmap.Config.ARGB_8888, true)
+        }
+        return ScreenCapture.captureLayers(
                 ScreenCapture.LayerCaptureArgs.Builder(host.surfacePackage!!.surfaceControl)
                     .setSourceCrop(Rect(0, 0, width, height))
                     .setAllowProtected(true)
@@ -296,4 +309,5 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
             )
             .asBitmap()
             .copy(Bitmap.Config.ARGB_8888, true)
+    }
 }

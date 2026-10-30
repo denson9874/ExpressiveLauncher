@@ -254,16 +254,33 @@ object DisplayLibModule {
     @Provides
     @LauncherAppSingleton
     fun providesDisplaysWithDecorationsRepository(
-        displayLibComponent: DisplayLibComponent
+        displayLibComponent: DisplayLibComponent,
+        @Background bgApplicationScope: CoroutineScope,
     ): DisplaysWithDecorationsRepository {
+        if (Utilities.ATLEAST_CINNAMON_BUN) {
+            // displaylib's display window listener crashes on Android 17, see the class doc.
+            return CinnamonBunDisplaysWithDecorationsRepository(
+                checkNotNull(WindowManagerGlobal.getWindowManagerService()),
+                bgApplicationScope,
+                displayLibComponent.displayRepository,
+            )
+        }
         return displayLibComponent.displaysWithDecorationsRepository
     }
 
     @Provides
     @LauncherAppSingleton
     fun providesDisplaysWithDecorationsRepositoryCompat(
-        displayLibComponent: DisplayLibComponent
+        displayLibComponent: DisplayLibComponent,
+        displaysWithDecorationsRepository: DisplaysWithDecorationsRepository,
+        @Background bgApplicationScope: CoroutineScope,
     ): DisplaysWithDecorationsRepositoryCompat {
+        if (Utilities.ATLEAST_CINNAMON_BUN) {
+            return DisplaysWithDecorationsRepositoryCompat(
+                bgApplicationScope,
+                displaysWithDecorationsRepository,
+            )
+        }
         return displayLibComponent.displaysWithDecorationsRepositoryCompat
     }
 

@@ -99,8 +99,7 @@ public class ContextualSearchStateManager  {
         mContextualSearchPackageReceiver =
                 new SimpleBroadcastReceiver(context, UI_HELPER_EXECUTOR,
                         (unused) -> requestUpdateProperties());
-        mContextualSearchPackage = mContext.getResources().getString(
-                com.android.internal.R.string.config_defaultContextualSearchPackageName);
+        mContextualSearchPackage = getDefaultContextualSearchPackage(mContext);
         mSystemUiProxy = systemUiProxy;
         mTopTaskTracker = topTaskTracker;
 
@@ -135,6 +134,16 @@ public class ContextualSearchStateManager  {
             settingsCache.unregister(SEARCH_ALL_ENTRYPOINTS_ENABLED_URI, settingChangedListener);
             systemUiProxy.removeOnStateChangeListener(mSysUiStateChangeListener);
         });
+    }
+
+    /**
+     * Reads config_defaultContextualSearchPackageName by name. Its framework id is private and
+     * changes between releases, so the Android 16 id points at another string on Android 17.
+     */
+    private static String getDefaultContextualSearchPackage(Context context) {
+        int resId = context.getResources().getIdentifier(
+                "config_defaultContextualSearchPackageName", "string", "android");
+        return resId != 0 ? context.getResources().getString(resId) : "";
     }
 
     /** Return {@code true} if the Settings toggle is enabled. */

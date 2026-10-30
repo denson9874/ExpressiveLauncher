@@ -101,6 +101,9 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.Parcel;
+import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.os.UserHandle;
@@ -6894,6 +6897,46 @@ public abstract class RecentsView<
                 mRecentsView.mPipCornerRadius = cornerRadius;
                 mRecentsView.mPipShadowRadius = shadowRadius;
             }
+        }
+
+        // IBinder.FIRST_CALL_TRANSACTION + 1. The generated constant is package-private.
+        private static final int TRANSACTION_PIP_RESOURCES_CHANGED =
+                IBinder.FIRST_CALL_TRANSACTION + 1;
+
+        @Override
+        public boolean onTransact(int code, @NonNull Parcel data, @Nullable Parcel reply,
+                int flags) throws RemoteException {
+            if (Utilities.ATLEAST_CINNAMON_BUN && code == TRANSACTION_PIP_RESOURCES_CHANGED) {
+                // Android 17 sends one PipResources structured parcelable:
+                // (BoxShadowSettings, int cornerRadius, int shadowRadius, BorderSettings).
+                data.enforceInterface(IPipAnimationListener.DESCRIPTOR);
+                readPipResources(data);
+                return true;
+            }
+            return super.onTransact(code, data, reply, flags);
+        }
+
+        private void readPipResources(Parcel data) {
+            if (data.readInt() == 0) {
+                onPipResourceDimensionsChanged(0, 0);
+                return;
+            }
+            final int start = data.dataPosition();
+            final int size = data.readInt();
+            final int end = start + size;
+            if (size < 4 || end > data.dataSize()) return;
+            if (data.readInt() != 0) {
+                // Skip the nested BoxShadowSettings, itself a size-prefixed parcelable.
+                final int shadowStart = data.dataPosition();
+                final int shadowSize = data.readInt();
+                if (shadowSize < 4 || shadowStart + shadowSize > end) return;
+                data.setDataPosition(shadowStart + shadowSize);
+            }
+            if (data.dataPosition() + 8 > end) return;
+            final int cornerRadius = data.readInt();
+            final int shadowRadius = data.readInt();
+            data.setDataPosition(end);
+            onPipResourceDimensionsChanged(cornerRadius, shadowRadius);
         }
 
         @Override
