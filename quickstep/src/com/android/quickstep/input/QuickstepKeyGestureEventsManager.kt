@@ -157,20 +157,21 @@ class QuickstepKeyGestureEventsManager(context: Context) {
     }
 
     // The system can still refuse MANAGE_KEY_GESTURES, for example when the recents role moved
-    // after the check above. The system then keeps handling these gestures itself.
+    // after the check above, and Android 17 throws IllegalArgumentException when another handler
+    // already owns a gesture. The system then keeps handling these gestures itself.
     private fun registerHandler(gestures: List<Int>, handler: KeyGestureEventHandler) {
         try {
             inputManager.registerKeyGestureEventHandler(gestures, handler)
-        } catch (e: SecurityException) {
-            Log.w(TAG, "Not allowed to handle key gestures $gestures", e)
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "Could not register a handler for key gestures $gestures", e)
         }
     }
 
     private fun unregisterHandler(handler: KeyGestureEventHandler) {
         try {
             inputManager.unregisterKeyGestureEventHandler(handler)
-        } catch (e: SecurityException) {
-            Log.w(TAG, "Not allowed to unregister a key gesture handler", e)
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "Could not unregister a key gesture handler", e)
         }
     }
 
