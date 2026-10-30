@@ -92,8 +92,10 @@ object TaskUiStateMapper {
             else -> Uninitialized
         }
 
+    // LC-Note: A snapshot that came back without a bitmap shows the app's colour too, like
+    // upstream, instead of falling through to Uninitialized and a see-through card.
     private fun isBackgroundOnly(taskData: TaskData.Data) =
-        taskData.isLocked || taskData.thumbnailData == null
+        taskData.isLocked || taskData.thumbnailData?.thumbnail == null
 
     private fun isSnapshotSplash(taskData: TaskData.Data) =
         taskData.thumbnailData?.thumbnail != null && !taskData.isLocked

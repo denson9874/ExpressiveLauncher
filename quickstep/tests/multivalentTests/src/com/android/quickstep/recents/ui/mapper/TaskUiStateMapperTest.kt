@@ -185,6 +185,17 @@ class TaskUiStateMapperTest {
     }
 
     @Test
+    fun taskData_thumbnailBitmapIsNull_returns_BackgroundOnly() {
+        val result =
+            TaskUiStateMapper.toTaskThumbnailUiState(
+                taskData = TASK_DATA.copy(thumbnailData = ThumbnailData())
+            )
+
+        val expected = TaskThumbnailUiState.BackgroundOnly(TASK_BACKGROUND_COLOR)
+        assertThat(result).isEqualTo(expected)
+    }
+
+    @Test
     fun taskData_isLocked_returns_BackgroundOnly() {
         val result =
             TaskUiStateMapper.toTaskThumbnailUiState(taskData = TASK_DATA.copy(isLocked = true))

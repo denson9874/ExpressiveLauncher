@@ -61,9 +61,6 @@ import java.io.IOException;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-import com.topjohnwu.superuser.Shell;
-import app.lawnchair.compatlib.utils.BitmapUtil;
-
 /**
  * Utility class containing methods to help manage image actions such as sharing, cropping, and
  * saving image.
@@ -94,13 +91,8 @@ public class ImageActionUtils {
                     .build();
             systemUiProxy.takeScreenshot(request);
         } catch (Throwable t) {
-            try {
-                // Lawnchair-TODO-Merge: LC disabled this, but no code is in 16r2
-//                systemUiProxy.handleImageBundleAsScreenshot(BitmapUtil.hardwareBitmapToBundle(screenshot),
-//                        screenshotBounds, visibleInsets, task);
-            } catch (Throwable ee) {
-                Shell.cmd("input keyevent 120").exec();
-            }
+            // LC-Note: e.g. a software fallback thumbnail, which ScreenshotRequest can't parcel.
+            Log.e(TAG, "Overview screenshot request failed", t);
         }
     }
 
