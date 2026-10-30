@@ -49,10 +49,17 @@ NOTES_HTML = re.compile(
 )
 TELEGRAM_TAGS = {"b", "strong", "i", "em", "u", "ins", "s", "strike", "del", "a", "code", "pre", "blockquote",
                  "tg-spoiler"}
-MARKUP = re.compile(r"<[^<>]*>|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);")
+ENTITY = r"&(?:#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);"
+MARKUP = re.compile(rf"<[^<>]*>|{ENTITY}")
 TAG = re.compile(r"<(/?)([a-zA-Z][\w-]*)([^<>]*)>")
+DIVIDER_RUN = rf"(?:{DIVIDER}─*\s*)+"
+# Telegram Desktop's markdown, by the HTML tag it stands for. <u> and <ins> have none.
+DESKTOP_MARKERS = {"b": "**", "strong": "**", "i": "__", "em": "__", "tg-spoiler": "||", "code": "`",
+                   "pre": "```", "s": "~~", "strike": "~~", "del": "~~"}
 # Distinct from API failures (1) and usage errors (2): the notes were rendered but nothing was sent.
 EXIT_NOT_CONFIGURED = 3
+# The rendered notes would be refused (too long a word, bad markup, nothing to post); nothing was sent.
+EXIT_NOT_POSTABLE = 4
 DEFAULT_FEEDBACK_GROUP = "https://t.me/ExpressiveLauncherFeedback"
 CONFIG_PATHS = [
     Path.home() / "Library/Application Support/Expressive CI/config/telegram.json",
@@ -91,11 +98,18 @@ def markdown_to_telegram_html(markdown_text: str) -> str:
 
     # 1b. Escape text so a stray <, > or & can't break Telegram's HTML parser. A leading "> " stays a
     # quote marker (step 5 reads it as "&gt; ").
+    # An entity the notes spell out (&amp;, &#8212;) becomes its character first, except in `code`,
+    # which GitHub shows literally.
+    def escape_text(part):
+        pieces = re.split(r"(`[^`\n]+`)", part)
+        return "".join(
+            piece if piece.startswith("`") else re.sub(ENTITY, lambda m: html.unescape(m.group()), piece)
+            for piece in pieces
+        ).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     parts = NOTES_HTML.split(text)
     tags = NOTES_HTML.findall(text)
-    text = "".join(
-        html.escape(part, quote=False) + (tags[i] if i < len(tags) else "") for i, part in enumerate(parts)
-    )
+    text = "".join(escape_text(part) + (tags[i] if i < len(tags) else "") for i, part in enumerate(parts))
 
     # 2. Convert <details> / <summary> riddles into <tg-spoiler>
     def replace_details(match):
@@ -257,8 +271,15 @@ def chunk_telegram_html(html_text: str, max_chars: int = 3800) -> list[str]:
         for index in range(match.start() + 1, match.end()):
             inside_markup[index] = True
     breaks = []  # (priority, start, end): a message may end at start and the next start at end.
-    for priority, pattern in enumerate((r"[ \t]+", r"\n", r"\n[ \t]*\n\s*", rf"\s*{DIVIDER}\s*")):
-        breaks += [(priority, m.start(), m.end()) for m in re.finditer(pattern, text) if not inside_markup[m.start()]]
+    patterns = (r"[ \t]+", r"\n", r"\n(?=• |<b>|\d+\. )", r"\n[ \t]*\n\s*", rf"\s*{DIVIDER_RUN}")
+    for priority, pattern in enumerate(patterns):
+        for m in re.finditer(pattern, text):
+            if inside_markup[m.start()]:
+                continue
+            # Ending a message on a heading strands it from its section, so that is the last resort.
+            line = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
+            heading = re.fullmatch(r"\s*<b>[^\n]*</b>:?\s*", line) is not None
+            breaks.append((-1 if heading else priority, m.start(), m.end()))
 
     chunks = []
     start = 0
@@ -274,18 +295,41 @@ def chunk_telegram_html(html_text: str, max_chars: int = 3800) -> list[str]:
                 raise ValueError(f"can't split the announcement near character {start}")
             cut = cuts[-1]
             start_next = cut
-        chunks.append(text[start:cut].strip())
+        chunks.append(text[start:cut])
         start = start_next
-    chunks.append(text[start:].strip())
-    return _balance_tags([chunk for chunk in chunks if chunk])
+    chunks.append(text[start:])
+
+    # A piece with no text of its own (a divider, or only a tag cut off at a split) joins its neighbour.
+    merged, carry = [], ""
+    for chunk in chunks:
+        chunk = re.sub(rf"^\s*{DIVIDER_RUN}|(?:\s*{DIVIDER}─*)+\s*$", "", chunk).strip()
+        if not _has_text(chunk):
+            if merged:
+                merged[-1] += chunk
+            else:
+                carry += chunk
+            continue
+        merged.append(carry + chunk)
+        carry = ""
+    if carry and merged:
+        merged[-1] += carry
+    return _balance_tags(merged)
+
+
+def _has_text(html_text: str) -> bool:
+    return bool(html.unescape(re.sub(r"<[^<>]*>", "", html_text)).strip())
 
 
 def check_telegram_chunks(chunks: list[str], limit: int = TELEGRAM_MESSAGE_LIMIT) -> None:
     """Raise ValueError if any message would be refused, so a post never stops halfway."""
+    if not chunks:
+        raise ValueError("there is nothing to post")
     for number, chunk in enumerate(chunks, 1):
         length = visible_length(chunk)
         if length > limit:
             raise ValueError(f"message {number} has {length} characters; Telegram allows {limit}")
+        if not _has_text(chunk):
+            raise ValueError(f"message {number} has no text")
         stack = []
         for match in re.finditer(r"<[^<>]*>|<", chunk):
             tag = TAG.fullmatch(match.group())
@@ -300,23 +344,79 @@ def check_telegram_chunks(chunks: list[str], limit: int = TELEGRAM_MESSAGE_LIMIT
             raise ValueError(f"message {number} leaves <{stack[-1]}> open")
 
 
-def telegram_html_to_desktop_markdown(html_text: str) -> str:
-    """One message as Telegram Desktop's own markdown, for posting by hand without a bot.
-
-    Telegram Desktop formats **bold**, __italic__, ||spoiler|| and `code` when the message is sent, and
-    links bare web addresses itself. It has no markdown for quotes, so a quote's lines stay as they are.
-    """
+def _desktop_markdown(html_text: str) -> tuple[str, list[str]]:
+    """The message as Telegram Desktop markdown, and the spots where that markdown won't come out right."""
     def link(match):
-        url, label = html.unescape(match.group(1)), match.group(2)
+        href, label = match.group(1), match.group(2)
+        url = html.unescape(href)
         # A bare address, or an @name for its own t.me link, is linked by Telegram already.
         if html.unescape(label) in (url, "@" + url.removeprefix("https://t.me/")):
             return label
-        return f"{label}: {url}"
+        return f"{label}: {href}"
 
     text = re.sub(r'<a href="([^"]*)">([\s\S]*?)</a>', link, html_text)
-    for tags, marker in ((r"b|strong", "**"), (r"i|em", "__"), (r"tg-spoiler", "||"), (r"code", "`")):
-        text = re.sub(rf"</?(?:{tags})>", marker, text)
-    return html.unescape(re.sub(r"<[^<>]*>", "", text))
+    out, markers, problems, open_tags = [], [], [], []
+    position = 0
+    for match in list(TAG.finditer(text)) + [None]:
+        piece = html.unescape(text[position:match.start() if match else len(text)])
+        for literal in ("**", "__", "||", "~~", "`"):
+            if literal in piece:
+                problems.append(f"{literal!r} in the text will turn into formatting: {piece.strip()[:60]!r}")
+        out.append(piece)
+        if not match:
+            break
+        position = match.end()
+        name = match.group(2).lower()
+        if name not in DESKTOP_MARKERS:
+            continue
+        # Telegram Desktop applies only the outermost marker, so a nested one would show as text.
+        if not match.group(1):
+            open_tags.append(name)
+            if len(open_tags) == 1:
+                markers.append((len("".join(out)), DESKTOP_MARKERS[name], True))
+                out.append(DESKTOP_MARKERS[name])
+        elif open_tags:
+            open_tags.pop()
+            if not open_tags:
+                markers.append((len("".join(out)), DESKTOP_MARKERS[name], False))
+                out.append(DESKTOP_MARKERS[name])
+    result = "".join(out)
+
+    # A marker counts only next to a space, punctuation, a symbol or the line's edge.
+    def stuck(character):
+        return character.isalnum() or character in "\\—–_*~`"
+
+    for index, marker, opening in markers:
+        neighbour = result[index - 1:index] if opening else result[index + len(marker):index + len(marker) + 1]
+        if neighbour and stuck(neighbour):
+            context = result[max(0, index - 20):index + len(marker) + 20].replace("\n", " ")
+            problems.append(f"{marker} next to {neighbour!r} won't format: {context!r}")
+    return result, problems
+
+
+def telegram_html_to_desktop_markdown(html_text: str) -> str:
+    """One message as Telegram Desktop's own markdown, for posting by hand without a bot.
+
+    Telegram Desktop formats **bold**, __italic__, ||spoiler||, ~~strikethrough~~, `code` and ```pre```
+    when the message is sent, and links bare web addresses itself. It applies only the outermost of nested
+    markers, so only those are written. It has no markdown for quotes or underline, so those stay plain.
+    """
+    return _desktop_markdown(html_text)[0]
+
+
+def desktop_length(markdown: str) -> int:
+    """Characters a Telegram Desktop message counts once its markdown markers are applied."""
+    return len(re.sub(r"\*\*|__|\|\||~~|`", "", markdown).encode("utf-16-le")) // 2
+
+
+def desktop_parts(html_text: str, max_chars: int = 3800) -> tuple[list[str], list[str]]:
+    """Split for Telegram Desktop, where a link's address counts too, and report formatting problems."""
+    for budget in range(max_chars, 0, -200):
+        converted = [_desktop_markdown(chunk) for chunk in chunk_telegram_html(html_text, budget)]
+        if all(desktop_length(text) <= TELEGRAM_MESSAGE_LIMIT for text, _ in converted):
+            problems = [f"part {n}: {p}" for n, (_, found) in enumerate(converted, 1) for p in found]
+            return [text for text, _ in converted], problems
+    raise ValueError("the announcement doesn't fit Telegram Desktop's message limit")
 
 
 def send_telegram_document(bot_token: str, chat_id: str, file_path: Path, caption: str = ""):
@@ -427,21 +527,26 @@ def main():
     print(f"Rendered Telegram changelog saved to {args.output}")
 
     try:
+        # The whole post first: a split closes any tag left open, which would hide it in the messages.
+        check_telegram_chunks([telegram_html], limit=sys.maxsize)
         chunks = chunk_telegram_html(telegram_html)
         check_telegram_chunks(chunks)
+        parts, problems = desktop_parts(telegram_html) if args.desktop_parts else ([], [])
     except ValueError as error:
         print(f"The rendered announcement can't be posted, so nothing was sent: {error}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(EXIT_NOT_POSTABLE)
     sizes = ", ".join(str(visible_length(chunk)) for chunk in chunks)
     print(f"Announcement fits in {len(chunks)} message(s) of {sizes} characters.")
     if args.desktop_parts:
         args.desktop_parts.mkdir(parents=True, exist_ok=True)
         for stale in args.desktop_parts.glob("part-*.txt"):
             stale.unlink()
-        for number, chunk in enumerate(chunks, 1):
+        for number, text in enumerate(parts, 1):
             part = args.desktop_parts / f"part-{number}.txt"
-            part.write_text(telegram_html_to_desktop_markdown(chunk) + "\n", encoding="utf-8")
-            print(f"Telegram Desktop message {number}: {part}")
+            part.write_text(text + "\n", encoding="utf-8")
+            print(f"Telegram Desktop message {number} ({desktop_length(text)} characters): {part}")
+        for problem in problems:
+            print(f"Warning: Telegram Desktop {problem}", file=sys.stderr)
 
     if args.dry_run:
         print("\n--- Rendered Telegram HTML (Dry Run) ---")

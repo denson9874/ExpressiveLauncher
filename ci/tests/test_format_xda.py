@@ -57,6 +57,16 @@ class FormatXdaTests(unittest.TestCase):
         out = convert("# T\n\n- One\n\n  More about one.\n- Two")
         self.assertIn("[LIST]\n[*]One\n\nMore about one.\n[*]Two\n[/LIST]", out)
 
+    def test_a_paragraph_after_a_sub_list_belongs_to_the_parent_item(self):
+        out = convert("# T\n\n- Validation\n  - Taskbar\n\n  Reports welcome.\n- Support")
+        self.assertIn("[*]Validation\n[LIST]\n[*]Taskbar\n\n[/LIST]\nReports welcome.\n[*]Support\n[/LIST]", out)
+        out = convert("# T\n\n1. Item\n   - a\n\n   Para\n2. Next")
+        self.assertIn("[*]a\n\n[/LIST]\nPara\n2. Next", out)
+
+    def test_tabs_and_uneven_indents_nest_like_markdown(self):
+        self.assertIn("[*]a\n[LIST]\n[*]tabbed\n[*]spaced\n[/LIST]\n[*]b", convert("# T\n\n- a\n\t- tabbed\n    - spaced\n- b"))
+        self.assertIn("[*]a\n[LIST]\n[*]b\n[*]c\n[/LIST]\n[*]d", convert("# T\n\n- a\n    - b\n  - c\n- d"))
+
     def test_every_announcement_has_balanced_lists_and_no_indented_lines(self):
         for notes in sorted((ROOT / "docs" / "release_notes").glob("*_announcement.md")):
             with self.subTest(notes=notes.name):

@@ -91,6 +91,10 @@ class TelegramMarkupTests(unittest.TestCase):
         html = self.render("- **Still open**:\n  - One\n   - Two\n- Three\n\n  More about three.")
         self.assertEqual("• <b>Still open</b>:\n    ◦ One\n    ◦ Two\n• Three\n\nMore about three.", html)
 
+    def test_entities_in_the_notes_are_shown_as_their_characters(self):
+        # GitHub shows an entity inside `code` as typed, so Telegram must too.
+        self.assertEqual("Q&amp;A — x <code>&amp;amp;</code>", self.render("Q&amp;A &#8212; x `&amp;`"))
+
     def test_non_web_links_show_their_address_as_code(self):
         html = self.render("- [Add to Obtainium](obtainium://add/https://github.com/x/y)")
         self.assertEqual("• Add to Obtainium: <code>obtainium://add/https://github.com/x/y</code>", html)
@@ -144,17 +148,39 @@ class TelegramChunkTests(unittest.TestCase):
         for chunk in chunks:
             self.assertNotRegex(chunk, r"<[^<>]*$|&[a-z]*$")
 
+    def test_a_heading_stays_with_its_section(self):
+        text = "<b>✨ What's New</b>\n\nThese came in:\n" + "\n".join(f"• item {i} " + "lorem " * 25 for i in range(30))
+        chunks = post_telegram.chunk_telegram_html(text, max_chars=1000)
+        self.assert_postable(chunks, 1000)
+        self.assertIn("These came in", chunks[0])
+
+    def test_a_split_prefers_a_top_level_line_over_a_nested_one(self):
+        child = "    ◦ child " + "y " * 20
+        text = "\n".join(["• parent " + "x " * 20, child, child, "• next " + "z " * 20, child, child])
+        chunks = post_telegram.chunk_telegram_html(text, max_chars=280)
+        self.assertTrue(chunks[1].startswith("• next"), chunks)
+
+    def test_runs_of_dividers_and_tag_only_pieces_never_make_a_message(self):
+        divider = post_telegram.DIVIDER
+        text = "intro " * 30 + f"\n\n{divider}\n\n{divider}──\n\n" + "<b>" + "x" * 95 + " </b>\n\n" + "more " * 40
+        chunks = post_telegram.chunk_telegram_html(text, max_chars=200)
+        self.assert_postable(chunks, 200)
+        for chunk in chunks:
+            self.assertNotRegex(chunk, rf"^\s*{divider}|{divider}─*\s*$")
+
     def test_a_word_longer_than_a_message_is_cut(self):
         chunks = post_telegram.chunk_telegram_html("x" * 250, max_chars=100)
         self.assertEqual(["x" * 100, "x" * 100, "x" * 50], chunks)
 
     def test_check_refuses_what_telegram_would_refuse(self):
-        for bad in ("a" * 4097, "a < b", "<b>open", "<b><i>x</b></i>", "<div>x</div>", "</b>"):
+        for bad in ("a" * 4097, "a < b", "<b>open", "<b><i>x</b></i>", "<div>x</div>", "</b>", "<b> </b>"):
             with self.subTest(bad=bad[:20]), self.assertRaises(ValueError):
                 post_telegram.check_telegram_chunks([bad])
         post_telegram.check_telegram_chunks(["😀" * 2048, "<a href=\"https://x\">x</a> &lt; <tg-spoiler>y</tg-spoiler>"])
         with self.assertRaises(ValueError):
             post_telegram.check_telegram_chunks(["😀" * 2049])  # 4,098 UTF-16 units
+        with self.assertRaises(ValueError):
+            post_telegram.check_telegram_chunks([])
 
 
 class TelegramDesktopMarkdownTests(unittest.TestCase):
@@ -165,10 +191,34 @@ class TelegramDesktopMarkdownTests(unittest.TestCase):
                 '• <a href="https://github.com/x/y">https://github.com/x/y</a>\n'
                 '• <a href="https://github.com/x/y/releases">Release</a>')
         self.assertEqual(
-            "**Title** & __joke__\n🤝 __quote__\n||**Answer**|| `5.0.8`\n"
+            "**Title** & __joke__\n🤝 __quote__\n||Answer|| `5.0.8`\n"
             "• @ExpressiveGroup\n• https://github.com/x/y\n• Release: https://github.com/x/y/releases",
             post_telegram.telegram_html_to_desktop_markdown(html),
         )
+
+    def test_only_the_outermost_marker_is_written(self):
+        # Telegram Desktop applies only the outer one; an inner ** would be sent as text.
+        self.assertEqual("||An answer! Why.||",
+                         post_telegram.telegram_html_to_desktop_markdown("<tg-spoiler><b>An answer!</b> Why.</tg-spoiler>"))
+        self.assertEqual("~~old~~ ```x``` plain",
+                         post_telegram.telegram_html_to_desktop_markdown("<s>old</s> <pre>x</pre> <u>plain</u>"))
+
+    def test_link_addresses_are_unescaped_once(self):
+        html = '<a href="https://e.com/?a=1&amp;region=2">Map</a>'
+        self.assertEqual("Map: https://e.com/?a=1&region=2", post_telegram.telegram_html_to_desktop_markdown(html))
+
+    def test_markers_that_wont_format_are_reported(self):
+        problems = post_telegram._desktop_markdown("Android<b>17</b> and __init__.py")[1]
+        self.assertEqual(2, len(problems), problems)
+        self.assertEqual([], post_telegram._desktop_markdown("<b>🧩 Riddle</b>: (<i>a</i>) —")[1])
+
+    def test_desktop_parts_fit_once_link_addresses_are_written_out(self):
+        link = '<a href="https://github.com/denson9874/ExpressiveLauncher/issues/1234567890">#1</a>'
+        html = "\n".join(f"• Fixed {link}" for _ in range(300))
+        self.assertLessEqual(max(map(post_telegram.visible_length, post_telegram.chunk_telegram_html(html))), 3800)
+        parts, _ = post_telegram.desktop_parts(html)
+        for part in parts:
+            self.assertLessEqual(post_telegram.desktop_length(part), post_telegram.TELEGRAM_MESSAGE_LIMIT)
 
     def test_dry_run_writes_one_desktop_part_per_message(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -232,6 +282,28 @@ class TelegramChannelTests(unittest.TestCase):
         self.assertNotIn(code, (0, 1, 2))  # success, API failure, argparse usage error
         self.assertIn("NOT broadcast", stderr)
         self.assertIn("<b>Release Title</b>", self.output.read_text(encoding="utf-8"))
+
+    def test_unpostable_notes_exit_before_sending_with_or_without_a_token(self):
+        cases = {
+            "empty": "<!-- expressive-qa build=70 -->\n",
+            "unclosed tag in a long post": "<b>Start\n\n" + "\n\n".join(["word " * 300] * 4),
+        }
+        for name, notes in cases.items():
+            self.notes.write_text(notes, encoding="utf-8")
+            for extra in ((), ("--token", "123:T"), ("--dry-run",)):
+                with self.subTest(name=name, extra=extra):
+                    code, stderr = self.run_main(*extra)
+                    self.assertEqual(post_telegram.EXIT_NOT_POSTABLE, code)
+                    self.assertIn("nothing was sent", stderr)
+
+    def test_release_summary_reports_unpostable_notes(self):
+        self.assertEqual(post_telegram.EXIT_NOT_POSTABLE, release_unified.TELEGRAM_NOT_POSTABLE_EXIT)
+        completed = subprocess.CompletedProcess(["post_telegram.py"], post_telegram.EXIT_NOT_POSTABLE,
+                                                stdout="", stderr="message 2 has no text")
+        with patch.object(release_unified.subprocess, "run", return_value=completed), \
+                contextlib.redirect_stdout(io.StringIO()):
+            status = release_unified.run_telegram_stage(["post_telegram.py"], self.output, "")
+        self.assertTrue(status.startswith("NOT broadcast: Telegram would refuse"), status)
 
     def test_dry_run_still_succeeds_without_a_token(self):
         self.assertEqual(0, self.run_main("--dry-run")[0])

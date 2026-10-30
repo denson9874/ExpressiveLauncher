@@ -99,18 +99,27 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
 
     for line in lines:
         stripped = line.strip()
-        indent = len(line) - len(line.lstrip(" \t"))
+        expanded = line.expandtabs(4)
+        indent = len(expanded) - len(expanded.lstrip(" "))
         bullet_match = re.match(r"^[-*]\s+(.+)$", stripped)
         if bullet_match:
-            while len(indents) > 1 and indent < indents[-1]:
+            # Close the nested lists this bullet is outdented from; landing between two levels keeps it
+            # beside the deeper one, as Markdown does.
+            while len(indents) > 1 and indent <= indents[-2]:
                 processed_lines.append("[/LIST]")
                 indents.pop()
-            if not indents or indent > indents[-1]:
+            if len(indents) == 1 and indent < indents[0]:
+                indents[0] = indent
+            if not indents or indent > indents[-1] + 1:
                 processed_lines.append("[LIST]")
                 indents.append(indent)
             item_text = bullet_match.group(1).strip()
             processed_lines.append(f"[*]{item_text}")
         elif indents and indent > 0 and stripped:
+            # The paragraph belongs to the item whose bullet sits left of it, after that item's sub-list.
+            while indents and indent <= indents[-1]:
+                processed_lines.append("[/LIST]")
+                indents.pop()
             processed_lines.append(stripped)
         else:
             if indents and stripped != "":
