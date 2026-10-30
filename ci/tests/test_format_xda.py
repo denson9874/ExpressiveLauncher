@@ -66,6 +66,11 @@ class FormatXdaTests(unittest.TestCase):
     def test_tabs_and_uneven_indents_nest_like_markdown(self):
         self.assertIn("[*]a\n[LIST]\n[*]tabbed\n[*]spaced\n[/LIST]\n[*]b", convert("# T\n\n- a\n\t- tabbed\n    - spaced\n- b"))
         self.assertIn("[*]a\n[LIST]\n[*]b\n[*]c\n[/LIST]\n[*]d", convert("# T\n\n- a\n    - b\n  - c\n- d"))
+        self.assertIn("[*]a\n[LIST]\n[*]b\n[/LIST]\n[*]c\n[/LIST]", convert("# T\n\n- a\n  - b\n - c"))
+        self.assertIn("[*]b\n[LIST]\n[*]c\n[/LIST]\n[*]d\n[/LIST]", convert("# T\n\n- a\n  - b\n    - c\n   - d"))
+
+    def test_a_wrapped_line_continues_its_item(self):
+        self.assertIn("[*]b\nwrapped b\n[/LIST]\n[*]c", convert("# T\n\n- a\n  - b\n  wrapped b\n- c"))
 
     def test_every_announcement_has_balanced_lists_and_no_indented_lines(self):
         for notes in sorted((ROOT / "docs" / "release_notes").glob("*_announcement.md")):

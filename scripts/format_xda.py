@@ -95,7 +95,12 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
     # indented past its parent opens a nested [LIST]; another indented line continues the item above.
     lines = text.split("\n")
     processed_lines = []
-    indents = []  # indent of each open [LIST], outermost first
+    indents = []  # bullet column of each open [LIST], outermost first
+    after_blank = False
+
+    def depth(indent):
+        """How many open lists a line at this indent sits inside: past an item's text column (bullet + 2)."""
+        return sum(1 for level in indents if indent >= level + 2)
 
     for line in lines:
         stripped = line.strip()
@@ -103,29 +108,33 @@ def markdown_to_xda_bbcode(markdown_text: str, version_name: str, version_code: 
         indent = len(expanded) - len(expanded.lstrip(" "))
         bullet_match = re.match(r"^[-*]\s+(.+)$", stripped)
         if bullet_match:
-            # Close the nested lists this bullet is outdented from; landing between two levels keeps it
-            # beside the deeper one, as Markdown does.
-            while len(indents) > 1 and indent <= indents[-2]:
+            # Close the lists this bullet is outdented from, as Markdown does: it nests under the deepest
+            # item whose text it lines up with.
+            level = depth(indent)
+            while len(indents) > level + 1:
                 processed_lines.append("[/LIST]")
                 indents.pop()
-            if len(indents) == 1 and indent < indents[0]:
+            if level == 0 and indents and indent < indents[0]:
                 indents[0] = indent
-            if not indents or indent > indents[-1] + 1:
+            if len(indents) == level:
                 processed_lines.append("[LIST]")
                 indents.append(indent)
             item_text = bullet_match.group(1).strip()
             processed_lines.append(f"[*]{item_text}")
         elif indents and indent > 0 and stripped:
-            # The paragraph belongs to the item whose bullet sits left of it, after that item's sub-list.
-            while indents and indent <= indents[-1]:
-                processed_lines.append("[/LIST]")
-                indents.pop()
+            # A paragraph after a blank line belongs to the item whose text it lines up with, after that
+            # item's sub-list; a line straight after an item just continues it.
+            if after_blank:
+                while len(indents) > depth(indent):
+                    processed_lines.append("[/LIST]")
+                    indents.pop()
             processed_lines.append(stripped)
         else:
             if indents and stripped != "":
                 processed_lines.extend("[/LIST]" for _ in indents)
                 indents = []
             processed_lines.append(line)
+        after_blank = not stripped
 
     processed_lines.extend("[/LIST]" for _ in indents)
 

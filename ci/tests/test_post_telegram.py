@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -87,13 +88,18 @@ class TelegramMarkupTests(unittest.TestCase):
     def test_line_breaks_become_newlines(self):
         self.assertEqual("a\nb", self.render("a<br/>b"))
 
-    def test_nested_bullets_are_indented_and_continued_items_lose_their_indent(self):
-        html = self.render("- **Still open**:\n  - One\n   - Two\n- Three\n\n  More about three.")
-        self.assertEqual("• <b>Still open</b>:\n    ◦ One\n    ◦ Two\n• Three\n\nMore about three.", html)
+    def test_nested_bullets_are_indented_and_an_items_paragraph_stays_under_it(self):
+        html = self.render("- **Still open**:\n  - One\n   - Two\n- Three\n\n  More about three.\n\n  Text after a heading")
+        self.assertEqual("• <b>Still open</b>:\n    ◦ One\n    ◦ Two\n• Three\n   More about three.\n   Text after a heading",
+                         html)
+        self.assertEqual("<b>H</b>\nindented", self.render("# H\n  indented"))
 
     def test_entities_in_the_notes_are_shown_as_their_characters(self):
         # GitHub shows an entity inside `code` as typed, so Telegram must too.
         self.assertEqual("Q&amp;A — x <code>&amp;amp;</code>", self.render("Q&amp;A &#8212; x `&amp;`"))
+        # An entity written to keep a character out of Markdown stays that character.
+        self.assertEqual("&gt; not a quote, *not bold* and - no bullet",
+                         self.render("&gt; not a quote, &#42;not bold&#42; and &#45; no bullet"))
 
     def test_non_web_links_show_their_address_as_code(self):
         html = self.render("- [Add to Obtainium](obtainium://add/https://github.com/x/y)")
@@ -154,6 +160,18 @@ class TelegramChunkTests(unittest.TestCase):
         self.assert_postable(chunks, 1000)
         self.assertIn("These came in", chunks[0])
 
+    def test_a_heading_after_a_blank_line_or_with_a_prefix_stays_with_its_section(self):
+        for heading in ("<b>✨ What's New &amp; Improved</b>\n\n", "🔗 <b>Links</b>:\n\n"):
+            text = heading + "<b>1. Overview</b>\n• " + "word " * 300
+            chunks = post_telegram.chunk_telegram_html(text, max_chars=1000)
+            self.assertGreater(post_telegram.visible_length(chunks[0]), 500, chunks[0])
+
+    def test_a_long_rule_splits_quickly(self):
+        start = time.monotonic()
+        text = "intro\n\n" + "─" * 400 + "\n\n" + "\n\n".join(["words " * 150] * 5) + f"\n\n{post_telegram.DIVIDER}\n\nend"
+        post_telegram.chunk_telegram_html(text, max_chars=1000)
+        self.assertLess(time.monotonic() - start, 2)
+
     def test_a_split_prefers_a_top_level_line_over_a_nested_one(self):
         child = "    ◦ child " + "y " * 20
         text = "\n".join(["• parent " + "x " * 20, child, child, "• next " + "z " * 20, child, child])
@@ -210,7 +228,10 @@ class TelegramDesktopMarkdownTests(unittest.TestCase):
     def test_markers_that_wont_format_are_reported(self):
         problems = post_telegram._desktop_markdown("Android<b>17</b> and __init__.py")[1]
         self.assertEqual(2, len(problems), problems)
-        self.assertEqual([], post_telegram._desktop_markdown("<b>🧩 Riddle</b>: (<i>a</i>) —")[1])
+        self.assertIn("__init__", problems[1])
+        problems = post_telegram._desktop_markdown("Price $<b>4.99</b>, wait<i>…</i>")[1]
+        self.assertEqual(2, len(problems), problems)
+        self.assertEqual([], post_telegram._desktop_markdown("<b>🧩 Riddle</b>: (<i>a</i>) — <code>__init__</code>")[1])
 
     def test_desktop_parts_fit_once_link_addresses_are_written_out(self):
         link = '<a href="https://github.com/denson9874/ExpressiveLauncher/issues/1234567890">#1</a>'

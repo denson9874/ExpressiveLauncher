@@ -20,6 +20,7 @@ from pathlib import Path
 import re
 import socket
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -52,7 +53,7 @@ TELEGRAM_TAGS = {"b", "strong", "i", "em", "u", "ins", "s", "strike", "del", "a"
 ENTITY = r"&(?:#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);"
 MARKUP = re.compile(rf"<[^<>]*>|{ENTITY}")
 TAG = re.compile(r"<(/?)([a-zA-Z][\w-]*)([^<>]*)>")
-DIVIDER_RUN = rf"(?:{DIVIDER}─*\s*)+"
+DIVIDER_RUN = rf"{DIVIDER}[─\s]*"
 # Telegram Desktop's markdown, by the HTML tag it stands for. <u> and <ins> have none.
 DESKTOP_MARKERS = {"b": "**", "strong": "**", "i": "__", "em": "__", "tg-spoiler": "||", "code": "`",
                    "pre": "```", "s": "~~", "strike": "~~", "del": "~~"}
@@ -98,14 +99,18 @@ def markdown_to_telegram_html(markdown_text: str) -> str:
 
     # 1b. Escape text so a stray <, > or & can't break Telegram's HTML parser. A leading "> " stays a
     # quote marker (step 5 reads it as "&gt; ").
-    # An entity the notes spell out (&amp;, &#8212;) becomes its character first, except in `code`,
-    # which GitHub shows literally.
+    # An entity the notes spell out (&amp;, &#42;) shows as its character, except in `code`, which GitHub
+    # shows as typed. It stands in as a placeholder until after the Markdown steps, so &#42; stays a "*".
+    entities = []
+
+    def hold(match):
+        entities.append(html.escape(html.unescape(match.group()), quote=False))
+        return f"\ue000{chr(0xE100 + len(entities) - 1)}"
+
     def escape_text(part):
         pieces = re.split(r"(`[^`\n]+`)", part)
-        return "".join(
-            piece if piece.startswith("`") else re.sub(ENTITY, lambda m: html.unescape(m.group()), piece)
-            for piece in pieces
-        ).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        held = "".join(piece if piece.startswith("`") else re.sub(ENTITY, hold, piece) for piece in pieces)
+        return held.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     parts = NOTES_HTML.split(text)
     tags = NOTES_HTML.findall(text)
@@ -173,14 +178,37 @@ def markdown_to_telegram_html(markdown_text: str) -> str:
     text = re.sub(r"\[([^\]]+)\]\((https?://[^\)]+)\)", r'<a href="\2">\1</a>', text)
     text = re.sub(r"\[([^\]]+)\]\(([a-zA-Z][a-zA-Z0-9+.-]*://[^\s)]+)\)", r"\1: <code>\2</code>", text)
 
-    # 10. Bullets: "- " becomes "• ", an indented "- " a nested "◦ ", and other indented lines (a list
-    # item's second paragraph) lose their indent.
-    text = re.sub(r"^[ \t]+(?![ \t]|-\s)", "", text, flags=re.MULTILINE)
-    text = re.sub(r"^[ \t]+-\s+", "    ◦ ", text, flags=re.MULTILINE)
-    text = re.sub(r"^\s*-\s+", "• ", text, flags=re.MULTILINE)
+    # 10. Bullets: "- " becomes "• " (taking the blank lines before it, as before) and an indented "- " a
+    # nested "◦ ". An indented paragraph inside a list is the item's own, so it stays under the item,
+    # indented; any other indented line loses its indent.
+    lines = []
+    in_list = False
+    for line in text.split("\n"):
+        content = line.lstrip(" \t")
+        indented = len(content) < len(line)
+        bullet = re.match(r"-\s+", content)
+        if not content:
+            lines.append("")
+        elif bullet and not indented:
+            while lines and not lines[-1]:
+                lines.pop()
+            lines.append("• " + content[bullet.end():])
+            in_list = True
+        elif bullet:
+            lines.append("    ◦ " + content[bullet.end():])
+            in_list = True
+        elif indented and in_list:
+            while lines and not lines[-1]:
+                lines.pop()
+            lines.append("   " + content)
+        else:
+            lines.append(content)
+            in_list = False
+    text = "\n".join(lines)
 
     # 11. Normalize excess newlines (3+ to 2)
     text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub("\ue000(.)", lambda m: entities[ord(m.group(1)) - 0xE100], text)
 
     return text.strip()
 
@@ -276,9 +304,11 @@ def chunk_telegram_html(html_text: str, max_chars: int = 3800) -> list[str]:
         for m in re.finditer(pattern, text):
             if inside_markup[m.start()]:
                 continue
-            # Ending a message on a heading strands it from its section, so that is the last resort.
-            line = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
-            heading = re.fullmatch(r"\s*<b>[^\n]*</b>:?\s*", line) is not None
+            # Ending a message on a heading ("🔗 <b>Links</b>:", "• <b>Open</b>:") strands it from its
+            # section, so that is the last resort.
+            before = text[:m.start()].rstrip()
+            line = before[before.rfind("\n") + 1:]
+            heading = re.fullmatch(r"[^<\n]{0,8}<b>[^\n]*</b>:?", line) is not None
             breaks.append((-1 if heading else priority, m.start(), m.end()))
 
     chunks = []
@@ -302,7 +332,7 @@ def chunk_telegram_html(html_text: str, max_chars: int = 3800) -> list[str]:
     # A piece with no text of its own (a divider, or only a tag cut off at a split) joins its neighbour.
     merged, carry = [], ""
     for chunk in chunks:
-        chunk = re.sub(rf"^\s*{DIVIDER_RUN}|(?:\s*{DIVIDER}─*)+\s*$", "", chunk).strip()
+        chunk = re.sub(rf"^\s*{DIVIDER_RUN}|\s*{DIVIDER_RUN}$", "", chunk).strip()
         if not _has_text(chunk):
             if merged:
                 merged[-1] += chunk
@@ -359,9 +389,12 @@ def _desktop_markdown(html_text: str) -> tuple[str, list[str]]:
     position = 0
     for match in list(TAG.finditer(text)) + [None]:
         piece = html.unescape(text[position:match.start() if match else len(text)])
-        for literal in ("**", "__", "||", "~~", "`"):
-            if literal in piece:
-                problems.append(f"{literal!r} in the text will turn into formatting: {piece.strip()[:60]!r}")
+        if not open_tags or open_tags[0] not in ("code", "pre"):
+            for literal in ("**", "__", "||", "~~", "`"):
+                if literal in piece:
+                    at = piece.find(literal)
+                    context = piece[max(0, at - 25):at + 25].replace("\n", " ")
+                    problems.append(f"{literal!r} in the text will turn into formatting: {context!r}")
         out.append(piece)
         if not match:
             break
@@ -382,9 +415,11 @@ def _desktop_markdown(html_text: str) -> tuple[str, list[str]]:
                 out.append(DESKTOP_MARKERS[name])
     result = "".join(out)
 
-    # A marker counts only next to a space, punctuation, a symbol or the line's edge.
+    # A marker counts only next to a space, the line's edge, one of Telegram Desktop's separators, or an
+    # emoji (its own text fragment).
     def stuck(character):
-        return character.isalnum() or character in "\\—–_*~`"
+        emoji = ord(character) >= 0x1F000 or character in "\ufe0f\u200d" or unicodedata.category(character) == "So"
+        return not (character.isspace() or character in ".,:;<>|'\"[]{}!?%^()-+=" or emoji)
 
     for index, marker, opening in markers:
         neighbour = result[index - 1:index] if opening else result[index + len(marker):index + len(marker) + 1]
