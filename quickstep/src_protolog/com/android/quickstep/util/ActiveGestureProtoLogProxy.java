@@ -65,7 +65,7 @@ public class ActiveGestureProtoLogProxy {
 
     public static void logLauncherDestroyed() {
         ActiveGestureLog.INSTANCE.addLog("Launcher destroyed", LAUNCHER_DESTROYED);
-        if (isProtoLogInitialized()) return;
+        if (!isProtoLogInitialized()) return;
         ProtoLog.d(ACTIVE_GESTURE_LOG, "Launcher destroyed");
     }
 

@@ -43,7 +43,9 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
     private final @NonNull String mTag;
 
     public static boolean isProtoLogInitialized() {
-        if (!Variables.sIsInitialized) {
+        // Gesture logging asks on every input event, so warn only once.
+        if (!Variables.sIsInitialized && !Variables.sWarnedNotInitialized) {
+            Variables.sWarnedNotInitialized = true;
             Log.w(Constants.TAG,
                     "Attempting to log to ProtoLog before initializing it.",
                     new IllegalStateException());
@@ -121,6 +123,7 @@ public enum QuickstepProtoLogGroup implements IProtoLogGroup {
     private static final class Variables {
 
         private static boolean sIsInitialized = false;
+        private static volatile boolean sWarnedNotInitialized = false;
     }
 
     private static final class Constants {

@@ -35,7 +35,8 @@ public class ActivityManagerCompatVR extends ActivityManagerCompatVQ {
             ActivityTaskManager.getService()
                     .invalidateHomeTaskSnapshot(
                             homeActivity == null ? null : homeActivity.getActivityToken());
-        } catch (RemoteException e) {
+        } catch (RemoteException | LinkageError e) {
+            // Android 17 removed this call from IActivityTaskManager.
             Log.w(TAG, "Failed to invalidate home snapshot", e);
         }
     }

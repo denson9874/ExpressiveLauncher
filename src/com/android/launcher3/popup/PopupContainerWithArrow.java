@@ -16,8 +16,6 @@
 
 package com.android.launcher3.popup;
 
-import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
-
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_SHORTCUTS;
 import static com.android.launcher3.Utilities.ATLEAST_BAKLAVA;
 import static com.android.launcher3.Utilities.squaredHypot;
@@ -45,6 +43,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import androidx.annotation.LayoutRes;
+
+import app.lawnchair.flags.FrameworkFlagsCompat;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BubbleTextView;
@@ -221,16 +221,9 @@ public class PopupContainerWithArrow<T extends Context & ActivityContext>
         /* LC-Note: Fix for missing flags and account for NCDFE */
         boolean shouldHideSystemShortcuts;
         if (ATLEAST_BAKLAVA) {
-            boolean enableMovingContentIntoPrivateSpace = false;
-            try {
-                /* LC-Note: Some devices (Android 16 QPR) doesn't have or expose this flag to user. 
-                 * Let's assume no, because (the flags) enableMovingContentIntoPrivateSpace seems 
-                 * to be False for R8 by default.
-                 * */
-                enableMovingContentIntoPrivateSpace = enableMovingContentIntoPrivateSpace();
-            } catch (NoClassDefFoundError e) {
-                /* LC-Ignored: we already set it false by default. */
-            }
+            // LC-Note: Some devices (Android 16 QPR) don't have or expose this flag; assume no.
+            boolean enableMovingContentIntoPrivateSpace =
+                    FrameworkFlagsCompat.enableMovingContentIntoPrivateSpace();
             
             shouldHideSystemShortcuts = enableMovingContentIntoPrivateSpace
                 && Objects.equals(item.getTargetPackage(), PRIVATE_SPACE_PACKAGE);
