@@ -28,7 +28,6 @@ import android.os.Trace;
 import android.util.Log;
 import android.window.TaskSnapshot;
 import android.window.TaskSnapshotListener;
-import android.window.TaskSnapshotManager;
 
 import androidx.annotation.VisibleForTesting;
 
@@ -38,6 +37,7 @@ import com.android.systemui.shared.recents.model.ThumbnailData;
 import java.util.ArrayList;
 import java.util.List;
 
+import app.lawnchair.compat.CinnamonBunCompat;
 import app.lawnchair.compat.LawnchairQuickstepCompat;
 
 /**
@@ -198,11 +198,11 @@ public class TaskStackChangeListeners {
                 }
                 if (mRegistered && LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN) {
                     try {
-                        mSnapshotListener = new SnapshotListener();
-                        TaskSnapshotManager.getInstance()
-                                .registerTaskSnapshotListener(mSnapshotListener);
+                        SnapshotListener listener = new SnapshotListener();
+                        if (CinnamonBunCompat.registerTaskSnapshotListener(listener)) {
+                            mSnapshotListener = listener;
+                        }
                     } catch (LinkageError | RuntimeException e) {
-                        mSnapshotListener = null;
                         Log.w(TAG, "Failed to call registerTaskSnapshotListener", e);
                     }
                 }
@@ -227,8 +227,7 @@ public class TaskStackChangeListeners {
                 }
                 if (mSnapshotListener != null) {
                     try {
-                        TaskSnapshotManager.getInstance()
-                                .unregisterTaskSnapshotListener(mSnapshotListener);
+                        CinnamonBunCompat.unregisterTaskSnapshotListener(mSnapshotListener);
                     } catch (LinkageError | RuntimeException e) {
                         Log.w(TAG, "Failed to call unregisterTaskSnapshotListener", e);
                     }

@@ -9,6 +9,7 @@ import android.view.IWindowManager
 import android.view.InputChannel
 import android.window.RemoteTransition
 import android.window.TaskSnapshot
+import android.window.TaskSnapshotListener
 import android.window.TransitionFilter
 import com.android.wm.shell.shared.IHomeTransitionListener
 import com.android.wm.shell.shared.IShellTransitions
@@ -52,6 +53,22 @@ object CinnamonBunCompat {
             runCatching {
                 cls.getMethod("takeTaskSnapshot", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
             }.onFailure { Log.e(TAG, "TaskSnapshotManager.takeTaskSnapshot not found", it) }.getOrNull()
+        }
+    }
+
+    private val registerSnapshotListenerMethod: Method? by lazy {
+        snapshotManagerClass?.let { cls ->
+            runCatching { cls.getMethod("registerTaskSnapshotListener", TaskSnapshotListener::class.java) }
+                .onFailure { Log.e(TAG, "TaskSnapshotManager.registerTaskSnapshotListener not found", it) }
+                .getOrNull()
+        }
+    }
+
+    private val unregisterSnapshotListenerMethod: Method? by lazy {
+        snapshotManagerClass?.let { cls ->
+            runCatching { cls.getMethod("unregisterTaskSnapshotListener", TaskSnapshotListener::class.java) }
+                .onFailure { Log.e(TAG, "TaskSnapshotManager.unregisterTaskSnapshotListener not found", it) }
+                .getOrNull()
         }
     }
 
@@ -107,6 +124,32 @@ object CinnamonBunCompat {
     @JvmStatic
     fun takeTaskSnapshot(taskId: Int, updateCache: Boolean): TaskSnapshot? =
         invoke(takeTaskSnapshotMethod, snapshotManager, taskId, updateCache) as TaskSnapshot?
+
+    /**
+     * `TaskSnapshotManager.getInstance().registerTaskSnapshotListener(listener)`. The Android 16
+     * prebuilt already has a TaskSnapshotManager, just without the listener methods.
+     */
+    @JvmStatic
+    fun registerTaskSnapshotListener(listener: TaskSnapshotListener): Boolean {
+        val method = registerSnapshotListenerMethod ?: return false
+        val manager = snapshotManager ?: return false
+        return try {
+            method.invoke(manager, listener)
+            true
+        } catch (e: InvocationTargetException) {
+            Log.e(TAG, "registerTaskSnapshotListener failed", e.targetException)
+            false
+        } catch (e: ReflectiveOperationException) {
+            Log.e(TAG, "registerTaskSnapshotListener not callable", e)
+            false
+        }
+    }
+
+    /** `TaskSnapshotManager.getInstance().unregisterTaskSnapshotListener(listener)`. */
+    @JvmStatic
+    fun unregisterTaskSnapshotListener(listener: TaskSnapshotListener) {
+        invoke(unregisterSnapshotListenerMethod, snapshotManager, listener)
+    }
 
     /**
      * Wraps the snapshot's buffer in a bitmap. Android 17 no longer hands out the hardware buffer,
