@@ -21,6 +21,12 @@
     <string name="expressive_pro_lifetime">Lifetime (Never expires)</string>
     <string name="expressive_pro_close">Close</string>
     <string name="expressive_pro_badge">PRO</string>
+    <string name="expressive_pro_included_status">Included with ExpressiveOS</string>
+    <string name="expressive_pro_included_badge">INCLUDED</string>
+    <string name="expressive_pro_included_desc">Included with ExpressiveOS. Every Pro feature is unlocked on this phone.</string>
+    <string name="expressive_pro_tab_donate_included">Donate</string>
+    <string name="expressive_pro_redeem_desc_included">Pro is already included with ExpressiveOS. You can still enter a license key here, for example one you bought for another phone.</string>
+    <string name="expressive_pro_deactivate_confirm_included">Remove this license key? Pro stays on because it is included with ExpressiveOS.</string>
     <string name="expressive_pro_trial_button">Try Pro free for 7 days</string>
     <string name="expressive_pro_trial_starting">Starting your trial…</string>
     <string name="expressive_pro_trial_desc">Every Pro feature, free for 7 days. One trial per device; no payment details needed. Afterwards Pro turns off and your settings stay saved.</string>

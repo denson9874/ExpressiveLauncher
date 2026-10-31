@@ -204,8 +204,11 @@ fun RedeemProDialog(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = if (isPro) stringResource(R.string.expressive_pro_status_active)
-                        else stringResource(R.string.expressive_pro_redeem_title),
+                        text = when {
+                            proManager.isIncludedWithRom -> stringResource(R.string.expressive_pro_included_status)
+                            isPro -> stringResource(R.string.expressive_pro_status_active)
+                            else -> stringResource(R.string.expressive_pro_redeem_title)
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -228,7 +231,18 @@ fun RedeemProDialog(
                     onDismiss = onDismiss,
                 )
             } else {
-                ProTrialCard()
+                if (proManager.isIncludedWithRom) {
+                    // No trial to offer: every Pro feature is already on. Donating or entering a
+                    // key stays possible below for anyone who wants to support development.
+                    Text(
+                        text = stringResource(R.string.expressive_pro_included_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                } else {
+                    ProTrialCard()
+                }
                 // Tab Selection: Donate vs Offline Key
                 PrimaryTabRow(
                     selectedTabIndex = selectedTab,
@@ -244,7 +258,12 @@ fun RedeemProDialog(
                             statusMessage = null
                             showSupportCard = false
                         },
-                        text = { Text(stringResource(R.string.expressive_pro_tab_donate)) },
+                        text = {
+                            Text(
+                                if (proManager.isIncludedWithRom) stringResource(R.string.expressive_pro_tab_donate_included)
+                                else stringResource(R.string.expressive_pro_tab_donate),
+                            )
+                        },
                         icon = { Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     )
                     Tab(
@@ -586,7 +605,8 @@ fun RedeemProDialog(
                 } else {
                     // TAB 1: Offline Key Entry
                     Text(
-                        text = stringResource(R.string.expressive_pro_redeem_desc),
+                        text = if (proManager.isIncludedWithRom) stringResource(R.string.expressive_pro_redeem_desc_included)
+                        else stringResource(R.string.expressive_pro_redeem_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 16.dp),
@@ -910,7 +930,8 @@ private fun ProActiveContent(
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = stringResource(R.string.expressive_pro_deactivate_confirm),
+                    text = if (proManager().isIncludedWithRom) stringResource(R.string.expressive_pro_deactivate_confirm_included)
+                    else stringResource(R.string.expressive_pro_deactivate_confirm),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
