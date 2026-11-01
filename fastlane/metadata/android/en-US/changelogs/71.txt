@@ -1,0 +1,3 @@
+Expressive Launcher 5.0.9
+• ExpressiveOS: every Pro feature is included when Expressive is built into the ROM
+• Work, clone and private-space apps show their profile badge in Hidden apps and the other app pickers
