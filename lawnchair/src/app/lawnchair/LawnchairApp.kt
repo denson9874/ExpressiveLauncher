@@ -85,6 +85,12 @@ class LawnchairApp : LauncherApplication() {
         FeatureFlagsImpl.sAllAppsSheetForHandheldSupplier = java.util.function.BooleanSupplier {
             pref2.allAppsSheetForHandheld.firstCached(pref2)
         }
+        // Device profiles built before this point (the process starts for TouchInteractionService
+        // before unlock) saw the flag as false. Rebuild them when the sheet is on, or All Apps
+        // keeps the full-screen shift range and padding under a sheet layout.
+        if (pref2.allAppsSheetForHandheld.firstCached(pref2)) {
+            InvariantDeviceProfile.INSTANCE.get(this).onPreferencesChanged(this)
+        }
         ExpressiveUpdateScheduler.ensureScheduled(this)
     }
 
