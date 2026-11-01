@@ -378,6 +378,16 @@ public class AllAppsTransitionController
                 ALL_APPS_PULL_BACK_ALPHA.set(this, ALL_APPS_PULL_BACK_ALPHA_DEFAULT);
 
                 mAllAppScale.updateValue(1f);
+
+                // setAlphas ran while the state was still ALL_APPS, so it kept the scrim's
+                // drawing controller for header protection during the close. Once the drawer
+                // has settled closed, stop drawing its sheet on the scrim: with a shift range
+                // shorter than the screen (sheet flag flipped after the device profile was
+                // built) the sheet would otherwise stay painted over the home screen until the
+                // next state change.
+                if (success && !mLauncher.isInState(ALL_APPS)) {
+                    mScrimView.setDrawingController(null);
+                }
             });
         }
 
