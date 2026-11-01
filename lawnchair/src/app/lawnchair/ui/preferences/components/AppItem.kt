@@ -28,9 +28,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import app.lawnchair.ui.placeholder.PlaceholderHighlight
 import app.lawnchair.ui.placeholder.fade
@@ -38,11 +42,31 @@ import app.lawnchair.ui.placeholder.placeholder
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.util.App
 import com.android.launcher3.model.data.AppInfo
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 
 @Composable
 fun AppItem(
     label: String,
     icon: Bitmap,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    widget: (@Composable () -> Unit)? = null,
+    endWidget: (@Composable () -> Unit)? = null,
+) {
+    AppItem(
+        label = label,
+        icon = remember(icon) { BitmapPainter(icon.asImageBitmap()) },
+        onClick = onClick,
+        modifier = modifier,
+        widget = widget,
+        endWidget = endWidget,
+    )
+}
+
+@Composable
+fun AppItem(
+    label: String,
+    icon: Painter,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     widget: (@Composable () -> Unit)? = null,
@@ -55,7 +79,7 @@ fun AppItem(
         endWidget = endWidget,
         icon = {
             Image(
-                bitmap = icon.asImageBitmap(),
+                painter = icon,
                 contentDescription = null,
                 modifier = Modifier.size(30.dp),
             )
@@ -73,7 +97,7 @@ fun AppItem(
 ) {
     AppItem(
         label = app.label,
-        icon = app.icon,
+        icon = rememberDrawablePainter(app.icon),
         onClick = { onClick(app) },
         widget = widget,
         endWidget = endWidget,
@@ -87,9 +111,10 @@ fun AppItem(
     widget: (@Composable () -> Unit)? = null,
     endWidget: (@Composable () -> Unit)? = null,
 ) {
+    val context = LocalContext.current
     AppItem(
         label = appInfo.title.toString(),
-        icon = appInfo.bitmap.icon,
+        icon = rememberDrawablePainter(remember(appInfo) { appInfo.bitmap.newIcon(context) }),
         onClick = { onClick(appInfo) },
         widget = widget,
         endWidget = endWidget,
