@@ -19,7 +19,7 @@ package app.lawnchair.util
 import android.content.Context
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
-import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.util.Log
 import androidx.compose.runtime.Composable
@@ -76,13 +76,14 @@ fun appsState(
 class App(context: Context, private val info: LauncherActivityInfo) {
 
     val label get() = info.label.toString()
-    val icon: Bitmap
+    val icon: Drawable
     val key = ComponentKey(info.componentName, info.user)
 
     init {
         val appInfo = AppInfo(context, info, info.user)
         LauncherAppState.getInstance(context).iconCache.getTitleAndIcon(appInfo, DEFAULT_LOOKUP_FLAG)
-        icon = appInfo.bitmap.icon
+        // bitmap.icon is the bare icon; newIcon() adds the work/clone/private badge from bitmap.flags.
+        icon = appInfo.bitmap.newIcon(context)
     }
 
     fun toAppInfo(context: Context): AppInfo {
