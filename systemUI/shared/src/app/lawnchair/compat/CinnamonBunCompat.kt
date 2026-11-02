@@ -27,6 +27,12 @@ object CinnamonBunCompat {
 
     private const val TAG = "CinnamonBunCompat"
 
+    // Look these up by name, never with `::class.java`. R8 merges this file's lazy lambdas with
+    // unrelated ones and moves class constants ahead of the shared switch, so a class literal here
+    // crashes Settings and Compose text on any device where the class is missing.
+    private const val TASK_SNAPSHOT = "android.window.TaskSnapshot"
+    private const val TASK_SNAPSHOT_LISTENER = "android.window.TaskSnapshotListener"
+
     /** `android.window.TaskSnapshotManager`, which took over task snapshots from ActivityTaskManager. */
     private val snapshotManagerClass: Class<*>? by lazy {
         runCatching { Class.forName("android.window.TaskSnapshotManager") }
@@ -60,7 +66,7 @@ object CinnamonBunCompat {
 
     private val registerSnapshotListenerMethod: Method? by lazy {
         snapshotManagerClass?.let { cls ->
-            runCatching { cls.getMethod("registerTaskSnapshotListener", TaskSnapshotListener::class.java) }
+            runCatching { cls.getMethod("registerTaskSnapshotListener", Class.forName(TASK_SNAPSHOT_LISTENER)) }
                 .onFailure { Log.e(TAG, "TaskSnapshotManager.registerTaskSnapshotListener not found", it) }
                 .getOrNull()
         }
@@ -68,20 +74,20 @@ object CinnamonBunCompat {
 
     private val unregisterSnapshotListenerMethod: Method? by lazy {
         snapshotManagerClass?.let { cls ->
-            runCatching { cls.getMethod("unregisterTaskSnapshotListener", TaskSnapshotListener::class.java) }
+            runCatching { cls.getMethod("unregisterTaskSnapshotListener", Class.forName(TASK_SNAPSHOT_LISTENER)) }
                 .onFailure { Log.e(TAG, "TaskSnapshotManager.unregisterTaskSnapshotListener not found", it) }
                 .getOrNull()
         }
     }
 
     private val wrapToBitmapMethod: Method? by lazy {
-        runCatching { TaskSnapshot::class.java.getMethod("wrapToBitmap") }
+        runCatching { Class.forName(TASK_SNAPSHOT).getMethod("wrapToBitmap") }
             .onFailure { Log.e(TAG, "TaskSnapshot.wrapToBitmap not found", it) }
             .getOrNull()
     }
 
     private val closeBufferMethod: Method? by lazy {
-        runCatching { TaskSnapshot::class.java.getMethod("closeBuffer") }.getOrNull()
+        runCatching { Class.forName(TASK_SNAPSHOT).getMethod("closeBuffer") }.getOrNull()
     }
 
     private val createInputConsumerMethod: Method? by lazy {
