@@ -1,0 +1,4 @@
+Expressive Launcher 5.1.0
+• Settings opens again on Android 12 to 16 instead of crashing
+• The Customize sheet for apps opens again on Android 12 to 16
+• A new release check blocks this kind of crash from shipping again
