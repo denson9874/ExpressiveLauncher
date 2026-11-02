@@ -40,6 +40,9 @@ CORE_FORBIDDEN_PERMISSIONS = (
     "android.permission.READ_SMS",
 )
 VARIANTS = ("full", "core")
+# Android 17 classes the app reaches only by reflection. R8 merges lambdas and moves class constants
+# ahead of the shared switch, so a literal one crashes unrelated code on older Android (5.0.5-5.0.9).
+ANDROID_17_ONLY_CLASSES = ("android/window/TaskSnapshotListener", "android/window/TaskSnapshot")
 
 
 class VerificationError(ValueError):
@@ -117,6 +120,7 @@ def run_tool(executable, *arguments):
             [str(executable), *map(str, arguments)],
             capture_output=True,
             text=True,
+            errors="replace",  # dexdump prints raw strings from the dex, which are not always UTF-8
             timeout=120,
             check=False,
         )
@@ -201,6 +205,19 @@ def verify_core_manifest(apk, build_tools):
     return {"forbiddenDeclarations": [], "checked": list(CORE_FORBIDDEN_PERMISSIONS)}
 
 
+def verify_no_android_17_class_literals(apk, build_tools):
+    """The shipped dex must not load Android 17-only classes as constants; see ANDROID_17_ONLY_CLASSES."""
+    dex = run_tool(build_tools / "dexdump", "-d", apk)
+    if "const-" not in dex:
+        raise VerificationError("dexdump output has no instructions to check")
+    found = sorted({name for name in ANDROID_17_ONLY_CLASSES
+                    if re.search(r"const-class v\d+, L" + re.escape(name) + ";", dex)})
+    if found:
+        raise VerificationError("APK uses Android 17-only classes as constants, which crashes older Android: "
+                                + ", ".join(found))
+    return {"checked": list(ANDROID_17_ONLY_CLASSES)}
+
+
 def unique_json_fields(pairs):
     result = {}
     for key, value in pairs:
@@ -247,7 +264,7 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools, channe
             raise VerificationError('Stable source must exactly match the selected QA source')
     if not version_name or not 1 <= version_code <= 2_100_000_000:
         raise VerificationError("Expected versionName must be nonempty and versionCode must be 1..2100000000")
-    for name in ("apksigner", "aapt2"):
+    for name in ("apksigner", "aapt2", "dexdump"):
         executable = build_tools / name
         if not executable.is_file() or not os.access(executable, os.X_OK):
             raise VerificationError("Missing executable Android build tool: " + str(executable))
@@ -276,6 +293,7 @@ def verify_qa(apk, baseline_apk, version_name, version_code, build_tools, channe
         raise VerificationError("Candidate versionCode must be strictly newer than the delivered baseline")
 
     feed = verify_feed_bundle(apk, candidate, build_tools) if candidate["versionCode"] >= 10 else None
+    verify_no_android_17_class_literals(apk, build_tools)
     core = verify_core_manifest(apk, build_tools) if variant == 'core' else None
 
     # Recheck both files after all tool calls, including time spent inspecting the baseline.

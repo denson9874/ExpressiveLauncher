@@ -98,7 +98,7 @@ class ReleaseContractTests(unittest.TestCase):
         self.baseline.write_bytes(b"previously delivered baseline bytes")
         self.tools = self.root / "build-tools"
         self.tools.mkdir()
-        for name in ("apksigner", "aapt2"):
+        for name in ("apksigner", "aapt2", "dexdump"):
             tool = self.tools / name
             tool.write_text("fixture executable")
             tool.chmod(0o700)
@@ -107,6 +107,7 @@ class ReleaseContractTests(unittest.TestCase):
             ("aapt2", self.apk.name): badging(),
             ("apksigner", self.baseline.name): signing(label="Signer #1"),
             ("aapt2", self.baseline.name): badging(8, "1.0.7"),
+            ("dexdump", self.apk.name): "|0002: const-class v0, Landroid/view/View; // type@0001\n",
         }
         self.commands = []
 
@@ -210,6 +211,33 @@ class ReleaseContractTests(unittest.TestCase):
             with self.subTest(output=output), contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(1, verify.main(self.cli_arguments(output)))
         self.assertEqual(b"immutable candidate bytes", self.apk.read_bytes())
+
+
+class Android17ClassLiteralTests(unittest.TestCase):
+    setUp = ReleaseContractTests.setUp
+    run_fixture = ReleaseContractTests.run_fixture
+    verify_candidate = ReleaseContractTests.verify_candidate
+
+    def test_android_17_class_constants_are_rejected_in_the_candidate(self):
+        for name in verify.ANDROID_17_ONLY_CLASSES:
+            with self.subTest(name=name):
+                self.responses[("dexdump", self.apk.name)] = f"|0002: const-class v0, L{name}; // type@044a\n"
+                with self.assertRaisesRegex(verify.VerificationError, "Android 17-only"):
+                    self.verify_candidate()
+
+    def test_a_similar_class_name_is_allowed(self):
+        self.responses[("dexdump", self.apk.name)] = "|0002: const-class v0, Landroid/window/TaskSnapshotFoo; // type@1\n"
+        self.verify_candidate()
+
+    def test_only_the_candidate_is_scanned_because_delivered_baselines_may_have_the_bug(self):
+        self.verify_candidate()
+        scanned = [Path(command[-1]).name for command in self.commands if Path(command[0]).name == "dexdump"]
+        self.assertEqual([self.apk.name], scanned)
+
+    def test_empty_dexdump_output_fails_closed(self):
+        self.responses[("dexdump", self.apk.name)] = ""
+        with self.assertRaisesRegex(verify.VerificationError, "no instructions"):
+            self.verify_candidate()
 
 
 class StableContractTests(unittest.TestCase):
