@@ -1,0 +1,88 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.1.0 (Build 72) — Back in Settings[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+If you're on Android 16 or older, 5.1.0 gets you back into Settings. Since 5.0.5, a build mix-up made Settings and the app Customize sheet crash on those versions. This update fixes it and adds a release check so the same mistake can't ship again. Android 17 users weren't affected, and nothing changes for them.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. ⚙️ Settings opens again on Android 12 to 16[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: from 5.0.5 to 5.0.9, opening Settings crashed straight away on Android 16 and older.
+[*][B]Now[/B]: Settings opens normally.
+
+[/LIST]
+[SIZE=5][B]2. ✏️ The Customize sheet opens again on Android 12 to 16[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: long-pressing an app and tapping Customize crashed on the same Android versions, from the same cause.
+[*][B]Now[/B]: the sheet opens and you can rename the app and change its icon as usual. Other pop-up sheets drawn the same way share this fix.
+
+[/LIST]
+[SIZE=5][B]3. 🛡️ A release check for this kind of crash[/B][/SIZE]
+[LIST]
+[*]Every build is now scanned for this exact mistake, and a build that has it can't be released. It would have stopped 5.0.5.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]⚙️ [I]Settings spent five releases asking for a class from Android 17, on phones that hadn't got there yet. It has been told about the calendar.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]Who notices[/B]: anyone on Android 12 to 16 who couldn't open Settings or Customize. Android 17 users won't see a difference.
+[*][B]Thanks[/B]: to the tester who sent in the crash logs from a vivo phone. Those two logs found the bug.
+[*][B]Why it slipped through[/B]: our automated checks only ran on Android 17, where the crash can't happen.
+[*][B]Validation[/B]: Jenkins passed 658 unit tests and its automated checks on an Android 17 emulator, and Settings and Customize were opened by hand on an Android 12 emulator (details below). Android 16 itself hasn't been run here, so if anything still crashes on your phone, please send a bug report.
+[*][B]Developer Support[/B]: Expressive Pro is available as a one-time $4.99 activation. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I was only a name in a list, far from any screen you opened. Yet I walked to the front of the line and stopped everyone behind me from getting in. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]The Android 17 class lookup![/B] The build tool moved it to the front of shared code, so Settings tripped over it on older Android. Since 5.1.0 it waits for its turn. 🚪[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.1.0[/ICODE] (Build [ICODE]72[/ICODE]), QA channel
+[*][B]Source revision[/B]: [ICODE]ebf1266b1048699da66fc03487e1ad0560263ee6[/ICODE]
+[*][B]APK SHA-256[/B]: [ICODE]ad6c1dc13d57ec5b17d9bc1b20e017bb8cf65805d6f691166425567b7b56d3c6[/ICODE]
+[*][B]Validation[/B]: Jenkins QA build #20 passed 658 unit tests and its automated device checks on the pinned Android 17 QPR2 emulator. This exact APK was also run by hand on an Android 12 emulator: Settings, Home, the long-press menu and the Customize sheet all opened without a crash. Not run on Android 16 or a physical phone.
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]Download[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.0-72"]Expressive Launcher 5.1.0 on GitHub[/URL]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[*][B]Announcements Channel[/B]: [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+
+[/LIST]
+Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.0-72"]Download Expressive Launcher v5.1.0 (Build 72)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
