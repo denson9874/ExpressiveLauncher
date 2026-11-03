@@ -275,6 +275,11 @@ public class DeviceProfile {
 
     private int mHotseatQsbSpaceBase; // LC-Note: This is to keep QSB space as a reference to be used later.
 
+    // Lawnchair: the All Apps sheet setting this profile's sheet padding, shift range and blur
+    // depth were built for. shouldShowAllAppsOnSheet() reads the setting live, so the two can
+    // drift apart (profile built before unlock, or kept across a change of the setting).
+    private boolean mAllAppsOnSheetWhenBuilt;
+
     /** Used only as an alternative to mocking when null values cannot be used. */
     @VisibleForTesting
     public DeviceProfile() {
@@ -454,12 +459,13 @@ public class DeviceProfile {
         gridVisualizationPaddingY = res.getDimensionPixelSize(
                 R.dimen.grid_visualization_vertical_cell_spacing);
 
+        mAllAppsOnSheetWhenBuilt = shouldShowAllAppsOnSheet();
         mBottomSheetProfile = BottomSheetProfile.Factory.createBottomSheetProfile(
                 getDeviceProperties(),
                 mInsets,
                 res,
                 edgeMarginPx,
-                shouldShowAllAppsOnSheet(),
+                mAllAppsOnSheetWhenBuilt,
                 workspaceContentScale
         );
 
@@ -718,7 +724,7 @@ public class DeviceProfile {
         }
 
 
-        if (shouldShowAllAppsOnSheet()) {
+        if (mAllAppsOnSheetWhenBuilt) {
             allAppsPadding.top = allAppsTopPadding;
             allAppsShiftRange = mDeviceProperties.getHeightPx() - allAppsTopPadding + mInsets.top;
         } else {
@@ -1467,6 +1473,15 @@ public class DeviceProfile {
     /** Whether All Apps should be presented on a bottom sheet. */
     public boolean shouldShowAllAppsOnSheet() {
         return mDeviceProperties.isTablet() || Flags.allAppsSheetForHandheld();
+    }
+
+    /**
+     * Whether this profile was built for the other All Apps style than the one now set. Its sheet
+     * padding, shift range and blur depth then don't fit the drawer: the sheet opens flush with
+     * the top with no blur behind it. Rebuild the profiles when this is true.
+     */
+    public boolean isAllAppsSheetLayoutStale() {
+        return mAllAppsOnSheetWhenBuilt != shouldShowAllAppsOnSheet();
     }
 
     private void setupAllAppsStyle(Context context) {
@@ -2277,6 +2292,7 @@ public class DeviceProfile {
                 + getBottomSheetProfile().getBottomSheetWorkspaceScale());
         writer.println(prefix + "\tbottomSheetDepth: "
                 + getBottomSheetProfile().getBottomSheetDepth());
+        writer.println(prefix + "\tallAppsSheetLayoutStale: " + isAllAppsSheetLayoutStale());
 
         writer.println(prefix + pxToDpStr("allAppsShiftRange", allAppsShiftRange));
         writer.println(prefix + "\tallAppsOpenDuration: " + allAppsOpenDuration);
