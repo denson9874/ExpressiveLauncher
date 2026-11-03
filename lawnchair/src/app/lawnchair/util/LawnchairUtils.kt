@@ -250,6 +250,18 @@ fun getAllAppsBackgroundColor(context: Context, defaultColor: Int, blurAvailable
 fun allAppsSheetAlpha(userOpacity: Float, blurAvailable: Boolean): Int =
     if (blurAvailable) (userOpacity.coerceIn(0f, 1f) * 255).roundToInt() else 255
 
+/**
+ * Whether Home stays visible behind the phone's bottom sheet drawer. Home is meant to show through
+ * the sheet blurred. When nothing blurs it (window blur off, the wallpaper depth effect off, or a
+ * sheet with no depth) the see-through sheet shows sharp widgets and icons under the app grid, so
+ * Home hides the way it does behind the full screen drawer.
+ */
+fun showHomeBehindAllAppsSheet(
+    blurEnabled: Boolean,
+    depthEffectEnabled: Boolean,
+    sheetDepth: Float,
+): Boolean = blurEnabled && depthEffectEnabled && sheetDepth > 0f
+
 fun Context.checkPackagePermission(packageName: String, permissionName: String): Boolean {
     try {
         val info = packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)

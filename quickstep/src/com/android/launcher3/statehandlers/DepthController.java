@@ -217,6 +217,14 @@ public class DepthController extends BaseDepthController implements StateHandler
     }
 
     /**
+     * Whether the wallpaper depth effect is on. When it is off this controller applies no zoom and
+     * no blur at all, so nothing blurs Home behind the All Apps sheet.
+     */
+    public boolean isDepthEffectEnabled() {
+        return mEnableDepth;
+    }
+
+    /**
      * Clears a stuck workspace icon blur after resume when settled on home.
      */
     public void clearStuckBlurOnResumeIfHome() {

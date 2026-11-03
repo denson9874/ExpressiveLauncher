@@ -29,6 +29,8 @@ import com.android.launcher3.Flags;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
+import com.android.launcher3.statehandlers.DepthController;
+import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.ScrimColors;
 import com.android.quickstep.util.BaseDepthController;
@@ -160,10 +162,11 @@ public class AllAppsState extends LauncherState {
     @Override
     public PageAlphaProvider getWorkspacePageAlphaProvider(Launcher launcher) {
         PageAlphaProvider superPageAlphaProvider = super.getWorkspacePageAlphaProvider(launcher);
+        boolean workspaceVisible = isWorkspaceVisible(launcher);
         return new PageAlphaProvider(DECELERATE_2) {
             @Override
             public float getPageAlpha(int pageIndex) {
-                return isWorkspaceVisible(launcher.getDeviceProfile())
+                return workspaceVisible
                         ? superPageAlphaProvider.getPageAlpha(pageIndex)
                         : 0;
             }
@@ -173,14 +176,29 @@ public class AllAppsState extends LauncherState {
     @Override
     public int getVisibleElements(Launcher launcher) {
         int elements = ALL_APPS_CONTENT | FLOATING_SEARCH_BAR;
-        if (isWorkspaceVisible(launcher.getDeviceProfile())) {
+        if (isWorkspaceVisible(launcher)) {
             elements |= HOTSEAT_ICONS;
         }
         return elements;
     }
 
-    private static boolean isWorkspaceVisible(DeviceProfile deviceProfile) {
-        return deviceProfile.getDeviceProperties().isTablet() || (Flags.allAppsSheetForHandheld() && Flags.allAppsBlur());
+    private static boolean isWorkspaceVisible(Launcher launcher) {
+        DeviceProfile deviceProfile = launcher.getDeviceProfile();
+        if (deviceProfile.getDeviceProperties().isTablet()) {
+            return true;
+        }
+        if (!Flags.allAppsSheetForHandheld() || !Flags.allAppsBlur()) {
+            return false;
+        }
+        // On phones Home shows through the sheet only while something blurs it. Without the blur
+        // (window blur off, depth effect off, or a sheet with no depth) the see-through sheet
+        // would show sharp widgets and icons under the app grid.
+        DepthController depthController = launcher instanceof QuickstepLauncher quickstepLauncher
+                ? quickstepLauncher.getDepthController() : null;
+        return LawnchairUtilsKt.showHomeBehindAllAppsSheet(
+                launcher.isAllAppsBackgroundBlurEnabled(),
+                depthController == null || depthController.isDepthEffectEnabled(),
+                deviceProfile.getBottomSheetProfile().getBottomSheetDepth());
     }
 
     @Override
