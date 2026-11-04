@@ -480,7 +480,11 @@ class PreferenceManager2 @Inject constructor(
     val allAppsSheetForHandheld = preference(
         key = booleanPreferencesKey(name = "all_apps_sheet_for_handheld"),
         defaultValue = false,
-        onSet = { reloadHelper.recreate() },
+        // The sheet changes DeviceProfile (allAppsShiftRange, allAppsPadding, the bottom sheet
+        // profile), so the profiles must be rebuilt, not just the activity. With a stale profile
+        // the closed drawer parks at the full-screen shift (300 dp) and its sheet stays painted
+        // on the scrim a third of the way down the home screen.
+        onSet = { reloadHelper.restart() },
     )
 
     val appDrawerHapticFeedback = preference(

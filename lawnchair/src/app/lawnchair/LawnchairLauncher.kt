@@ -58,6 +58,7 @@ import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.BaseActivity
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.GestureNavContract
+import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
@@ -516,6 +517,12 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onResume() {
         super.onResume()
         restartIfPending()
+        // The bottom sheet drawer's padding, shift range and blur depth are fixed when the device
+        // profile is built. If the profile no longer matches the setting, rebuild it; otherwise
+        // the drawer opens flush with the top over an unblurred home screen.
+        if (deviceProfile.isAllAppsSheetLayoutStale) {
+            InvariantDeviceProfile.INSTANCE.get(this).onPreferencesChanged(this)
+        }
         // Re-check time-limited Pro licenses (trials) whenever Home returns.
         val proManager = app.lawnchair.pro.ProManager.INSTANCE.get(this)
         proManager.refreshState()
