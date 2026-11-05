@@ -139,6 +139,7 @@ fun CakeyCelebrationDialog(
                                     center = Offset(x, y),
                                 )
                             }
+
                             2 -> {
                                 // Fluttering ribbon lines
                                 val tail = 14f + (i % 6) * 4f
@@ -152,6 +153,7 @@ fun CakeyCelebrationDialog(
                                     strokeWidth = 7f,
                                 )
                             }
+
                             3 -> {
                                 // Petite accent diamonds
                                 drawCircle(

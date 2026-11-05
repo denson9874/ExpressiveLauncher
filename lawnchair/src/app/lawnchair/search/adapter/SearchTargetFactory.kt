@@ -452,8 +452,7 @@ class SearchTargetFactory(
 }
 
 /** Exact means the complete localized label, with only search-friendly case/edge normalization. */
-internal fun isExactPrivateSpaceQuery(query: String, privateSpaceLabel: String): Boolean =
-    query.trim().equals(privateSpaceLabel.trim(), ignoreCase = true)
+internal fun isExactPrivateSpaceQuery(query: String, privateSpaceLabel: String): Boolean = query.trim().equals(privateSpaceLabel.trim(), ignoreCase = true)
 
 object FilesTarget {
     private const val MAX_PREVIEW_SIZE_PX = 256

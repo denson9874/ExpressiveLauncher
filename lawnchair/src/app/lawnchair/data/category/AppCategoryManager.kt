@@ -15,7 +15,8 @@ enum class AppCategory(val id: Int, val labelRes: Int) {
     MEDIA(2, R.string.category_tab_media),
     SOCIAL(3, R.string.category_tab_social),
     WORK(4, R.string.category_tab_work),
-    UTILITIES(5, R.string.category_tab_utilities);
+    UTILITIES(5, R.string.category_tab_utilities),
+    ;
 
     companion object {
         fun fromId(id: Int): AppCategory = values().firstOrNull { it.id == id } ?: ALL
@@ -23,13 +24,20 @@ enum class AppCategory(val id: Int, val labelRes: Int) {
         fun fromApplicationInfo(category: Int, packageName: String): AppCategory {
             return when (category) {
                 ApplicationInfo.CATEGORY_GAME -> GAMES
+
                 ApplicationInfo.CATEGORY_AUDIO,
                 ApplicationInfo.CATEGORY_VIDEO,
-                ApplicationInfo.CATEGORY_IMAGE -> MEDIA
+                ApplicationInfo.CATEGORY_IMAGE,
+                -> MEDIA
+
                 ApplicationInfo.CATEGORY_SOCIAL,
-                ApplicationInfo.CATEGORY_NEWS -> SOCIAL
+                ApplicationInfo.CATEGORY_NEWS,
+                -> SOCIAL
+
                 ApplicationInfo.CATEGORY_PRODUCTIVITY -> WORK
+
                 ApplicationInfo.CATEGORY_MAPS -> UTILITIES
+
                 else -> inferFromPackageName(packageName)
             }
         }
@@ -40,15 +48,19 @@ enum class AppCategory(val id: Int, val labelRes: Int) {
             val lower = pkg.lowercase()
             return when {
                 lower.contains("game") -> GAMES
+
                 lower.contains("music") || lower.contains("video") || lower.contains("player") ||
                     lower.contains("camera") || lower.contains("gallery") || lower.contains("photo") ||
                     lower.contains("spotify") || lower.contains("netflix") || lower.contains("youtube") -> MEDIA
+
                 lower.contains("chat") || lower.contains("talk") || lower.contains("messenger") ||
                     lower.contains("discord") || lower.contains("telegram") || lower.contains("reddit") ||
                     lower.contains("twitter") || lower.contains("social") || lower.contains("insta") -> SOCIAL
+
                 lower.contains("office") || lower.contains("docs") || lower.contains("sheet") ||
                     lower.contains("note") || lower.contains("mail") || lower.contains("calendar") ||
                     lower.contains("task") || lower.contains("slack") || lower.contains("work") -> WORK
+
                 else -> UTILITIES
             }
         }

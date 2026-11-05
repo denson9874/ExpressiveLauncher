@@ -3,7 +3,6 @@ package app.lawnchair.ui.preferences.about
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
-import android.os.Build
 import android.app.PendingIntent
 import android.app.job.JobInfo
 import android.app.job.JobParameters
@@ -13,6 +12,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import androidx.annotation.StringRes
 import app.lawnchair.ui.preferences.PreferenceActivity
@@ -20,8 +20,8 @@ import app.lawnchair.ui.preferences.navigation.About
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -57,7 +57,9 @@ internal fun shouldPostExpressiveUpdateNotification(
 ): Boolean {
     if (availableVersionCode < currentVersionCode ||
         (availableVersionCode == currentVersionCode && !allowSameVersion)
-    ) return false
+    ) {
+        return false
+    }
     if (
         snapshot.snoozedVersionCode == availableVersionCode &&
         nowMillis < snapshot.snoozeUntilMillis

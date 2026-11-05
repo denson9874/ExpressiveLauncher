@@ -1,6 +1,8 @@
 package app.lawnchair.ui.preferences.components
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Launch
 import androidx.compose.material3.Icon
@@ -9,8 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import com.android.launcher3.R
 
 /**
@@ -27,8 +27,7 @@ object SystemSettingsHandoff {
      * A row with its own warning or status widget keeps that widget; the hand-off glyph only
      * fills an otherwise empty trailing slot.
      */
-    fun showsIndicator(opensSystemSettings: Boolean, hasOtherEndWidget: Boolean): Boolean =
-        opensSystemSettings && !hasOtherEndWidget
+    fun showsIndicator(opensSystemSettings: Boolean, hasOtherEndWidget: Boolean): Boolean = opensSystemSettings && !hasOtherEndWidget
 }
 
 @Composable

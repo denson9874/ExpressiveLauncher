@@ -68,19 +68,18 @@ class WallpaperService @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun getCurrentWallpaperIfAuthorized(wallpaperManager: WallpaperManager) =
-        if (canCaptureCurrentWallpaper()) {
-            // The call is guarded by the exact platform grants. Keep the suppression local because
-            // lint cannot propagate the permission contract through Environment's app-op check.
-            try {
-                wallpaperManager.drawable
-            } catch (exception: SecurityException) {
-                Log.w("WallpaperService", "Wallpaper access changed during capture", exception)
-                null
-            }
-        } else {
+    private fun getCurrentWallpaperIfAuthorized(wallpaperManager: WallpaperManager) = if (canCaptureCurrentWallpaper()) {
+        // The call is guarded by the exact platform grants. Keep the suppression local because
+        // lint cannot propagate the permission contract through Environment's app-op check.
+        try {
+            wallpaperManager.drawable
+        } catch (exception: SecurityException) {
+            Log.w("WallpaperService", "Wallpaper access changed during capture", exception)
             null
         }
+    } else {
+        null
+    }
 
     private fun calculateChecksum(imageData: ByteArray): String {
         return MessageDigest.getInstance("MD5")

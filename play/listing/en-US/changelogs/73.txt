@@ -1,0 +1,5 @@
+Expressive Launcher 5.1.1
+• Settings' 3-button navigation order switch now works (back and recents swap)
+• The app drawer blurs properly after switching between full screen and bottom sheet
+• Smartspacer cards no longer lose their first letters on short At a Glance rows
+• On ExpressiveOS, Expressive Launcher stays the default Home app next to Pixel Launcher

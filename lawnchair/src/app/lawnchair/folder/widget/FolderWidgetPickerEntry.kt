@@ -46,12 +46,10 @@ class FolderWidgetPickerEntry : CustomWidgetPlugin {
         const val CLS_FOLDER_WIDGET = CLS_CUSTOM_WIDGET_PREFIX + PROVIDER_SUFFIX
 
         @JvmStatic
-        fun provider(context: Context): ComponentName =
-            ComponentName(context.packageName, CLS_FOLDER_WIDGET)
+        fun provider(context: Context): ComponentName = ComponentName(context.packageName, CLS_FOLDER_WIDGET)
 
         @JvmStatic
-        fun isFolderWidget(componentName: ComponentName?): Boolean =
-            componentName?.className == CLS_FOLDER_WIDGET
+        fun isFolderWidget(componentName: ComponentName?): Boolean = componentName?.className == CLS_FOLDER_WIDGET
 
         private var registered = false
 

@@ -54,10 +54,12 @@ internal object GoogleSearchBarSetup {
         }
         return when (googleSearchBarStep(provider != null, alreadyBound, boundWithoutAsking)) {
             GoogleSearchBarStep.UNAVAILABLE -> Prepared.Unavailable
+
             GoogleSearchBarStep.READY -> {
                 if (newId != -1) useWidget(context, newId)
                 Prepared.Ready
             }
+
             GoogleSearchBarStep.ASK_ANDROID -> Prepared.AskAndroid(
                 Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
                     .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, newId)

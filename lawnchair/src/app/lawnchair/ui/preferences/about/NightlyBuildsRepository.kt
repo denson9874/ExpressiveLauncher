@@ -237,7 +237,9 @@ internal class NightlyBuildsRepository(
             if (
                 download.file != file || !requests.isCurrent(download.generation) ||
                 download.config != expressiveUpdateConfig
-            ) return@synchronized
+            ) {
+                return@synchronized
+            }
             val isValid = runCatching {
                 applicationContext.validateExpressiveUpdateApk(file, download.update, verifyBytes = true)
             }.getOrElse {

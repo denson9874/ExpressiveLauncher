@@ -5,12 +5,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.util.contains
+import androidx.recyclerview.widget.RecyclerView
 import app.lawnchair.allapps.views.SearchItemDecorator
 import app.lawnchair.allapps.views.SearchResultView
 import app.lawnchair.search.adapter.SearchAdapterItem
 import com.android.app.search.LayoutType
 import com.android.launcher3.DeviceProfile
-import androidx.recyclerview.widget.RecyclerView
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.allapps.ActivityAllAppsContainerView
@@ -76,8 +76,7 @@ class LawnchairSearchAdapterProvider(
         submitGate.reset()
     }
 
-    private fun currentQuery(): String =
-        appsView.searchUiManager.editText?.text?.let { Utilities.trim(it) }.orEmpty()
+    private fun currentQuery(): String = appsView.searchUiManager.editText?.text?.let { Utilities.trim(it) }.orEmpty()
 
     /** The on-screen quick-launch row for the current list, or null while the list is changing. */
     private fun findQuickLaunchView(): SearchResultView? {
@@ -148,8 +147,7 @@ class LawnchairSearchAdapterProvider(
 
     override fun getItemsPerRow(viewType: Int, appsPerRow: Int) = if (viewType != SEARCH_RESULT_ICON) 1 else super.getItemsPerRow(viewType, appsPerRow)
 
-    override fun launchHighlightedItem(): Boolean =
-        submitGate.submit(currentQuery()) { findQuickLaunchView()?.launch() ?: false }
+    override fun launchHighlightedItem(): Boolean = submitGate.submit(currentQuery()) { findQuickLaunchView()?.launch() ?: false }
 
     override fun getHighlightedItem() = quickLaunchItem as View?
 

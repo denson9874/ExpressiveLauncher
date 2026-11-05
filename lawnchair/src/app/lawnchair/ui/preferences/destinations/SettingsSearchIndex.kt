@@ -131,8 +131,7 @@ data class SettingsSearchEntry(
 
 object SettingsSearchIndex {
 
-    fun entries(product: SettingsSearchProduct): List<SettingsSearchEntry> =
-        allEntries.filter { it.availability.isAvailableIn(product) }
+    fun entries(product: SettingsSearchProduct): List<SettingsSearchEntry> = allEntries.filter { it.availability.isAvailableIn(product) }
 
     fun items(
         context: Context,

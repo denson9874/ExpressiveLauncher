@@ -13,27 +13,23 @@ object FolderWidgets {
     const val DEFAULT_SPAN = 2
 
     @JvmStatic
-    fun isFolderWidget(info: ItemInfo?): Boolean =
-        info is FolderInfo && info.hasOption(FolderInfo.FLAG_FOLDER_WIDGET)
+    fun isFolderWidget(info: ItemInfo?): Boolean = info is FolderInfo && info.hasOption(FolderInfo.FLAG_FOLDER_WIDGET)
 
     /** A loaded folder row becomes a widget on Home when it is flagged or larger than one cell. */
     @JvmStatic
-    fun wantsWidget(container: Int, options: Int, spanX: Int, spanY: Int): Boolean =
-        container == Favorites.CONTAINER_DESKTOP &&
-            ((options and FolderInfo.FLAG_FOLDER_WIDGET) != 0 || spanX * spanY > 1)
+    fun wantsWidget(container: Int, options: Int, spanX: Int, spanY: Int): Boolean = container == Favorites.CONTAINER_DESKTOP &&
+        ((options and FolderInfo.FLAG_FOLDER_WIDGET) != 0 || spanX * spanY > 1)
 
     /** The options a loaded folder row gets: the widget flag exactly when it [wantsWidget]. */
     @JvmStatic
-    fun loadedOptions(container: Int, options: Int, spanX: Int, spanY: Int): Int =
-        if (wantsWidget(container, options, spanX, spanY)) {
-            options or FolderInfo.FLAG_FOLDER_WIDGET
-        } else {
-            options and FolderInfo.FLAG_FOLDER_WIDGET.inv()
-        }
+    fun loadedOptions(container: Int, options: Int, spanX: Int, spanY: Int): Int = if (wantsWidget(container, options, spanX, spanY)) {
+        options or FolderInfo.FLAG_FOLDER_WIDGET
+    } else {
+        options and FolderInfo.FLAG_FOLDER_WIDGET.inv()
+    }
 
     @JvmStatic
-    fun isValidSpan(spanX: Int, spanY: Int): Boolean =
-        spanX >= 1 && spanY >= 1 && spanX * spanY >= MIN_CELLS
+    fun isValidSpan(spanX: Int, spanY: Int): Boolean = spanX >= 1 && spanY >= 1 && spanX * spanY >= MIN_CELLS
 
     /** Folder widgets stay on Home with one app or none; normal folders dissolve. */
     @JvmStatic
@@ -47,10 +43,9 @@ object FolderWidgets {
      * widget grid draws them at the folder icon size, ignoring its own icon size, scale and labels.
      */
     @JvmStatic
-    fun acceptsDrop(item: ItemInfo): Boolean =
-        item !is FolderInfo &&
-            item.itemType != Favorites.ITEM_TYPE_APP_PAIR &&
-            FolderInfo.willAcceptItemType(item.itemType)
+    fun acceptsDrop(item: ItemInfo): Boolean = item !is FolderInfo &&
+        item.itemType != Favorites.ITEM_TYPE_APP_PAIR &&
+        FolderInfo.willAcceptItemType(item.itemType)
 
     /** Whether [item] (this very object) is already one of the folder's apps. */
     @JvmStatic
@@ -70,8 +65,7 @@ object FolderWidgets {
 
     /** The loader's empty-folder clean-up: folders that no item points to, except Folder widgets. */
     @JvmStatic
-    fun emptyFoldersSelection(): String =
-        "${Favorites.ITEM_TYPE} = ${Favorites.ITEM_TYPE_FOLDER} AND " +
-            "${Favorites._ID} NOT IN (SELECT ${Favorites.CONTAINER} FROM ${Favorites.TABLE_NAME}) AND " +
-            "(${Favorites.OPTIONS} & ${FolderInfo.FLAG_FOLDER_WIDGET}) = 0"
+    fun emptyFoldersSelection(): String = "${Favorites.ITEM_TYPE} = ${Favorites.ITEM_TYPE_FOLDER} AND " +
+        "${Favorites._ID} NOT IN (SELECT ${Favorites.CONTAINER} FROM ${Favorites.TABLE_NAME}) AND " +
+        "(${Favorites.OPTIONS} & ${FolderInfo.FLAG_FOLDER_WIDGET}) = 0"
 }

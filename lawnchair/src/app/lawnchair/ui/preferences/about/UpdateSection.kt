@@ -86,8 +86,11 @@ fun UpdateSection(
 
             is UpdateState.WaitingForChannel -> {
                 val channelName = stringResource(
-                    if (updateState.channelName == "qa") R.string.expressive_update_channel_qa
-                    else R.string.expressive_update_channel_release,
+                    if (updateState.channelName == "qa") {
+                        R.string.expressive_update_channel_qa
+                    } else {
+                        R.string.expressive_update_channel_release
+                    },
                 )
                 Text(
                     text = stringResource(R.string.expressive_update_waiting_for_channel, channelName, updateState.versionName),

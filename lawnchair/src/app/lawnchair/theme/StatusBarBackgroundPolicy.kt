@@ -15,13 +15,11 @@ object StatusBarBackgroundPolicy {
     const val SOLID_BACKGROUND_COLOR: Int = 0xFF000000.toInt()
 
     @JvmStatic
-    fun drawsSolidBackground(enabled: Boolean, statusBarShown: Boolean, topInsetPx: Int): Boolean =
-        enabled && statusBarShown && topInsetPx > 0
+    fun drawsSolidBackground(enabled: Boolean, statusBarShown: Boolean, topInsetPx: Int): Boolean = enabled && statusBarShown && topInsetPx > 0
 
     /** Height of the painted bar; zero when nothing is drawn. */
     @JvmStatic
-    fun solidBackgroundHeight(enabled: Boolean, statusBarShown: Boolean, topInsetPx: Int): Int =
-        if (drawsSolidBackground(enabled, statusBarShown, topInsetPx)) topInsetPx else 0
+    fun solidBackgroundHeight(enabled: Boolean, statusBarShown: Boolean, topInsetPx: Int): Int = if (drawsSolidBackground(enabled, statusBarShown, topInsetPx)) topInsetPx else 0
 
     /**
      * Whether Home asks Android for dark status-bar icons. A solid dark bar always wins over a light
