@@ -157,6 +157,7 @@ class WallpaperCarouselView @JvmOverloads constructor(
     ): CardView {
         val label = when (item) {
             is CarouselItem.Current -> context.getString(item.labelResId)
+
             is CarouselItem.Saved -> context.getString(
                 R.string.wallpaper_carousel_recent,
                 index - displayedItems.count { it is CarouselItem.Current } + 1,

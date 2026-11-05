@@ -4,8 +4,8 @@ import android.content.Context
 import android.graphics.Point
 import android.graphics.Rect
 import android.util.AttributeSet
-import android.view.Gravity
 import android.view.GestureDetector
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -25,11 +25,6 @@ import com.android.launcher3.BubbleTextView
 import com.android.launcher3.DropTarget.DragObject
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherState.NORMAL
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
 import com.android.launcher3.R
 import com.android.launcher3.allapps.ActivityAllAppsContainerView
 import com.android.launcher3.celllayout.CellLayoutLayoutParams
@@ -46,6 +41,11 @@ import java.util.function.Predicate
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 
 /**
  * A Home folder shown as a Folder widget: a [FolderWidgetPanel] with the folder's apps as a grid
@@ -151,11 +151,9 @@ class FolderWidgetView @JvmOverloads constructor(
     }
 
     /** While resizing, the cell span changes before the item's span is committed. */
-    internal fun currentSpanX(): Int =
-        (layoutParams as? CellLayoutLayoutParams)?.cellHSpan?.takeIf { it > 0 } ?: mInfo.spanX
+    internal fun currentSpanX(): Int = (layoutParams as? CellLayoutLayoutParams)?.cellHSpan?.takeIf { it > 0 } ?: mInfo.spanX
 
-    internal fun currentSpanY(): Int =
-        (layoutParams as? CellLayoutLayoutParams)?.cellVSpan?.takeIf { it > 0 } ?: mInfo.spanY
+    internal fun currentSpanY(): Int = (layoutParams as? CellLayoutLayoutParams)?.cellVSpan?.takeIf { it > 0 } ?: mInfo.spanY
 
     /**
      * Long-press on empty grid space or the header picks up the widget; a vertical drag in a grid
@@ -233,8 +231,10 @@ class FolderWidgetView @JvmOverloads constructor(
         val returning = itemReturnedOnFailedDrop || isOwnApp(dragInfo)
         val item: ItemInfo = when {
             dragInfo is WorkspaceItemFactory -> dragInfo.makeWorkspaceItem(context)
+
             d.dragSource is BaseItemDragListener ->
                 if (dragInfo is AppPairInfo) AppPairInfo(dragInfo) else WorkspaceItemInfo(dragInfo as WorkspaceItemInfo)
+
             else -> dragInfo
         }
         folder.notifyDrop()

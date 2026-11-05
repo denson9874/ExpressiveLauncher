@@ -26,10 +26,8 @@ object ExpressiveCore {
     fun supportsAccessibilityActions(forCore: Boolean = isCore): Boolean = !forCore
 
     /** Sleep modes a user can pick: Core drops the accessibility mode. */
-    fun availableSleepModes(forCore: Boolean = isCore): List<SleepMode> =
-        SleepMode.values().filter { supportsAccessibilityActions(forCore) || it != SleepMode.ACCESSIBILITY }
+    fun availableSleepModes(forCore: Boolean = isCore): List<SleepMode> = SleepMode.values().filter { supportsAccessibilityActions(forCore) || it != SleepMode.ACCESSIBILITY }
 
     /** Gesture actions a user can pick: Core drops Recents, which only works through accessibility. */
-    fun filterGestureOptions(options: List<GestureHandlerOption>, forCore: Boolean = isCore): List<GestureHandlerOption> =
-        if (supportsAccessibilityActions(forCore)) options else options.filterNot { it == GestureHandlerOption.Recents }
+    fun filterGestureOptions(options: List<GestureHandlerOption>, forCore: Boolean = isCore): List<GestureHandlerOption> = if (supportsAccessibilityActions(forCore)) options else options.filterNot { it == GestureHandlerOption.Recents }
 }

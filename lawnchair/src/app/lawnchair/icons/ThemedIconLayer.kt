@@ -23,8 +23,7 @@ internal class ThemedIconLayer(
         return object : ConstantState() {
             override fun newDrawable(): Drawable = ThemedIconLayer(copyBase(null), monoState.newDrawable())
 
-            override fun newDrawable(resources: Resources?): Drawable =
-                ThemedIconLayer(copyBase(resources), monoState.newDrawable(resources))
+            override fun newDrawable(resources: Resources?): Drawable = ThemedIconLayer(copyBase(resources), monoState.newDrawable(resources))
 
             private fun copyBase(resources: Resources?): Drawable {
                 val copy = if (resources == null) baseState.newDrawable() else baseState.newDrawable(resources)
@@ -45,8 +44,7 @@ internal class ThemedIconLayer(
                 }
             }
 
-            override fun getChangingConfigurations(): Int =
-                baseState.changingConfigurations or monoState.changingConfigurations
+            override fun getChangingConfigurations(): Int = baseState.changingConfigurations or monoState.changingConfigurations
         }
     }
 }
@@ -73,11 +71,9 @@ internal fun BaseIconFactory.createBitmapWithThemedLayer(
 }
 
 /** Lawnicons contains monochrome art; ordinary colorful packs keep their unthemed artwork. */
-internal fun unthemedIconPackPackage(packageName: String): String =
-    packageName.takeUnless { it == LAWNICONS_PACKAGE_NAME }.orEmpty()
+internal fun unthemedIconPackPackage(packageName: String): String = packageName.takeUnless { it == LAWNICONS_PACKAGE_NAME }.orEmpty()
 
-internal fun themedIconSourcePackage(normalPack: String, themedPack: String): String =
-    themedPack.ifEmpty { normalPack.takeIf { it == LAWNICONS_PACKAGE_NAME }.orEmpty() }
+internal fun themedIconSourcePackage(normalPack: String, themedPack: String): String = themedPack.ifEmpty { normalPack.takeIf { it == LAWNICONS_PACKAGE_NAME }.orEmpty() }
 
 /** Disable/re-enable and source changes must not reuse a previous source's monochrome map. */
 internal class ThemedIconMapCache<T> {

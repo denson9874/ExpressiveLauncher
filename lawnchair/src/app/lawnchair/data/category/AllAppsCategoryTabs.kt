@@ -20,7 +20,8 @@ class AllAppsCategoryTabs @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-) : HorizontalScrollView(context, attrs, defStyleAttr), FloatingHeaderRow {
+) : HorizontalScrollView(context, attrs, defStyleAttr),
+    FloatingHeaderRow {
 
     private val container = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL

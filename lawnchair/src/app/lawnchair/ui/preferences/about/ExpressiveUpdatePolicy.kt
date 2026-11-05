@@ -109,25 +109,38 @@ internal fun evaluateExpressiveUpdate(
 ): ExpressiveUpdateDecision {
     val rejection = when {
         manifest.schemaVersion != EXPRESSIVE_UPDATE_SCHEMA_VERSION -> ExpressiveUpdateRejection.UNSUPPORTED_SCHEMA
+
         manifest.channel != config.channel.wireName -> ExpressiveUpdateRejection.WRONG_CHANNEL
-        (manifest.packageName != EXPRESSIVE_UPDATE_PACKAGE_NAME &&
-            manifest.packageName != EXPRESSIVE_PLAY_PACKAGE_NAME) ||
+
+        (
+            manifest.packageName != EXPRESSIVE_UPDATE_PACKAGE_NAME &&
+                manifest.packageName != EXPRESSIVE_PLAY_PACKAGE_NAME
+            ) ||
             manifest.packageName != currentPackageName -> ExpressiveUpdateRejection.WRONG_PACKAGE
+
         manifest.versionCode < 1L || manifest.versionName.isBlank() -> ExpressiveUpdateRejection.INVALID_VERSION
+
         !manifest.apkUrl.isSecureHttpsUrl() -> ExpressiveUpdateRejection.INVALID_APK_URL
+
         !manifest.sha256.matches(Regex("[0-9a-fA-F]{64}")) -> ExpressiveUpdateRejection.INVALID_SHA256
+
         manifest.sizeBytes < 1L -> ExpressiveUpdateRejection.INVALID_SIZE
+
         manifest.releaseNotes.isBlank() -> ExpressiveUpdateRejection.MISSING_RELEASE_NOTES
+
         else -> null
     }
     if (rejection != null) return ExpressiveUpdateDecision.Rejected(rejection)
 
     return when {
         manifest.versionCode > currentVersionCode -> ExpressiveUpdateDecision.Available(manifest)
+
         manifest.versionCode == currentVersionCode && config.channel != installedChannel ->
             ExpressiveUpdateDecision.Available(manifest)
+
         manifest.versionCode < currentVersionCode && config.channel != installedChannel ->
             ExpressiveUpdateDecision.WaitingForChannel(manifest)
+
         else -> ExpressiveUpdateDecision.UpToDate
     }
 }

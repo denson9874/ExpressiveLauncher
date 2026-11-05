@@ -80,10 +80,9 @@ internal fun canRecreateAllAppsQsbComposition(
     isAttached: Boolean,
     lifecycleState: Lifecycle.State?,
     hasSavedStateOwner: Boolean,
-): Boolean =
-    !searchBarHidden &&
-        hasSavedStateOwner &&
-        canCreateAttachedQsbComposition(isAttached, lifecycleState)
+): Boolean = !searchBarHidden &&
+    hasSavedStateOwner &&
+    canCreateAttachedQsbComposition(isAttached, lifecycleState)
 
 class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     FrameLayout(context, attrs),

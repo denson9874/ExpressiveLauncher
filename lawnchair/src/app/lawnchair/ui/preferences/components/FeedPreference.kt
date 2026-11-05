@@ -17,8 +17,8 @@ import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.ui.preferences.components.controls.ListPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
-import com.android.launcher3.R
 import com.android.launcher3.BuildConfig
+import com.android.launcher3.R
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 
 data class ProviderInfo(

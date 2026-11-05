@@ -60,86 +60,86 @@ fun FolderPreferences(
                 folderShapeIsDefault = folderIconShapeAdapter.state.value.toString() ==
                     prefs2.folderShape.defaultValue.toString(),
             )
-        val folderIconShapeSubtitle = iconShapeEntries(context)
-            .firstOrNull { it.value == folderIconShapeAdapter.state.value }
-            ?.label?.invoke()
-            ?: stringResource(id = R.string.custom)
-        PreferenceGroup(heading = stringResource(id = R.string.general_label)) {
-            SwitchPreference(
-                checked = matchesAppIconShape,
-                onCheckedChange = {
-                    folderShapeMatch.onChange(if (it) FolderShapeMatch.ON else FolderShapeMatch.OFF)
-                },
-                label = stringResource(id = R.string.folder_shape_match_icon_label),
-                description = stringResource(id = R.string.folder_shape_match_icon_description),
-            )
-            ExpandAndShrink(visible = !matchesAppIconShape) {
-                NavigationActionPreference(
-                    label = stringResource(id = R.string.folder_shape_label),
-                    destination = GeneralIconShape(ShapeRoute.FOLDER_SHAPE),
-                    subtitle = folderIconShapeSubtitle,
-                    endWidget = {
-                        IconShapePreview(iconShape = folderIconShapeAdapter.state.value)
+            val folderIconShapeSubtitle = iconShapeEntries(context)
+                .firstOrNull { it.value == folderIconShapeAdapter.state.value }
+                ?.label?.invoke()
+                ?: stringResource(id = R.string.custom)
+            PreferenceGroup(heading = stringResource(id = R.string.general_label)) {
+                SwitchPreference(
+                    checked = matchesAppIconShape,
+                    onCheckedChange = {
+                        folderShapeMatch.onChange(if (it) FolderShapeMatch.ON else FolderShapeMatch.OFF)
                     },
+                    label = stringResource(id = R.string.folder_shape_match_icon_label),
+                    description = stringResource(id = R.string.folder_shape_match_icon_description),
                 )
-            }
-            ExpandAndShrink(visible = matchesAppIconShape) {
-                NavigationActionPreference(
-                    label = stringResource(id = R.string.icon_shape_label),
-                    destination = GeneralIconShape(ShapeRoute.APP_SHAPE),
-                    subtitle = stringResource(id = R.string.folder_shape_following_app_icon),
-                    endWidget = {
-                        IconShapePreview(iconShape = appIconShape)
-                    },
-                )
-            }
-            ColorPreference(preference = prefs2.folderColor)
-            SliderPreference(
-                label = stringResource(id = R.string.folder_preview_bg_opacity_label),
-                adapter = prefs2.folderPreviewBackgroundOpacity.getAdapter(),
-                step = 0.1F,
-                valueRange = 0F..1F,
-                showAsPercentage = true,
-            )
-            SliderPreference(
-                label = stringResource(id = R.string.folder_bg_opacity_label),
-                adapter = prefs2.folderBackgroundOpacity.getAdapter(),
-                step = 0.1F,
-                valueRange = 0F..1F,
-                showAsPercentage = true,
-            )
-        }
-        PreferenceGroup(heading = stringResource(id = R.string.grid)) {
-            SliderPreference(
-                label = stringResource(id = R.string.max_folder_columns),
-                adapter = prefs2.folderColumns.getAdapter(),
-                step = 1,
-                valueRange = 2..5,
-            )
-            SliderPreference(
-                label = stringResource(id = R.string.max_folder_rows),
-                adapter = prefs.folderRows.getAdapter(),
-                step = 1,
-                valueRange = 2..5,
-            )
-        }
-
-        val homeScreenLabelsAdapter = prefs2.showIconLabelsOnHomeScreenFolder.getAdapter()
-        PreferenceGroup(heading = stringResource(id = R.string.icons)) {
-            SwitchPreference(
-                adapter = homeScreenLabelsAdapter,
-                label = stringResource(id = R.string.show_labels),
-            )
-            ExpandAndShrink(visible = homeScreenLabelsAdapter.state.value) {
+                ExpandAndShrink(visible = !matchesAppIconShape) {
+                    NavigationActionPreference(
+                        label = stringResource(id = R.string.folder_shape_label),
+                        destination = GeneralIconShape(ShapeRoute.FOLDER_SHAPE),
+                        subtitle = folderIconShapeSubtitle,
+                        endWidget = {
+                            IconShapePreview(iconShape = folderIconShapeAdapter.state.value)
+                        },
+                    )
+                }
+                ExpandAndShrink(visible = matchesAppIconShape) {
+                    NavigationActionPreference(
+                        label = stringResource(id = R.string.icon_shape_label),
+                        destination = GeneralIconShape(ShapeRoute.APP_SHAPE),
+                        subtitle = stringResource(id = R.string.folder_shape_following_app_icon),
+                        endWidget = {
+                            IconShapePreview(iconShape = appIconShape)
+                        },
+                    )
+                }
+                ColorPreference(preference = prefs2.folderColor)
                 SliderPreference(
-                    label = stringResource(id = R.string.label_size),
-                    adapter = prefs2.homeIconLabelFolderSizeFactor.getAdapter(),
-                    step = 0.1f,
-                    valueRange = 0.5F..1.5F,
+                    label = stringResource(id = R.string.folder_preview_bg_opacity_label),
+                    adapter = prefs2.folderPreviewBackgroundOpacity.getAdapter(),
+                    step = 0.1F,
+                    valueRange = 0F..1F,
+                    showAsPercentage = true,
+                )
+                SliderPreference(
+                    label = stringResource(id = R.string.folder_bg_opacity_label),
+                    adapter = prefs2.folderBackgroundOpacity.getAdapter(),
+                    step = 0.1F,
+                    valueRange = 0F..1F,
                     showAsPercentage = true,
                 )
             }
+            PreferenceGroup(heading = stringResource(id = R.string.grid)) {
+                SliderPreference(
+                    label = stringResource(id = R.string.max_folder_columns),
+                    adapter = prefs2.folderColumns.getAdapter(),
+                    step = 1,
+                    valueRange = 2..5,
+                )
+                SliderPreference(
+                    label = stringResource(id = R.string.max_folder_rows),
+                    adapter = prefs.folderRows.getAdapter(),
+                    step = 1,
+                    valueRange = 2..5,
+                )
+            }
+
+            val homeScreenLabelsAdapter = prefs2.showIconLabelsOnHomeScreenFolder.getAdapter()
+            PreferenceGroup(heading = stringResource(id = R.string.icons)) {
+                SwitchPreference(
+                    adapter = homeScreenLabelsAdapter,
+                    label = stringResource(id = R.string.show_labels),
+                )
+                ExpandAndShrink(visible = homeScreenLabelsAdapter.state.value) {
+                    SliderPreference(
+                        label = stringResource(id = R.string.label_size),
+                        adapter = prefs2.homeIconLabelFolderSizeFactor.getAdapter(),
+                        step = 0.1f,
+                        valueRange = 0.5F..1.5F,
+                        showAsPercentage = true,
+                    )
+                }
+            }
         }
     }
-}
 }

@@ -3,19 +3,17 @@ package app.lawnchair.pro
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import kotlinx.coroutines.CancellationException
-import retrofit2.HttpException
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import app.lawnchair.util.MainThreadInitializedObject
+import com.android.launcher3.R
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
-import com.android.launcher3.R
-
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import retrofit2.HttpException
 
 class ProManager(private val context: Context) {
 
@@ -120,8 +118,7 @@ class ProManager(private val context: Context) {
         expiryHandler.postDelayed(expiryCheck, delayMs.coerceAtMost(MAX_EXPIRY_CHECK_DELAY_MS))
     }
 
-    private fun isSavedTrialKey(key: String): Boolean =
-        ProLicenseVerifier.verify(key, nowSeconds = 0L).getOrNull()?.isTrial == true
+    private fun isSavedTrialKey(key: String): Boolean = ProLicenseVerifier.verify(key, nowSeconds = 0L).getOrNull()?.isTrial == true
 
     /**
      * Remembers that Donate sent this install to the activation worker's checkout. Until a paid
@@ -175,28 +172,27 @@ class ProManager(private val context: Context) {
     }
 
     /** Requests the device's 7-day trial key from the activation service and activates it. */
-    suspend fun startTrial(service: ProActivationService = ProActivationService.create()): Result<ProLicenseDetails> =
-        runCatching {
-            val response = try {
-                service.startTrial(
-                    TrialRequest(ProDeviceId.get(context), ProTrialFingerprint.compute(context)),
-                )
-            } catch (e: HttpException) {
-                if (e.code() == 409) {
-                    prefs.edit().putBoolean(KEY_TRIAL_STARTED, true).apply()
-                    throw IllegalStateException(context.getString(R.string.expressive_pro_trial_used))
-                }
-                throw IllegalStateException(context.getString(R.string.expressive_pro_trial_unavailable), e)
-            } catch (e: java.io.IOException) {
-                throw IllegalStateException(context.getString(R.string.expressive_pro_trial_unavailable), e)
+    suspend fun startTrial(service: ProActivationService = ProActivationService.create()): Result<ProLicenseDetails> = runCatching {
+        val response = try {
+            service.startTrial(
+                TrialRequest(ProDeviceId.get(context), ProTrialFingerprint.compute(context)),
+            )
+        } catch (e: HttpException) {
+            if (e.code() == 409) {
+                prefs.edit().putBoolean(KEY_TRIAL_STARTED, true).apply()
+                throw IllegalStateException(context.getString(R.string.expressive_pro_trial_used))
             }
-            val key = response.key?.takeIf { response.success }
-                ?: throw IllegalStateException(context.getString(R.string.expressive_pro_trial_unavailable))
-            val details = activate(key).getOrThrow()
-            check(details.isTrial) { "Activation service returned a non-trial key" }
-            prefs.edit().putBoolean(KEY_TRIAL_STARTED, true).apply()
-            details
+            throw IllegalStateException(context.getString(R.string.expressive_pro_trial_unavailable), e)
+        } catch (e: java.io.IOException) {
+            throw IllegalStateException(context.getString(R.string.expressive_pro_trial_unavailable), e)
         }
+        val key = response.key?.takeIf { response.success }
+            ?: throw IllegalStateException(context.getString(R.string.expressive_pro_trial_unavailable))
+        val details = activate(key).getOrThrow()
+        check(details.isTrial) { "Activation service returned a non-trial key" }
+        prefs.edit().putBoolean(KEY_TRIAL_STARTED, true).apply()
+        details
+    }
 
     /**
      * Validate and activate a new license key string.

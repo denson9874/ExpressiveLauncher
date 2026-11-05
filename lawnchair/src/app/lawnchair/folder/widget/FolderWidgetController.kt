@@ -3,11 +3,11 @@ package app.lawnchair.folder.widget
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
+import android.content.pm.LauncherApps
 import android.widget.Toast
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
-import android.content.pm.LauncherApps
 import app.lawnchair.data.folderwidget.FolderWidgetStyleRepository
 import app.lawnchair.folder.widget.ui.FolderWidgetAppPicker
 import app.lawnchair.folder.widget.ui.FolderWidgetSettingsSheet
@@ -84,17 +84,15 @@ object FolderWidgetController {
      * Home (Lawnchair's Remove target refuses folders there for the same reason).
      */
     @JvmStatic
-    fun removeChoices(deckLayout: Boolean): List<Int> =
-        if (deckLayout) {
-            listOf(R.string.folder_widget_put_back)
-        } else {
-            listOf(R.string.folder_widget_put_back, R.string.folder_widget_remove_all)
-        }
+    fun removeChoices(deckLayout: Boolean): List<Int> = if (deckLayout) {
+        listOf(R.string.folder_widget_put_back)
+    } else {
+        listOf(R.string.folder_widget_put_back, R.string.folder_widget_remove_all)
+    }
 
     /** "Lock Home screen" refuses every layout change: making, converting and removing widgets. */
     @JvmStatic
-    fun isHomeLocked(launcher: Launcher): Boolean =
-        PreferenceManager2.getInstance(launcher).lockHomeScreen.firstCached()
+    fun isHomeLocked(launcher: Launcher): Boolean = PreferenceManager2.getInstance(launcher).lockHomeScreen.firstCached()
 
     /**
      * Makes a Home folder a 2x2 Folder widget at its place, pushing other items as a widget resize
@@ -117,7 +115,13 @@ object FolderWidgetController {
         val direction = intArrayOf(if (target.x < lp.cellX) -1 else 1, if (target.y < lp.cellY) -1 else 1)
         layout.markCellsAsUnoccupiedForView(icon)
         if (!layout.createAreaForResize(
-                target.x, target.y, target.spanX, target.spanY, icon, direction.copyOf(), false,
+                target.x,
+                target.y,
+                target.spanX,
+                target.spanY,
+                icon,
+                direction.copyOf(),
+                false,
             )
         ) {
             // A failed search changes no temp state, so only the folder's own cells need restoring.

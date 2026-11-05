@@ -29,11 +29,13 @@ object FolderWidgetMenus {
     @JvmOverloads
     fun itemsFor(info: FolderInfo, homeLocked: Boolean = false): List<Int> = when {
         homeLocked || info.container != Favorites.CONTAINER_DESKTOP -> emptyList()
+
         FolderWidgets.isFolderWidget(info) -> listOf(
             R.string.folder_widget_customize,
             R.string.folder_widget_make_folder,
             R.string.folder_widget_remove,
         )
+
         else -> listOf(
             R.string.folder_widget_make_widget,
             if (info.isCover) R.string.folder_cover_disable else R.string.folder_cover_enable,
@@ -42,15 +44,13 @@ object FolderWidgetMenus {
 
     /** Whether a long-press on this folder shows its menu. */
     @JvmStatic
-    fun hasMenu(launcher: Launcher, info: FolderInfo): Boolean =
-        itemsFor(info, FolderWidgetController.isHomeLocked(launcher)).isNotEmpty()
+    fun hasMenu(launcher: Launcher, info: FolderInfo): Boolean = itemsFor(info, FolderWidgetController.isHomeLocked(launcher)).isNotEmpty()
 
     /** The open folder's footer button: the other kind (Make widget or Make normal folder), or none. */
     @JvmStatic
-    fun footerActionFor(info: FolderInfo, homeLocked: Boolean): Int? =
-        itemsFor(info, homeLocked).firstOrNull {
-            it == R.string.folder_widget_make_widget || it == R.string.folder_widget_make_folder
-        }
+    fun footerActionFor(info: FolderInfo, homeLocked: Boolean): Int? = itemsFor(info, homeLocked).firstOrNull {
+        it == R.string.folder_widget_make_widget || it == R.string.folder_widget_make_folder
+    }
 
     /**
      * The open folder's ⋮ button: shows the folder actions (Make widget, Cover toggle, etc.) in a
@@ -114,12 +114,16 @@ object FolderWidgetMenus {
     fun runAction(launcher: Launcher, icon: FolderIcon, labelRes: Int) {
         when (labelRes) {
             R.string.folder_widget_make_widget -> FolderWidgetController.makeWidget(launcher, icon)
+
             R.string.folder_widget_make_folder ->
                 (icon as? FolderWidgetView)?.let { FolderWidgetController.makeNormalFolder(launcher, it) }
+
             R.string.folder_widget_remove ->
                 (icon as? FolderWidgetView)?.let { FolderWidgetController.confirmRemove(launcher, it) }
+
             R.string.folder_widget_customize ->
                 (icon as? FolderWidgetView)?.let { FolderWidgetController.showSettingsSheet(launcher, it) }
+
             R.string.folder_cover_enable, R.string.folder_cover_disable -> {
                 val newCover = !icon.mInfo.isCover
                 icon.mInfo.setCover(newCover, launcher.modelWriter)

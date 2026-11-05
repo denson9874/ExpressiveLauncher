@@ -6,7 +6,8 @@ enum class LicenseType(val id: Int, val displayName: String) {
     VIP(3, "Lifetime Backer"),
     DEV(4, "Internal Dev"),
     CAKEY(5, "Cakey Edition"),
-    TRIAL(6, "Pro Trial");
+    TRIAL(6, "Pro Trial"),
+    ;
 
     companion object {
         fun fromId(id: Int): LicenseType = values().firstOrNull { it.id == id } ?: TESTER
@@ -29,8 +30,7 @@ data class ProLicenseDetails(
     val isTrial: Boolean get() = type == LicenseType.TRIAL
 
     /** Whole days left before a time-limited license ends (rounded up), or null for lifetime keys. */
-    fun daysLeftAt(nowSeconds: Long): Int? =
-        if (isLifetime) null else maxOf(0L, (expiresAt - nowSeconds + 86_399L) / 86_400L).toInt()
+    fun daysLeftAt(nowSeconds: Long): Int? = if (isLifetime) null else maxOf(0L, (expiresAt - nowSeconds + 86_399L) / 86_400L).toInt()
 
     val isDeviceBound: Boolean get() = recipient.startsWith("device:", ignoreCase = true)
     val boundDeviceId: String? get() = if (isDeviceBound) recipient.substringAfter("device:").trim() else null

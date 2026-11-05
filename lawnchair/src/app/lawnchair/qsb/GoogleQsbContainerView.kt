@@ -17,7 +17,6 @@ class GoogleQsbContainerView @JvmOverloads constructor(
         override fun isQsbEnabled(): Boolean = true
 
         override fun getSearchWidgetProvider(): AppWidgetProviderInfo? = findGoogleDockSearchWidget(context)
-
     }
 
     companion object {
@@ -48,8 +47,7 @@ internal data class SearchWidgetCandidate(
     val needsConfiguration: Boolean,
 )
 
-internal fun needsMandatoryConfiguration(hasConfigureActivity: Boolean, widgetFeatures: Int): Boolean =
-    hasConfigureActivity && widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL == 0
+internal fun needsMandatoryConfiguration(hasConfigureActivity: Boolean, widgetFeatures: Int): Boolean = hasConfigureActivity && widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL == 0
 
 /** Pixel Launcher's dock widget first, then Google's older search box widget. */
 private val PREFERRED_GOOGLE_DOCK_WIDGETS = listOf(

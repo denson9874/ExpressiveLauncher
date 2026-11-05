@@ -3,8 +3,8 @@ package app.lawnchair.smartspace.provider
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import app.lawnchair.ExpressiveCore
 import androidx.lifecycle.Lifecycle
+import app.lawnchair.ExpressiveCore
 import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceScores
 import app.lawnchair.smartspace.model.SmartspaceTarget
