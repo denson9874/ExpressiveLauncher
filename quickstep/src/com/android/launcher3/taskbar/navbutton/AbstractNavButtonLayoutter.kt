@@ -18,6 +18,8 @@ package com.android.launcher3.taskbar.navbutton
 
 import android.content.res.Resources
 import android.graphics.drawable.RotateDrawable
+import android.net.Uri
+import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -28,6 +30,7 @@ import com.android.launcher3.DeviceProfile
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.taskbar.navbutton.NavButtonLayoutFactory.NavButtonLayoutter
+import com.android.launcher3.util.SettingsCache
 
 /**
  * Meant to be a simple container for data subclasses will need
@@ -116,5 +119,51 @@ abstract class AbstractNavButtonLayoutter(
         }
         contextualContainerParams.gravity = gravity or Gravity.CENTER_VERTICAL
         contextualContainer.layoutParams = contextualContainerParams
+    }
+
+    /**
+     * Whether the user picked the reversed 3-button order (recents, home, back) in Settings, the
+     * way Pixel Launcher and Android 17's Launcher3 read it.
+     */
+    fun isFlipEnabledBySetting(): Boolean {
+        return SettingsCache.INSTANCE.get(navButtonContainer.context)
+            .getValue(NAVBAR_KEY_ORDER_URI, 0)
+    }
+
+    /** For ordered layouts, this determines if the order of buttons should be flipped. */
+    open fun shouldFlipButtonOrder(): Boolean {
+        // Default behavior for layoutters is to only flip via a change to settings.
+        // RTL locales already flip the layout, so no need to flip the button order an extra time.
+        return isFlipEnabledBySetting()
+    }
+
+    /**
+     * Adds the three primary buttons to [navButtonContainer] in the order [shouldFlipButtonOrder]
+     * asks for. Callers clear the container first.
+     */
+    open fun addThreeButtons() {
+        if (backButton == null || homeButton == null || recentsButton == null) {
+            return
+        }
+        if (shouldFlipButtonOrder()) {
+            navButtonContainer.addView(recentsButton)
+            navButtonContainer.addView(homeButton)
+            navButtonContainer.addView(backButton)
+        } else {
+            navButtonContainer.addView(backButton)
+            navButtonContainer.addView(homeButton)
+            navButtonContainer.addView(recentsButton)
+        }
+    }
+
+    companion object {
+        /**
+         * Settings.Secure.NAVIGATIONBAR_KEY_ORDER (hidden in the SDK): 0 = back, home, recents
+         * (left to right); 1 = recents, home, back.
+         */
+        const val NAVIGATIONBAR_KEY_ORDER = "navigationbar_key_order"
+
+        @JvmField
+        val NAVBAR_KEY_ORDER_URI: Uri = Settings.Secure.getUriFor(NAVIGATIONBAR_KEY_ORDER)
     }
 }

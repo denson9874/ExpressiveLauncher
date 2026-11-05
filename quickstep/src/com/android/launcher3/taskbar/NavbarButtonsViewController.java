@@ -102,12 +102,14 @@ import com.android.launcher3.anim.AlphaUpdateListener;
 import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.taskbar.TaskbarNavButtonController.TaskbarButton;
 import com.android.launcher3.taskbar.bubbles.BubbleBarController;
+import com.android.launcher3.taskbar.navbutton.AbstractNavButtonLayoutter;
 import com.android.launcher3.taskbar.navbutton.NavButtonLayoutFactory;
 import com.android.launcher3.taskbar.navbutton.NavButtonLayoutFactory.NavButtonLayoutter;
 import com.android.launcher3.taskbar.navbutton.NearestTouchFrame;
 import com.android.launcher3.util.DimensionUtils;
 import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
 import com.android.launcher3.util.MultiValueAlpha;
+import com.android.launcher3.util.SettingsCache;
 import com.android.launcher3.util.TouchController;
 import com.android.launcher3.util.window.WindowManagerProxy;
 import com.android.launcher3.views.BaseDragLayer;
@@ -233,6 +235,12 @@ public class NavbarButtonsViewController implements TaskbarControllers.LoggableT
     private final RotationButtonListener mRotationButtonListener = new RotationButtonListener();
 
     private final Rect mFloatingRotationButtonBounds = new Rect();
+
+    // Settings' 3-button order switch (Settings.Secure.NAVIGATIONBAR_KEY_ORDER): lay the buttons
+    // out again when it changes, as Pixel Launcher does.
+    private final SettingsCache.OnChangeListener mButtonOrderListener =
+            isFlipped -> updateButtonLayoutSpacing();
+    private boolean mButtonOrderListenerRegistered;
 
     // Initialized in init.
     private TaskbarControllers mControllers;
@@ -528,6 +536,12 @@ public class NavbarButtonsViewController implements TaskbarControllers.LoggableT
         mSpace.setOnClickListener(view -> navButtonController.onButtonClick(BUTTON_SPACE, view));
         mSpace.setOnLongClickListener(view ->
                 navButtonController.onButtonLongClick(BUTTON_SPACE, view));
+
+        if (!mButtonOrderListenerRegistered) {
+            SettingsCache.INSTANCE.get(mContext).register(
+                    AbstractNavButtonLayoutter.NAVBAR_KEY_ORDER_URI, mButtonOrderListener);
+            mButtonOrderListenerRegistered = true;
+        }
     }
 
     /**
@@ -1268,6 +1282,11 @@ public class NavbarButtonsViewController implements TaskbarControllers.LoggableT
     }
 
     public void onDestroy() {
+        if (mButtonOrderListenerRegistered) {
+            SettingsCache.INSTANCE.get(mContext).unregister(
+                    AbstractNavButtonLayoutter.NAVBAR_KEY_ORDER_URI, mButtonOrderListener);
+            mButtonOrderListenerRegistered = false;
+        }
         mPropertyHolders.clear();
         if (mFloatingRotationButton != null) {
             mFloatingRotationButton.hide();

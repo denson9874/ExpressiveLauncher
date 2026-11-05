@@ -112,17 +112,12 @@ open class PhoneLandscapeNavLayoutter(
         repositionContextualButtons(contextualButtonHeight.toInt())
     }
 
-    open fun addThreeButtons() {
-        // Swap recents and back button
-        if (Utilities.isRtl(resources)) {
-            navButtonContainer.addView(backButton)
-            navButtonContainer.addView(homeButton)
-            navButtonContainer.addView(recentsButton)
-        } else {
-            navButtonContainer.addView(recentsButton)
-            navButtonContainer.addView(homeButton)
-            navButtonContainer.addView(backButton)
-        }
+    override fun shouldFlipButtonOrder(): Boolean {
+        // setting & config both flip the order, so xor operator makes them cancel each other out.
+        val settingOrConfiguration = isFlipEnabledBySetting() xor Utilities.isRtl(resources)
+
+        // Landscape default button order is reversed.
+        return !settingOrConfiguration
     }
 
     open fun repositionContextualButtons(buttonSize: Int) {
