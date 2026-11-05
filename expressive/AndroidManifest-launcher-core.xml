@@ -171,7 +171,14 @@ SystemUI remains responsible for Overview and gesture navigation.
             android:stateNotNeeded="true"
             android:taskAffinity=""
             android:windowSoftInputMode="adjustPan">
-            <intent-filter>
+            <!--
+                 Priority 1 makes this the default Home app when ExpressiveOS ships it next to
+                 Pixel Launcher (priority 0) as a privileged system app: Android's Home role
+                 falls back to the highest-priority Home activity and shows a chooser on a tie.
+                 Android drops priorities above 0 for apps that aren't privileged system apps,
+                 so a normal install from GitHub or the Play Store is unaffected.
+            -->
+            <intent-filter android:priority="1">
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.SHOW_WORK_APPS" />
                 <action android:name="android.intent.action.ALL_APPS" />
