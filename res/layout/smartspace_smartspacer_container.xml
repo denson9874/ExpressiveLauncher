@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Home screen host for the Smartspacer At a Glance view.
+
+    When the At a Glance row is shorter than Smartspacer's card height, the SDK view measures itself
+    wider and taller and scales itself back down with the pivot at its start edge. The workspace cell
+    lays its child out at the cell size and ignores that measured size, so a bare SmartspacerView got
+    the cell width while its centered card pager kept the wider measured width, which pushed the
+    cards past the start padding and clipped their first letters ("Wed" read "Ved").
+
+    This FrameLayout takes the cell size instead and lays the SmartspacerView out at its measured size,
+    the same way SmartspaceViewContainer hosts the built-in At a Glance view.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <include layout="@layout/smartspace_smartspacer" />
+
+</FrameLayout>
