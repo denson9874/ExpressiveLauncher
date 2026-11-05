@@ -139,6 +139,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.folder.FolderTitleRoom;
 import app.lawnchair.folder.widget.FolderWidgetController;
 import app.lawnchair.folder.widget.FolderWidgetMenus;
 import app.lawnchair.folder.widget.FolderWidgets;
@@ -244,6 +245,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
     // LC-Note: Folder widget animation access.
     public LinearLayout mFooter;
+    private int mFooterGravity;
     private int mFooterHeight;
     // LC-Note: Make widget / Make normal folder / customize for Home folders (Expressive Folder widget).
     @Nullable private ImageButton mWidgetButton;
@@ -359,6 +361,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         mPageIndicator = findViewById(R.id.folder_page_indicator);
         mFooter = findViewById(R.id.folder_footer);
+        mFooterGravity = mFooter.getGravity();
         mWidgetButton = findViewById(R.id.folder_widget_button);
         if (mWidgetButton != null) {
             // LC-Note: a ⋮ menu instead of a one-tap convert button, which was easy to hit by mistake.
@@ -1619,13 +1622,25 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        int minTitleWidth = getResources().getDimensionPixelSize(R.dimen.folder_title_min_width);
-        if (enableLauncherVisualRefresh() && mFolderName.getMeasuredWidth() < minTitleWidth) {
-            ((MarginLayoutParams) mFolderName.getLayoutParams()).setMarginEnd(0);
-            // The post is necessary for margins to be recalculated. RTL UI is shifted otherwise.
-            mFolderName.post(() -> mFolderName.setVisibility(View.GONE));
-            mFooter.setGravity(Gravity.END);
+        if (!enableLauncherVisualRefresh()) {
+            return;
         }
+        int minTitleWidth = getResources().getDimensionPixelSize(R.dimen.folder_title_min_width);
+        // LC-Note: Expressive's own footer buttons don't count against the title, and a hidden
+        // title comes back once there's room, so 2-column Home folders can still be renamed.
+        int titleRoom = FolderTitleRoom.roomForTitle(
+                mFooter, mFolderName, mWidgetButton, mAddAppsButton, mCustomizeButton);
+        boolean hideTitle = FolderTitleRoom.shouldHideTitle(titleRoom, minTitleWidth);
+        MarginLayoutParams titleLp = (MarginLayoutParams) mFolderName.getLayoutParams();
+        if (hideTitle) {
+            titleLp.setMarginEnd(0);
+        } else if (mPageIndicator.getVisibility() == View.VISIBLE) {
+            titleLp.setMarginEnd(
+                    getResources().getDimensionPixelSize(R.dimen.folder_footer_horiz_padding));
+        }
+        // The post is necessary for margins to be recalculated. RTL UI is shifted otherwise.
+        mFolderName.post(() -> mFolderName.setVisibility(hideTitle ? View.GONE : View.VISIBLE));
+        mFooter.setGravity(hideTitle ? Gravity.END : mFooterGravity);
     }
 
     /**
