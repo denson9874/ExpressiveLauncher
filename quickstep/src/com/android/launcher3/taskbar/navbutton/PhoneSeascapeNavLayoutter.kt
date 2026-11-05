@@ -46,17 +46,9 @@ class PhoneSeascapeNavLayoutter(
         space,
     ) {
 
-    override fun addThreeButtons() {
-        // Flip ordering of back and recents buttons
-        if (Utilities.isRtl(resources)) {
-            navButtonContainer.addView(recentsButton)
-            navButtonContainer.addView(homeButton)
-            navButtonContainer.addView(backButton)
-        } else {
-            navButtonContainer.addView(backButton)
-            navButtonContainer.addView(homeButton)
-            navButtonContainer.addView(recentsButton)
-        }
+    override fun shouldFlipButtonOrder(): Boolean {
+        // setting & config both flip the order, so xor operator makes them cancel each other out.
+        return isFlipEnabledBySetting() xor Utilities.isRtl(resources)
     }
 
     override fun repositionContextualButtons(buttonSize: Int) {
