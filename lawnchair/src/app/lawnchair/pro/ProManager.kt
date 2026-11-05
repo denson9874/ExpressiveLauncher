@@ -308,6 +308,8 @@ class ProManager(private val context: Context) {
         @JvmField
         var elapsedClock: () -> Long = { android.os.SystemClock.elapsedRealtime() }
 
+        // Launcher3's singleton name, which Java callers use; tests replace it.
+        @Suppress("ktlint:standard:property-naming")
         @JvmField
         var INSTANCE = MainThreadInitializedObject(::ProManager)
 

@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Owns the user-facing setup; the included service never has a launcher icon or a feed Activity. */
+@Suppress("ktlint:compose:modifier-missing-check") // a whole settings section, not a reusable component
 @Composable
 fun ExpressiveFeedPreferences() {
     val context = LocalContext.current

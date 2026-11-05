@@ -1,3 +1,6 @@
+// ProActiveContent emits a Surface and an AnimatedVisibility into its caller's Column.
+@file:Suppress("ktlint:compose:multiple-emitters-check")
+
 package app.lawnchair.ui.preferences.pro
 
 import android.content.Context
