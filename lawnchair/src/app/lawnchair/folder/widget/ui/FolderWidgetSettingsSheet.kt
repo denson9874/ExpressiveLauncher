@@ -461,9 +461,9 @@ private fun StyleSliderRow(
     valueText: String,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int = 0,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    steps: Int = 0,
 ) {
     PreferenceTemplate(
         title = {
