@@ -6,8 +6,10 @@ import android.os.Looper
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.test.core.app.ApplicationProvider
+import app.lawnchair.LawnchairApp
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,6 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
+import org.robolectric.util.ReflectionHelpers
 
 /**
  * A live icon-size change must reach the grid reload that its onSet starts. The reload reads
@@ -32,10 +35,26 @@ class PreferenceCacheRefreshTest {
 
     @Before
     fun setUp() {
+        // recreate() looks up the running launcher through LawnchairApp.instance, which this
+        // plain Application host never creates.
+        val app = LawnchairApp()
+        ReflectionHelpers.callInstanceMethod<Any>(
+            app,
+            "attachBaseContext",
+            ReflectionHelpers.ClassParameter.from(Context::class.java, context),
+        )
+        ReflectionHelpers.setStaticField(LawnchairApp::class.java, "instance", app)
+
         prefs2 = PreferenceManager2.getInstance(context)
         writeHomeIconSize(1f)
         shadowOf(Looper.getMainLooper()).idle()
         assertThat(homeIconSize()).isEqualTo(1f)
+    }
+
+    @After
+    fun tearDown() {
+        shadowOf(Looper.getMainLooper()).idle()
+        ReflectionHelpers.setStaticField(LawnchairApp::class.java, "instance", null)
     }
 
     @Test

@@ -48,7 +48,7 @@ internal constructor(
     private var themeManager: ThemeManager,
     private var userCache: UserCache,
     @Assisted private val pool: ConcurrentLinkedQueue<LauncherIcons>,
-) : BaseIconFactory(context, idp.fillResIconDpi, idp.iconCacheBitmapSize), AutoCloseable {
+) : BaseIconFactory(context, idp.fillResIconDpi, idp.iconBitmapSize), AutoCloseable {
 
     init {
         mThemeController = themeManager.themeController
