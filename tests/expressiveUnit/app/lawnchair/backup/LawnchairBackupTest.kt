@@ -15,8 +15,8 @@ import app.lawnchair.folder.widget.FolderWidgetStyle
 import app.lawnchair.util.MainThreadInitializedObject
 import app.lawnchair.wallpaper.WallpaperManagerCompat
 import com.android.launcher3.InvariantDeviceProfile
-import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherFiles
+import com.android.launcher3.ShadowLauncherAppStateCompanion
 import com.android.launcher3.model.DeviceGridState
 import com.google.common.truth.Truth.assertThat
 import java.io.ByteArrayOutputStream
@@ -25,12 +25,11 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.runBlocking
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.Implementation
-import org.robolectric.annotation.Implements
 import org.robolectric.shadow.api.Shadow
 import org.robolectric.shadows.ShadowWallpaperManager
 
@@ -38,12 +37,19 @@ import org.robolectric.shadows.ShadowWallpaperManager
 @Config(
     sdk = [37],
     application = Application::class,
-    shadows = [LawnchairBackupTest.ShadowLauncherAppStateCompanion::class],
+    shadows = [ShadowLauncherAppStateCompanion::class],
 )
 class LawnchairBackupTest {
     private val context = ApplicationProvider.getApplicationContext<Application>()
     private val backupContext = BackupContext(context)
     private val custom = FolderWidgetStyle(columns = 4, showLabels = false, backgroundOpacity = 0.3f)
+
+    // Kotlin callers reach LauncherAppState.getIDP through its companion. The real IDP runs the
+    // grid init, which needs the full launcher graph; the backup only reads the grid and DB name.
+    @Before
+    fun setUp() {
+        ShadowLauncherAppStateCompanion.idp = gridProfile
+    }
 
     @Test
     fun wallpaperOnlyRestore_leavesLauncherDbsAndPreferencesByteIdentical() = runBlocking {
@@ -168,14 +174,6 @@ class LawnchairBackupTest {
             @Suppress("UNCHECKED_CAST")
             return allocate(Class.forName("app.lawnchair.wallpaper.WallpaperManagerCompatVS")) as T
         }
-    }
-
-    // Kotlin callers reach LauncherAppState.getIDP through its companion. The real IDP runs the
-    // grid init, which needs the full launcher graph; the backup only reads the grid and DB name.
-    @Implements(LauncherAppState.Companion::class)
-    class ShadowLauncherAppStateCompanion {
-        @Implementation
-        fun getIDP(context: Context): InvariantDeviceProfile = gridProfile
     }
 
     companion object {

@@ -5,7 +5,6 @@ package com.android.launcher3.popup
 
 import android.app.Application
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
@@ -20,6 +19,7 @@ import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT
+import com.android.launcher3.ShadowLauncherAppStateCompanion
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.util.ShortcutUtil
@@ -48,7 +48,7 @@ import org.robolectric.util.ReflectionHelpers
     application = Application::class,
     shadows = [
         PopupPopulatorLegacyShortcutTest.ShadowRecordingLauncherApps::class,
-        PopupPopulatorLegacyShortcutTest.ShadowLauncherAppStateCompanion::class,
+        ShadowLauncherAppStateCompanion::class,
     ],
 )
 class PopupPopulatorLegacyShortcutTest {
@@ -58,6 +58,10 @@ class PopupPopulatorLegacyShortcutTest {
     @Before
     fun setUp() {
         ShadowRecordingLauncherApps.queries.clear()
+        // The real LauncherAppState builds the whole launcher graph, whose FeatureFlags can't load
+        // on this SDK. The update only uses its IconCache to fill a deep shortcut row, and these
+        // popups have none, so an empty instance is enough.
+        ShadowLauncherAppStateCompanion.instance = appState
         launcher = Robolectric.buildActivity(LawnchairLauncher::class.java).get()
     }
 
@@ -135,28 +139,17 @@ class PopupPopulatorLegacyShortcutTest {
         }
     }
 
-    // The real LauncherAppState builds the whole launcher graph, whose FeatureFlags can't load on
-    // this SDK. The update only uses its IconCache to fill a deep shortcut row, and these popups
-    // have none, so an empty instance is enough.
-    @Implements(LauncherAppState.Companion::class)
-    class ShadowLauncherAppStateCompanion {
-        @Implementation
-        fun getInstance(context: Context): LauncherAppState = appState
-
-        private companion object {
-            val appState by lazy { allocate(LauncherAppState::class.java) as LauncherAppState }
-
-            fun allocate(type: Class<*>): Any {
-                val unsafeClass = Class.forName("sun.misc.Unsafe")
-                val unsafe = unsafeClass.getDeclaredField("theUnsafe").apply { isAccessible = true }
-                    .get(null)
-                return unsafeClass.getMethod("allocateInstance", Class::class.java).invoke(unsafe, type)!!
-            }
-        }
-    }
-
     companion object {
         private const val SETTINGS = "com.android.settings"
         private val MAPS = ComponentName("com.example.maps", "com.example.maps.MainActivity")
+
+        private val appState by lazy { allocate(LauncherAppState::class.java) as LauncherAppState }
+
+        private fun allocate(type: Class<*>): Any {
+            val unsafeClass = Class.forName("sun.misc.Unsafe")
+            val unsafe = unsafeClass.getDeclaredField("theUnsafe").apply { isAccessible = true }
+                .get(null)
+            return unsafeClass.getMethod("allocateInstance", Class::class.java).invoke(unsafe, type)!!
+        }
     }
 }
