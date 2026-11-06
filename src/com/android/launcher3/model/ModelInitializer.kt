@@ -123,7 +123,7 @@ constructor(
     fun initializeDisplayEvents(model: LauncherModel) {
         fun refreshAndReloadLauncher() {
             iconPool.clear()
-            iconCache.updateIconParams(idp.fillResIconDpi, idp.iconBitmapSize)
+            iconCache.updateIconParams(idp.fillResIconDpi, idp.iconCacheBitmapSize)
             model.forceReload()
         }
 

@@ -177,6 +177,16 @@ public class InvariantDeviceProfile {
          * iconBitmapSize and allAppsIconBitmapSize to ensure adequate quality for both.
          */
     public int fillResIconDpi;
+
+    /**
+     * Bitmap size for cached app icons. Home, dock, folders and the app drawer all draw from the
+     * same cached bitmap, so it must be at least as large as the biggest of them; otherwise the
+     * larger surface upscales a smaller bitmap and its icons look soft.
+     */
+    public int getIconCacheBitmapSize() {
+        return Math.max(iconBitmapSize, allAppsIconBitmapSize);
+    }
+
     public static @DeviceType int deviceType;
     public static Info displayInfo;
 

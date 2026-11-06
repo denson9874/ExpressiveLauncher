@@ -25,7 +25,16 @@ import com.android.launcher3.util.Executors
 import com.android.quickstep.TouchInteractionService
 import com.android.quickstep.util.TISBindHelper
 
-class ReloadHelper(private val context: Context) {
+class ReloadHelper(
+    private val context: Context,
+    /**
+     * Brings [PreferenceManager2]'s cached values up to date before a reload reads them; see
+     * [PreferenceManager2.refreshCachedPreferences].
+     */
+    private val refreshPreferenceCache: () -> Unit = {
+        PreferenceManager2.getInstance(context).refreshCachedPreferences()
+    },
+) {
 
     private val idp: InvariantDeviceProfile
         get() = InvariantDeviceProfile.INSTANCE.get(context)
@@ -33,10 +42,12 @@ class ReloadHelper(private val context: Context) {
     private val tisBinder = TISBindHelper(context) { tis = it }
 
     fun reloadGrid() {
+        refreshPreferenceCache()
         idp.onPreferencesChanged(context)
     }
 
     fun recreate() {
+        refreshPreferenceCache()
         LawnchairLauncher.instance?.recreateIfNotScheduled()
     }
 

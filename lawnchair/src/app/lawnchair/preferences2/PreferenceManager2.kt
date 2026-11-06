@@ -124,7 +124,17 @@ class PreferenceManager2 @Inject constructor(
 
     fun getCachedPreferences(): Preferences = cachedPreferences
 
-    private val reloadHelper = ReloadHelper(context)
+    /**
+     * Re-reads the DataStore into the cache behind [firstCached]. The collector in [init] updates
+     * that cache asynchronously, so a grid reload started from a preference's onSet could read the
+     * previous value and leave a live change (such as the Home icon size) unapplied until restart.
+     * Reading right after the write finished is served from DataStore's in-memory copy.
+     */
+    fun refreshCachedPreferences() {
+        cachedPreferences = runBlocking { preferencesDataStore.data.first() }
+    }
+
+    private val reloadHelper = ReloadHelper(context, ::refreshCachedPreferences)
 
     val darkStatusBar = preference(
         key = booleanPreferencesKey(name = "dark_status_bar"),
