@@ -1,0 +1,101 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.1.1 (Build 73) — Left, Right, Your Call[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+5.1.1 lets you flip the 3-button navigation bar. Android 17's switch that swaps back and recents now works with Expressive Launcher as your Recents app, the way it does with Pixel Launcher. It also gives small folders their names back so you can rename them, clears up the drawer blur after switching drawer styles, stops Smartspacer cards losing their first letters, and keeps Expressive Launcher as the default Home app on ExpressiveOS phones that also ship Pixel Launcher.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. 🧭 The 3-button navigation order switch now works[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: Android 17 can swap the 3-button bar to recents, home, back, but Expressive Launcher draws that bar and always used back, home, recents, so the switch did nothing.
+[*][B]Now[/B]: the order follows the setting the moment you change it, in portrait, landscape and on a foldable's big screen. If you never touch the setting, nothing changes.
+
+[/LIST]
+[SIZE=5][B]2. 📁 Small folders can be renamed again[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: a Home folder with 4 apps or fewer opened without its name, so there was nothing to tap to rename it. The folder's ⋮ button took just enough of the bottom row for the launcher to hide the name.
+[*][B]Now[/B]: the ⋮ button no longer counts against the name, and a hidden name comes back once the folder has room. Tap the name to rename the folder, as before.
+
+[/LIST]
+[SIZE=5][B]3. 🌫️ The drawer blurs properly after you switch drawer styles[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: switching the app drawer from full screen to bottom sheet could leave the sheet see-through with no blur, and a ghost of the drawer stayed on Home until the launcher restarted.
+[*][B]Now[/B]: the launcher rebuilds its layout when you switch, checks itself for a stale layout when it comes back, and only shows Home behind the sheet when blur is actually on.
+
+[/LIST]
+[SIZE=5][B]4. 🌤️ Smartspacer cards keep their first letters[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: on short At a Glance rows, Smartspacer's cards slid left past the edge, so "Wed, Nov 4" read "Ved, Nov 4".
+[*][B]Now[/B]: the cards sit inside the row's padding, like the built-in At a Glance.
+
+[/LIST]
+[SIZE=5][B]5. 🏠 ExpressiveOS keeps Expressive Launcher as the default Home[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: if a phone shipped Expressive Launcher and Pixel Launcher side by side, neither won by default, so a clean install would ask which Home app to use.
+[*][B]Now[/B]: on ExpressiveOS, Expressive Launcher is the default Home and Pixel Launcher stays available in Default apps. It changes nothing on other phones.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]🧭 [I]The back button has spent every release on the left. Starting today it goes wherever your thumb says. It has asked for a window seat.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]Who notices[/B]: 3-button navigation users who prefer back on the right, anyone with a small folder to rename, anyone who switched the drawer to bottom sheet, Smartspacer users, and anyone clean-installing ExpressiveOS 1.1.
+[*][B]Thanks[/B]: to Loïc, who tested the navigation order switch by hand and reported that it did nothing.
+[*][B]How to flip it[/B]: Settings > System > Navigation mode > 3-button navigation settings (the exact wording depends on your ROM).
+[*][B]Validation[/B]: see Verification & Technical Details below.
+[*][B]Developer Support[/B]: Expressive Pro is available as a one-time $4.99 activation. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I have three doors in a row. The one in the middle never moves, but the two on the ends trade places when you ask. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]The 3-button navigation bar![/B] Home stays put in the middle, and since 5.1.1 back and recents swap sides when you flip the switch. 🔁[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.1.1[/ICODE] (Build [ICODE]73[/ICODE]), QA channel
+[*][B]Source revision[/B]: [ICODE]a1e27964210493582f3dff9e34ebaf726a5067d0[/ICODE]
+[*][B]APK SHA-256[/B]: [ICODE]2b9445f109548fbc2bc898d614c89ec7dfc6133faf4a2d84bbba8115a73adb65[/ICODE]
+[*][B]Validation[/B]: Jenkins QA build #25 passed 665 unit tests and its automated device checks on the pinned Android 17 emulator. This exact APK was installed over the built-in copy on a Pixel 7 Pro running ExpressiveOS. A Home folder with 3 apps showed its name, was renamed and then cleared, and the 3-button order flipped live in portrait. The same navigation code was checked in portrait, landscape and seascape on build #23. Logcat showed no crash, ANR or permission error.
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]Download[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.1-73"]Expressive Launcher 5.1.1 on GitHub[/URL]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[*][B]Announcements Channel[/B]: [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+
+[/LIST]
+Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.1-73"]Download Expressive Launcher v5.1.1 (Build 73)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]

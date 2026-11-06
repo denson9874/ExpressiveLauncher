@@ -1,57 +1,66 @@
-<b>Expressive Launcher 5.1.0 (Build 72) — Back in Settings</b>
+<b>Expressive Launcher 5.1.1 (Build 73) — Left, Right, Your Call</b>
 
-If you're on Android 16 or older, 5.1.0 gets you back into Settings. Since 5.0.5, a build mix-up made Settings and the app Customize sheet crash on those versions. This update fixes it and adds a release check so the same mistake can't ship again. Android 17 users weren't affected, and nothing changes for them.
+5.1.1 lets you flip the 3-button navigation bar. Android 17's switch that swaps back and recents now works with Expressive Launcher as your Recents app, the way it does with Pixel Launcher. It also gives small folders their names back so you can rename them, clears up the drawer blur after switching drawer styles, stops Smartspacer cards losing their first letters, and keeps Expressive Launcher as the default Home app on ExpressiveOS phones that also ship Pixel Launcher.
 
 ───────────────────────
 
 <b>✨ What's New &amp; Improved</b>
 
-<b>1. ⚙️ Settings opens again on Android 12 to 16</b>
-• <b>Before</b>: from 5.0.5 to 5.0.9, opening Settings crashed straight away on Android 16 and older.
-• <b>Now</b>: Settings opens normally.
+<b>1. 🧭 The 3-button navigation order switch now works</b>
+• <b>Before</b>: Android 17 can swap the 3-button bar to recents, home, back, but Expressive Launcher draws that bar and always used back, home, recents, so the switch did nothing.
+• <b>Now</b>: the order follows the setting the moment you change it, in portrait, landscape and on a foldable's big screen. If you never touch the setting, nothing changes.
 
-<b>2. ✏️ The Customize sheet opens again on Android 12 to 16</b>
-• <b>Before</b>: long-pressing an app and tapping Customize crashed on the same Android versions, from the same cause.
-• <b>Now</b>: the sheet opens and you can rename the app and change its icon as usual. Other pop-up sheets drawn the same way share this fix.
+<b>2. 📁 Small folders can be renamed again</b>
+• <b>Before</b>: a Home folder with 4 apps or fewer opened without its name, so there was nothing to tap to rename it. The folder's ⋮ button took just enough of the bottom row for the launcher to hide the name.
+• <b>Now</b>: the ⋮ button no longer counts against the name, and a hidden name comes back once the folder has room. Tap the name to rename the folder, as before.
 
-<b>3. 🛡️ A release check for this kind of crash</b>
-• Every build is now scanned for this exact mistake, and a build that has it can't be released. It would have stopped 5.0.5.
+<b>3. 🌫️ The drawer blurs properly after you switch drawer styles</b>
+• <b>Before</b>: switching the app drawer from full screen to bottom sheet could leave the sheet see-through with no blur, and a ghost of the drawer stayed on Home until the launcher restarted.
+• <b>Now</b>: the launcher rebuilds its layout when you switch, checks itself for a stale layout when it comes back, and only shows Home behind the sheet when blur is actually on.
+
+<b>4. 🌤️ Smartspacer cards keep their first letters</b>
+• <b>Before</b>: on short At a Glance rows, Smartspacer's cards slid left past the edge, so "Wed, Nov 4" read "Ved, Nov 4".
+• <b>Now</b>: the cards sit inside the row's padding, like the built-in At a Glance.
+
+<b>5. 🏠 ExpressiveOS keeps Expressive Launcher as the default Home</b>
+• <b>Before</b>: if a phone shipped Expressive Launcher and Pixel Launcher side by side, neither won by default, so a clean install would ask which Home app to use.
+• <b>Now</b>: on ExpressiveOS, Expressive Launcher is the default Home and Pixel Launcher stays available in Default apps. It changes nothing on other phones.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>⚙️ <i>Settings spent five releases asking for a class from Android 17, on phones that hadn't got there yet. It has been told about the calendar.</i></blockquote>
+<blockquote>🧭 <i>The back button has spent every release on the left. Starting today it goes wherever your thumb says. It has asked for a window seat.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Who notices</b>: anyone on Android 12 to 16 who couldn't open Settings or Customize. Android 17 users won't see a difference.
-• <b>Thanks</b>: to the tester who sent in the crash logs from a vivo phone. Those two logs found the bug.
-• <b>Why it slipped through</b>: our automated checks only ran on Android 17, where the crash can't happen.
-• <b>Validation</b>: Jenkins passed 658 unit tests and its automated checks on an Android 17 emulator, and Settings and Customize were opened by hand on an Android 12 emulator (details below). Android 16 itself hasn't been run here, so if anything still crashes on your phone, please send a bug report.
+• <b>Who notices</b>: 3-button navigation users who prefer back on the right, anyone with a small folder to rename, anyone who switched the drawer to bottom sheet, Smartspacer users, and anyone clean-installing ExpressiveOS 1.1.
+• <b>Thanks</b>: to Loïc, who tested the navigation order switch by hand and reported that it did nothing.
+• <b>How to flip it</b>: Settings &gt; System &gt; Navigation mode &gt; 3-button navigation settings (the exact wording depends on your ROM).
+• <b>Validation</b>: see Verification &amp; Technical Details below.
 • <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 activation. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I was only a name in a list, far from any screen you opened. Yet I walked to the front of the line and stopped everyone behind me from getting in. What am I?</i></blockquote>
+<blockquote><i>I have three doors in a row. The one in the middle never moves, but the two on the ends trade places when you ask. What am I?</i></blockquote>
 
-<tg-spoiler><b>The Android 17 class lookup!</b> The build tool moved it to the front of shared code, so Settings tripped over it on older Android. Since 5.1.0 it waits for its turn. 🚪</tg-spoiler>
+<tg-spoiler><b>The 3-button navigation bar!</b> Home stays put in the middle, and since 5.1.1 back and recents swap sides when you flip the switch. 🔁</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Technical Details</b>
-• <b>Launcher Version</b>: <code>5.1.0</code> (Build <code>72</code>), QA channel
-• <b>Source revision</b>: <code>ebf1266b1048699da66fc03487e1ad0560263ee6</code>
-• <b>APK SHA-256</b>: <code>ad6c1dc13d57ec5b17d9bc1b20e017bb8cf65805d6f691166425567b7b56d3c6</code>
-• <b>Validation</b>: Jenkins QA build #20 passed 658 unit tests and its automated device checks on the pinned Android 17 QPR2 emulator. This exact APK was also run by hand on an Android 12 emulator: Settings, Home, the long-press menu and the Customize sheet all opened without a crash. Not run on Android 16 or a physical phone.
+• <b>Launcher Version</b>: <code>5.1.1</code> (Build <code>73</code>), QA channel
+• <b>Source revision</b>: <code>a1e27964210493582f3dff9e34ebaf726a5067d0</code>
+• <b>APK SHA-256</b>: <code>2b9445f109548fbc2bc898d614c89ec7dfc6133faf4a2d84bbba8115a73adb65</code>
+• <b>Validation</b>: Jenkins QA build #25 passed 665 unit tests and its automated device checks on the pinned Android 17 emulator. This exact APK was installed over the built-in copy on a Pixel 7 Pro running ExpressiveOS. A Home folder with 3 apps showed its name, was renamed and then cleared, and the 3-button order flipped live in portrait. The same navigation code was checked in portrait, landscape and seascape on build #23. Logcat showed no crash, ANR or permission error.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
 🔗 <b>Links &amp; Downloads</b>:
-• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.0-72">Expressive Launcher 5.1.0 on GitHub</a>
+• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.1-73">Expressive Launcher 5.1.1 on GitHub</a>
 • <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
 • <b>Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
