@@ -69,6 +69,7 @@
          android:supportsRtl="true">
 
         <service android:name="com.android.quickstep.TouchInteractionService"
+             android:enabled="@bool/quickstep_components_enabled"
              android:permission="android.permission.STATUS_BAR_SERVICE"
              android:directBootAware="true"
              android:exported="true">
@@ -78,6 +79,7 @@
         </service>
 
         <activity android:name="com.android.quickstep.RecentsActivity"
+             android:enabled="@bool/quickstep_components_enabled"
              android:excludeFromRecents="true"
              android:launchMode="singleTask"
              android:clearTaskOnLaunch="true"

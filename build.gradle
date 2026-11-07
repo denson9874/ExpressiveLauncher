@@ -252,7 +252,11 @@ if (expressiveSigningValues.any { it != null && !it.toString().isBlank() } && !e
     )
 }
 
-final def quickstepMinSdk = "29"
+// Recents and gestures (TouchInteractionService) use framework classes that only exist from
+// Android 16, such as InputManager.KeyGestureEventHandler. On older versions SystemUI binding the
+// service crash-looped Home (GitHub issue #60), so QuickSwitch is told Android 16 is the minimum
+// and quickstep/res/values-v36 enables the service there. Keep the two in step.
+final def quickstepMinSdk = "36"
 final def quickstepMaxSdk = "37"
 
 android {
