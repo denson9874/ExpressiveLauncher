@@ -16,6 +16,9 @@
 
 package app.lawnchair.ui.preferences.destinations
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.lawnchair.ExpressiveCore
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
@@ -40,6 +45,7 @@ import app.lawnchair.ui.preferences.components.NotificationDotsPreference
 import app.lawnchair.ui.preferences.components.ThemePreference
 import app.lawnchair.ui.preferences.components.colorpreference.ColorContrastWarning
 import app.lawnchair.ui.preferences.components.colorpreference.ColorPreference
+import app.lawnchair.ui.preferences.components.controls.ClickablePreference
 import app.lawnchair.ui.preferences.components.controls.ListPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
 import app.lawnchair.ui.preferences.components.controls.SliderPreference
@@ -48,7 +54,6 @@ import app.lawnchair.ui.preferences.components.controls.WarningPreference
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
-import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.preferences.components.notificationDotsEnabled
 import app.lawnchair.ui.preferences.components.notificationServiceEnabled
 import app.lawnchair.ui.preferences.data.liveinfo.LiveInformationAvailability
@@ -237,11 +242,13 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
         val dotTextColor = prefs2.notificationDotTextColor.asState().value
 
         PreferenceGroup(heading = stringResource(id = R.string.notification_dots)) {
-            if (!app.lawnchair.ExpressiveCore.supportsNotificationDots()) {
+            if (!ExpressiveCore.supportsNotificationDots()) {
                 // Expressive Core has no notification listener (Play Protect enhanced fraud protection).
-                PreferenceTemplate(
-                    title = { Text(text = stringResource(id = R.string.notification_dots)) },
-                    description = { Text(text = stringResource(id = R.string.expressive_core_notification_dots_unavailable)) },
+                // The row opens the matching Expressive Full download, which installs over Core.
+                ClickablePreference(
+                    label = stringResource(id = R.string.notification_dots),
+                    subtitle = stringResource(id = R.string.expressive_core_notification_dots_unavailable),
+                    onClick = { openExpressiveFullDownload(context) },
                 )
                 return@PreferenceGroup
             }
@@ -322,5 +329,15 @@ private fun NotificationDotColorContrastWarnings(
             text = stringResource(id = R.string.notification_dots_color_contrast_warning_always),
             modifier = modifier,
         )
+    }
+}
+
+/** Opens the Expressive Full release that matches this Core build. */
+private fun openExpressiveFullDownload(context: Context) {
+    val intent = Intent(Intent.ACTION_VIEW, ExpressiveCore.fullDownloadUrl().toUri())
+    try {
+        context.startActivity(intent)
+    } catch (_: ActivityNotFoundException) {
+        // No app can open web links; the row's text still says what to install.
     }
 }

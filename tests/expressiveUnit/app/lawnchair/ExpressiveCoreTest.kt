@@ -46,6 +46,21 @@ class ExpressiveCoreTest {
     }
 
     @Test
+    fun fullDownloadUrl_qaCore_opensTheFullReleaseOfTheSameVersion() {
+        // Matches the published tags, e.g. qa-v5.1.1-73 (Full) beside qa-core-v5.1.1-73 (Core).
+        assertThat(ExpressiveCore.fullDownloadUrl(versionName = "5.1.2", versionCode = 74, buildType = "qa"))
+            .isEqualTo("https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.2-74")
+    }
+
+    @Test
+    fun fullDownloadUrl_otherBuilds_openTheReleasesList() {
+        assertThat(ExpressiveCore.fullDownloadUrl(versionName = "5.1.2", versionCode = 74, buildType = "release"))
+            .isEqualTo("https://github.com/denson9874/ExpressiveLauncher/releases")
+        assertThat(ExpressiveCore.fullDownloadUrl(versionName = "5.1.2", versionCode = 74, buildType = "debug"))
+            .isEqualTo("https://github.com/denson9874/ExpressiveLauncher/releases")
+    }
+
+    @Test
     fun thisTestBuild_isFull() {
         // Unit tests compile the default (non-Core) variant.
         assertThat(ExpressiveCore.isCore).isFalse()
