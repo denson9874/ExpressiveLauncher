@@ -1,0 +1,4 @@
+Expressive Launcher 5.1.2
+• Changing the Home icon size applies right away, without restarting the launcher
+• No more crash on every start on Android 12 when the launcher runs Recents through QuickSwitch
+• Expressive Core: tap the notification dots setting to download Expressive Full, which installs over Core
