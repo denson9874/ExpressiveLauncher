@@ -272,7 +272,7 @@ class LawnchairApp : LauncherApplication() {
                     title = { Text(text = stringResource(id = R.string.quickstep_incompatible)) },
                     text = {
                         val description = stringResource(
-                            id = R.string.quickstep_incompatible_description,
+                            id = R.string.quickstep_unsupported_description,
                             stringResource(id = R.string.derived_app_name),
                             Build.VERSION.RELEASE,
                         )

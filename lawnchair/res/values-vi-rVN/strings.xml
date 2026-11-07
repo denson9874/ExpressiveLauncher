@@ -695,7 +695,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">Các thiết lập này sẽ bị bỏ qua vì Lawnchair không được đặt làm nhà cung cấp màn hình Gần đây</string>
     <string name="quickstep_incompatible">Tích hợp hệ thống không tương thích</string>
-    <string name="quickstep_incompatible_description">Thiết bị của bạn được cấu hình để sử dụng các cử chỉ hệ thống, được gọi là Quickstep, do cung cấp. %1$s, nhưng phiên bản này của %1$s Ứng dụng này không tương thích với phiên bản Android của bạn. Để tiếp tục sử dụng thiết bị, hãy gỡ cài đặt ứng dụng. %1$s cập nhật hoặc vô hiệu hóa %1$s với tư cách là nhà cung cấp cử chỉ hệ thống.</string>
     <string name="translucent_background">Nền trong suốt</string>
     <string name="translucent_background_alpha">Độ mờ nền</string>
     <string name="recents_actions_label">Hành động nhanh chóng</string>

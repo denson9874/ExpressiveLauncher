@@ -696,7 +696,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">Deze instellingen worden genegeerd omdat Lawnchair niet is ingesteld als de aanbieder voor het scherm Recente apps</string>
     <string name="quickstep_incompatible">Incompatibele systeemintegratie</string>
-    <string name="quickstep_incompatible_description">Je toestel is geconfigureerd voor systeemgebaren (bekend als Quickstep) geleverd door %1$s, maar deze versie van %1$s is niet compatibel met deze Android-versie. Om het toestel te blijven gebruiken, dien je %1$s updates te verwijderen of %1$s uit te schakelen als een aanbieder van systeemgebaren.</string>
     <string name="translucent_background">Doorschijnende achtergrond</string>
     <string name="translucent_background_alpha">Achtergronddekking</string>
     <string name="recents_actions_label">Snelle acties</string>

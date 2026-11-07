@@ -696,7 +696,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">Neid sätteid eiratakse, kuna Lawnchair ei ole seatud viimaste rakenduste akna pakkujaks</string>
     <string name="quickstep_incompatible">Ühildumatu süsteemiintegratsioon</string>
-    <string name="quickstep_incompatible_description">See seade on seadistatud kasutama süsteemi viipeid (Quickstep), mida pakub %1$s, kuid see %1$s versioon ei ühildu seadme Androidi versiooniga. Seadme kasutamise jätkamiseks eemalda rakenduse %1$s värskendused või keela %1$s süsteemi viipete pakkujana.</string>
     <string name="translucent_background">Läbipaistev taust</string>
     <string name="translucent_background_alpha">Tausta läbipaistmatus</string>
     <string name="recents_actions_label">Kiirtoimingud</string>

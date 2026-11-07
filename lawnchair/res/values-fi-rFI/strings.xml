@@ -696,7 +696,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">Näitä asetuksia ei oteta huomioon, koska Lawnchair ei ole asetettu Viimeisimmät-näytön tarjoajaksi</string>
     <string name="quickstep_incompatible">Yhteensopimaton järjestelmäintegrointi</string>
-    <string name="quickstep_incompatible_description">Laitteesi on konfiguroitu pitämään järjestelmäeleitä, jotka tunnetaan nimellä Quickstep, jonka tarjoaa %1$s, mutta tämä %1$s versio ei ole yhteensopiva sinun Android-version kanssa. Jatkaaksesi laitteen käyttöä, poista %1$s päivitykset tai poista %1$s käytöstä järjestelmän eleen tarjoajana.</string>
     <string name="translucent_background">Läpinäkyvä tausta</string>
     <string name="translucent_background_alpha">Taustan läpinäkyvyys</string>
     <string name="recents_actions_label">Pikatoiminnot</string>

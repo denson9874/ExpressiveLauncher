@@ -695,7 +695,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">Lawnchairが最近使ったアプリを表示するプロバイダーとして設定されていないため、これらの機能は無視されます</string>
     <string name="quickstep_incompatible">互換性のないシステム統合</string>
-    <string name="quickstep_incompatible_description">お使いのデバイスは %1$s が提供する Quickstep として知られているシステムジェスチャーが設定されていますが、 %1$s のこのバージョンはお使いの Android のバージョンと互換性がありません。デバイスを引き続き使用するには、%1$s の更新をアンインストールするか、システムジェスチャープロバイダとして %1$s を無効にしてください。</string>
     <string name="translucent_background">半透明の背景</string>
     <string name="translucent_background_alpha">背景の透明度</string>
     <string name="recents_actions_label">クイックアクション</string>
