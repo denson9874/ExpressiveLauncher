@@ -57,7 +57,6 @@ import android.window.IOnBackInvokedCallback;
 
 import com.android.app.animation.Animations;
 import com.android.app.animation.Interpolators;
-import com.android.internal.policy.SystemBarUtils;
 import com.android.internal.view.AppearanceRegion;
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BubbleTextView;
@@ -73,6 +72,7 @@ import com.android.launcher3.util.NavigationMode;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.quickstep.util.BackAnimState;
 import com.android.quickstep.util.ScalingWorkspaceRevealAnim;
+import com.android.quickstep.util.StatusBarHeightCompat;
 import com.android.systemui.shared.system.QuickStepContract;
 
 import java.lang.ref.WeakReference;
@@ -647,7 +647,7 @@ public class LauncherBackAnimationController {
                 : 0;
         mWindowScaleStartCornerRadius = QuickStepContract.getWindowCornerRadius(mLauncher);
         // pE-TODO(QPR1): mStatusBarHeight is 24
-        mStatusBarHeight = SystemBarUtils.getStatusBarHeight(mLauncher);
+        mStatusBarHeight = StatusBarHeightCompat.get(mLauncher);
         if (Flags.allAppsBlur() || enableOverviewBackgroundWallpaperBlur()) {
             mMaxBlurRadius = mLauncher.getResources().getDimensionPixelSize(
                     R.dimen.max_depth_blur_radius_enhanced);
