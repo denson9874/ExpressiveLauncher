@@ -698,7 +698,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">Эти настройки будут проигнорированы, так как Lawnchair не установлен в качестве провайдера Экрана недавних приложений</string>
     <string name="quickstep_incompatible">Несовместимая системная интеграция</string>
-    <string name="quickstep_incompatible_description">Ваше устройство настроено на использование системных жестов (Quickstep), предоставляемых %1$s, но текущая версия %1$s не совместима с вашей версией Android. Чтобы продолжить использование вашего устройства, удалите обновления %1$s или отключите %1$s как поставщика системных жестов.</string>
     <string name="translucent_background">Полупрозрачный фон</string>
     <string name="translucent_background_alpha">Прозрачность фона</string>
     <string name="recents_actions_label">Быстрые действия</string>

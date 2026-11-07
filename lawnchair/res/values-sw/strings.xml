@@ -380,7 +380,6 @@
     <string name="all_apps_search_market_message">Tafuta Programu Zaidi</string>
     <string name="error_no_market_or_browser_installed">Hakuna duka la programu au kivinjari kilichosakinishwa.</string>
     <string name="quickstep_incompatible">Ujumuishaji wa Mfumo Usiooana</string>
-    <string name="quickstep_incompatible_description">Kifaa chako kimesanidiwa kuwa na ishara za mfumo (Quickstep) zinazotolewa na%1$s, lakini toleo hili la %1$s haioani na toleo lako la Android. Ili kuendelea kutumia kifaa chako, tafadhali sanidua%1$s sasisho au kuzima%1$s kama mtoaji wa ishara ya mfumo.</string>
     <string name="delete">Futa</string>
     <!-- Backup -->
     <string name="create_backup">Unda Hifadhi Nakala</string>

@@ -1,0 +1,4 @@
+Expressive Launcher 5.1.2
+• Changing the Home icon size applies right away, without restarting the launcher
+• Android 12 to 15: no more crash loop when QuickSwitch makes the launcher the Recents app. Recents through QuickSwitch needs Android 16 or newer, so on older versions the launcher keeps working as Home and explains what to change
+• Expressive Core: tap the notification dots setting to download Expressive Full, which installs over Core

@@ -14,6 +14,12 @@
      limitations under the License.
 -->
 <resources>
+    <!-- Whether TouchInteractionService and RecentsActivity are enabled. They need Android 16
+         (quickstepMinSdk in build.gradle); values-v36 turns them on. Below that, SystemUI can't
+         bind the service when QuickSwitch has made the launcher the Recents app, so Home keeps
+         running instead of crash-looping (GitHub issue #60). -->
+    <bool name="quickstep_components_enabled">false</bool>
+
     <string name="overscroll_plugin_factory_class" translatable="false" />
     <string name="task_overlay_factory_class" translatable="false"/>
 

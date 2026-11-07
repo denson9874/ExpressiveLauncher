@@ -695,7 +695,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">这些设置将被忽略，因为 Lawnchair 未被设置为“最近任务”屏幕提供方</string>
     <string name="quickstep_incompatible">不兼容的系统集成</string>
-    <string name="quickstep_incompatible_description">Your device is configured to have system gestures, known as Quickstep, provided by %1$s, but this version of %1$s isn\'t compatible with your Android version. To continue using your device, uninstall %1$s updates or disable %1$s as a system gesture provider.</string>
     <string name="translucent_background">半透明背景</string>
     <string name="translucent_background_alpha">背景不透明度</string>
     <string name="recents_actions_label">快捷操作</string>

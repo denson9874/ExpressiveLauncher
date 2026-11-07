@@ -700,7 +700,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">سيتم تجاهل هذه الإعدادات لأن Lawnchair ليس معيّناً كمزود شاشة التطبيقات الأخيرة</string>
     <string name="quickstep_incompatible">تكامل النظام غير متوافق</string>
-    <string name="quickstep_incompatible_description">جهازك مُهيَّأ لاستخدام إيماءات النظام المعروفة باسم Quickstep، والتي يوفرها %1$s، لكن هذا الإصدار من %1$s غير متوافق مع إصدار أندرويد لديك. لمواصلة استخدام جهازك، أزِل تحديثات %1$s أو عطّل %1$s كمزود لإيماءات النظام.</string>
     <string name="translucent_background">خلفية شفافة</string>
     <string name="translucent_background_alpha">شفافية الخلفية</string>
     <string name="recents_actions_label">الإجراءات السريعة</string>

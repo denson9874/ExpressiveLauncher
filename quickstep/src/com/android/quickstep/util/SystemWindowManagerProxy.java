@@ -27,7 +27,6 @@ import android.view.WindowManager;
 import android.view.WindowMetrics;
 import android.window.DesktopExperienceFlags;
 
-import com.android.internal.policy.SystemBarUtils;
 import com.android.launcher3.dagger.LauncherAppSingleton;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.statehandlers.DesktopVisibilityController;
@@ -138,7 +137,7 @@ public class SystemWindowManagerProxy extends WindowManagerProxy {
     protected int getStatusBarHeight(Context context, boolean isPortrait, int statusBarInset) {
         // See b/264656380, calculate the status bar height manually as the inset in the system
         // server might not be updated by this point yet causing extra DeviceProfile updates
-        return SystemBarUtils.getStatusBarHeight(context);
+        return StatusBarHeightCompat.get(context);
     }
 
     @Override

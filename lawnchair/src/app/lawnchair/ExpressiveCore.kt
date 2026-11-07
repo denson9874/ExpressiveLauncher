@@ -11,7 +11,24 @@ import com.android.launcher3.BuildConfig
  */
 object ExpressiveCore {
 
+    private const val REPOSITORY_URL = "https://github.com/denson9874/ExpressiveLauncher"
+
     val isCore: Boolean get() = BuildConfig.EXPRESSIVE_CORE
+
+    /**
+     * Where a Core user downloads Expressive Full. Core ships on QA only, and each Core QA release is
+     * published after the Full release of the same version, so that page always exists. Full installs
+     * over Core in place (same package and signer) and keeps the user's setup.
+     */
+    fun fullDownloadUrl(
+        versionName: String = BuildConfig.VERSION_DISPLAY_NAME,
+        versionCode: Int = BuildConfig.VERSION_CODE,
+        buildType: String = BuildConfig.BUILD_TYPE,
+    ): String = if (buildType == "qa") {
+        "$REPOSITORY_URL/releases/tag/qa-v$versionName-$versionCode"
+    } else {
+        "$REPOSITORY_URL/releases"
+    }
 
     /** Notification dots need the notification listener. */
     fun supportsNotificationDots(forCore: Boolean = isCore): Boolean = !forCore

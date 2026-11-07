@@ -696,7 +696,6 @@
     <!-- Quickstep settings -->
     <string name="quickswitch_ignored_warning">Lawnchair Son tətbiqlər ekranı provayderi kimi təyin edilmədiyi üçün bu parametrlər nəzərə alınmayacaq</string>
     <string name="quickstep_incompatible">Uyğunsuz sistem inteqrasiyası</string>
-    <string name="quickstep_incompatible_description">Cihazınız Quickstep kimi tanınan sistem jestlərinin %1$s tərəfindən təmin ediləcəyi şəkildə konfiqurasiya edilib, lakin %1$s proqramının bu versiyası Android versiyanız ilə uyğun deyil. Cihazınızdan istifadə etməyə davam etmək üçün %1$s yeniləmələrini silin və ya %1$s proqramını sistem jestləri provayderi kimi deaktiv edin.</string>
     <string name="translucent_background">Yarımşəffaf fon</string>
     <string name="translucent_background_alpha">Fonun şəffaflıq səviyyəsi</string>
     <string name="recents_actions_label">Sürətli əməliyyatlar</string>

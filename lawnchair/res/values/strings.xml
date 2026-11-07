@@ -1025,7 +1025,7 @@
     <string name="hide_from_drawer">Hide from app drawer</string>
     <string name="action_hide_app">Hide</string>
     <string name="expressive_core_gesture_unavailable">This gesture needs accessibility access, which Expressive Core doesn\'t include. Pick another action or install Expressive Full.</string>
-    <string name="expressive_core_notification_dots_unavailable">Not available in Expressive Core, which leaves out notification access so Play Protect doesn\'t block installs. Install Expressive Full for notification dots.</string>
+    <string name="expressive_core_notification_dots_unavailable">Not available in Expressive Core, which leaves out notification access so Play Protect doesn\'t block installs. Tap to download Expressive Full, which installs over Core and keeps your setup.</string>
     <string name="app_hidden_from_drawer">%1$s hidden from app drawer</string>
     <string name="hidden_apps_label_with_count">Hidden apps (%1$d)</string>
     <plurals name="apps_count">
@@ -1045,7 +1045,7 @@
     <string name="quickswitch_ignored_warning">These settings will be ignored because Lawnchair isn\'t set as the Recents screen provider</string>
 
     <string name="quickstep_incompatible">Incompatible system integration</string>
-    <string name="quickstep_incompatible_description">Your device is configured to have system gestures, known as Quickstep, provided by %1$s, but this version of %1$s isn\'t compatible with your Android version. To continue using your device, uninstall %1$s updates or disable %1$s as a system gesture provider.</string>
+    <string name="quickstep_unsupported_description">Your device is set up to use %1$s for Recents and system gestures, for example through QuickSwitch, but this version of %1$s can\'t provide them on Android %2$s. Until you choose another Recents provider or remove QuickSwitch, swiping up to go Home and the Recents button may not work.</string>
 
     <string name="translucent_background">Translucent background</string>
     <string name="translucent_background_alpha">Background opacity</string>
