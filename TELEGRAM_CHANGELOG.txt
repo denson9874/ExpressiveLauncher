@@ -1,43 +1,35 @@
-<b>Expressive Launcher 5.1.1 (Build 73) — Left, Right, Your Call</b>
+<b>Expressive Launcher 5.1.2 (Build 74) — Sized Right, Started Right</b>
 
-5.1.1 lets you flip the 3-button navigation bar. Android 17's switch that swaps back and recents now works with Expressive Launcher as your Recents app, the way it does with Pixel Launcher. It also gives small folders their names back so you can rename them, clears up the drawer blur after switching drawer styles, stops Smartspacer cards losing their first letters, and keeps Expressive Launcher as the default Home app on ExpressiveOS phones that also ship Pixel Launcher.
+5.1.2 is a small, report-driven update. Changing the Home icon size now applies the moment you move the slider, with no launcher restart. On Android 12 to 15, phones where QuickSwitch makes Expressive Launcher the Recents app no longer crash on every start; Recents through QuickSwitch now needs Android 16 or newer. And Expressive Core users can now tap the notification dots setting to go straight to the matching Expressive Full download.
 
 ───────────────────────
 
 <b>✨ What's New &amp; Improved</b>
 
-<b>1. 🧭 The 3-button navigation order switch now works</b>
-• <b>Before</b>: Android 17 can swap the 3-button bar to recents, home, back, but Expressive Launcher draws that bar and always used back, home, recents, so the switch did nothing.
-• <b>Now</b>: the order follows the setting the moment you change it, in portrait, landscape and on a foldable's big screen. If you never touch the setting, nothing changes.
+<b>1. 📐 Home icon size changes apply right away</b>
+• <b>Before</b>: changing the Home icon size sometimes rebuilt Home, the dock and folders at the old size, and the new size only showed up after the launcher restarted.
+• <b>Now</b>: the launcher reads the size you just saved before it redraws Home. In testing, eight changes in a row each applied straight away, with no restart. Every other setting that redraws Home or restarts the launcher benefits from the same fix.
 
-<b>2. 📁 Small folders can be renamed again</b>
-• <b>Before</b>: a Home folder with 4 apps or fewer opened without its name, so there was nothing to tap to rename it. The folder's ⋮ button took just enough of the bottom row for the launcher to hide the name.
-• <b>Now</b>: the ⋮ button no longer counts against the name, and a hidden name comes back once the folder has room. Tap the name to rename the folder, as before.
+<b>2. 📱 No more crash loop with QuickSwitch on Android 12 to 15</b>
+• <b>Before</b>: with Expressive Launcher set as the Recents app through QuickSwitch, Android 12 crashed the launcher on every start. The Recents and gesture code relies on parts of Android that first appeared in Android 16, so it could not work on older versions.
+• <b>Now</b>: Recents through QuickSwitch needs Android 16 or newer, and QuickSwitch is told so. On Android 12 to 15 the launcher switches off its Recents service, keeps working as your Home app, and shows a notice that says so. Until you pick another Recents app in QuickSwitch, swipe-up Home and the Recents button don't work there, but Back and the Home button do. Android 16 and newer are unchanged.
 
-<b>3. 🌫️ The drawer blurs properly after you switch drawer styles</b>
-• <b>Before</b>: switching the app drawer from full screen to bottom sheet could leave the sheet see-through with no blur, and a ghost of the drawer stayed on Home until the launcher restarted.
-• <b>Now</b>: the launcher rebuilds its layout when you switch, checks itself for a stale layout when it comes back, and only shows Home behind the sheet when blur is actually on.
-
-<b>4. 🌤️ Smartspacer cards keep their first letters</b>
-• <b>Before</b>: on short At a Glance rows, Smartspacer's cards slid left past the edge, so "Wed, Nov 4" read "Ved, Nov 4".
-• <b>Now</b>: the cards sit inside the row's padding, like the built-in At a Glance.
-
-<b>5. 🏠 ExpressiveOS keeps Expressive Launcher as the default Home</b>
-• <b>Before</b>: if a phone shipped Expressive Launcher and Pixel Launcher side by side, neither won by default, so a clean install would ask which Home app to use.
-• <b>Now</b>: on ExpressiveOS, Expressive Launcher is the default Home and Pixel Launcher stays available in Default apps. It changes nothing on other phones.
+<b>3. 🔔 Expressive Core links straight to Expressive Full</b>
+• <b>Before</b>: Core's notification dots setting said to install Expressive Full but didn't say where to get it.
+• <b>Now</b>: tap the setting to open the Expressive Full download for the same version. Full installs over Core and keeps your setup. If Play Protect blocks Full on your phone, Core is still the version that installs.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>🧭 <i>The back button has spent every release on the left. Starting today it goes wherever your thumb says. It has asked for a window seat.</i></blockquote>
+<blockquote>📐 <i>The icon size slider used to work like a group chat: you said something, and nobody reacted until the next day. Now it gets an instant thumbs-up.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Who notices</b>: 3-button navigation users who prefer back on the right, anyone with a small folder to rename, anyone who switched the drawer to bottom sheet, Smartspacer users, and anyone clean-installing ExpressiveOS 1.1.
-• <b>Thanks</b>: to Loïc, who tested the navigation order switch by hand and reported that it did nothing.
-• <b>How to flip it</b>: Settings &gt; System &gt; Navigation mode &gt; 3-button navigation settings (the exact wording depends on your ROM).
+• <b>Who notices</b>: anyone who resizes Home icons, Android 12 to 15 users who set Expressive Launcher as the Recents app through QuickSwitch, and Expressive Core users who want notification dots.
+• <b>Thanks</b>: to Pratik, whose icon-size reports led to the slider fix and who asked where to find Expressive Full, and to the GitHub reporter of issue #60 for the Android 12 crash log.
+• <b>Where the setting is</b>: Settings &gt; General &gt; Notification dots (Core only).
 • <b>Validation</b>: see Verification &amp; Technical Details below.
 • <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 activation. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
 
@@ -45,22 +37,22 @@
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I have three doors in a row. The one in the middle never moves, but the two on the ends trade places when you ask. What am I?</i></blockquote>
+<blockquote><i>Turn me up and everything grows; turn me down and everything shrinks. I used to wait for a restart before anyone noticed. What am I?</i></blockquote>
 
-<tg-spoiler><b>The 3-button navigation bar!</b> Home stays put in the middle, and since 5.1.1 back and recents swap sides when you flip the switch. 🔁</tg-spoiler>
+<tg-spoiler><b>The Home icon size slider!</b> Since 5.1.2 it takes effect the moment you let go. 📐</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Technical Details</b>
-• <b>Launcher Version</b>: <code>5.1.1</code> (Build <code>73</code>), QA channel
-• <b>Source revision</b>: <code>a1e27964210493582f3dff9e34ebaf726a5067d0</code>
-• <b>APK SHA-256</b>: <code>2b9445f109548fbc2bc898d614c89ec7dfc6133faf4a2d84bbba8115a73adb65</code>
-• <b>Validation</b>: Jenkins QA build #25 passed 665 unit tests and its automated device checks on the pinned Android 17 emulator. This exact APK was installed over the built-in copy on a Pixel 7 Pro running ExpressiveOS. A Home folder with 3 apps showed its name, was renamed and then cleared, and the 3-button order flipped live in portrait. The same navigation code was checked in portrait, landscape and seascape on build #23. Logcat showed no crash, ANR or permission error.
+• <b>Launcher Version</b>: <code>5.1.2</code> (Build <code>74</code>), QA channel
+• <b>Source revision</b>: <code>1c37bdb3e69e379a98e07528b146eb405851670b</code>
+• <b>APK SHA-256</b>: <code>98362c671dce8fdd225ec9f4ec16f4c203344c5c26f8dbf11509dc05cf62d358</code>
+• <b>Validation</b>: Jenkins QA build #26 passed 678 unit tests and its automated device checks on the pinned Android 17 emulator. An upgrade over 5.1.1 (73) with the same signing key kept settings, and cold and warm starts, the app drawer swipe, search and D-pad relaunch passed with clean app logs. Expressive Core passed the same checks.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
 🔗 <b>Links &amp; Downloads</b>:
-• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.1-73">Expressive Launcher 5.1.1 on GitHub</a>
+• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.2-74">Expressive Launcher 5.1.2 on GitHub</a>
 • <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
 • <b>Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
