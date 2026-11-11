@@ -110,7 +110,10 @@ fun RedeemProDialog(
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var showDeactivateConfirm by remember { mutableStateOf(false) }
 
-    var selectedTab by remember { mutableIntStateOf(if (initialKey.isNotBlank()) 1 else 0) }
+    // Google Play only allows its own billing for in-app purchases, so the Play build has no PayPal
+    // checkout: the sheet opens on the key tab, which is the only one there.
+    val showCheckout = !com.android.launcher3.BuildConfig.TARGET_PLAY_STORE
+    var selectedTab by remember { mutableIntStateOf(if (initialKey.isNotBlank() || !showCheckout) 1 else 0) }
     var isCheckingStatus by remember { mutableStateOf(false) }
 
     var showTransactionInput by remember { mutableStateOf(false) }
@@ -254,30 +257,32 @@ fun RedeemProDialog(
                 }
                 // Tab Selection: Donate vs Offline Key
                 PrimaryTabRow(
-                    selectedTabIndex = selectedTab,
+                    selectedTabIndex = if (showCheckout) selectedTab else 0,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = {
-                            selectedTab = 0
-                            errorMessage = null
-                            statusMessage = null
-                            showSupportCard = false
-                        },
-                        text = {
-                            Text(
-                                if (proManager.isIncludedWithRom) {
-                                    stringResource(R.string.expressive_pro_tab_donate_included)
-                                } else {
-                                    stringResource(R.string.expressive_pro_tab_donate)
-                                },
-                            )
-                        },
-                        icon = { Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    )
+                    if (showCheckout) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = {
+                                selectedTab = 0
+                                errorMessage = null
+                                statusMessage = null
+                                showSupportCard = false
+                            },
+                            text = {
+                                Text(
+                                    if (proManager.isIncludedWithRom) {
+                                        stringResource(R.string.expressive_pro_tab_donate_included)
+                                    } else {
+                                        stringResource(R.string.expressive_pro_tab_donate)
+                                    },
+                                )
+                            },
+                            icon = { Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        )
+                    }
                     Tab(
                         selected = selectedTab == 1,
                         onClick = {

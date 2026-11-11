@@ -40,6 +40,18 @@ class AboutOwnershipTest {
     }
 
     @Test
+    fun productLinks_playBuildLeavesOutCheckout() {
+        val links = expressiveProductLinks(externalCheckout = false)
+
+        assertThat(links.map { it.labelResId }).containsExactly(
+            R.string.news,
+            R.string.support,
+            R.string.github,
+        ).inOrder()
+        assertThat(links.map { it.url }).doesNotContain(AboutDestinations.PAYPAL_PAYMENT_URL)
+    }
+
+    @Test
     fun newsDestination_usesOwnedGitHubReleases() {
         assertThat(AboutDestinations.RELEASE_BUILDS_URL)
             .isEqualTo("https://github.com/denson9874/ExpressiveLauncher/releases")
