@@ -98,8 +98,17 @@ def helperConfigurations = ["debug", "release"].collectEntries { helperVariant -
     [(helperVariant): incoming]
 }
 
+// Google Play bundles (-PtargetPlayStore=true) carry no embedded helper APK: Play does not allow an app
+// to install another APK it ships, and the Play build already shows Discover setup as unavailable.
+// Leaving it out also keeps the helper's own signing check out of the Play bundle build.
+def embedFeedHelper = !providers.gradleProperty("targetPlayStore")
+        .orElse(providers.gradleProperty("playStore").orElse("false"))
+        .get()
+        .toBoolean()
+
 androidComponents {
     onVariants(selector().withFlavor("channel", "expressive")) { variant ->
+        if (!embedFeedHelper) return
         def helperVariant = variant.buildType == "debug" ? "debug" : "release"
         def generated = tasks.register("generate${variant.name.capitalize()}ExpressiveFeedAssets", GenerateExpressiveFeedAssets) {
             group = "expressive"
