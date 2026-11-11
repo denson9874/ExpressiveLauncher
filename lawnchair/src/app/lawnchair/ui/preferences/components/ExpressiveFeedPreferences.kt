@@ -265,7 +265,12 @@ fun ExpressiveFeedPreferences() {
                 openDetails(FeedBridge.FIRST_PARTY_FEED_PACKAGE)
             }
 
-            Kind.BUNDLE_INVALID -> FeedSetupAction(R.string.expressive_feed_retry, R.string.expressive_feed_setup_unavailable) { refresh++ }
+            Kind.BUNDLE_INVALID -> if (com.android.launcher3.BuildConfig.TARGET_PLAY_STORE) {
+                // Play bundles carry no helper APK, so there is nothing to retry.
+                FeedSetupAction(R.string.expressive_feed_play_unavailable, enabled = false)
+            } else {
+                FeedSetupAction(R.string.expressive_feed_retry, R.string.expressive_feed_setup_unavailable) { refresh++ }
+            }
 
             Kind.READY -> Unit
         }
