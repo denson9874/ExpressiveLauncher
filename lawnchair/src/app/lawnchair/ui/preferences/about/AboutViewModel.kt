@@ -52,7 +52,13 @@ internal fun expressiveProductOwners(): List<TeamMember> = listOf(
     ),
 )
 
-internal fun expressiveProductLinks(): List<Link> = listOf(
+/**
+ * The About links. The Play build leaves out Donate, which opens the PayPal checkout: Google Play only
+ * allows its own billing for in-app purchases.
+ */
+internal fun expressiveProductLinks(
+    externalCheckout: Boolean = !com.android.launcher3.BuildConfig.TARGET_PLAY_STORE,
+): List<Link> = listOfNotNull(
     Link(
         iconResId = R.drawable.ic_new_releases,
         labelResId = R.string.news,
@@ -72,7 +78,7 @@ internal fun expressiveProductLinks(): List<Link> = listOf(
         iconResId = R.drawable.ic_donate,
         labelResId = R.string.donate,
         url = AboutDestinations.PAYPAL_PAYMENT_URL,
-    ),
+    ).takeIf { externalCheckout },
 )
 
 internal fun expressiveCommunityLinks(): List<Link> = listOf(
