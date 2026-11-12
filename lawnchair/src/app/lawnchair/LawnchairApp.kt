@@ -94,16 +94,20 @@ class LawnchairApp : LauncherApplication() {
         ExpressiveUpdateScheduler.ensureScheduled(this)
     }
 
+    // "clock" in Settings.Secure icon_blacklist is also how the system's own Status bar setting
+    // hides the clock. Remember whether this launcher added it, and only ever take back its
+    // own: otherwise every launcher start (the preference's first value is "off") brought back
+    // a clock the user had hidden in Settings.
+    private val clockPrefs by unsafeLazy { getSharedPreferences(CLOCK_PREFS, MODE_PRIVATE) }
+
     fun hideClockInStatusBar() {
         if (!isRecentsEnabled) return
         try {
             val currentBlacklist = Settings.Secure.getString(contentResolver, "icon_blacklist") ?: ""
-            val newBlacklist = if (currentBlacklist.contains("clock")) {
-                currentBlacklist
-            } else {
-                "$currentBlacklist,clock"
-            }
+            if (currentBlacklist.split(",").contains("clock")) return
+            val newBlacklist = currentBlacklist.split(",").filter { it.isNotEmpty() }.plus("clock").joinToString(",")
             Settings.Secure.putString(contentResolver, "icon_blacklist", newBlacklist)
+            clockPrefs.edit().putBoolean(KEY_WE_HID_CLOCK, true).apply()
         } catch (_: Exception) {
             // ignore
         }
@@ -112,9 +116,11 @@ class LawnchairApp : LauncherApplication() {
     fun restoreClockInStatusBar() {
         if (!isRecentsEnabled) return
         try {
+            if (!clockPrefs.getBoolean(KEY_WE_HID_CLOCK, false)) return
             val currentBlacklist = Settings.Secure.getString(contentResolver, "icon_blacklist") ?: ""
             val newBlacklist = currentBlacklist.split(",").filter { it != "clock" }.joinToString(",")
             Settings.Secure.putString(contentResolver, "icon_blacklist", newBlacklist)
+            clockPrefs.edit().putBoolean(KEY_WE_HID_CLOCK, false).apply()
         } catch (_: Exception) {
         }
     }
@@ -256,6 +262,8 @@ class LawnchairApp : LauncherApplication() {
 
         @JvmStatic
         val isRecentsEnabled: Boolean get() = instance.recentsEnabled
+        private const val CLOCK_PREFS = "expressive_status_bar_clock"
+        private const val KEY_WE_HID_CLOCK = "launcher_hid_clock"
 
         @JvmStatic
         val isAtleastT: Boolean get() = instance.isAtleastT
