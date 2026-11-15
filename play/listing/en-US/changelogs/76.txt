@@ -1,0 +1,5 @@
+Expressive Launcher 5.1.4
+• Themed icons: turn on Monet-coloured stock icons without installing an icon pack (Android 13 and newer), and they stay on after a restart
+• Status bar clock: a clock you hid in Android's Status bar settings no longer comes back after a reboot
+• Home button: goes to the launcher you chose as default, even when Expressive Launcher is built into ExpressiveOS
+• Foldables: no more launcher crash when you fold the phone after unfolding it
