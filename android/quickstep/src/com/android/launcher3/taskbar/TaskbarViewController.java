@@ -986,6 +986,11 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
         }
         mOnControllerPreCreateCallback.run();
         DeviceProfile taskbarDp = mActivity.getDeviceProfile();
+        // No taskbar on this display (e.g. a foldable's cover screen): nothing to align, and the
+        // scales below would divide by a zero icon size.
+        if (taskbarDp.getTaskbarProfile().getIconSize() <= 0) {
+            return setter.createPlaybackController();
+        }
         Rect hotseatPadding = launcherDp.getHotseatLayoutPadding(mActivity);
         boolean isTransientTaskbar = mActivity.isTransientTaskbar();
 
@@ -1107,8 +1112,11 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
                 float halfQsbIconWidthDiff =
                         (launcherDp.hotseatQsbWidth - taskbarDp.getTaskbarProfile().getIconSize())
                                 / 2f;
-                float scale = ((float) taskbarDp.getTaskbarProfile().getIconSize())
-                        / launcherDp.getHotseatProfile().getQsbVisualHeight();
+                int qsbVisualHeight = launcherDp.getHotseatProfile().getQsbVisualHeight();
+                // qsbVisualHeight is 0 when the dock search bar is turned off.
+                float scale = qsbVisualHeight > 0
+                        ? ((float) taskbarDp.getTaskbarProfile().getIconSize()) / qsbVisualHeight
+                        : 1f;
                 setter.addFloat(child, SCALE_PROPERTY, scale, 1f, interpolator);
 
                 float fromX = isRtl ? -halfQsbIconWidthDiff : halfQsbIconWidthDiff;
