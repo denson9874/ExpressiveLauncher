@@ -596,8 +596,14 @@ def main():
             "or create ~/Library/Application Support/Expressive CI/config/telegram.json with {\"bot_token\": \"...\"}.",
             file=sys.stderr,
         )
-        print(f"\nThe rendered message has been saved to {args.output} and is ready to post:\n")
-        print(telegram_html)
+        # The HTML is for the Bot API only: pasted into a Telegram app it shows its tags.
+        if args.desktop_parts:
+            print(f"\nTo post by hand, paste {args.desktop_parts}/part-1.txt and the parts after it, in order,"
+                  f" into Telegram; their markdown turns into formatting on send. Don't paste {args.output},"
+                  " which is Bot API HTML.", file=sys.stderr)
+        else:
+            print(f"\n{args.output} is Bot API HTML and shows its tags if pasted into Telegram; rerun with"
+                  " --desktop-parts DIR for messages to paste by hand.", file=sys.stderr)
         sys.exit(EXIT_NOT_CONFIGURED)
 
     print(f"Posting release announcement to Telegram channel: {channel}...")

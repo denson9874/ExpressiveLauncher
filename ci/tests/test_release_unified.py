@@ -127,6 +127,11 @@ class SealedFullApkTest(unittest.TestCase):
         command = self.run_telegram_only("--release-id", "qa-5.1.1-73-build-26")
         self.assertEqual(str(apk), command[command.index("--apk") + 1])
 
+    def test_telegram_stage_writes_messages_that_paste_with_formatting(self):
+        command = self.run_telegram_only()
+        parts = command[command.index("--desktop-parts") + 1]
+        self.assertEqual(str(release_unified.ROOT / "artifacts" / "telegram-5.1.1"), parts)
+
     def test_telegram_post_has_no_apk_without_a_matching_seal(self):
         self.seal("qa-5.1.1-73-build-23", revision="b" * 40)
         self.assertNotIn("--apk", self.run_telegram_only())

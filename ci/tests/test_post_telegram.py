@@ -350,6 +350,20 @@ class TelegramChannelTests(unittest.TestCase):
         self.assertEqual("NOT broadcast: no bot token configured (rendered to TELEGRAM_CHANGELOG.txt)", status)
         self.assertIn("<b>Release Title</b>", self.output.read_text(encoding="utf-8"))
 
+    def test_without_a_token_hand_posting_points_to_the_markdown_parts_not_the_html(self):
+        os.environ["HOME"] = str(self.directory)
+        parts = self.directory / "parts"
+        command = [sys.executable, str(release_unified.TELEGRAM_SCRIPT), "--notes-file", str(self.notes),
+                   "--output", str(self.output), "--desktop-parts", str(parts)]
+        with contextlib.redirect_stdout(io.StringIO()):
+            status = release_unified.run_telegram_stage(command, self.output, "")
+        self.assertEqual(f"NOT broadcast: no bot token configured (paste {parts}/part-*.txt by hand)", status)
+        self.assertEqual("**Release Title**\n\nBody\n", (parts / "part-1.txt").read_text(encoding="utf-8"))
+        code, stderr = self.run_main("--desktop-parts", str(parts))
+        self.assertEqual(post_telegram.EXIT_NOT_CONFIGURED, code)
+        self.assertIn(f"paste {parts}/part-1.txt", stderr)
+        self.assertNotIn("<b>", stderr)
+
 
 class RunCmdRedactionTests(unittest.TestCase):
     def test_token_values_never_reach_the_log(self):

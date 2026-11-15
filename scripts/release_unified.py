@@ -153,6 +153,12 @@ def run_telegram_stage(tg_cmd: list[str], tg_out: Path, channel: str) -> str:
         return f"NOT broadcast: post_telegram.py failed, check the channel for partial posts (rendered to {tg_out.name})"
     if result.returncode == TELEGRAM_NOT_CONFIGURED_EXIT:
         print(f"[WARNING] Telegram announcement NOT broadcast: no bot token configured. Rendered to {tg_out}")
+        if "--desktop-parts" in tg_cmd:
+            parts = Path(tg_cmd[tg_cmd.index("--desktop-parts") + 1])
+            print(f"[INFO] To post by hand, paste {parts}/part-*.txt in order; they keep their formatting, "
+                  f"{tg_out.name} doesn't")
+            shown = parts.relative_to(ROOT) if parts.is_relative_to(ROOT) else parts
+            return f"NOT broadcast: no bot token configured (paste {shown}/part-*.txt by hand)"
         return f"NOT broadcast: no bot token configured (rendered to {tg_out.name})"
     if result.returncode == TELEGRAM_NOT_POSTABLE_EXIT:
         print(f"[WARNING] Telegram announcement NOT broadcast: Telegram would refuse it. {result.stderr.strip()}")
@@ -403,6 +409,8 @@ def main():
             sys.executable, str(TELEGRAM_SCRIPT),
             "--notes-file", str(notes_file),
             "--output", str(tg_out),
+            # Markdown messages that keep their formatting when pasted by hand; the HTML doesn't.
+            "--desktop-parts", str(ROOT / "artifacts" / f"telegram-{version_name}"),
         ]
         if args.telegram_token:
             tg_cmd.extend(["--token", args.telegram_token])
