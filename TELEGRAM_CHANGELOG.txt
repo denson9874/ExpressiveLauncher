@@ -1,58 +1,63 @@
-<b>Expressive Launcher 5.1.2 (Build 74) — Sized Right, Started Right</b>
+<b>Expressive Launcher 5.1.4 (Build 76) — Color Without the Pack</b>
 
-5.1.2 is a small, report-driven update. Changing the Home icon size now applies the moment you move the slider, with no launcher restart. On Android 12 to 15, phones where QuickSwitch makes Expressive Launcher the Recents app no longer crash on every start; Recents through QuickSwitch now needs Android 16 or newer. And Expressive Core users can now tap the notification dots setting to go straight to the matching Expressive Full download.
+5.1.4 brings Monet-coloured stock icons to everyone on Android 13 and newer, no icon pack required. It also stops the launcher from undoing two choices you made elsewhere (a hidden status bar clock and your default Home app) and fixes a crash when folding a foldable.
 
 ───────────────────────
 
 <b>✨ What's New &amp; Improved</b>
 
-<b>1. 📐 Home icon size changes apply right away</b>
-• <b>Before</b>: changing the Home icon size sometimes rebuilt Home, the dock and folders at the old size, and the new size only showed up after the launcher restarted.
-• <b>Now</b>: the launcher reads the size you just saved before it redraws Home. In testing, eight changes in a row each applied straight away, with no restart. Every other setting that redraws Home or restarts the launcher benefits from the same fix.
+<b>1. 🎨 Themed icons without an icon pack</b>
+• <b>Before</b>: the Themed icons setting stayed greyed out unless a themed icon pack (or Lawnicons) was installed. Even if you got it turned on, the launcher switched it back off at the next start when no pack was installed.
+• <b>Now</b>: on Android 13 and newer, apps ship their own single-colour icon, so Themed icons works with stock icons and stays on. Settings &gt; Icons &amp; appearance &gt; Icon style &gt; Themed icons. Apps without a single-colour icon keep their normal colours. Android 12 still needs a themed icon pack.
 
-<b>2. 📱 No more crash loop with QuickSwitch on Android 12 to 15</b>
-• <b>Before</b>: with Expressive Launcher set as the Recents app through QuickSwitch, Android 12 crashed the launcher on every start. The Recents and gesture code relies on parts of Android that first appeared in Android 16, so it could not work on older versions.
-• <b>Now</b>: Recents through QuickSwitch needs Android 16 or newer, and QuickSwitch is told so. On Android 12 to 15 the launcher switches off its Recents service, keeps working as your Home app, and shows a notice that says so. Until you pick another Recents app in QuickSwitch, swipe-up Home and the Recents button don't work there, but Back and the Home button do. Android 16 and newer are unchanged.
+<b>2. 🕒 A hidden status bar clock stays hidden</b>
+• <b>Before</b>: if you hid the clock in Android's Status bar settings, the launcher brought it back after every reboot or launcher restart.
+• <b>Now</b>: the launcher only brings back a clock that its own "Hide clock on the first home page" option hid.
 
-<b>3. 🔔 Expressive Core links straight to Expressive Full</b>
-• <b>Before</b>: Core's notification dots setting said to install Expressive Full but didn't say where to get it.
-• <b>Now</b>: tap the setting to open the Expressive Full download for the same version. Full installs over Core and keeps your setup. If Play Protect blocks Full on your phone, Core is still the version that installs.
+<b>3. 🏠 The Home button respects your default launcher</b>
+• <b>Before</b>: on ExpressiveOS, where Expressive Launcher is built in, pressing Home could open Expressive Launcher even after you chose another launcher as default.
+• <b>Now</b>: Home goes to the launcher you picked. On a fresh ExpressiveOS install, Expressive Launcher is still the default.
+
+<b>4. 📱 No crash when you fold a foldable</b>
+• <b>Before</b>: folding a foldable after using it unfolded could crash the launcher. The cover screen has no taskbar, so the launcher worked out the taskbar icon scale from an icon size of 0.
+• <b>Now</b>: the launcher skips the taskbar icon animation when there is no taskbar.
+
+<b>5. 💳 Clearer Pro wording</b>
+• The Pro sheet's button now says <b>Buy Pro · $4.99</b>, because it is a one-time purchase that unlocks Pro by itself, not a tip.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>📐 <i>The icon size slider used to work like a group chat: you said something, and nobody reacted until the next day. Now it gets an instant thumbs-up.</i></blockquote>
+<blockquote>🎨 <i>Your icons used to need a pack to get dressed up. Now they bring their own outfit.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Who notices</b>: anyone who resizes Home icons, Android 12 to 15 users who set Expressive Launcher as the Recents app through QuickSwitch, and Expressive Core users who want notification dots.
-• <b>Thanks</b>: to Pratik, whose icon-size reports led to the slider fix and who asked where to find Expressive Full, and to the GitHub reporter of issue #60 for the Android 12 crash log.
-• <b>Where the setting is</b>: Settings &gt; General &gt; Notification dots (Core only).
+• <b>Thanks</b>: to PB for reporting the themed icons bug, and to mcflyrk01 on XDA for the status bar clock and Home button reports.
 • <b>Validation</b>: see Verification &amp; Technical Details below.
-• <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 activation. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
+• <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 purchase. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>Turn me up and everything grows; turn me down and everything shrinks. I used to wait for a restart before anyone noticed. What am I?</i></blockquote>
+<blockquote><i>I wear the colours of your wallpaper, but I never needed a pack to do it. What am I?</i></blockquote>
 
-<tg-spoiler><b>The Home icon size slider!</b> Since 5.1.2 it takes effect the moment you let go. 📐</tg-spoiler>
+<tg-spoiler><b>A themed icon!</b> Since 5.1.4, stock icons take on your Monet colours with no icon pack installed. 🎨</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Technical Details</b>
-• <b>Launcher Version</b>: <code>5.1.2</code> (Build <code>74</code>), QA channel
-• <b>Source revision</b>: <code>1c37bdb3e69e379a98e07528b146eb405851670b</code>
-• <b>APK SHA-256</b>: <code>98362c671dce8fdd225ec9f4ec16f4c203344c5c26f8dbf11509dc05cf62d358</code>
-• <b>Validation</b>: Jenkins QA build #26 passed 678 unit tests and its automated device checks on the pinned Android 17 emulator. An upgrade over 5.1.1 (73) with the same signing key kept settings, and cold and warm starts, the app drawer swipe, search and D-pad relaunch passed with clean app logs. Expressive Core passed the same checks.
+• <b>Launcher Version</b>: <code>5.1.4</code> (Build <code>76</code>), QA channel
+• <b>Source revision</b>: <code>f3f23a6978705fcb9813a655a486f24bf77218fc</code>
+• <b>APK SHA-256</b>: <code>21f2c8b74c0a2f4455106d2716744bf4b16f95e920eab36f6afb68985835a4b4</code>
+• <b>Validation</b>: Jenkins QA build #29 passed 681 unit tests and its automated device checks on the pinned Android 17 emulator. An upgrade over 5.1.3 (75) with the same signing key kept settings, and cold and warm starts, the app drawer swipe, search and D-pad relaunch passed with clean app logs. Expressive Core passed the same checks. Themed icons with no icon pack installed were also checked by hand on an Android 17 emulator, including after a launcher restart.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
 🔗 <b>Links &amp; Downloads</b>:
-• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.2-74">Expressive Launcher 5.1.2 on GitHub</a>
+• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.4-76">Expressive Launcher 5.1.4 on GitHub</a>
 • <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
 • <b>Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>

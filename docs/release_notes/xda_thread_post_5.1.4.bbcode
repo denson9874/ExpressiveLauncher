@@ -1,0 +1,98 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.1.4 (Build 76) — Color Without the Pack[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+5.1.4 brings Monet-coloured stock icons to everyone on Android 13 and newer, no icon pack required. It also stops the launcher from undoing two choices you made elsewhere (a hidden status bar clock and your default Home app) and fixes a crash when folding a foldable.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. 🎨 Themed icons without an icon pack[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: the Themed icons setting stayed greyed out unless a themed icon pack (or Lawnicons) was installed. Even if you got it turned on, the launcher switched it back off at the next start when no pack was installed.
+[*][B]Now[/B]: on Android 13 and newer, apps ship their own single-colour icon, so Themed icons works with stock icons and stays on. Settings > Icons & appearance > Icon style > Themed icons. Apps without a single-colour icon keep their normal colours. Android 12 still needs a themed icon pack.
+
+[/LIST]
+[SIZE=5][B]2. 🕒 A hidden status bar clock stays hidden[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: if you hid the clock in Android's Status bar settings, the launcher brought it back after every reboot or launcher restart.
+[*][B]Now[/B]: the launcher only brings back a clock that its own "Hide clock on the first home page" option hid.
+
+[/LIST]
+[SIZE=5][B]3. 🏠 The Home button respects your default launcher[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: on ExpressiveOS, where Expressive Launcher is built in, pressing Home could open Expressive Launcher even after you chose another launcher as default.
+[*][B]Now[/B]: Home goes to the launcher you picked. On a fresh ExpressiveOS install, Expressive Launcher is still the default.
+
+[/LIST]
+[SIZE=5][B]4. 📱 No crash when you fold a foldable[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: folding a foldable after using it unfolded could crash the launcher. The cover screen has no taskbar, so the launcher worked out the taskbar icon scale from an icon size of 0.
+[*][B]Now[/B]: the launcher skips the taskbar icon animation when there is no taskbar.
+
+[/LIST]
+[SIZE=5][B]5. 💳 Clearer Pro wording[/B][/SIZE]
+[LIST]
+[*]The Pro sheet's button now says [B]Buy Pro · $4.99[/B], because it is a one-time purchase that unlocks Pro by itself, not a tip.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]🎨 [I]Your icons used to need a pack to get dressed up. Now they bring their own outfit.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]Thanks[/B]: to PB for reporting the themed icons bug, and to mcflyrk01 on XDA for the status bar clock and Home button reports.
+[*][B]Validation[/B]: see Verification & Technical Details below.
+[*][B]Developer Support[/B]: Expressive Pro is available as a one-time $4.99 purchase. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I wear the colours of your wallpaper, but I never needed a pack to do it. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]A themed icon![/B] Since 5.1.4, stock icons take on your Monet colours with no icon pack installed. 🎨[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.1.4[/ICODE] (Build [ICODE]76[/ICODE]), QA channel
+[*][B]Source revision[/B]: [ICODE]f3f23a6978705fcb9813a655a486f24bf77218fc[/ICODE]
+[*][B]APK SHA-256[/B]: [ICODE]21f2c8b74c0a2f4455106d2716744bf4b16f95e920eab36f6afb68985835a4b4[/ICODE]
+[*][B]Validation[/B]: Jenkins QA build #29 passed 681 unit tests and its automated device checks on the pinned Android 17 emulator. An upgrade over 5.1.3 (75) with the same signing key kept settings, and cold and warm starts, the app drawer swipe, search and D-pad relaunch passed with clean app logs. Expressive Core passed the same checks. Themed icons with no icon pack installed were also checked by hand on an Android 17 emulator, including after a launcher restart.
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]Download[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.4-76"]Expressive Launcher 5.1.4 on GitHub[/URL]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[*][B]Announcements Channel[/B]: [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+
+[/LIST]
+Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.4-76"]Download Expressive Launcher v5.1.4 (Build 76)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
