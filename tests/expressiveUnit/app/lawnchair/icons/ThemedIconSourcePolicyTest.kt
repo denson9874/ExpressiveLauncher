@@ -6,6 +6,18 @@ import org.junit.Test
 
 class ThemedIconSourcePolicyTest {
     @Test
+    fun android13Plus_allowsStockMonochromeThemedIconsWithoutAnyIconPack() {
+        assertThat(themedIconsSupported(sdkInt = 33, monochromePackInstalled = false)).isTrue()
+        assertThat(themedIconsSupported(sdkInt = 37, monochromePackInstalled = false)).isTrue()
+    }
+
+    @Test
+    fun beforeAndroid13_themedIconsStillNeedAMonochromePack() {
+        assertThat(themedIconsSupported(sdkInt = 32, monochromePackInstalled = false)).isFalse()
+        assertThat(themedIconsSupported(sdkInt = 32, monochromePackInstalled = true)).isTrue()
+    }
+
+    @Test
     fun lawniconsSelectedAsNormalPack_usesNativeArtworkForUnthemedSurfaces() {
         assertThat(unthemedIconPackPackage(LAWNICONS_PACKAGE_NAME)).isEmpty()
         assertThat(themedIconSourcePackage(LAWNICONS_PACKAGE_NAME, ""))

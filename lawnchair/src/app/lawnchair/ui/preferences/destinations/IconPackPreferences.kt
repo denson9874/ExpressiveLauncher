@@ -18,6 +18,7 @@ package app.lawnchair.ui.preferences.destinations
 
 import android.content.res.Configuration
 import android.graphics.drawable.Drawable
+import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
@@ -78,6 +79,7 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.pro.ProGate
 import app.lawnchair.ui.theme.preferenceGroupColor
 import app.lawnchair.util.Constants
+import app.lawnchair.icons.themedIconsSupported
 import app.lawnchair.util.getThemedIconPacksInstalled
 import app.lawnchair.util.isPackageInstalled
 import com.android.launcher3.R
@@ -223,13 +225,17 @@ fun IconPackPreferences(
                             1 -> {
                                 val packageManager = context.packageManager
 
-                                val themedIconsAvailable = packageManager
+                                val monochromePackInstalled = packageManager
                                     .getThemedIconPacksInstalled(LocalContext.current)
                                     .any { packageManager.isPackageInstalled(it) } ||
                                     packageManager
                                         .isPackageInstalled(Constants.LAWNICONS_PACKAGE_NAME)
+                                val themedIconsAvailable = themedIconsSupported(
+                                    sdkInt = Build.VERSION.SDK_INT,
+                                    monochromePackInstalled = monochromePackInstalled,
+                                )
 
-                                if (themedIconsAvailable && themedIconsAdapter.state.value) {
+                                if (monochromePackInstalled && themedIconsAdapter.state.value) {
                                     IconPackGrid(
                                         adapter = themedIconPackAdapter,
                                         true,

@@ -22,6 +22,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.util.Pair
 import android.view.Display
@@ -51,6 +52,7 @@ import app.lawnchair.ui.popup.LauncherOptionsPopup
 import app.lawnchair.ui.popup.LawnchairShortcut
 import app.lawnchair.ui.popup.homeMenuWidthPx
 import app.lawnchair.ui.popup.useQpr2HomeMenu
+import app.lawnchair.icons.themedIconsSupported
 import app.lawnchair.util.getThemedIconPacksInstalled
 import app.lawnchair.util.unsafeLazy
 import app.lawnchair.views.LawnchairFloatingSurfaceView
@@ -241,7 +243,10 @@ class LawnchairLauncher : QuickstepLauncher() {
         // Handle update from version 12 Alpha 4 to version 12 Alpha 5.
         if (
             prefs.themedIcons.get() &&
-            packageManager.getThemedIconPacksInstalled(this).isEmpty()
+            !themedIconsSupported(
+                sdkInt = Build.VERSION.SDK_INT,
+                monochromePackInstalled = packageManager.getThemedIconPacksInstalled(this).isNotEmpty(),
+            )
         ) {
             prefs.themedIcons.set(newValue = false)
         }

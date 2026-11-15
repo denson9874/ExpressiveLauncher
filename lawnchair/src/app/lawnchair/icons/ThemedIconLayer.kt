@@ -73,6 +73,10 @@ internal fun BaseIconFactory.createBitmapWithThemedLayer(
 /** Lawnicons contains monochrome art; ordinary colorful packs keep their unthemed artwork. */
 internal fun unthemedIconPackPackage(packageName: String): String = packageName.takeUnless { it == LAWNICONS_PACKAGE_NAME }.orEmpty()
 
+/** Android 13+ apps ship their own monochrome layer, so stock themed icons need no icon pack. */
+fun themedIconsSupported(sdkInt: Int, monochromePackInstalled: Boolean): Boolean =
+    sdkInt >= android.os.Build.VERSION_CODES.TIRAMISU || monochromePackInstalled
+
 internal fun themedIconSourcePackage(normalPack: String, themedPack: String): String = themedPack.ifEmpty { normalPack.takeIf { it == LAWNICONS_PACKAGE_NAME }.orEmpty() }
 
 /** Disable/re-enable and source changes must not reuse a previous source's monochrome map. */
