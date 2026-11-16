@@ -1,0 +1,2 @@
+Expressive Launcher 5.1.4 Hotfix 1
+• Themed icons: uninstalling an app no longer turns themed icons off when no icon pack is installed
