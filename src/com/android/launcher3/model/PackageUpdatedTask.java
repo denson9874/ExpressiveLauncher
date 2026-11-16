@@ -31,6 +31,7 @@ import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageManager;
 import android.content.pm.ShortcutInfo;
+import android.os.Build;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.Log;
@@ -70,6 +71,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import app.lawnchair.deck.LawndeckManager;
+import app.lawnchair.icons.ThemedIconLayerKt;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
@@ -175,7 +177,7 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                     if (packages[i].equals(pm.getThemedIconPackPackage().get())) {
                         pm.getThemedIconPackPackage().set("");
                     }
-                    final boolean isThemedIconsAvailable = context.getPackageManager()
+                    final boolean monochromePackInstalled = context.getPackageManager()
                             .queryIntentActivityOptions(
                                     new ComponentName(context.getApplicationInfo().packageName,
                                             context.getApplicationInfo().className),
@@ -183,9 +185,12 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                                     new Intent(context.getResources().getString(R.string.icon_packs_intent_name)),
                                     PackageManager.GET_RESOLVED_FILTER)
                             .stream().map(it -> it.activityInfo.packageName)
-                            .noneMatch(it -> new ApplicationInfoWrapper(context, it, mUser)
+                            .anyMatch(it -> new ApplicationInfoWrapper(context, it, mUser)
                                 .isInstalled());
-                    if (isThemedIconsAvailable) {
+                    // Android 13+ themes stock icons without a pack; only a lost last pack on
+                    // older releases may switch theming off (same policy as Launcher.onCreate).
+                    if (!ThemedIconLayerKt.themedIconsSupported(
+                            Build.VERSION.SDK_INT, monochromePackInstalled)) {
                         pm.getThemedIcons().set(false);
                     }
                 }
