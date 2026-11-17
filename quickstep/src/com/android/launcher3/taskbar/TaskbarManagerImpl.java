@@ -284,8 +284,8 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
     // screen). Check again once the IDP has the new profiles.
     private final InvariantDeviceProfile.OnIDPChangeListener mIdpChangeListener =
             modelPropertiesChanged -> {
-                TaskbarActivityContext taskbar = getTaskbarForDisplay(mPrimaryDisplayId);
-                DeviceProfile dp = getDeviceProfile(mPrimaryDisplayId);
+                TaskbarActivityContext taskbar = getTaskbarForDisplay(getPrimaryDisplayId());
+                DeviceProfile dp = getDeviceProfile(getPrimaryDisplayId());
                 if (taskbar == null || dp == null) {
                     return;
                 }
@@ -296,7 +296,7 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
                             + "profile, recreating. taskbar isPhone="
                             + taskbarDp.getDeviceProperties().isPhone()
                             + " new isPhone=" + dp.getDeviceProperties().isPhone());
-                    recreateTaskbarForDisplay(mPrimaryDisplayId, /* duration= */ 0);
+                    recreateTaskbarForDisplay(getPrimaryDisplayId(), /* duration= */ 0);
                 }
             };
 
