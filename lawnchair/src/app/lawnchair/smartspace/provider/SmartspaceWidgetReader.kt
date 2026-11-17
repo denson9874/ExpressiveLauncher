@@ -23,6 +23,8 @@ import app.lawnchair.util.Temperature
 import app.lawnchair.util.pendingIntent
 import com.android.launcher3.R
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
@@ -35,6 +37,11 @@ class SmartspaceWidgetReader(context: Context) :
     override val isAvailable: Boolean
 
     override val disabledTargets = listOf(dummyTarget)
+
+    private val _hasWeather = MutableStateFlow(false)
+
+    /** Whether the Google app's At a Glance widget showed a temperature in its latest update. */
+    val hasWeather: StateFlow<Boolean> = _hasWeather
     private val widget: HeadlessWidgetsManager.Widget?
     override val internalTargets: Flow<List<SmartspaceTarget>>
 
@@ -67,7 +74,10 @@ class SmartspaceWidgetReader(context: Context) :
         var subtitle: TextView? = null
         var subtitle2: TextView? = null
         var temperatureText: TextView? = null
-        if (texts.isEmpty()) return listOf(dummyTarget)
+        if (texts.isEmpty()) {
+            _hasWeather.value = false
+            return listOf(dummyTarget)
+        }
         if (images.isNotEmpty()) {
             weatherIconView = images.firstOrNull()
             temperatureText = texts.last()
@@ -91,7 +101,9 @@ class SmartspaceWidgetReader(context: Context) :
         subtitle: TextView?,
         subtitle2: TextView?,
     ): List<SmartspaceTarget> {
-        val weather = parseWeatherData(weatherIcon, temperature) ?: dummyTarget
+        val liveWeather = parseWeatherData(weatherIcon, temperature)
+        _hasWeather.value = liveWeather != null
+        val weather = liveWeather ?: dummyTarget
         val card = if (cardIcon != null && title != null && subtitle != null) {
             val pendingIntent = (title.parent.parent.parent as? View)?.pendingIntent
             val ttl = title.text.toString() + if (subtitle2 != null) subtitle.text.toString() else ""
@@ -127,7 +139,7 @@ class SmartspaceWidgetReader(context: Context) :
             component = WEATHER_COMPONENT
         }
         return SmartspaceTarget(
-            id = "smartspaceWidgetWeather",
+            id = WEATHER_TARGET_ID,
             headerAction = SmartspaceAction(
                 id = "smartspaceWidgetWeatherAction",
                 icon = weatherIcon?.let { Icon.createWithBitmap(it) },
@@ -164,8 +176,11 @@ class SmartspaceWidgetReader(context: Context) :
         private const val GSA_WEATHER = "com.google.android.apps.search.weather.WeatherExportedActivity"
         private val WEATHER_COMPONENT = ComponentName(GSA_PACKAGE, GSA_WEATHER)
 
+        const val WEATHER_TARGET_ID = "smartspaceWidgetWeather"
+        const val DUMMY_TARGET_ID = "dummyTarget"
+
         private val dummyTarget = SmartspaceTarget(
-            id = "dummyTarget",
+            id = DUMMY_TARGET_ID,
             featureType = SmartspaceTarget.FeatureType.FEATURE_WEATHER,
         )
 
