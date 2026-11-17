@@ -98,13 +98,19 @@ internal fun iconForMetSymbol(symbolCode: String?): FallbackWeatherIcon {
     val night = code.endsWith("_night")
     return when {
         "thunder" in code -> FallbackWeatherIcon.THUNDER
+
         "snow" in code -> FallbackWeatherIcon.SNOW
+
         "sleet" in code || "rain" in code -> FallbackWeatherIcon.RAIN
+
         "fog" in code -> FallbackWeatherIcon.FOG
+
         code.startsWith("clearsky") ->
             if (night) FallbackWeatherIcon.CLEAR_NIGHT else FallbackWeatherIcon.CLEAR_DAY
+
         code.startsWith("fair") || code.startsWith("partlycloudy") ->
             if (night) FallbackWeatherIcon.PARTLY_CLOUDY_NIGHT else FallbackWeatherIcon.PARTLY_CLOUDY_DAY
+
         else -> FallbackWeatherIcon.CLOUDY
     }
 }
@@ -117,9 +123,8 @@ internal fun roundCoordinate(value: Double): String = String.format(Locale.ROOT,
 
 private val FAHRENHEIT_COUNTRIES = setOf("US", "BS", "BZ", "KY", "LR", "PW", "FM", "MH")
 
-internal fun temperatureUnitFor(locale: Locale): Temperature.Unit =
-    if (locale.country.uppercase(Locale.ROOT) in FAHRENHEIT_COUNTRIES) {
-        Temperature.Unit.Fahrenheit
-    } else {
-        Temperature.Unit.Celsius
-    }
+internal fun temperatureUnitFor(locale: Locale): Temperature.Unit = if (locale.country.uppercase(Locale.ROOT) in FAHRENHEIT_COUNTRIES) {
+    Temperature.Unit.Fahrenheit
+} else {
+    Temperature.Unit.Celsius
+}
