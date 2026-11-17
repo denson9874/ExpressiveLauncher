@@ -296,6 +296,7 @@ class PreferenceManager2 @Inject constructor(
     val classicHotseatQsb = preference(
         key = booleanPreferencesKey(name = "classic_hotseat_qsb"),
         defaultValue = false,
+        onSet = { reloadHelper.recreate() },
     )
 
     val isHotseatEnabled = preference(
