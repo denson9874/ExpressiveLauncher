@@ -1,0 +1,2 @@
+Expressive Launcher 5.1.4 Hotfix 2
+• Search bar: tapping the Google search bar no longer crashes the launcher after the Google app updates

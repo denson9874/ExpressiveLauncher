@@ -170,7 +170,7 @@ final def expressiveApplicationId = providers.gradleProperty("expressiveApplicat
         .orElse(targetPlayStore ? "com.denson9874.Expressive_Launcher_L3" : "dev.launcher.expressive.l3")
         .get()
 final def expressiveVersionCodeText = providers.gradleProperty("expressiveVersionCode")
-        .orElse("77")
+        .orElse("78")
         .get()
 final def expressiveVersionName = providers.gradleProperty("expressiveVersionName")
         .orElse("5.1.4")
