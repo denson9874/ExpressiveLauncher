@@ -1,10 +1,10 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <!-- Four-point sparkle. -->
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <!-- Sparkle. -->
     <path
-        android:fillColor="#FBBC04"
-        android:pathData="M17.5,2.5 C17.85,4.7 18.8,5.65 21,6 C18.8,6.35 17.85,7.3 17.5,9.5 C17.15,7.3 16.2,6.35 14,6 C16.2,5.65 17.15,4.7 17.5,2.5 Z" />
+        android:fillColor="#FBBC05"
+        android:pathData="M740,400q-1,0-8-6q-16-61-60.5-105.5T566,228q-2-1-6-8q0-2 6-8q61-16 105.5-60.5T732,46q1-2 8-6q2,0 8,6q17,61 61,105.5T914,212q2,0 6,8q0,1-6,8q-61,16-105.5,60.5T748,394q0,2-8,6Z" />
 </vector>
