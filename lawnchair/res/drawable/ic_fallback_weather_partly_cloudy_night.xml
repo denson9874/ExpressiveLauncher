@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup weather icon for At a Glance. Drawn untinted, like the Google weather icon it stands in for. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFB4C5F5"
+        android:pathData="M9,2a6.5,6.5 0 1,0 6.5,6.5a4,4 0 0,1 -6.5,-6.5z" />
+    <path
+        android:fillColor="#FFC9D2DE"
+        android:pathData="M19.4,12a7.5,7.5 0 0,0 -14,-2a6,6 0 0,0 0.6,12h13a5,5 0 0,0 0.4,-10z" />
+</vector>

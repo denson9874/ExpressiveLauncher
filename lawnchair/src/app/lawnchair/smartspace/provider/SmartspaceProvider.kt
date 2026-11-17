@@ -41,8 +41,11 @@ class SmartspaceProvider @Inject constructor(
     private val glanceMessages = GlanceMessagesProvider(context)
 
     // Also the list of toggles on the At a Glance settings page, so a source left out here is hidden there.
+    private val widgetReader = SmartspaceWidgetReader(context)
+
     val dataSources = listOfNotNull(
-        SmartspaceWidgetReader(context),
+        widgetReader,
+        FallbackWeatherProvider(context, widgetReader.hasWeather),
         glanceMessages,
         BatteryStatusProvider(context),
         BluetoothBatteryProvider(context),
@@ -74,14 +77,14 @@ class SmartspaceProvider @Inject constructor(
                 it.targets
             }
             applyExpressiveSmartspaceTargetPolicy(
-                attachGlanceMessage(targets),
+                attachGlanceMessage(preferLiveWeather(targets)),
                 BuildConfig.IS_EXPRESSIVE_PRODUCT,
             )
         }
     val previewTargets = state
         .map {
             applyExpressiveSmartspaceTargetPolicy(
-                attachGlanceMessage(it.targets),
+                attachGlanceMessage(preferLiveWeather(it.targets)),
                 BuildConfig.IS_EXPRESSIVE_PRODUCT,
             )
         }
@@ -152,3 +155,18 @@ internal fun applyExpressiveSmartspaceTargetPolicy(
 }
 
 private const val EXPRESSIVE_DATE_SCORE = SmartspaceScores.SCORE_ONBOARDING + 1f
+
+/**
+ * Keeps one weather/date card. The Google app's live weather wins; the backup weather is shown only
+ * when it is missing, and then replaces the date-only placeholder so the date is not shown twice.
+ */
+internal fun preferLiveWeather(targets: List<SmartspaceTarget>): List<SmartspaceTarget> {
+    if (targets.none { it.id == FallbackWeatherProvider.TARGET_ID }) return targets
+    val hasLiveWeather = targets.any { it.id == SmartspaceWidgetReader.WEATHER_TARGET_ID }
+    val dropped = if (hasLiveWeather) {
+        FallbackWeatherProvider.TARGET_ID
+    } else {
+        SmartspaceWidgetReader.DUMMY_TARGET_ID
+    }
+    return targets.filterNot { it.id == dropped }
+}

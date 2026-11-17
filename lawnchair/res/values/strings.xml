@@ -599,6 +599,8 @@
 
     <!-- Available targets -->
     <string name="smartspace_weather">Weather</string>
+    <string name="smartspace_fallback_weather">Backup weather</string>
+    <string name="smartspace_fallback_weather_description">Shows weather from MET Norway when Google has none. Uses your approximate location.</string>
     <string name="smartspace_battery_status">Battery status</string>
     <string name="smartspace_torch">Flashlight status</string>
     <string name="smartspace_now_playing">Now playing</string>

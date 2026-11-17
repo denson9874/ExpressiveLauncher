@@ -277,6 +277,29 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
         }
     }
 
+    // LC: LawnchairWindowManagerProxy only reports the bounds of the screen that is active, so on
+    // a foldable the IDP rebuilds its supported profiles on every fold and unfold. When our
+    // configuration callback runs before that rebuild, getDeviceProfile() can only match the
+    // profiles of the screen we just left (e.g. the inner screen's tablet profile on the cover
+    // screen). Check again once the IDP has the new profiles.
+    private final InvariantDeviceProfile.OnIDPChangeListener mIdpChangeListener =
+            modelPropertiesChanged -> {
+                TaskbarActivityContext taskbar = getTaskbarForDisplay(getPrimaryDisplayId());
+                DeviceProfile dp = getDeviceProfile(getPrimaryDisplayId());
+                if (taskbar == null || dp == null) {
+                    return;
+                }
+                DeviceProfile taskbarDp = taskbar.getDeviceProfile();
+                if (taskbarDp.getDeviceProperties().isPhone() != dp.getDeviceProperties().isPhone()
+                        || taskbarDp.isTaskbarPresent != dp.isTaskbarPresent) {
+                    debugPrimaryTaskbar("onIdpChanged: taskbar was built for another screen's "
+                            + "profile, recreating. taskbar isPhone="
+                            + taskbarDp.getDeviceProperties().isPhone()
+                            + " new isPhone=" + dp.getDeviceProperties().isPhone());
+                    recreateTaskbarForDisplay(getPrimaryDisplayId(), /* duration= */ 0);
+                }
+            };
+
     private final SettingsCache.OnChangeListener mOnSettingsChangeListener = c -> {
         debugPrimaryTaskbar("Settings changed! Recreating Taskbar!");
         recreateTaskbars();
@@ -655,6 +678,11 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
         debugPrimaryTaskbar("onUserUnlocked");
         mUserUnlocked = true;
         addRecreationListener(mPrimaryDisplayId);
+        InvariantDeviceProfile idp = LauncherAppState.getIDP(mPrimaryWindowContext);
+        if (idp != null) {
+            idp.removeOnChangeListener(mIdpChangeListener);
+            idp.addOnChangeListener(mIdpChangeListener);
+        }
         debugPrimaryTaskbar("onUserUnlocked: recreating all taskbars!");
         // Create DPs for all connected displays if required.
         for (int i = 0; i < mWindowContexts.size(); i++) {
@@ -1176,6 +1204,12 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
         }
 
         removeRecreationListener(mPrimaryDisplayId);
+        if (mUserUnlocked) {
+            InvariantDeviceProfile idp = LauncherAppState.getIDP(mPrimaryWindowContext);
+            if (idp != null) {
+                idp.removeOnChangeListener(mIdpChangeListener);
+            }
+        }
 
         if (LawnchairApp.isRecentsEnabled()) {
             SettingsCache.INSTANCE.get(mPrimaryWindowContext)

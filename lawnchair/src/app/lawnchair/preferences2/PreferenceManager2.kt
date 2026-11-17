@@ -819,6 +819,11 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = true,
     )
 
+    val smartspaceFallbackWeather = preference(
+        key = booleanPreferencesKey("enable_smartspace_fallback_weather"),
+        defaultValue = false,
+    )
+
     val smartspaceBatteryStatus = preference(
         key = booleanPreferencesKey("enable_smartspace_battery_status"),
         defaultValue = true,
