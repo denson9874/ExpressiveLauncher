@@ -879,6 +879,8 @@
     <string name="qsb_hotseat_background_transparency">Background opacity</string>
     <string name="qsb_hotseat_stroke_width">Outline width</string>
     <string name="qsb_hotseat_stroke_color">Outline color</string>
+    <string name="qsb_hotseat_classic_label">Classic style</string>
+    <string name="qsb_hotseat_classic_description">Tinted frame around the search bar, with a separate AI Mode button for Google</string>
     <string name="corner_radius_label">Corner radius</string>
     <string name="apply_accent_color_label">Apply accent color</string>
     <string name="search_provider">Search provider</string>
@@ -952,6 +954,7 @@
     <string name="label_search">Search</string>
     <string name="label_lens">Google Lens</string>
     <string name="label_voice_search">Voice Search</string>
+    <string name="label_ai_mode">AI Mode</string>
 
     <!-- App drawer settings -->
     <string name="hidden_apps_label">Hidden apps</string>

@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <!-- Magnifier. -->
+    <path
+        android:fillColor="#4285F4"
+        android:pathData="M784,840L534,590q-34,25-73,37.5T380,640q-109,0-184.5-75.5T120,380t75.5-184.5T380,120q29,0 57,6.5T491,145l-40,70q-17-8-35-11.5T380,200q-75,0-127.5,52.5T200,380t52.5,127.5T380,560q69,0 120-45.5T559,400h80q-3,36-15,70.5T590,534L840,784l-56,56Z" />
+</vector>

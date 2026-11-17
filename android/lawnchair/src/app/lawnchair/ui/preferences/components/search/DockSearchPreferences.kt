@@ -38,6 +38,7 @@ import app.lawnchair.qsb.getHotseatBackgroundColor
 import app.lawnchair.qsb.providers.Google
 import app.lawnchair.qsb.providers.PixelSearch
 import app.lawnchair.qsb.providers.QsbSearchProvider
+import app.lawnchair.qsb.rememberClassicQsbStyle
 import app.lawnchair.qsb.rememberHotseatQsbState
 import app.lawnchair.theme.UiColorMode
 import app.lawnchair.theme.color.ColorOption
@@ -67,6 +68,7 @@ fun DockSearchPreference(
     val isHotseatEnabled = prefs2.isHotseatEnabled.getAdapter()
     val hotseatModeAdapter = prefs2.hotseatMode.getAdapter()
     val themeQsbAdapter = prefs2.themedHotseatQsb.getAdapter()
+    val classicQsbAdapter = prefs2.classicHotseatQsb.getAdapter()
     val qsbCornerAdapter = prefs.hotseatQsbCornerRadius.getAdapter()
     val qsbAlphaAdapter = prefs.hotseatQsbAlpha.getAdapter()
     val qsbHotseatStrokeWidth = prefs.hotseatQsbStrokeWidth.getAdapter()
@@ -87,6 +89,7 @@ fun DockSearchPreference(
                         DockSearchBarPreview(
                             provider = hotseatQsbProviderAdapter,
                             themed = themeQsbAdapter.state.value,
+                            classic = isLawnchairHotseat && classicQsbAdapter.state.value,
                             cornerRadiusFactor = qsbCornerAdapter.state.value,
                             transparency = qsbAlphaAdapter.state.value,
                             strokeWidth = qsbHotseatStrokeWidth.state.value,
@@ -112,6 +115,11 @@ fun DockSearchPreference(
                         PreferenceGroup(
                             heading = stringResource(R.string.style),
                         ) {
+                            SwitchPreference(
+                                adapter = classicQsbAdapter,
+                                label = stringResource(id = R.string.qsb_hotseat_classic_label),
+                                description = stringResource(id = R.string.qsb_hotseat_classic_description),
+                            )
                             SwitchPreference(
                                 adapter = themeQsbAdapter,
                                 label = stringResource(id = R.string.apply_accent_color_label),
@@ -173,6 +181,7 @@ fun DockSearchPreference(
 private fun DockSearchBarPreview(
     provider: QsbSearchProvider,
     themed: Boolean,
+    classic: Boolean,
     cornerRadiusFactor: Float,
     transparency: Int,
     strokeWidth: Float,
@@ -187,6 +196,9 @@ private fun DockSearchBarPreview(
     }
     val lensIntent = remember(supportsLens, context) {
         if (supportsLens) LawnQsbLayout.getLensIntent(context) else null
+    }
+    val hasAiMode = remember(supportsLens, context) {
+        supportsLens && LawnQsbLayout.getAiModeIntent(context) != null
     }
 
     PreferenceGroup(
@@ -225,6 +237,11 @@ private fun DockSearchBarPreview(
                 actions = QsbActions(
                     onQsbClick = {},
                     onEndIconClick = {},
+                ),
+                classic = rememberClassicQsbStyle(
+                    enabled = classic,
+                    themed = themed,
+                    onAiModeClick = if (hasAiMode) ({}) else null,
                 ),
                 modifier = Modifier.height(48.dp),
             )

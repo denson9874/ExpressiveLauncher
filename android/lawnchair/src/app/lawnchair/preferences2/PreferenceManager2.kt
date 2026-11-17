@@ -293,6 +293,12 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = context.resources.getBoolean(R.bool.config_default_themed_hotseat_qsb),
     )
 
+    val classicHotseatQsb = preference(
+        key = booleanPreferencesKey(name = "classic_hotseat_qsb"),
+        defaultValue = false,
+        onSet = { reloadHelper.recreate() },
+    )
+
     val isHotseatEnabled = preference(
         key = booleanPreferencesKey(name = "pref_show_hotseat"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_show_hotseat),
