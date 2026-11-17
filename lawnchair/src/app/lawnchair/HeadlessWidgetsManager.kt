@@ -44,11 +44,12 @@ class HeadlessWidgetsManager @Inject constructor(
     }
 
     fun getWidget(info: AppWidgetProviderInfo, prefKey: String): Widget {
-        val widget = widgetsMap.getOrPut(prefKey) { Widget(info, prefKey) }
-        check(info.provider == widget.info.provider) {
-            "widget $prefKey was created with a different provider"
-        }
-        return widget
+        val cached = widgetsMap[prefKey]
+        if (cached != null && cached.info.provider == info.provider) return cached
+        // The provider can change while the launcher runs (a Google app update, or its search
+        // box widget briefly missing so another of its widgets is picked). Rebind under the new
+        // provider; Widget.bind() deletes the old ID because it no longer matches.
+        return Widget(info, prefKey).also { widgetsMap[prefKey] = it }
     }
 
     fun subscribeUpdates(info: AppWidgetProviderInfo, prefKey: String): Flow<AppWidgetHostView> {

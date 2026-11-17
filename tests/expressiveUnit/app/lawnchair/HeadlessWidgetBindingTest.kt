@@ -180,6 +180,27 @@ class HeadlessWidgetBindingTest {
         }
     }
 
+    @Test
+    fun providerChangedWhileRunning_rebindsInsteadOfCrashing() {
+        allowBinding = true
+        val first = manager.getWidget(info, PREF_KEY)
+        val firstId = LauncherPrefs.getDevicePrefs(context).getInt(PREF_KEY, -1)
+        val newInfo = AppWidgetProviderInfo().apply {
+            provider = ComponentName("com.google.android.googlequicksearchbox", "SearchWidgetProvider")
+            ReflectionHelpers.setField(this, "providerInfo", info.providerInfo)
+        }
+
+        val second = manager.getWidget(newInfo, PREF_KEY)
+
+        assertThat(second).isNotSameInstanceAs(first)
+        assertThat(second.isBound).isTrue()
+        val secondId = LauncherPrefs.getDevicePrefs(context).getInt(PREF_KEY, -1)
+        assertThat(secondId).isNotEqualTo(firstId)
+        assertThat(boundWidgets[secondId]?.provider).isEqualTo(newInfo.provider)
+        assertThat(deletedIds).contains(firstId)
+        assertThat(manager.getWidget(newInfo, PREF_KEY)).isSameInstanceAs(second)
+    }
+
     @Implements(AppWidgetHost::class)
     class RecordingWidgetHost : ShadowAppWidgetHost() {
         @Implementation
