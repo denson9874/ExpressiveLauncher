@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
 import android.graphics.RectF
+import android.net.Uri
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewTreeObserver
@@ -238,6 +239,18 @@ class LawnQsbLayout(context: Context, attrs: AttributeSet?) : FrameLayout(contex
                             if (supportsLens) getLensIntent(context) else null
                         }
 
+                        val classicEnabled by prefs2.classicHotseatQsb.asState()
+                        val aiModeIntent = remember(supportsLens, context) {
+                            if (supportsLens) getAiModeIntent(context) else null
+                        }
+                        val classic = rememberClassicQsbStyle(
+                            enabled = classicEnabled,
+                            themed = themed,
+                            onAiModeClick = aiModeIntent?.let { intent ->
+                                { startActivitySafely(context, intent) }
+                            },
+                        )
+
                         val state = rememberHotseatQsbState(
                             searchProvider = searchProvider,
                             themed = themed,
@@ -287,6 +300,7 @@ class LawnQsbLayout(context: Context, attrs: AttributeSet?) : FrameLayout(contex
                             state = state,
                             style = style,
                             actions = actions,
+                            classic = classic,
                         )
                     }
                 }
@@ -389,6 +403,8 @@ class LawnQsbLayout(context: Context, attrs: AttributeSet?) : FrameLayout(contex
     }
 
     companion object {
+        private const val GOOGLE_APP_PACKAGE = "com.google.android.googlequicksearchbox"
+        private const val AI_MODE_URL = "https://www.google.com/search?udm=50"
         private const val LENS_PACKAGE = "com.google.ar.lens"
         private const val LENS_ACTIVITY = "com.google.vr.apps.ornament.app.lens.LensLauncherActivity"
 
@@ -411,6 +427,25 @@ class LawnQsbLayout(context: Context, attrs: AttributeSet?) : FrameLayout(contex
             if (context.packageManager.resolveActivity(lensIntent, 0) == null) return null
 
             return lensIntent
+        }
+
+        /**
+         * Google's AI Mode is the search results page with udm=50. The Google app handles the link
+         * when it is installed; otherwise any browser does. Null when nothing can open it.
+         */
+        fun getAiModeIntent(context: Context): Intent? {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AI_MODE_URL))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val googleIntent = Intent(intent).setPackage(GOOGLE_APP_PACKAGE)
+            return when {
+                resolveIntent(context, googleIntent) -> googleIntent
+                resolveIntent(context, intent) -> intent
+                else -> null
+            }
+        }
+
+        private fun startActivitySafely(context: Context, intent: Intent) {
+            runCatching { context.startActivity(intent) }
         }
 
         fun getSearchProvider(

@@ -222,6 +222,7 @@ fun ColumnScope.DockPreferencesPreview(modifier: Modifier = Modifier) {
             hotseatRows.getAdapter(),
             dockPages.getAdapter(),
             prefs2.themedHotseatQsb.getAdapter(),
+            prefs2.classicHotseatQsb.getAdapter(),
             prefs.hotseatQsbCornerRadius.getAdapter(),
             prefs.hotseatQsbAlpha.getAdapter(),
             prefs.hotseatQsbStrokeWidth.getAdapter(),

@@ -14,9 +14,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.lawnchair.qsb.providers.Google
 import app.lawnchair.qsb.providers.GoogleGo
@@ -63,6 +66,7 @@ enum class QsbIconId {
     MIC,
     LENS,
     CLEAR,
+    AI_MODE,
 }
 
 /**
@@ -135,6 +139,31 @@ data class QsbActions(
     val onStartIconClick: (() -> Unit)? = null,
     val onEndIconClick: ((id: QsbIconId) -> Unit),
 )
+
+/**
+ * The optional "Classic" look of the dock search bar: the pill sits inside a tinted, rounded frame
+ * and a separate round button sits to the right of the pill.
+ *
+ * @property frameColor The color of the frame drawn around the pill and the button.
+ * @property button The icon of the separate button, or null when there is nothing for it to open.
+ * @property onButtonClick Callback invoked when the separate button is clicked.
+ */
+@Immutable
+data class QsbClassicStyle(
+    @param:ColorInt val frameColor: Int,
+    val button: QsbIconState? = null,
+    val onButtonClick: (() -> Unit)? = null,
+)
+
+/** Space between the Classic frame and the pill, and between the pill and the button. */
+internal val QsbClassicFrameInset = 5.dp
+
+/**
+ * The pill inside the Classic frame keeps the same centre of curvature as the frame, so its radius
+ * is the frame's radius less the inset, and never negative.
+ */
+internal fun classicInnerCornerRadiusPx(frameCornerRadiusPx: Float, insetPx: Float): Float =
+    (frameCornerRadiusPx - insetPx).coerceAtLeast(0f)
 
 /**
  * Builds a [QsbStyle] instance based on the provided parameters.
@@ -219,6 +248,42 @@ fun rememberHotseatQsbState(
                     visible = showLens,
                 ),
             ),
+        )
+    }
+}
+
+/**
+ * Creates and remembers the [QsbClassicStyle] for the dock search bar, or null when the Classic
+ * look is switched off.
+ *
+ * @param enabled Whether the Classic look is selected.
+ * @param themed Whether the button icon follows the accent color like the other icons.
+ * @param onAiModeClick Opens the provider's AI search, or null when the provider has none; the
+ * separate button is then left out.
+ */
+@Composable
+fun rememberClassicQsbStyle(
+    enabled: Boolean,
+    themed: Boolean,
+    onAiModeClick: (() -> Unit)?,
+): QsbClassicStyle? {
+    if (!enabled) return null
+    val frameColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
+    val aiModeLabel = stringResource(R.string.label_ai_mode)
+
+    return remember(frameColor, themed, onAiModeClick, aiModeLabel) {
+        QsbClassicStyle(
+            frameColor = frameColor,
+            button = onAiModeClick?.let {
+                QsbIconState(
+                    id = QsbIconId.AI_MODE,
+                    resId = R.drawable.ic_qsb_ai_search,
+                    themed = themed,
+                    method = ThemingMethod.THEME_BY_LAYER_ID,
+                    contentDescription = aiModeLabel,
+                )
+            },
+            onButtonClick = onAiModeClick,
         )
     }
 }
@@ -335,15 +400,101 @@ fun LawnQsbUi(
     style: QsbStyle,
     actions: QsbActions,
     modifier: Modifier = Modifier,
+    classic: QsbClassicStyle? = null,
 ) {
     val density = LocalDensity.current
 
-    val cornerRadius = with(density) { style.cornerRadiusPx.toDp() }
+    if (classic == null) {
+        QsbPill(
+            state = state,
+            style = style,
+            actions = actions,
+            cornerRadius = with(density) { style.cornerRadiusPx.toDp() },
+            modifier = modifier.fillMaxWidth(),
+        )
+        return
+    }
+
+    val inset = QsbClassicFrameInset
+    val frameShape = RoundedCornerShape(with(density) { style.cornerRadiusPx.toDp() })
+    val innerCornerRadius = with(density) {
+        classicInnerCornerRadiusPx(style.cornerRadiusPx, inset.toPx()).toDp()
+    }
+    val innerShape = RoundedCornerShape(innerCornerRadius)
+    val fillColor = ComposeColor(style.backgroundColor).copy(alpha = style.backgroundAlpha)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(frameShape)
+            .background(ComposeColor(classic.frameColor).copy(alpha = style.backgroundAlpha), frameShape)
+            .padding(inset),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(inset),
+    ) {
+        QsbPill(
+            state = state,
+            style = style,
+            actions = actions,
+            cornerRadius = innerCornerRadius,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+
+        val button = classic.button
+        if (button != null && button.visible && classic.onButtonClick != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(1f)
+                    .clip(innerShape)
+                    .background(fillColor, innerShape)
+                    .qsbClickable(
+                        onClick = classic.onButtonClick,
+                        shape = innerShape,
+                    )
+                    .addIf(style.strokeWidthPx > 0f) {
+                        border(
+                            with(density) { style.strokeWidthPx.toDp() },
+                            ComposeColor(style.strokeColor),
+                            innerShape,
+                        )
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = rememberThemedIconPainter(
+                        resId = button.resId,
+                        themed = button.themed,
+                        method = button.method,
+                    ),
+                    contentDescription = button.contentDescription,
+                    tint = ComposeColor.Unspecified,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The search pill itself: provider logo at the start, action icons at the end.
+ */
+@Composable
+private fun QsbPill(
+    state: QsbState,
+    style: QsbStyle,
+    actions: QsbActions,
+    cornerRadius: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+
     val strokeWidth = with(density) { style.strokeWidthPx.toDp() }
     val shape = RoundedCornerShape(cornerRadius)
 
     val containerModifier = modifier
-        .fillMaxWidth()
         .semantics { contentDescription = state.contentDescription }
         .clip(shape)
         .background(ComposeColor(style.backgroundColor).copy(alpha = style.backgroundAlpha), shape)
