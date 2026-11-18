@@ -16,6 +16,7 @@
 
 package app.lawnchair.ui.preferences.destinations
 
+import android.app.Activity
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -38,8 +39,10 @@ import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.ui.OverflowMenuGrouped
 import app.lawnchair.ui.preferences.LocalIsExpandedScreen
+import app.lawnchair.ui.preferences.LocalNavController
 import app.lawnchair.ui.preferences.components.AppItem
 import app.lawnchair.ui.preferences.components.AppItemPlaceholder
+import app.lawnchair.ui.preferences.components.DeviceCredentialGate
 import app.lawnchair.ui.preferences.components.layout.PreferenceLazyColumn
 import app.lawnchair.ui.preferences.components.layout.PreferenceScaffold
 import app.lawnchair.ui.preferences.components.layout.preferenceGroupItems
@@ -54,6 +57,21 @@ import java.util.Comparator.comparing
 
 @Composable
 fun HiddenAppsPreferences(
+    modifier: Modifier = Modifier,
+) {
+    // Anyone holding the unlocked phone could otherwise see and unhide hidden apps.
+    val navController = LocalNavController.current
+    val activity = LocalContext.current as? Activity
+    DeviceCredentialGate(
+        title = stringResource(id = R.string.hidden_apps_label),
+        onCancel = { if (!navController.popBackStack()) activity?.finish() },
+    ) {
+        HiddenAppsList(modifier)
+    }
+}
+
+@Composable
+private fun HiddenAppsList(
     modifier: Modifier = Modifier,
 ) {
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
