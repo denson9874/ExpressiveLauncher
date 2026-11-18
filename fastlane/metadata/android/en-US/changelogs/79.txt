@@ -1,0 +1,6 @@
+Expressive Launcher 5.1.5
+• App drawer: sort apps alphabetically, newest installed first, or most used first (App drawer > Sort apps)
+• Hidden apps: asks for your fingerprint, face or screen lock before showing the list
+• Wallpaper: scroll across the whole wallpaper with 2 or 3 pages, and center it when you have a single page
+• At a Glance: optional backup weather when Google's At a Glance has none
+• Foldables: the right navigation bar and taskbar after folding, without restarting the launcher
