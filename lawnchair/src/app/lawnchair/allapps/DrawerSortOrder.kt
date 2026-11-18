@@ -39,7 +39,7 @@ fun drawerComparator(order: DrawerSortOrder, byName: Comparator<AppInfo>, ranks:
 class DrawerSortRanks(private val context: Context) {
     private val installTimes = HashMap<String, Long>()
     private var usage: Map<String, Long> = emptyMap()
-    private var usageReadAt = Long.MIN_VALUE
+    private var usageReadAt: Long? = null
 
     fun forOrder(order: DrawerSortOrder, apps: Array<AppInfo>): Map<String, Long> = when (order) {
         DrawerSortOrder.ALPHABETICAL -> emptyMap()
@@ -64,12 +64,14 @@ class DrawerSortRanks(private val context: Context) {
     /** Foreground time over the last 30 days; empty without usage access, so the order stays alphabetical. */
     private fun usage(): Map<String, Long> {
         val now = SystemClock.elapsedRealtime()
-        if (now - usageReadAt < USAGE_TTL_MS) return usage
+        val readAt = usageReadAt
+        if (readAt != null && now - readAt < USAGE_TTL_MS) return usage
         usageReadAt = now
         usage = try {
             val manager = context.getSystemService(UsageStatsManager::class.java)
             val end = System.currentTimeMillis()
             manager?.queryAndAggregateUsageStats(end - USAGE_WINDOW_MS, end)
+                ?.filterKeys { it != context.packageName } // Time on Home would rank our own icons first.
                 ?.mapValues { it.value.totalTimeInForeground }
                 .orEmpty()
         } catch (e: SecurityException) {

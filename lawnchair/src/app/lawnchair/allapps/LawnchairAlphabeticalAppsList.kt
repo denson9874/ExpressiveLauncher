@@ -70,6 +70,11 @@ class LawnchairAlphabeticalAppsList<T>(
         observeFolders()
     }
 
+    // Usage changes while you're in other apps; re-sort on returning Home (usage is reread at most once a minute).
+    override fun onResume(owner: LifecycleOwner) {
+        if (sortOrder == DrawerSortOrder.MOST_USED) onAppsUpdated()
+    }
+
     override fun onDestroy(owner: LifecycleOwner) {
         context.launcher.deviceProfile.inv.removeOnChangeListener(this)
     }
