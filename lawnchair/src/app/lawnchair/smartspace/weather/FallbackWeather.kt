@@ -123,8 +123,19 @@ internal fun roundCoordinate(value: Double): String = String.format(Locale.ROOT,
 
 private val FAHRENHEIT_COUNTRIES = setOf("US", "BS", "BZ", "KY", "LR", "PW", "FM", "MH")
 
-internal fun temperatureUnitFor(locale: Locale): Temperature.Unit = if (locale.country.uppercase(Locale.ROOT) in FAHRENHEIT_COUNTRIES) {
-    Temperature.Unit.Fahrenheit
-} else {
-    Temperature.Unit.Celsius
+/**
+ * Android's regional preference for temperature (Settings > System > Languages > Regional
+ * preferences) arrives as the locale's "mu" extension, as in en-US-u-mu-celsius. It wins over
+ * the country's habit.
+ */
+internal fun temperatureUnitFor(locale: Locale): Temperature.Unit = when (locale.getUnicodeLocaleType("mu")?.lowercase(Locale.ROOT)) {
+    "celsius" -> Temperature.Unit.Celsius
+
+    "fahrenhe" -> Temperature.Unit.Fahrenheit
+
+    else -> if (locale.country.uppercase(Locale.ROOT) in FAHRENHEIT_COUNTRIES) {
+        Temperature.Unit.Fahrenheit
+    } else {
+        Temperature.Unit.Celsius
+    }
 }
