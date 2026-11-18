@@ -1,42 +1,37 @@
-<b>Expressive Launcher 5.1.5 (Build 79) — Your Drawer, Your Order</b>
+<b>Expressive Launcher 5.1.7 (Build 80) — Your Photo, Your Icon</b>
 
-5.1.5 lets you choose how the app drawer is sorted, puts a lock on Hidden apps, and gives you more control over how the wallpaper scrolls. At a Glance can now fall back to backup weather, and foldables get the right navigation bar after folding.
+5.1.7 lets you turn any picture into an app icon, hide the small app badge on shortcut icons, and open Google's Create My Widget from the widget picker. Backup weather now shows the temperature unit you chose on your phone.
 
 ───────────────────────
 
 <b>✨ What's New &amp; Improved</b>
 
-<b>1. 🔤 Sort the app drawer your way</b>
-• <b>Before</b>: the app drawer was always alphabetical.
-• <b>Now</b>: Settings &gt; App drawer &gt; Sort apps offers <b>Alphabetical</b>, <b>Newest installed first</b> and <b>Most used first</b>. Most used ranks apps by their time on screen over the last 30 days and updates when you return Home. It needs Usage access, and the launcher asks for it when you pick that option. Apps with no ranking stay alphabetical below the rest.
+<b>1. 🖼️ Make an app icon from your own image</b>
+• <b>Before</b>: the icon picker only offered icons from icon packs.
+• <b>Now</b>: pick <b>From an image</b> in the icon picker, choose a photo with Android's photo picker (no storage permission needed), then drag and pinch to frame a square. The icon takes your icon shape and keeps working after the photo is deleted. Layout backups carry your image icons. This is a Pro feature, like the other custom icons.
 
-<b>2. 🔒 Hidden apps stay hidden</b>
-• <b>Before</b>: anyone holding your unlocked phone could open Settings &gt; App drawer &gt; Hidden apps and see what you hid.
-• <b>Now</b>: the page asks for your fingerprint, face or screen lock first, and asks again each time you open it. Phones without a screen lock open it straight away. Hidden apps is a Pro feature.
+<b>2. 🔘 Hide the app badge on shortcut icons</b>
+• <b>Before</b>: shortcuts an app adds to Home always carried a small round icon of that app.
+• <b>Now</b>: turn off <b>Show app badge on shortcuts</b> in Settings &gt; Icons &amp; appearance to remove it from pinned shortcuts, the long-press list and the drag preview. It applies at once and is on by default.
 
-<b>3. 🖼️ More wallpaper control</b>
-• <b>Scroll across the whole wallpaper</b>: with 2 or 3 home screen pages, swiping now moves from one edge of the wallpaper to the other, instead of stopping partway. Settings &gt; Home screen &gt; Wallpaper, shown while Wallpaper scrolling is on.
-• <b>Center wallpaper on one page</b>: with a single home screen page, show the middle of the wallpaper instead of its left edge.
-• Both are off by default.
+<b>3. 🌡️ Backup weather in your temperature unit</b>
+• <b>Before</b>: Backup weather picked Fahrenheit or Celsius from the phone's country alone, so a phone set to English (United States) showed Fahrenheit even with Celsius chosen.
+• <b>Now</b>: it follows the temperature you chose under Settings &gt; System &gt; Languages &gt; Regional preferences, and only falls back to the country's habit when you chose none.
 
-<b>4. 🌦️ Backup weather for At a Glance</b>
-• <b>Before</b>: when Google's At a Glance stopped showing weather, the date card had none.
-• <b>Now</b>: turn on <b>Backup weather</b> (At a Glance &gt; What to show) to show current conditions from MET Norway while Google has none. It uses your approximate location, rounded before it leaves the phone, and Google's weather takes over again as soon as it's back. Off by default.
-
-<b>5. 📱 Foldables: the right bars after folding</b>
-• <b>Before</b>: folding a foldable could leave the cover screen with the inner screen's layout: no phone navigation bar on Home and a large taskbar inside apps, until the launcher restarted.
-• <b>Now</b>: the launcher checks the screen layout again after a fold and rebuilds the navigation bar and taskbar to match.
+<b>4. 🧩 Create My Widget from the widget picker</b>
+• <b>Before</b>: the widget picker had no way into Google's Create My Widget.
+• <b>Now</b>: on Pixels that have Create My Widget, a <b>Create</b> button sits at the top of the widget picker. Build your widget there and it is added to Home when you finish. The button only shows when the phone has an app that offers it.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>🔤 <i>Your app drawer finally knows who its favourites are. Don't tell the calculator.</i></blockquote>
+<blockquote>🖼️ <i>Your cat can finally be the icon for the camera app. It was always in charge of it anyway.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Inspiration</b>: the drawer sorting, Hidden apps lock and wallpaper options were inspired by features in DerpLauncher (DerpFest).
+• <b>Thanks</b>: the Celsius report came from a tester in our Telegram group, a day after Backup weather shipped.
 • <b>Validation</b>: see Verification &amp; Technical Details below.
 • <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 purchase. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
 
@@ -44,25 +39,21 @@
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I remember which apps you open most, but I never tell anyone else. Where am I?</i></blockquote>
+<blockquote><i>I was a photo this morning and a doorway to an app by lunch. What am I?</i></blockquote>
 
-<tg-spoiler><b>At the top of your app drawer!</b> Pick Most used first in 5.1.5 and your favourites come first. 🔤</tg-spoiler>
+<tg-spoiler><b>Your new app icon!</b> Pick From an image in the icon picker in 5.1.7. 🖼️</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Technical Details</b>
-• <b>Launcher Version</b>: <code>5.1.5</code> (Build <code>79</code>), QA channel
-• <b>Source revision</b>: <code>d8224f98d142c267ea0f33425acafc2d9954a964</code>
-• <b>APK SHA-256</b>: <code>907a5f760ebad05bed57b71e26ffd387511d8ac5df421795cdf3effe7110d037</code>
-• <b>Validation</b>: Jenkins QA build #34 passed 701 unit tests and its automated device checks on the pinned Android 17 emulator, including an upgrade over 5.1.4 (78) with the same signing key. Expressive Core passed the same checks. Drawer sorting, the Hidden apps lock and both wallpaper options were checked by hand on an Android 17 emulator, including Most used re-sorting after time in another app and the lock asking again on re-entry.
+• <b>Launcher Version</b>: <code>5.1.7</code> (Build <code>80</code>), QA channel
+• <b>Source revision</b>: <code>4c8dc97ca6281cb2d68c977f88f96844c95a5398</code>
+• <b>APK SHA-256</b>: <code>3f1881268c667ec2771eeb9bc1976307471e23a1a0808581c041e0950e89ab6b</code>
+• <b>Validation</b>: Jenkins QA build #36 passed 705 unit tests and its automated device checks on the pinned Android 17 emulator, including an upgrade over 5.1.5 (79) with the same signing key. Expressive Core passed the same checks. The Create button was checked by hand on a Pixel 11 Pro XL, where it opened Create My Widget and the finished widget was added to Home. Backup weather in Celsius is covered by a unit test and has not been checked on a phone yet.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
 🔗 <b>Links &amp; Downloads</b>:
-• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.5-79">Expressive Launcher 5.1.5 on GitHub</a>
+• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.7-80">Expressive Launcher 5.1.7 on GitHub</a>
 • <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
-• <b>Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
-• <b>Announcements Channel</b>: <a href="https://t.me/ExpressiveGroup">@ExpressiveGroup</a>
-
-Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
