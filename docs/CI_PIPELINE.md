@@ -92,9 +92,9 @@ A new isolated `Expressive_CI_*` emulator validates same-signer upgrade, retaine
 warm/cold launch, drawer/search/date flows and clean launcher crash/ANR logs. Existing AVDs remain intact.
 The source-controlled template is `Pixel_8_Pro_Android_17_QPR2` (re-pinned 2026-10-20 after the
 Mac was rebuilt; Google no longer offers the Beta 5 revision 5 image the old template used). It uses
-`system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a` revision 6 from the SDK at
+`system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a` revision 7 from the SDK at
 `~/Library/Android/sdk`, with expected emulator build `CP41.260831.015`, full SDK `37.2` and security
-patch `2026-09-05`, verified by a cold boot with host GPU. Create the template with
+patch `2026-10-05`, verified by a cold boot with host GPU. Create the template with
 `avdmanager create avd -n Pixel_8_Pro_Android_17_QPR2 -k "system-images;android-37.2;google_apis_playstore_ps16k;arm64-v8a" -d pixel_8_pro`.
 Update these pins deliberately after verifying any newer public QPR reference, before building a new
 candidate.
