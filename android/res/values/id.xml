@@ -104,5 +104,6 @@
     <!-- LC: Fix build issues -->
     <item type="id" name="left_indicator_arrow"/>
     <item type="id" name="right_indicator_arrow"/>
+    <item type="id" name="widget_picker_create_button" />
 
 </resources>
