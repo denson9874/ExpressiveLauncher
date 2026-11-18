@@ -1,40 +1,42 @@
-<b>Expressive Launcher 5.1.4 (Build 76) — Color Without the Pack</b>
+<b>Expressive Launcher 5.1.5 (Build 79) — Your Drawer, Your Order</b>
 
-5.1.4 brings Monet-coloured stock icons to everyone on Android 13 and newer, no icon pack required. It also stops the launcher from undoing two choices you made elsewhere (a hidden status bar clock and your default Home app) and fixes a crash when folding a foldable.
+5.1.5 lets you choose how the app drawer is sorted, puts a lock on Hidden apps, and gives you more control over how the wallpaper scrolls. At a Glance can now fall back to backup weather, and foldables get the right navigation bar after folding.
 
 ───────────────────────
 
 <b>✨ What's New &amp; Improved</b>
 
-<b>1. 🎨 Themed icons without an icon pack</b>
-• <b>Before</b>: the Themed icons setting stayed greyed out unless a themed icon pack (or Lawnicons) was installed. Even if you got it turned on, the launcher switched it back off at the next start when no pack was installed.
-• <b>Now</b>: on Android 13 and newer, apps ship their own single-colour icon, so Themed icons works with stock icons and stays on. Settings &gt; Icons &amp; appearance &gt; Icon style &gt; Themed icons. Apps without a single-colour icon keep their normal colours. Android 12 still needs a themed icon pack.
+<b>1. 🔤 Sort the app drawer your way</b>
+• <b>Before</b>: the app drawer was always alphabetical.
+• <b>Now</b>: Settings &gt; App drawer &gt; Sort apps offers <b>Alphabetical</b>, <b>Newest installed first</b> and <b>Most used first</b>. Most used ranks apps by their time on screen over the last 30 days and updates when you return Home. It needs Usage access, and the launcher asks for it when you pick that option. Apps with no ranking stay alphabetical below the rest.
 
-<b>2. 🕒 A hidden status bar clock stays hidden</b>
-• <b>Before</b>: if you hid the clock in Android's Status bar settings, the launcher brought it back after every reboot or launcher restart.
-• <b>Now</b>: the launcher only brings back a clock that its own "Hide clock on the first home page" option hid.
+<b>2. 🔒 Hidden apps stay hidden</b>
+• <b>Before</b>: anyone holding your unlocked phone could open Settings &gt; App drawer &gt; Hidden apps and see what you hid.
+• <b>Now</b>: the page asks for your fingerprint, face or screen lock first, and asks again each time you open it. Phones without a screen lock open it straight away. Hidden apps is a Pro feature.
 
-<b>3. 🏠 The Home button respects your default launcher</b>
-• <b>Before</b>: on ExpressiveOS, where Expressive Launcher is built in, pressing Home could open Expressive Launcher even after you chose another launcher as default.
-• <b>Now</b>: Home goes to the launcher you picked. On a fresh ExpressiveOS install, Expressive Launcher is still the default.
+<b>3. 🖼️ More wallpaper control</b>
+• <b>Scroll across the whole wallpaper</b>: with 2 or 3 home screen pages, swiping now moves from one edge of the wallpaper to the other, instead of stopping partway. Settings &gt; Home screen &gt; Wallpaper, shown while Wallpaper scrolling is on.
+• <b>Center wallpaper on one page</b>: with a single home screen page, show the middle of the wallpaper instead of its left edge.
+• Both are off by default.
 
-<b>4. 📱 No crash when you fold a foldable</b>
-• <b>Before</b>: folding a foldable after using it unfolded could crash the launcher. The cover screen has no taskbar, so the launcher worked out the taskbar icon scale from an icon size of 0.
-• <b>Now</b>: the launcher skips the taskbar icon animation when there is no taskbar.
+<b>4. 🌦️ Backup weather for At a Glance</b>
+• <b>Before</b>: when Google's At a Glance stopped showing weather, the date card had none.
+• <b>Now</b>: turn on <b>Backup weather</b> (At a Glance &gt; What to show) to show current conditions from MET Norway while Google has none. It uses your approximate location, rounded before it leaves the phone, and Google's weather takes over again as soon as it's back. Off by default.
 
-<b>5. 💳 Clearer Pro wording</b>
-• The Pro sheet's button now says <b>Buy Pro · $4.99</b>, because it is a one-time purchase that unlocks Pro by itself, not a tip.
+<b>5. 📱 Foldables: the right bars after folding</b>
+• <b>Before</b>: folding a foldable could leave the cover screen with the inner screen's layout: no phone navigation bar on Home and a large taskbar inside apps, until the launcher restarted.
+• <b>Now</b>: the launcher checks the screen layout again after a fold and rebuilds the navigation bar and taskbar to match.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>🎨 <i>Your icons used to need a pack to get dressed up. Now they bring their own outfit.</i></blockquote>
+<blockquote>🔤 <i>Your app drawer finally knows who its favourites are. Don't tell the calculator.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Thanks</b>: to PB for reporting the themed icons bug, and to mcflyrk01 on XDA for the status bar clock and Home button reports.
+• <b>Inspiration</b>: the drawer sorting, Hidden apps lock and wallpaper options were inspired by features in DerpLauncher (DerpFest).
 • <b>Validation</b>: see Verification &amp; Technical Details below.
 • <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 purchase. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
 
@@ -42,22 +44,22 @@
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I wear the colours of your wallpaper, but I never needed a pack to do it. What am I?</i></blockquote>
+<blockquote><i>I remember which apps you open most, but I never tell anyone else. Where am I?</i></blockquote>
 
-<tg-spoiler><b>A themed icon!</b> Since 5.1.4, stock icons take on your Monet colours with no icon pack installed. 🎨</tg-spoiler>
+<tg-spoiler><b>At the top of your app drawer!</b> Pick Most used first in 5.1.5 and your favourites come first. 🔤</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Technical Details</b>
-• <b>Launcher Version</b>: <code>5.1.4</code> (Build <code>76</code>), QA channel
-• <b>Source revision</b>: <code>f3f23a6978705fcb9813a655a486f24bf77218fc</code>
-• <b>APK SHA-256</b>: <code>21f2c8b74c0a2f4455106d2716744bf4b16f95e920eab36f6afb68985835a4b4</code>
-• <b>Validation</b>: Jenkins QA build #29 passed 681 unit tests and its automated device checks on the pinned Android 17 emulator. An upgrade over 5.1.3 (75) with the same signing key kept settings, and cold and warm starts, the app drawer swipe, search and D-pad relaunch passed with clean app logs. Expressive Core passed the same checks. Themed icons with no icon pack installed were also checked by hand on an Android 17 emulator, including after a launcher restart.
+• <b>Launcher Version</b>: <code>5.1.5</code> (Build <code>79</code>), QA channel
+• <b>Source revision</b>: <code>d8224f98d142c267ea0f33425acafc2d9954a964</code>
+• <b>APK SHA-256</b>: <code>907a5f760ebad05bed57b71e26ffd387511d8ac5df421795cdf3effe7110d037</code>
+• <b>Validation</b>: Jenkins QA build #34 passed 701 unit tests and its automated device checks on the pinned Android 17 emulator, including an upgrade over 5.1.4 (78) with the same signing key. Expressive Core passed the same checks. Drawer sorting, the Hidden apps lock and both wallpaper options were checked by hand on an Android 17 emulator, including Most used re-sorting after time in another app and the lock asking again on re-entry.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 
 🔗 <b>Links &amp; Downloads</b>:
-• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.4-76">Expressive Launcher 5.1.4 on GitHub</a>
+• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.5-79">Expressive Launcher 5.1.5 on GitHub</a>
 • <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
 • <b>Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
