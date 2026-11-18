@@ -1,0 +1,4 @@
+Expressive Launcher 5.1.7
+• Icons: make an app icon from your own image, with a crop screen to frame it (Pro)
+• Shortcuts: hide the small app badge on shortcut icons (Icons & appearance > Show app badge on shortcuts)
+• At a Glance: backup weather follows your Celsius or Fahrenheit choice in the phone's Regional preferences
