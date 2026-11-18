@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.lawnchair.gestures.config.GestureHandlerConfig
+import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.ui.theme.EdgeToEdge
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.addIf
@@ -139,11 +140,11 @@ class LawnchairShortcutActivity : ComponentActivity() {
             return "$GESTURE_SHORTCUT_ID_PREFIX:" + digest.joinToString("") { "%02x".format(it) }
         }
 
+        /** Our own gesture shortcuts never get the app badge; others skip it when the user turned it off. */
         fun shouldSkipShortcutBadge(context: Context, si: ShortcutInfo): Boolean {
-            val value = context.packageName == si.`package` &&
+            val gestureShortcut = context.packageName == si.`package` &&
                 si.id.startsWith(GESTURE_SHORTCUT_ID_PREFIX)
-
-            return value
+            return gestureShortcut || !PreferenceManager.getInstance(context).shortcutAppBadge.get()
         }
     }
 }

@@ -156,6 +156,7 @@ object SettingsSearchIndex {
             entry(R.string.icon_shape_label, destination = GeneralIconShape(ShapeRoute.APP_SHAPE), keywords = "squircle, circle, rounded, mask, app icons")
             entry(R.string.auto_adaptive_icons_label, R.string.auto_adaptive_icons_description, keywords = "adaptive icons, wrap")
             entry(R.string.shadow_bg_icons_label, keywords = "drop shadow")
+            entry(R.string.shortcut_app_badge_label, R.string.shortcut_app_badge_description, keywords = "badge, indicator, shortcut icon")
             entry(R.string.background_lightness_label, keywords = "icon background, brightness")
             entry(R.string.theme_label, keywords = "dark mode, light mode, night, system theme, dark theme")
             entry(R.string.accent_color, keywords = "palette, monet, tint, wallpaper colors")

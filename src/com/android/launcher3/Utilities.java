@@ -108,6 +108,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import app.lawnchair.folder.widget.FolderWidgets;
+import app.lawnchair.gestures.ui.LawnchairShortcutActivity;
 import app.lawnchair.icons.ExtendedBitmapDrawable;
 import app.lawnchair.preferences.PreferenceManager;
 
@@ -817,7 +818,8 @@ public final class Utilities {
                 mainIcon = CacheableShortcutInfo.getIcon(context, si,
                         appState.getInvariantDeviceProfile().fillResIconDpi);
                 // Only fetch badge if the icon is on workspace
-                if (info.id != ItemInfo.NO_ID && badge == null) {
+                if (info.id != ItemInfo.NO_ID && badge == null
+                        && !LawnchairShortcutActivity.Companion.shouldSkipShortcutBadge(context, si)) {
                     badge = appState.getIconCache().getShortcutInfoBadge(si).newIcon(
                             context,
                             ThemeManager.INSTANCE.get(context).isIconThemeEnabled()

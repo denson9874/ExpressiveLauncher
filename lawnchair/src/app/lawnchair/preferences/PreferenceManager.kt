@@ -158,6 +158,7 @@ class PreferenceManager @Inject constructor(
     val themedIcons = BoolPref("themed_icons", false, reloadIcons)
     val drawerThemedIcons = BoolPref("drawer_themed_icons", false, reloadIcons)
     val tintIconPackBackgrounds = BoolPref("tint_icon_pack_backgrounds", false, reloadIcons)
+    val shortcutAppBadge = BoolPref("pref_shortcutAppBadge", true, reloadIcons)
 
     val hotseatQsbCornerRadius = FloatPref("pref_hotseatQsbCornerRadius", 1F, recreate)
     val hotseatQsbAlpha = IntPref("pref_searchHotseatTranparency", 100, recreate)

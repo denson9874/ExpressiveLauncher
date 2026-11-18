@@ -207,6 +207,13 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
                 }
             }
         }
+        PreferenceGroup {
+            SwitchPreference(
+                adapter = prefs.shortcutAppBadge.getAdapter(),
+                label = stringResource(id = R.string.shortcut_app_badge_label),
+                description = stringResource(id = R.string.shortcut_app_badge_description),
+            )
+        }
 
         val accentColorAdapter = prefs2.accentColor.getAdapter()
         val showColorStyle = !(Utilities.ATLEAST_S && accentColorAdapter.state.value == ColorOption.SystemAccent) ||

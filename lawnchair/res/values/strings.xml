@@ -1234,6 +1234,8 @@
     <string name="folder_cover_mode_desc">Tap launches the first app; swipe up opens the folder</string>
     <string name="smart_category_tabs_title">Smart category tabs</string>
     <string name="smart_category_tabs_desc">Automatically categorize app drawer apps into tabs using system categories</string>
+    <string name="shortcut_app_badge_label">Show app badge on shortcuts</string>
+    <string name="shortcut_app_badge_description">Small icon of the app that made the shortcut, in the corner of shortcut icons</string>
     <string name="drawer_sort_label">Sort apps</string>
     <string name="drawer_sort_alphabetical">Alphabetical</string>
     <string name="drawer_sort_install_date">Newest installed first</string>
