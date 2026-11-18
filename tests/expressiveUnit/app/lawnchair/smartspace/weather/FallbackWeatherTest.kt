@@ -94,4 +94,16 @@ class FallbackWeatherTest {
         assertThat(weather.title(temperatureUnitFor(Locale.GERMANY))).isEqualTo("20°C")
         assertThat(weather.title(temperatureUnitFor(Locale.UK))).isEqualTo("20°C")
     }
+
+    @Test
+    fun title_regionalTemperaturePreferenceWinsOverTheCountry() {
+        val weather = FallbackWeather(
+            Temperature(20, Temperature.Unit.Celsius),
+            FallbackWeatherIcon.CLEAR_DAY,
+        )
+
+        assertThat(weather.title(temperatureUnitFor(Locale.forLanguageTag("en-US-u-mu-celsius")))).isEqualTo("20°C")
+        assertThat(weather.title(temperatureUnitFor(Locale.forLanguageTag("de-DE-u-mu-fahrenhe")))).isEqualTo("68°F")
+        assertThat(weather.title(temperatureUnitFor(Locale.forLanguageTag("en-US-u-mu-kelvin")))).isEqualTo("68°F")
+    }
 }
