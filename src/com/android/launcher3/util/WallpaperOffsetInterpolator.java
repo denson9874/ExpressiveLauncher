@@ -15,6 +15,7 @@ import android.view.animation.Interpolator;
 
 import app.lawnchair.preferences.PreferenceManager;
 import androidx.annotation.AnyThread;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.app.animation.Interpolators;
 import com.android.launcher3.Utilities;
@@ -74,6 +75,13 @@ public class WallpaperOffsetInterpolator {
     private void wallpaperOffsetForScroll(int scroll, int numScrollableScreens, final int[] out) {
         out[1] = 1;
 
+        // With a single page, show the middle of the wallpaper instead of an edge if asked to.
+        if (numScrollableScreens <= 1 && prefs.getWallpaperCenterSinglePage().get()) {
+            out[0] = 1;
+            out[1] = 2;
+            return;
+        }
+
         // To match the default wallpaper behavior in the system, we default to either the left
         // or right edge on initialization
         if (!prefs.getWallpaperScrolling().get() || mLockedToDefaultPage || numScrollableScreens <= 1) {
@@ -83,8 +91,8 @@ public class WallpaperOffsetInterpolator {
 
         // Distribute the wallpaper parallax over a minimum of MIN_PARALLAX_PAGE_SPAN workspace
         // screens, not including the custom screen, and empty screens (if > MIN_PARALLAX_PAGE_SPAN)
-        int numScreensForWallpaperParallax = mWallpaperIsLiveWallpaper ? numScrollableScreens :
-                        Math.max(MIN_PARALLAX_PAGE_SPAN, numScrollableScreens);
+        int numScreensForWallpaperParallax = parallaxPageSpan(numScrollableScreens,
+                mWallpaperIsLiveWallpaper, prefs.getWallpaperShortParallax().get());
 
         // Offset by the custom screen
 
@@ -127,6 +135,17 @@ public class WallpaperOffsetInterpolator {
             rtlOffset = out[1] - (numScrollableScreens - 1) * scrollRange;
         }
         out[0] = rtlOffset + adjustedScroll * (numScrollableScreens - 1);
+    }
+
+    /**
+     * The number of pages the wallpaper's width is spread over. Short parallax lets 2 or 3 pages
+     * scroll across the whole wallpaper instead of the first half or three quarters of it.
+     */
+    @VisibleForTesting
+    static int parallaxPageSpan(int numScrollableScreens, boolean liveWallpaper,
+            boolean shortParallax) {
+        if (liveWallpaper) return numScrollableScreens;
+        return Math.max(shortParallax ? 1 : MIN_PARALLAX_PAGE_SPAN, numScrollableScreens);
     }
 
     public float wallpaperOffsetForScroll(int scroll) {

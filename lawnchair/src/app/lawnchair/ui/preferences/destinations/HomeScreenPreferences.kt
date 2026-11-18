@@ -178,9 +178,22 @@ fun HomeScreenPreferences(
             }
         }
         PreferenceGroup(heading = stringResource(id = R.string.wallpaper)) {
+            val wallpaperScrollingAdapter = prefs.wallpaperScrolling.getAdapter()
             SwitchPreference(
-                prefs.wallpaperScrolling.getAdapter(),
+                wallpaperScrollingAdapter,
                 label = stringResource(id = R.string.wallpaper_scrolling_label),
+            )
+            ExpandAndShrink(visible = wallpaperScrollingAdapter.state.value) {
+                SwitchPreference(
+                    prefs.wallpaperShortParallax.getAdapter(),
+                    label = stringResource(id = R.string.wallpaper_short_parallax_label),
+                    description = stringResource(id = R.string.wallpaper_short_parallax_description),
+                )
+            }
+            SwitchPreference(
+                prefs.wallpaperCenterSinglePage.getAdapter(),
+                label = stringResource(id = R.string.wallpaper_center_single_page_label),
+                description = stringResource(id = R.string.wallpaper_center_single_page_description),
             )
             ExpandAndShrink(visible = Utilities.ATLEAST_R) {
                 ProGate(
