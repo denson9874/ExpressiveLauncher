@@ -134,6 +134,10 @@
     <!-- Text for both the tile of a popup view, which shows all available widgets installed on
          the device, and the text of a button, which opens this popup view. [CHAR LIMIT=30]-->
     <string name="widget_button_text">Widgets</string>
+    <!-- Button at the top of the widget picker that opens an app which builds a widget from a description, such as Google's Create My Widget. [CHAR_LIMIT=20] -->
+    <string name="widget_picker_create">Create</string>
+    <!-- Content description for the widget picker's Create button. [CHAR_LIMIT=NONE] -->
+    <string name="widget_picker_create_description">Create a new widget</string>
     <!-- Search bar text shown in the popup view showing all available widgets installed on the
          device. [CHAR_LIMIT=50] -->
     <string name="widgets_full_sheet_search_bar_hint">Search</string>

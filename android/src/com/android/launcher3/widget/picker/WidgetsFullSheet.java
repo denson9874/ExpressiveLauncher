@@ -26,7 +26,13 @@ import static java.lang.Math.abs;
 import static java.util.Collections.emptyList;
 
 import android.animation.Animator;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.graphics.Rect;
 import android.os.Build.VERSION;
@@ -37,6 +43,8 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.util.TypedValue;
 import android.util.Pair;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -52,6 +60,7 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -73,6 +82,7 @@ import com.android.launcher3.compat.AccessibilityManagerCompat;
 import com.android.launcher3.model.UserManagerState;
 import com.android.launcher3.model.WidgetItem;
 import com.android.launcher3.pm.UserCache;
+import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.RecyclerViewFastScroller;
 import com.android.launcher3.views.SpringRelativeLayout;
 import com.android.launcher3.views.StickyHeaderLayout;
@@ -219,6 +229,72 @@ public class WidgetsFullSheet extends BaseWidgetSheet
         mContent.setOutlineProvider(mViewOutlineProvider);
         mContent.setClipToOutline(true);
         setupSheet();
+        setupCreateWidgetButton();
+    }
+
+    /**
+     * Intent action a Launcher3 widget picker sends to an app that builds widgets on request
+     * (Google's Create My Widget handles it on eligible Pixels). The app finishes by asking the
+     * Home app to pin the new widget, which our AddItemActivity already accepts.
+     */
+    private static final String ACTION_CREATE_WIDGET = "com.android.launcher3.widgets.ACTION_CREATE";
+    private static final String TAG_CREATE = "WidgetsFullSheet";
+
+    /** Adds a "Create" button at the top end of the sheet when an exported app handles it. */
+    private void setupCreateWidgetButton() {
+        Context context = getContext();
+        Intent intent = findCreateWidgetIntent(context);
+        if (intent == null) {
+            return;
+        }
+        Button create = new Button(context, null, 0,
+                android.R.style.Widget_Material_Button_Borderless_Colored);
+        create.setId(R.id.widget_picker_create_button);
+        create.setText(R.string.widget_picker_create);
+        create.setAllCaps(false);
+        create.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        create.setTextColor(Themes.getAttrColor(context, R.attr.widgetPickerTitleColor));
+        create.setContentDescription(context.getString(R.string.widget_picker_create_description));
+        create.setElevation(getResources().getDisplayMetrics().density * 2);
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_END);
+        float dp = getResources().getDisplayMetrics().density;
+        lp.topMargin = Math.round(18 * dp);
+        lp.setMarginEnd(Math.round(12 * dp));
+        create.setOnClickListener(v -> {
+            try {
+                context.startActivity(intent);
+                close(true);
+            } catch (ActivityNotFoundException | SecurityException e) {
+                Log.w(TAG_CREATE, "Create widget activity could not start", e);
+                v.setVisibility(GONE);
+            }
+        });
+        mContent.addView(create, lp);
+    }
+
+    /** The first exported, enabled activity for {@link #ACTION_CREATE_WIDGET}, or null. */
+    @Nullable
+    private static Intent findCreateWidgetIntent(Context context) {
+        PackageManager pm = context.getPackageManager();
+        List<ResolveInfo> matches;
+        try {
+            matches = pm.queryIntentActivities(new Intent(ACTION_CREATE_WIDGET), 0);
+        } catch (RuntimeException e) {
+            return null;
+        }
+        for (ResolveInfo ri : matches) {
+            ActivityInfo ai = ri.activityInfo;
+            if (ai == null || !ai.exported || !ai.enabled) {
+                continue;
+            }
+            return new Intent(ACTION_CREATE_WIDGET)
+                    .setComponent(new ComponentName(ai.packageName, ai.name))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        return null;
     }
 
     protected void setupSheet() {
