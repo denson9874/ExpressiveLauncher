@@ -44,6 +44,7 @@ public class WallpaperOffsetInterpolator {
 
     private boolean mLockedToDefaultPage;
     private int mNumScreens;
+    private volatile int mSentParallaxPages;
 
     private PreferenceManager prefs;
 
@@ -196,22 +197,26 @@ public class WallpaperOffsetInterpolator {
             }
             mNumScreens = numScreens;
             updateOffset();
+        } else if (getNumPagesForWallpaperParallax() != mSentParallaxPages) {
+            // The short parallax setting changed: send the new offset step.
+            updateOffset();
         }
         msg.sendToTarget();
     }
 
-    /** Returns the number of pages used for the wallpaper parallax. */
+    /**
+     * Returns the number of pages used for the wallpaper parallax; at least 2, so the offset step
+     * (1 / (pages - 1)) stays finite with a single page.
+     */
     public int getNumPagesForWallpaperParallax() {
-        if (mWallpaperIsLiveWallpaper) {
-            return mNumScreens;
-        } else {
-            return Math.max(MIN_PARALLAX_PAGE_SPAN, mNumScreens);
-        }
+        return Math.max(2, parallaxPageSpan(mNumScreens, mWallpaperIsLiveWallpaper,
+                prefs.getWallpaperShortParallax().get()));
     }
 
     @AnyThread
     private void updateOffset() {
-        Message.obtain(mHandler, MSG_SET_NUM_PARALLAX, getNumPagesForWallpaperParallax(), 0,
+        mSentParallaxPages = getNumPagesForWallpaperParallax();
+        Message.obtain(mHandler, MSG_SET_NUM_PARALLAX, mSentParallaxPages, 0,
                 mWindowToken).sendToTarget();
     }
 
