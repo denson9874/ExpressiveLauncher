@@ -842,6 +842,10 @@
     <string name="feed_provider">Feed provider</string>
 
     <string name="wallpaper_scrolling_label">Scroll wallpaper</string>
+    <string name="wallpaper_short_parallax_label">Scroll across the whole wallpaper</string>
+    <string name="wallpaper_short_parallax_description">With 2 or 3 home screen pages, scroll from one edge of the wallpaper to the other instead of only part of it</string>
+    <string name="wallpaper_center_single_page_label">Center wallpaper on one page</string>
+    <string name="wallpaper_center_single_page_description">With a single home screen page, show the middle of the wallpaper instead of its edge</string>
     <string name="wallpaper_depth_effect_label">Wallpaper depth effect</string>
     <string name="wallpaper_depth_effect_description">Zoom in and out of the wallpaper when transitioning between areas of the launcher</string>
     <string name="show_sys_ui_scrim">Top shadow</string>
@@ -1230,6 +1234,10 @@
     <string name="folder_cover_mode_desc">Tap launches the first app; swipe up opens the folder</string>
     <string name="smart_category_tabs_title">Smart category tabs</string>
     <string name="smart_category_tabs_desc">Automatically categorize app drawer apps into tabs using system categories</string>
+    <string name="drawer_sort_label">Sort apps</string>
+    <string name="drawer_sort_alphabetical">Alphabetical</string>
+    <string name="drawer_sort_install_date">Newest installed first</string>
+    <string name="drawer_sort_most_used">Most used first</string>
     <string name="drawer_smart_categories_title">Smart Categories</string>
     <string name="drawer_smart_categories_description">Show smart category filter tabs at the top of the app drawer</string>
     <string name="category_tab_all">All</string>

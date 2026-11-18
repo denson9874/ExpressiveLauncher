@@ -180,6 +180,8 @@ object SettingsSearchIndex {
             entry(R.string.home_screen_text_color, keywords = "label color, text colour")
             entry(R.string.app_closing_animation, keywords = "overlay, closing app, transition")
             entry(R.string.wallpaper_scrolling_label, keywords = "parallax, wallpaper scrolling, swipe")
+            entry(R.string.wallpaper_short_parallax_label, keywords = "parallax, wallpaper scrolling, full width")
+            entry(R.string.wallpaper_center_single_page_label, keywords = "center, centre, wallpaper, one page, single page")
             entry(R.string.wallpaper_depth_effect_label, R.string.wallpaper_depth_effect_description, keywords = "depth, zoom, parallax")
             entry(R.string.show_sys_ui_scrim, keywords = "scrim, status bar shadow, gradient")
             entry(R.string.home_screen_grid, destination = HomeScreenGrid, keywords = "columns, rows, size, layout, dock icons, grid size")
@@ -223,6 +225,7 @@ object SettingsSearchIndex {
 
         page(SettingsSearchPage.APP_DRAWER) {
             entry(R.string.hidden_apps_label, destination = AppDrawerHiddenApps, keywords = "hide apps, privacy, secret")
+            entry(R.string.drawer_sort_label, keywords = "sort, order, newest, recently installed, most used, usage")
             entry(R.string.show_suggested_apps_in_drawer, R.string.show_suggested_apps_in_drawer_description, keywords = "predictions, suggested apps, recent apps")
             entry(R.string.suggestion_pref_screen_title, destination = Predictions, keywords = "predictions, suggestions provider")
             entry(

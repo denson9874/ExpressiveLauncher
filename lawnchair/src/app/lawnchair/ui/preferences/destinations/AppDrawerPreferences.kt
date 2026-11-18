@@ -16,6 +16,10 @@
 
 package app.lawnchair.ui.preferences.destinations
 
+import android.app.AppOpsManager
+import android.content.Intent
+import android.os.Process
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,11 +34,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.lawnchair.allapps.DrawerSortOrder
 import app.lawnchair.preferences.PreferenceAdapter
 import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences.preferenceManager
@@ -42,7 +52,10 @@ import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.ui.preferences.LocalIsExpandedScreen
 import app.lawnchair.ui.preferences.components.AppDrawerHapticFeedbackPreference
 import app.lawnchair.ui.preferences.components.NavigationActionPreference
+import app.lawnchair.ui.preferences.components.PermissionDialog
 import app.lawnchair.ui.preferences.components.colorpreference.ColorPreference
+import app.lawnchair.ui.preferences.components.controls.ListPreference
+import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
 import app.lawnchair.ui.preferences.components.controls.SliderPreference
 import app.lawnchair.ui.preferences.components.controls.SwitchPreference
 import app.lawnchair.ui.preferences.components.controls.SwitchPreferenceWithPreview
@@ -97,6 +110,7 @@ fun AppDrawerPreferences(
                     subtitle = resources.getQuantityString(R.plurals.apps_count, hiddenApps.size, hiddenApps.size),
                 )
             }
+            DrawerSortOrderPreference(prefs2.drawerSortOrder.getAdapter())
             SearchBarPreference(SearchRoute.DRAWER_SEARCH, showLabel = false)
             SwitchPreference(
                 adapter = prefs2.appDrawerSearchBarTransparentOnScroll.getAdapter(),
@@ -329,4 +343,50 @@ private fun DrawerLayoutPreference(drawerListAdapter: PreferenceAdapter<Boolean>
             }
         },
     )
+}
+
+@Composable
+private fun DrawerSortOrderPreference(
+    adapter: PreferenceAdapter<DrawerSortOrder>,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val entries = remember {
+        DrawerSortOrder.entries.map { order ->
+            ListPreferenceEntry(order) { stringResource(order.labelRes) }
+        }
+    }
+    val appOps = remember { context.getSystemService(AppOpsManager::class.java) }
+    fun hasUsageAccess() = appOps.checkOpNoThrow(
+        AppOpsManager.OPSTR_GET_USAGE_STATS,
+        Process.myUid(),
+        context.packageName,
+    ) == AppOpsManager.MODE_ALLOWED
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    ListPreference(
+        adapter = adapter,
+        entries = entries,
+        label = stringResource(R.string.drawer_sort_label),
+        modifier = modifier,
+    )
+    // Most used needs usage access; without it the drawer stays alphabetical.
+    LaunchedEffect(adapter.state.value) {
+        if (adapter.state.value == DrawerSortOrder.MOST_USED && !hasUsageAccess()) showPermissionDialog = true
+    }
+    if (showPermissionDialog) {
+        PermissionDialog(
+            title = stringResource(id = R.string.missing_usage_access_label),
+            text = stringResource(id = R.string.missing_usage_access_desc, stringResource(id = R.string.derived_app_name)),
+            isPermanentlyDenied = true,
+            onConfirm = {},
+            onDismiss = { showPermissionDialog = false },
+            onGoToSettings = {
+                showPermissionDialog = false
+                try {
+                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                } catch (_: Exception) {}
+            },
+        )
+    }
 }

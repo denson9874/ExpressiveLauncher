@@ -48,6 +48,10 @@ class LawnchairAlphabeticalAppsList<T>(
     private val folderList = mutableListOf<FolderEntry>()
     private val filteredList = mutableListOf<AppInfo>()
 
+    // Nullable: the base constructor registers for app updates before this class is initialised.
+    private var sortOrder: DrawerSortOrder? = null
+    private val sortRanks = DrawerSortRanks(context)
+
     init {
         context.launcher.deviceProfile.inv.addOnChangeListener(this)
         (context as? LifecycleOwner)?.lifecycle?.addObserver(this)
@@ -58,6 +62,10 @@ class LawnchairAlphabeticalAppsList<T>(
             }
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to initialize hidden apps", t)
+        }
+        prefs2.drawerSortOrder.onEach(launchIn = context.launcher.lifecycleScope) {
+            sortOrder = it
+            onAppsUpdated()
         }
         observeFolders()
     }
@@ -75,6 +83,13 @@ class LawnchairAlphabeticalAppsList<T>(
             }
         }
     }
+
+    override fun getAppComparator(): Comparator<AppInfo> {
+        val order = sortOrder ?: DrawerSortOrder.ALPHABETICAL
+        return drawerComparator(order, super.getAppComparator(), sortRanks.forOrder(order, appsStore.apps))
+    }
+
+    override fun useLetterSections() = (sortOrder ?: DrawerSortOrder.ALPHABETICAL) == DrawerSortOrder.ALPHABETICAL
 
     override fun updateItemFilter(itemFilter: Predicate<ItemInfo>?) {
         mItemFilter = Predicate { info ->

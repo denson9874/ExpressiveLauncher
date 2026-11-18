@@ -28,6 +28,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import app.lawnchair.allapps.DrawerSortOrder
 import app.lawnchair.data.Converters
 import app.lawnchair.font.FontCache
 import app.lawnchair.gestures.config.GestureHandlerConfig
@@ -512,6 +513,13 @@ class PreferenceManager2 @Inject constructor(
         key = stringPreferencesKey(name = "search_algorithm"),
         defaultValue = LawnchairSearchAlgorithm.LOCAL_SEARCH,
         onSet = { reloadHelper.recreate() },
+    )
+
+    val drawerSortOrder = preference(
+        key = stringPreferencesKey(name = "drawer_sort_order"),
+        defaultValue = DrawerSortOrder.ALPHABETICAL,
+        parse = { DrawerSortOrder.fromString(it) },
+        save = { it.prefValue },
     )
 
     val showSuggestedAppsInDrawer = preference(

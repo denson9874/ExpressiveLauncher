@@ -49,6 +49,7 @@ import com.android.launcher3.views.ActivityContext;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -232,6 +233,16 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
         return true;
     }
 
+    /** The order of apps in the list; alphabetical unless a subclass replaces it. */
+    protected Comparator<AppInfo> getAppComparator() {
+        return mAppNameComparator;
+    }
+
+    /** Whether the fast scroller gets a section per first letter; off for a non-alphabetical order. */
+    protected boolean useLetterSections() {
+        return true;
+    }
+
     /**
      * Updates internals when the set of apps are updated.
      */
@@ -257,13 +268,15 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
                         .filter(mPrivateProviderManager.getItemInfoMatcher());
             }
         }
-        appSteam = appSteam.sorted(mAppNameComparator);
-        privateAppStream = privateAppStream.sorted(mAppNameComparator);
+        Comparator<AppInfo> comparator = getAppComparator();
+        appSteam = appSteam.sorted(comparator);
+        privateAppStream = privateAppStream.sorted(comparator);
 
         // As a special case for some languages (currently only Simplified Chinese), we may need to
         // coalesce sections
         Locale curLocale = mActivityContext.getResources().getConfiguration().locale;
-        boolean localeRequiresSectionSorting = curLocale.equals(Locale.SIMPLIFIED_CHINESE);
+        boolean localeRequiresSectionSorting = curLocale.equals(Locale.SIMPLIFIED_CHINESE)
+                && useLetterSections();
         if (localeRequiresSectionSorting) {
             // Compute the section headers. We use a TreeMap with the section name comparator to
             // ensure that the sections are ordered when we iterate over it later
@@ -491,7 +504,7 @@ public class AlphabeticalAppsList<T extends Context & ActivityContext> implement
                 mAdapterItems.add(AdapterItem.asApp(info));
             }
 
-            String sectionName = info.sectionName;
+            String sectionName = useLetterSections() ? info.sectionName : "";
             // Create a new section if the section names do not match
             if (!sectionName.equals(lastSectionName)) {
                 Log.d(TAG, "addAppsWithSections: adding sectionName: " + sectionName
