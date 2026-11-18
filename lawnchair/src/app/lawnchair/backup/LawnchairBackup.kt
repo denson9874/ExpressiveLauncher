@@ -9,6 +9,7 @@ import android.net.Uri
 import androidx.core.graphics.drawable.toBitmap
 import app.lawnchair.LawnchairProto.BackupInfo
 import app.lawnchair.data.AppDatabase
+import app.lawnchair.icons.CustomIconImages
 import app.lawnchair.util.hasFlag
 import app.lawnchair.util.scaleDownTo
 import app.lawnchair.util.scaleDownToDisplaySize
@@ -89,15 +90,20 @@ class LawnchairBackup(
                 return@withContext
             }
             context.getDatabasePath(LAUNCHER_DB_FILE_NAME).parentFile?.deleteRecursively()
+            // The restored icon overrides name their own images; older backups have none.
+            CustomIconImages.dir(context).deleteRecursively()
             DeviceGridState(info.gridState).writeToPrefs(context, true)
-            readZip(handlers)
+            readZip(handlers, restoreCustomIcons = true)
 
             var dbController = ModelDbController(context)
             RestoreDbTask.performRestore(context, dbController)
         }
     }
 
-    private suspend fun readZip(handlers: Map<String, suspend (InputStream) -> Unit>) {
+    private suspend fun readZip(
+        handlers: Map<String, suspend (InputStream) -> Unit>,
+        restoreCustomIcons: Boolean = false,
+    ) {
         withContext(Dispatchers.IO) {
             val pfd = context.contentResolver.openFileDescriptor(uri, "r")!!
             pfd.use {
@@ -108,11 +114,20 @@ class LawnchairBackup(
                             entry = zipIs.nextEntry
                             if (entry == null) break
                             handlers[entry.name]?.invoke(zipIs)
+                            if (restoreCustomIcons) restoreCustomIcon(entry.name, zipIs)
                         }
                     }
                 }
             }
         }
+    }
+
+    /** Copies a `custom_icons/<file>` entry back; any other name, or a path that leaves the folder, is ignored. */
+    private fun restoreCustomIcon(entryName: String, input: InputStream) {
+        val name = entryName.removePrefix("${CustomIconImages.DIR_NAME}/")
+        if (name == entryName || name.isEmpty() || name.contains('/') || name.startsWith(".")) return
+        val dir = CustomIconImages.dir(context).apply { mkdirs() }
+        File(dir, name).outputStream().use { input.copyTo(it) }
     }
 
     companion object {
@@ -198,6 +213,12 @@ class LawnchairBackup(
                             if (!it.value.exists()) return@forEach
                             out.putNextEntry(ZipEntry(it.key))
                             it.value.inputStream().copyTo(out)
+                        }
+                        if (contents.hasFlag(INCLUDE_LAYOUT_AND_SETTINGS)) {
+                            CustomIconImages.dir(context).listFiles()?.filter { it.isFile }?.forEach {
+                                out.putNextEntry(ZipEntry("${CustomIconImages.DIR_NAME}/${it.name}"))
+                                it.inputStream().use { input -> input.copyTo(out) }
+                            }
                         }
                     }
                 }

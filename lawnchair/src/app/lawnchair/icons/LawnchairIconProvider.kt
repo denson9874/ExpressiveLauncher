@@ -150,7 +150,10 @@ class LawnchairIconProvider @Inject constructor(
             }
             ?.let { iconPackProvider.getDrawable(it, iconDpi, user) }
         val baseIcon = iconPackIcon ?: super.getIcon(info, appInfo, iconDpi)
-        if (!themedIconsEnabled || baseIcon is ClockDrawableWrapper) return baseIcon
+        // A photo the user chose stays a photo; theming would swap in the app's monochrome icon.
+        if (!themedIconsEnabled || baseIcon is ClockDrawableWrapper || explicitOverride?.type == IconType.Image) {
+            return baseIcon
+        }
 
         val themeData = getThemeDataForPackage(packageName)
         val overrideMonochrome = if (explicitOverride?.packPackageName == LAWNICONS_PACKAGE_NAME) {

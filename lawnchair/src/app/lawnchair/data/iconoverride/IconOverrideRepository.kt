@@ -3,6 +3,7 @@ package app.lawnchair.data.iconoverride
 import android.content.Context
 import android.os.UserHandle
 import app.lawnchair.data.AppDatabase
+import app.lawnchair.icons.CustomIconImages
 import app.lawnchair.icons.picker.IconPickerItem
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.dagger.ApplicationContext
@@ -20,6 +21,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 
 @LauncherAppSingleton
 class IconOverrideRepository @Inject constructor(
@@ -90,6 +92,7 @@ class IconOverrideRepository @Inject constructor(
     suspend fun deleteAll() {
         dao.deleteAll()
         _overridesMap = emptyMap()
+        withContext(Dispatchers.IO) { CustomIconImages.dir(context).deleteRecursively() }
         LauncherAppState.getInstance(context).model.reloadIfActive()
     }
 

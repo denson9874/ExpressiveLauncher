@@ -14,4 +14,7 @@ data class IconEntry(
 enum class IconType {
     Normal,
     Calendar,
+
+    /** A square image the user cropped; [IconEntry.name] is its file in CustomIconImages. */
+    Image,
 }

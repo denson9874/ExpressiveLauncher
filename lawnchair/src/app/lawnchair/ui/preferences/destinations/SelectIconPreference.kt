@@ -4,21 +4,29 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.lawnchair.data.iconoverride.IconOverrideRepository
+import app.lawnchair.icons.CustomIconImages
 import app.lawnchair.icons.picker.IconPickerItem
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.ui.preferences.LocalNavController
 import app.lawnchair.ui.preferences.LocalPreferenceInteractor
 import app.lawnchair.ui.preferences.components.AppItem
+import app.lawnchair.ui.preferences.components.IconImageCropper
 import app.lawnchair.ui.preferences.components.controls.ClickablePreference
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayoutLazyColumn
 import app.lawnchair.ui.preferences.components.layout.preferenceGroupItems
@@ -52,9 +60,14 @@ fun SelectIconPreference(componentKey: ComponentKey) {
     val model = launcherAppState.model
 
     val repo = IconOverrideRepository.INSTANCE.get(context)
-    OnResult<IconPickerItem> { item ->
+    val overrideItem by repo.observeTarget(componentKey).collectAsStateWithLifecycle(initialValue = null)
+    val hasOverride = overrideItem != null
+
+    fun applyOverride(item: IconPickerItem) {
+        val previous = overrideItem
         scope.launch {
             repo.setOverride(componentKey, item)
+            CustomIconImages.delete(context, previous?.iconPickerItem)
             // Refresh package icons while the model is still loaded; forceReload alone can
             // skip PackageUpdatedTask and leave icon-cache entries that look "fresh".
             // onAppIconChanged is @WorkerThread (blocking ShortcutManager query).
@@ -67,9 +80,26 @@ fun SelectIconPreference(componentKey: ComponentKey) {
             }
         }
     }
+    OnResult<IconPickerItem> { item -> applyOverride(item) }
 
-    val overrideItem by repo.observeTarget(componentKey).collectAsStateWithLifecycle(initialValue = null)
-    val hasOverride = overrideItem != null
+    var pickedImage by remember { mutableStateOf<Uri?>(null) }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        pickedImage = uri
+    }
+    pickedImage?.let { uri ->
+        IconImageCropper(
+            uri = uri,
+            outputPx = CustomIconImages.SIZE_PX,
+            onCrop = { bitmap ->
+                pickedImage = null
+                scope.launch {
+                    val item = withContext(Dispatchers.IO) { CustomIconImages.save(context, bitmap, label) }
+                    applyOverride(item)
+                }
+            },
+            onCancel = { pickedImage = null },
+        )
+    }
 
     val isPro = rememberIsPro()
 
@@ -81,6 +111,7 @@ fun SelectIconPreference(componentKey: ComponentKey) {
                     onClick = {
                         scope.launch {
                             repo.deleteOverride(componentKey)
+                            CustomIconImages.delete(context, overrideItem?.iconPickerItem)
                             withContext(Dispatchers.IO) {
                                 model.onAppIconChanged(
                                     componentKey.componentName.packageName,
@@ -104,9 +135,18 @@ fun SelectIconPreference(componentKey: ComponentKey) {
                 ) {}
             }
         } else {
+            preferenceGroupItems(1, isFirstChild = !hasOverride) {
+                ClickablePreference(
+                    label = stringResource(id = R.string.icon_image_label),
+                    subtitle = stringResource(id = R.string.icon_image_description),
+                    onClick = {
+                        imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                )
+            }
             preferenceGroupItems(
                 items = iconPacks,
-                isFirstChild = !hasOverride,
+                isFirstChild = false,
                 heading = { stringResource(id = R.string.pick_icon_from_label) },
             ) { _, iconPack ->
                 AppItem(
