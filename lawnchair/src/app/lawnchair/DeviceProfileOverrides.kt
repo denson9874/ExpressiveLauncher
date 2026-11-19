@@ -251,10 +251,9 @@ class DeviceProfileOverrides @Inject constructor(
             hasHinge: Boolean,
             foldedColumns: Int,
             unfoldedColumns: Int,
-        ): Int = when {
-            deviceType == InvariantDeviceProfile.TYPE_MULTI_DISPLAY -> unfoldedColumns
-            deviceType == InvariantDeviceProfile.TYPE_PHONE && hasHinge && unfoldedColumns > foldedColumns ->
-                unfoldedColumns
+        ): Int = when (deviceType) {
+            InvariantDeviceProfile.TYPE_MULTI_DISPLAY -> unfoldedColumns
+            InvariantDeviceProfile.TYPE_PHONE -> if (hasHinge && unfoldedColumns > foldedColumns) unfoldedColumns else -1
             else -> -1
         }
 
