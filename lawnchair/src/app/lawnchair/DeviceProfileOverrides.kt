@@ -1,6 +1,7 @@
 package app.lawnchair
 
 import android.content.Context
+import android.content.pm.PackageManager
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
@@ -22,6 +23,7 @@ class DeviceProfileOverrides @Inject constructor(
 ) : SafeCloseable {
     private val prefs = PreferenceManager.getInstance(context)
     private val preferenceManager2 = PreferenceManager2.getInstance(context)
+    private val hasHinge = context.packageManager.hasSystemFeature(PackageManager.FEATURE_SENSOR_HINGE_ANGLE)
 
     private val predefinedGrids = InvariantDeviceProfile.parseAllGridOptions(context)
         .map { option ->
@@ -65,6 +67,7 @@ class DeviceProfileOverrides @Inject constructor(
         defaultGrid = defaultGrid,
         deviceType = deviceType,
         previewOverrides = previewOverrides ?: PreviewOverrides(),
+        hasHinge = hasHinge,
     )
 
     fun getTextFactors() = TextFactors(preferenceManager2)
@@ -116,6 +119,7 @@ class DeviceProfileOverrides @Inject constructor(
             defaultGrid: InvariantDeviceProfile.GridOption,
             deviceType: Int,
             previewOverrides: PreviewOverrides,
+            hasHinge: Boolean = false,
         ) : this(
             numAllAppsColumns = prefs2.drawerColumns.firstCached(gridOption = defaultGrid),
             numFolderRows = prefs.folderRows.get(defaultGrid),
@@ -142,11 +146,12 @@ class DeviceProfileOverrides @Inject constructor(
             } else {
                 -1
             },
-            foldableDatabaseHotseatIcons = if (deviceType == InvariantDeviceProfile.TYPE_MULTI_DISPLAY) {
-                previewOverrides.foldableDatabaseHotseatIcons ?: prefs.hotseatColumnsUnfolded.get()
-            } else {
-                -1
-            },
+            foldableDatabaseHotseatIcons = foldableDatabaseHotseatIcons(
+                deviceType = deviceType,
+                hasHinge = hasHinge,
+                foldedColumns = prefs.hotseatColumns.get(),
+                unfoldedColumns = previewOverrides.foldableDatabaseHotseatIcons ?: prefs.hotseatColumnsUnfolded.get(),
+            ),
             foldableDatabaseAllAppsColumns = if (deviceType == InvariantDeviceProfile.TYPE_MULTI_DISPLAY) {
                 val folded = prefs2.drawerColumns.firstCached(gridOption = defaultGrid)
                 val unfolded = prefs2.drawerColumnsUnfolded.firstCached(gridOption = defaultGrid)
@@ -229,6 +234,29 @@ class DeviceProfileOverrides @Inject constructor(
     }
 
     companion object {
+        /**
+         * How many dock slots the database keeps on a foldable, or -1 to keep the grid's own count.
+         *
+         * Unfolded, the device reports [InvariantDeviceProfile.TYPE_MULTI_DISPLAY] and the database
+         * holds the unfolded dock. Folded, [app.lawnchair.util.LawnchairWindowManagerProxy] only
+         * reports the cover screen, so the device type drops to [InvariantDeviceProfile.TYPE_PHONE]
+         * and the database would shrink to the folded count. The loader then deletes every dock item
+         * past that count ("position out of bounds"), so an app put in the fifth dock slot while
+         * unfolded was gone after one fold. A hinged phone therefore keeps the unfolded count; the
+         * folded dock still shows only its own columns.
+         */
+        @JvmStatic
+        fun foldableDatabaseHotseatIcons(
+            deviceType: Int,
+            hasHinge: Boolean,
+            foldedColumns: Int,
+            unfoldedColumns: Int,
+        ): Int = when (deviceType) {
+            InvariantDeviceProfile.TYPE_MULTI_DISPLAY -> unfoldedColumns
+            InvariantDeviceProfile.TYPE_PHONE -> if (hasHinge && unfoldedColumns > foldedColumns) unfoldedColumns else -1
+            else -> -1
+        }
+
         @JvmField
         val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getDPO)
     }

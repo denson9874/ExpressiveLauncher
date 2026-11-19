@@ -64,6 +64,14 @@ public interface WorkspaceLayoutManager {
             screenId = getHotseat().getPageFromOrder(rank);
             Log.d(TAG, "addInScreenFromBind: hotseat inflation with x = " + x
                     + " and y = " + y + " page = " + screenId);
+            if (getHotseat().getPageAt(screenId) == null) {
+                // A folded foldable keeps the unfolded dock's items in the database but shows
+                // fewer slots. Leave those items out of this dock instead of stacking them on
+                // the current page; they come back when the larger screen is in use again.
+                Log.d(TAG, "addInScreenFromBind: dock rank " + rank
+                        + " has no slot on this screen, keeping it hidden");
+                return;
+            }
         }
         addInScreen(child, info.container, screenId, x, y, info.spanX, info.spanY);
     }
