@@ -1,9 +1,11 @@
 package app.lawnchair.folder.widget
 
+import android.animation.ValueAnimator
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
 import android.content.pm.LauncherApps
+import android.view.View
 import android.widget.Toast
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
@@ -181,7 +183,11 @@ object FolderWidgetController {
         }
 
         val panel = widget.panel
-        if (panel.width <= 0 || panel.height <= 0) {
+        if (!ValueAnimator.areAnimatorsEnabled() ||
+            !panel.isAttachedToWindow ||
+            panel.width <= 0 ||
+            panel.height <= 0
+        ) {
             completeSwap()
             return true
         }
@@ -193,9 +199,11 @@ object FolderWidgetController {
         panel.pivotY = 0f
 
         var finished = false
+        var detachListener: View.OnAttachStateChangeListener? = null
         val onFinish = {
             if (!finished) {
                 finished = true
+                detachListener?.let(panel::removeOnAttachStateChangeListener)
                 completeSwap()
             }
         }
@@ -206,13 +214,32 @@ object FolderWidgetController {
                     .setStiffness(SpringForce.STIFFNESS_MEDIUM)
                     .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
             )
-            .addEndListener { _, _, _, _ -> onFinish() }
         val animY = SpringAnimation(panel, DynamicAnimation.SCALE_Y)
             .setSpring(
                 SpringForce(targetScaleY)
                     .setStiffness(SpringForce.STIFFNESS_MEDIUM)
                     .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
             )
+
+        detachListener = object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) = Unit
+
+            override fun onViewDetachedFromWindow(v: View) {
+                v.removeOnAttachStateChangeListener(this)
+                animX.cancel()
+                animY.cancel()
+            }
+        }
+        panel.addOnAttachStateChangeListener(detachListener)
+
+        animX.addEndListener { _, canceled, _, _ ->
+            detachListener?.let(panel::removeOnAttachStateChangeListener)
+            if (!canceled) {
+                onFinish()
+            } else {
+                animY.cancel()
+            }
+        }
 
         animX.start()
         animY.start()
@@ -227,29 +254,59 @@ object FolderWidgetController {
         fromBottom: Boolean,
     ) {
         val panel = widget.panel
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            panel.scaleX = 1f
+            panel.scaleY = 1f
+            return
+        }
         panel.post {
-            if (panel.width <= 0 || panel.height <= 0) return@post
+            if (!panel.isAttachedToWindow || panel.width <= 0 || panel.height <= 0) return@post
+            if (!ValueAnimator.areAnimatorsEnabled()) {
+                panel.scaleX = 1f
+                panel.scaleY = 1f
+                panel.pivotX = panel.width / 2f
+                panel.pivotY = panel.height / 2f
+                return@post
+            }
             val scaleX = if (oldWidth > 0) (oldWidth.toFloat() / panel.width).coerceIn(0.1f, 1f) else 0.5f
             val scaleY = if (oldHeight > 0) (oldHeight.toFloat() / panel.height).coerceIn(0.1f, 1f) else 0.5f
             panel.pivotX = if (fromRight) panel.width.toFloat() else 0f
             panel.pivotY = if (fromBottom) panel.height.toFloat() else 0f
             panel.scaleX = scaleX
+            panel.scaleY = scaleY
             val animX = SpringAnimation(panel, DynamicAnimation.SCALE_X)
                 .setSpring(
                     SpringForce(1f)
                         .setStiffness(SpringForce.STIFFNESS_MEDIUM)
                         .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
                 )
-                .addEndListener { _, _, _, _ ->
-                    panel.pivotX = panel.width / 2f
-                    panel.pivotY = panel.height / 2f
-                }
             val animY = SpringAnimation(panel, DynamicAnimation.SCALE_Y)
                 .setSpring(
                     SpringForce(1f)
                         .setStiffness(SpringForce.STIFFNESS_MEDIUM)
                         .setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY),
                 )
+            val resetPanel = {
+                panel.scaleX = 1f
+                panel.scaleY = 1f
+                panel.pivotX = panel.width / 2f
+                panel.pivotY = panel.height / 2f
+            }
+            val detachListener = object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) = Unit
+
+                override fun onViewDetachedFromWindow(v: View) {
+                    v.removeOnAttachStateChangeListener(this)
+                    animX.cancel()
+                    animY.cancel()
+                    resetPanel()
+                }
+            }
+            panel.addOnAttachStateChangeListener(detachListener)
+            animX.addEndListener { _, _, _, _ ->
+                panel.removeOnAttachStateChangeListener(detachListener)
+                resetPanel()
+            }
             animX.start()
             animY.start()
         }

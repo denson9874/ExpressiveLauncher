@@ -1,5 +1,6 @@
 package app.lawnchair.folder.widget
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Point
 import android.graphics.Rect
@@ -97,6 +98,9 @@ class FolderWidgetView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         styleObservationJob?.cancel()
         styleObservationJob = null
+        if (panelSpringsLazy.isInitialized()) {
+            panelSprings.forEach { it.cancel() }
+        }
         super.onDetachedFromWindow()
     }
 
@@ -306,7 +310,7 @@ class FolderWidgetView @JvmOverloads constructor(
         )
     }
 
-    private val panelSprings by lazy {
+    private val panelSpringsLazy = lazy {
         listOf(DynamicAnimation.SCALE_X, DynamicAnimation.SCALE_Y).map { property ->
             SpringAnimation(panel, property).setSpring(
                 SpringForce(1f)
@@ -315,8 +319,19 @@ class FolderWidgetView @JvmOverloads constructor(
             )
         }
     }
+    private val panelSprings: List<SpringAnimation> by panelSpringsLazy
 
-    private fun springPanelTo(scale: Float) = panelSprings.forEach { it.animateToFinalPosition(scale) }
+    private fun springPanelTo(scale: Float) {
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            if (panelSpringsLazy.isInitialized()) {
+                panelSprings.forEach { it.cancel() }
+            }
+            panel.scaleX = scale
+            panel.scaleY = scale
+            return
+        }
+        panelSprings.forEach { it.animateToFinalPosition(scale) }
+    }
 
     fun openFolder() {
         if (mInfo.getContents().isEmpty()) {

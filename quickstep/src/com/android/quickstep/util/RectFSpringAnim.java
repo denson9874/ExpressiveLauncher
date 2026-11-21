@@ -20,6 +20,7 @@ import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 import android.animation.Animator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -137,6 +138,7 @@ public class RectFSpringAnim extends ReleaseCheck {
     protected final float mDampingX;
     protected final float mDampingY;
     protected final float mRectStiffness;
+    private final boolean mUseCustomRectStiffness;
 
     public RectFSpringAnim(SpringConfig config) {
         mStartRect = config.startRect;
@@ -153,6 +155,7 @@ public class RectFSpringAnim extends ReleaseCheck {
         mDampingX = config.dampingX;
         mDampingY = config.dampingY;
         mRectStiffness = config.rectStiffness;
+        mUseCustomRectStiffness = config.useCustomRectStiffness;
 
         mCurrentY = getTrackedYFromRect(mStartRect);
     }
@@ -257,6 +260,26 @@ public class RectFSpringAnim extends ReleaseCheck {
         float endY = getTrackedYFromRect(mTargetRect);
         float minVisibleChange = Math.abs(1f / mStartRect.height());
 
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            mCurrentCenterX = endX;
+            mCurrentY = endY;
+            mCurrentScaleProgress = 1f;
+            mAnimsStarted = true;
+            setCanRelease(false);
+            for (Animator.AnimatorListener animatorListener : mAnimatorListeners) {
+                animatorListener.onAnimationStart(null);
+            }
+            mRectXAnimEnded = false;
+            mRectYAnimEnded = false;
+            mRectScaleAnimEnded = false;
+            onUpdate();
+            mRectXAnimEnded = true;
+            mRectYAnimEnded = true;
+            mRectScaleAnimEnded = true;
+            maybeOnEnd();
+            return;
+        }
+
         if (enableScalingRevealHomeAnimation()) {
             ResourceProvider rp = DynamicResource.provider(context);
             long minVelocityXPxPerS = rp.getInt(R.dimen.swipe_up_min_velocity_x_px_per_s);
@@ -298,7 +321,9 @@ public class RectFSpringAnim extends ReleaseCheck {
                             .setStartVelocity(yVelocityPxPerS)
                             .addEndListener(onYEndListener);
 
-            float stiffnessZ = rp.getFloat(R.dimen.swipe_up_rect_scale_stiffness_v2);
+            float stiffnessZ = mUseCustomRectStiffness && mRectStiffness > 0f
+                    ? mRectStiffness
+                    : rp.getFloat(R.dimen.swipe_up_rect_scale_stiffness_v2);
             float dampingZ = rp.getFloat(R.dimen.swipe_up_rect_scale_damping_ratio_v2);
             mRectScaleAnim =
                     new SpringAnimation(this, RECT_SCALE_PROGRESS)
@@ -347,9 +372,11 @@ public class RectFSpringAnim extends ReleaseCheck {
             // quicker.
             boolean shouldUseHigherStiffness = profile != null
                     && (profile.getDeviceProperties().isLandscape() || profile.getDeviceProperties().isTablet());
-            float stiffness = shouldUseHigherStiffness
-                    ? rp.getFloat(R.dimen.swipe_up_rect_scale_higher_stiffness)
-                    : rp.getFloat(R.dimen.swipe_up_rect_scale_stiffness);
+            float stiffness = mUseCustomRectStiffness && mRectStiffness > 0f
+                    ? mRectStiffness
+                    : (shouldUseHigherStiffness
+                            ? rp.getFloat(R.dimen.swipe_up_rect_scale_higher_stiffness)
+                            : rp.getFloat(R.dimen.swipe_up_rect_scale_stiffness));
 
             mRectScaleAnim = new SpringAnimation(this, RECT_SCALE_PROGRESS)
                     .setSpring(new SpringForce(1f)
@@ -514,6 +541,7 @@ public class RectFSpringAnim extends ReleaseCheck {
         protected float dampingX;
         protected float dampingY;
         protected float rectStiffness;
+        protected boolean useCustomRectStiffness;
         protected float minVisChange;
         protected int maxVelocityPxPerS;
 
@@ -581,6 +609,21 @@ public class RectFSpringAnim extends ReleaseCheck {
                 }
             }
             return tracking;
+        }
+    }
+
+    /**
+     * Spring configuration parameters for widget home-return animations using M3 Expressive
+     * widget rect scale stiffness.
+     */
+    public static class WidgetSpringConfig extends DefaultSpringConfig {
+
+        public WidgetSpringConfig(Context context, DeviceProfile deviceProfile,
+                RectF startRect, RectF targetRect) {
+            super(context, deviceProfile, startRect, targetRect);
+            ResourceProvider rp = DynamicResource.provider(context);
+            rectStiffness = rp.getFloat(R.dimen.widget_rect_scale_stiffness);
+            useCustomRectStiffness = true;
         }
     }
 

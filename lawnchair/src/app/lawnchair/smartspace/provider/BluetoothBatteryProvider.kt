@@ -64,6 +64,7 @@ class BluetoothBatteryProvider(context: Context) :
         }
         selectBestTarget()
     }.onStart {
+        connectedDevices.clear()
         emit(emptyList())
     }
 

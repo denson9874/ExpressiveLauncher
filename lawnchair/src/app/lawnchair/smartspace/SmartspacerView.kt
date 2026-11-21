@@ -2,7 +2,6 @@ package app.lawnchair.smartspace
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -109,16 +108,6 @@ class SmartspacerView(context: Context, attrs: AttributeSet?) : SmartspacerSdkVi
         }
     }
 
-    private fun canResolveSmartspacerService(): Boolean {
-        val serviceIntent = Intent(SMARTSPACER_MANAGER_ACTION).setPackage(SMARTSPACER_PACKAGE)
-        return runCatching {
-            context.packageManager.resolveService(
-                serviceIntent,
-                PackageManager.ResolveInfoFlags.of(0),
-            ) != null
-        }.getOrDefault(false)
-    }
-
     private fun showLocalFallback() {
         if (fallbackView != null) return
 
@@ -218,12 +207,6 @@ class SmartspacerView(context: Context, attrs: AttributeSet?) : SmartspacerSdkVi
     ) {
         context.startActivity(PreferenceActivity.createIntent(context, Smartspace))
         true
-    }
-
-    private companion object {
-        const val SMARTSPACER_PACKAGE = "com.kieronquinn.app.smartspacer"
-        const val SMARTSPACER_MANAGER_ACTION = "com.kieronquinn.app.smartspacer.MANAGER"
-        const val FALLBACK_TIMEOUT_MILLIS = 5_000L
     }
 }
 

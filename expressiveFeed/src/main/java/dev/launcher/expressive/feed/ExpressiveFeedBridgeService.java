@@ -24,7 +24,8 @@ import amirz.aidlbridge.IBridgeCallback;
  * Minimal bridge between Expressive Launcher and Google's legacy Discover
  * overlay. The separate process is intentionally debuggable because Google refuses ordinary
  * third-party release clients; the exported entry point remains protected by a signature
- * permission and a second same-certificate Binder check.
+ * permission and a Binder-UID, package allowlist, and same-certificate check enforced by
+ * {@link FeedCallerPolicy}.
  */
 public final class ExpressiveFeedBridgeService extends Service {
     private static final String TAG = "ExpressiveFeed";

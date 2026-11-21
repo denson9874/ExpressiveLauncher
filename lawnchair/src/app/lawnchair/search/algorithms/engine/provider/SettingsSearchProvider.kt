@@ -10,8 +10,10 @@ import app.lawnchair.search.algorithms.data.SettingInfo
 import app.lawnchair.search.algorithms.engine.SearchProvider
 import app.lawnchair.search.algorithms.engine.SearchResult
 import java.lang.reflect.Modifier
-import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
@@ -47,11 +49,8 @@ private suspend fun findSettingsByNameAndAction(query: String, max: Int): List<S
     if (query.isBlank() || max <= 0) {
         emptyList()
     } else {
-        withContext(
-            Dispatchers.IO + CoroutineExceptionHandler { _, e ->
-                Log.e("SettingSearch", "Something went wrong ", e)
-            },
-        ) {
+        withContext(Dispatchers.IO) {
+            currentCoroutineContext().ensureActive()
             Settings::class.java.fields
                 .asSequence()
                 .filter {
@@ -73,9 +72,12 @@ private suspend fun findSettingsByNameAndAction(query: String, max: Int): List<S
                     val requiresUri = action.contains("URI")
                     SettingInfo(id, name, action, requiresUri)
                 }
-                .toList().take(max)
+                .take(max)
+                .toList()
         }
     }
+} catch (e: CancellationException) {
+    throw e
 } catch (e: Exception) {
     Log.e("SettingSearch", "Something went wrong ", e)
     emptyList()

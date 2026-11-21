@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -67,6 +68,7 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     private var mIcon: View? = null
     private var mIconBitmap: Bitmap? = null
     private var mContract: GestureNavContract? = null
+    private var mBounceAnims: List<SpringAnimation> = emptyList()
 
     init {
         mSurfaceView.setLayerType(LAYER_TYPE_HARDWARE, null)
@@ -80,6 +82,7 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     }
 
     override fun handleClose(animate: Boolean) {
+        cancelBounceAnims(resetTranslation = true)
         setCurrentIconVisible(true)
         mLauncher.viewCache.recycleView(R.layout.floating_surface_view, this)
         mContract = null
@@ -189,7 +192,15 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
                         mLauncher.depthController.stateDepth.value,
                     ) {
                         depthController.dispose()
-                        SurfaceControl.Transaction().remove(dimLayer).apply()
+                        try {
+                            SurfaceControl.Transaction().use { transaction ->
+                                if (dimLayer.isValid) {
+                                    transaction.remove(dimLayer).apply()
+                                }
+                            }
+                        } finally {
+                            dimLayer.release()
+                        }
                     }.start()
                 } else {
                     createDepthAnimator(
@@ -230,6 +241,7 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
+        cancelBounceAnims(resetTranslation = true)
         super.onDetachedFromWindow()
         getViewTreeObserver().removeOnGlobalLayoutListener(this)
         setCurrentIconVisible(true)
@@ -323,23 +335,42 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
         }
     }
 
+    private fun cancelBounceAnims(resetTranslation: Boolean) {
+        if (mBounceAnims.isNotEmpty()) {
+            mBounceAnims.forEach { it.cancel() }
+            mBounceAnims = emptyList()
+        }
+        if (resetTranslation) {
+            mIcon?.let {
+                it.translationX = 0f
+                it.translationY = 0f
+            }
+        }
+    }
+
     private fun bouncyIcon() {
-        mIcon ?: return
+        val icon = mIcon ?: return
+        cancelBounceAnims(resetTranslation = false)
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            icon.translationX = 0f
+            icon.translationY = 0f
+            return
+        }
 
         val (startX, startY) = mIconPosition.left to mIconPosition.top - ((height * 0.2f) / 3)
 
-        listOf(
-            SpringAnimation(mIcon, DynamicAnimation.TRANSLATION_X, 1f).apply {
-                spring = SpringForce(1f).setStiffness(SpringForce.STIFFNESS_LOW)
+        mBounceAnims = listOf(
+            SpringAnimation(icon, DynamicAnimation.TRANSLATION_X, 0f).apply {
+                spring = SpringForce(0f).setStiffness(SpringForce.STIFFNESS_LOW)
                     .setDampingRatio(SpringForce.DAMPING_RATIO_HIGH_BOUNCY)
                 setStartVelocity((mIconPosition.left - startX) * 2)
             },
-            SpringAnimation(mIcon, DynamicAnimation.TRANSLATION_Y, 1f).apply {
-                spring = SpringForce(1f).setStiffness(SpringForce.STIFFNESS_LOW)
+            SpringAnimation(icon, DynamicAnimation.TRANSLATION_Y, 0f).apply {
+                spring = SpringForce(0f).setStiffness(SpringForce.STIFFNESS_LOW)
                     .setDampingRatio(SpringForce.DAMPING_RATIO_HIGH_BOUNCY)
                 setStartVelocity((mIconPosition.top - startY) * 3)
             },
-        ).forEach { it.start() }
+        ).onEach { it.start() }
     }
 
     private fun sendIconInfo() {

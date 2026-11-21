@@ -32,6 +32,7 @@ public class LauncherClientService extends BaseClientService {
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
+        super.onServiceConnected(name, service);
         setClient(ILauncherOverlay.Stub.asInterface(service));
     }
 
@@ -39,6 +40,12 @@ public class LauncherClientService extends BaseClientService {
     public void onServiceDisconnected(ComponentName name) {
         setClient(null);
         cleanUp();
+    }
+
+    @Override
+    protected boolean shouldAutoReconnect() {
+        LauncherClient client = getClient();
+        return super.shouldAutoReconnect() && !mStopped && client != null && !client.mDestroyed;
     }
 
     private void cleanUp() {

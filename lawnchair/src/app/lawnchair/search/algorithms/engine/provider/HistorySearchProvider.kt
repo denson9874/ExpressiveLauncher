@@ -9,7 +9,10 @@ import androidx.core.net.toUri
 import app.lawnchair.search.LawnchairRecentSuggestionProvider
 import app.lawnchair.search.algorithms.data.RecentKeyword
 import app.lawnchair.search.algorithms.engine.SearchResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 object HistorySearchProvider {
@@ -24,6 +27,7 @@ object HistorySearchProvider {
     suspend fun getRecentKeywords(context: Context, maxResults: Int): List<SearchResult.History> {
         return withContext(Dispatchers.IO) {
             try {
+                currentCoroutineContext().ensureActive()
                 val contentResolver: ContentResolver = context.contentResolver
                 val uri: Uri = "content://${LawnchairRecentSuggestionProvider.AUTHORITY}/suggestions".toUri()
 
@@ -33,6 +37,7 @@ object HistorySearchProvider {
                 cursor?.use {
                     val columnCount = it.columnCount
                     while (it.moveToNext()) {
+                        currentCoroutineContext().ensureActive()
                         val recentKeywordData = mutableMapOf<String, String>()
                         for (i in 0 until columnCount) {
                             val columnName = it.getColumnName(i)
@@ -46,6 +51,8 @@ object HistorySearchProvider {
                 recentKeywords.asReversed()
                     .take(maxResults)
                     .map { SearchResult.History(data = it) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("HistorySearchProvider", "Error during recent keyword retrieval", e)
                 emptyList()

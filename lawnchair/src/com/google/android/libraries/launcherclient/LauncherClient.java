@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Point;
 import android.os.Bundle;
+import android.os.DeadObjectException;
 import android.os.Handler;
 import android.os.Handler.Callback;
 import android.os.Looper;
@@ -26,7 +27,15 @@ import app.lawnchair.FeedBridge;
 import java.lang.ref.WeakReference;
 
 public class LauncherClient {
+    private static final String TAG = "LauncherClient";
     private static int apiVersion = -1;
+
+    public static float clampScrollProgress(float progress) {
+        if (Float.isNaN(progress) || progress <= 0f) {
+            return 0f;
+        }
+        return Math.min(1f, progress);
+    }
 
     private ILauncherOverlay mOverlay;
     public final IScrollCallback mScrollCallback;
@@ -75,9 +84,10 @@ public class LauncherClient {
 
         @Override
         public final void overlayScrollChanged(float f) {
+            float clamped = clampScrollProgress(f);
             mUIHandler.removeMessages(2);
-            Message.obtain(mUIHandler, 2, f).sendToTarget();
-            if (f > 0f && mWindowHidden) {
+            Message.obtain(mUIHandler, 2, clamped).sendToTarget();
+            if (clamped > 0f && mWindowHidden) {
                 mWindowHidden = false;
             }
         }
@@ -96,11 +106,14 @@ public class LauncherClient {
             switch (message.what) {
                 case 2:
                     if ((mClient.mServiceState & 1) != 0) {
-                        float floatValue = (float) message.obj;
+                        float floatValue = clampScrollProgress((float) message.obj);
                         mClient.mScrollCallback.onOverlayScrollChanged(floatValue);
                     }
                     return true;
                 case 3:
+                    if (mWindow == null || mWindowManager == null) {
+                        return true;
+                    }
                     WindowManager.LayoutParams attributes = mWindow.getAttributes();
                     if ((Boolean) message.obj) {
                         attributes.x = mWindowShift;
@@ -179,6 +192,10 @@ public class LauncherClient {
     public final void onResume() {
         if (!mDestroyed) {
             mActivityState |= 2;
+            if (mOverlay == null) {
+                mLauncherService.setStopped(false);
+                connect();
+            }
             if (mOverlay != null && mLayoutParams != null) {
                 try {
                     if (apiVersion < 4) {
@@ -186,7 +203,8 @@ public class LauncherClient {
                     } else {
                         mOverlay.setActivityState(mActivityState);
                     }
-                } catch (RemoteException ignored) {
+                } catch (RemoteException e) {
+                    handleRemoteException("onResume", e);
                 }
             }
         }
@@ -202,23 +220,23 @@ public class LauncherClient {
                     } else {
                         mOverlay.setActivityState(mActivityState);
                     }
-                } catch (RemoteException ignored) {
+                } catch (RemoteException e) {
+                    handleRemoteException("onPause", e);
                 }
             }
         }
     }
 
     public final void onStart() {
-        Log.i("FEED", "1");
         if (!mDestroyed) {
-            Log.i("FEED", "2");
             mLauncherService.setStopped(false);
             connect();
             mActivityState |= 1;
             if (mOverlay != null && mLayoutParams != null) {
                 try {
                     mOverlay.setActivityState(mActivityState);
-                } catch (RemoteException ignored) {
+                } catch (RemoteException e) {
+                    handleRemoteException("onStart", e);
                 }
             }
         }
@@ -232,7 +250,8 @@ public class LauncherClient {
             if (!(mOverlay == null || mLayoutParams == null)) {
                 try {
                     mOverlay.setActivityState(mActivityState);
-                } catch (RemoteException ignored) {
+                } catch (RemoteException e) {
+                    handleRemoteException("onStop", e);
                 }
             }
         }
@@ -242,8 +261,8 @@ public class LauncherClient {
         mDestroyed = true;
         try {
             mActivity.unregisterReceiver(feedPackageListener);
-        } catch (Exception ignored) {
-            // LC-Ignored
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "Feed package receiver was already unregistered", e);
         }
         if (mOverlayCallback != null) {
             mOverlayCallback.destroy();
@@ -279,7 +298,8 @@ public class LauncherClient {
             } else if (mOverlay != null) {
                 try {
                     mOverlay.windowDetached(mActivity.isChangingConfigurations());
-                } catch (RemoteException ignored) {
+                } catch (RemoteException e) {
+                    Log.w(TAG, "Overlay IPC failed during windowDetached", e);
                 }
                 mOverlay = null;
             }
@@ -318,7 +338,8 @@ public class LauncherClient {
                 } else {
                     mOverlay.onPause();
                 }
-            } catch (RemoteException ignored) {
+            } catch (RemoteException e) {
+                handleRemoteException("exchangeConfig", e);
             }
         }
     }
@@ -331,7 +352,8 @@ public class LauncherClient {
         if (isConnected()) {
             try {
                 mOverlay.startScroll();
-            } catch (RemoteException ignored) {
+            } catch (RemoteException e) {
+                handleRemoteException("startScroll", e);
             }
         }
     }
@@ -340,7 +362,8 @@ public class LauncherClient {
         if (isConnected()) {
             try {
                 mOverlay.endScroll();
-            } catch (RemoteException ignored) {
+            } catch (RemoteException e) {
+                handleRemoteException("endScroll", e);
             }
         }
     }
@@ -348,8 +371,9 @@ public class LauncherClient {
     public final void setScroll(float f) {
         if (isConnected()) {
             try {
-                mOverlay.onScroll(f);
-            } catch (RemoteException ignored) {
+                mOverlay.onScroll(clampScrollProgress(f));
+            } catch (RemoteException e) {
+                handleRemoteException("setScroll", e);
             }
         }
     }
@@ -365,7 +389,8 @@ public class LauncherClient {
         if (mOverlay != null) {
             try {
                 mOverlay.closeOverlay(feedRunning ? 1 : 0);
-            } catch (RemoteException ignored) {
+            } catch (RemoteException e) {
+                handleRemoteException("hideOverlay(boolean)", e);
             }
         }
     }
@@ -374,7 +399,8 @@ public class LauncherClient {
         if (mOverlay != null) {
             try {
                 mOverlay.closeOverlay(verifyAndGetAnimationFlags(duration));
-            } catch (RemoteException ignored) {
+            } catch (RemoteException e) {
+                handleRemoteException("hideOverlay(int)", e);
             }
         }
     }
@@ -384,8 +410,17 @@ public class LauncherClient {
         if (mOverlay != null) {
             try {
                 mOverlay.openOverlay(feedRunning ? 1 : 0);
-            } catch (RemoteException ignored) {
+            } catch (RemoteException e) {
+                handleRemoteException("showOverlay", e);
             }
+        }
+    }
+
+    private void handleRemoteException(String action, RemoteException e) {
+        Log.w(TAG, "Overlay IPC failed during " + action, e);
+        if (e instanceof DeadObjectException) {
+            setOverlay(null);
+            mLauncherService.clearOverlay();
         }
     }
 

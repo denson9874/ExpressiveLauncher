@@ -64,7 +64,7 @@ class SmartspaceWidgetReader(context: Context) :
         BlankActivity.startBlankActivityForResult(activity, intent)
     }
 
-    private fun extractWidgetLayout(appWidgetHostView: ViewGroup): List<SmartspaceTarget> {
+    internal fun extractWidgetLayout(appWidgetHostView: ViewGroup): List<SmartspaceTarget> {
         val descendants = appWidgetHostView.descendants
         val texts = descendants.filterIsInstance<TextView>().filter { !it.text.isNullOrEmpty() }.toList()
         val images = descendants.filterIsInstance<ImageView>().toList().filter { it.drawable != null && it.drawable is BitmapDrawable }
@@ -105,7 +105,7 @@ class SmartspaceWidgetReader(context: Context) :
         _hasWeather.value = liveWeather != null
         val weather = liveWeather ?: dummyTarget
         val card = if (cardIcon != null && title != null && subtitle != null) {
-            val pendingIntent = (title.parent.parent.parent as? View)?.pendingIntent
+            val pendingIntent = (title.parent?.parent?.parent as? View)?.pendingIntent
             val ttl = title.text.toString() + if (subtitle2 != null) subtitle.text.toString() else ""
             val sub = subtitle2 ?: subtitle
             SmartspaceTarget(
@@ -187,15 +187,18 @@ class SmartspaceWidgetReader(context: Context) :
         fun parseWeatherData(weatherIcon: Bitmap?, temperature: String?, intent: PendingIntent? = null): WeatherData? {
             return if (weatherIcon != null && temperature != null) {
                 try {
-                    val value = temperature.substring(0, temperature.indexOfFirst { (it < '0' || it > '9') && it != '-' }).toInt()
+                    val trimmed = temperature.trim()
+                    val idx = trimmed.indexOfFirst { (it < '0' || it > '9') && it != '-' }
+                    if (idx <= 0) return null
+                    val value = trimmed.substring(0, idx).toInt()
                     WeatherData(
                         weatherIcon,
                         Temperature(
                             value,
                             when {
-                                temperature.contains("C") -> Temperature.Unit.Celsius
-                                temperature.contains("F") -> Temperature.Unit.Fahrenheit
-                                temperature.contains("K") -> Temperature.Unit.Kelvin
+                                trimmed.contains("C") -> Temperature.Unit.Celsius
+                                trimmed.contains("F") -> Temperature.Unit.Fahrenheit
+                                trimmed.contains("K") -> Temperature.Unit.Kelvin
                                 else -> throw IllegalArgumentException("only supports C, F and K")
                             },
                         ),

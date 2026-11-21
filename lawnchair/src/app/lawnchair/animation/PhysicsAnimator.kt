@@ -17,6 +17,7 @@
 
 package app.lawnchair.animation
 
+import android.animation.ValueAnimator
 import android.util.ArrayMap
 import android.util.Log
 import android.view.View
@@ -480,6 +481,11 @@ class PhysicsAnimator<T> private constructor(target: T) {
             return
         }
 
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            finishImmediately(target)
+            return
+        }
+
         // Functions that will actually start the animations. These are run after we build and add
         // the InternalListener, since some animations might update/end immediately and we don't
         // want to miss those updates.
@@ -612,6 +618,73 @@ class PhysicsAnimator<T> private constructor(target: T) {
         animationStartActions.forEach { it.invoke() }
 
         clearAnimator()
+    }
+
+    /** Short-circuits directly to end values and callbacks when system animators are disabled. */
+    private fun finishImmediately(target: T) {
+        val properties = getAnimatedProperties()
+        val updates = ArrayList(updateListeners)
+        val ends = ArrayList(endListeners)
+        val actions = ArrayList(endActions)
+        val finalStates = ArrayList<Triple<FloatPropertyCompat<in T>, Float, Boolean>>(properties.size)
+
+        for (property in properties) {
+            val flingConfig = flingConfigs[property]
+            val springConfig = springConfigs[property]
+            val currentValue = property.getValue(target)
+
+            cancel(property)
+
+            val (finalValue, wasFling) = when {
+                springConfig != null && flingConfig == null -> {
+                    val endVal = if (springConfig.finalPosition != UNSET) springConfig.finalPosition else currentValue
+                    endVal to false
+                }
+                flingConfig != null && springConfig == null -> {
+                    estimateFlingEndValue(currentValue, flingConfig.startVelocity, flingConfig) to true
+                }
+                flingConfig != null && springConfig != null -> {
+                    if (springConfig.finalPosition != UNSET) {
+                        springConfig.finalPosition to false
+                    } else {
+                        val est = estimateFlingEndValue(currentValue, flingConfig.startVelocity, flingConfig)
+                        val clamped = est.coerceIn(flingConfig.min, flingConfig.max)
+                        clamped to (est in flingConfig.min..flingConfig.max)
+                    }
+                }
+                else -> currentValue to false
+            }
+
+            property.setValue(target, finalValue)
+            finalStates.add(Triple(property, finalValue, wasFling))
+        }
+
+        clearAnimator()
+
+        if (finalStates.isNotEmpty() && updates.isNotEmpty()) {
+            val updateMap = UpdateMap<T>()
+            for ((property, finalValue, _) in finalStates) {
+                updateMap[property] = AnimationUpdate(finalValue, 0f)
+            }
+            updates.forEach { it.onAnimationUpdateForProperty(target, ArrayMap(updateMap)) }
+        }
+
+        finalStates.forEachIndexed { index, (property, finalValue, wasFling) ->
+            val allEnded = index == finalStates.lastIndex
+            ends.forEach {
+                it.onAnimationEnd(
+                    target,
+                    property,
+                    wasFling,
+                    false,
+                    finalValue,
+                    0f,
+                    allEnded,
+                )
+            }
+        }
+
+        actions.forEach { it() }
     }
 
     /** Clear the animator's builder variables. */

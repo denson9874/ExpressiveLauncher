@@ -8,10 +8,12 @@ import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Consumer;
 
 import app.lawnchair.NotificationManager;
@@ -33,9 +35,10 @@ public class MediaListener extends MediaController.Callback {
     private final Runnable mOnChange;
     private List<MediaNotificationController> mControllers = Collections.emptyList();
     private MediaNotificationController mTracking;
-    private final Handler mHandler = new Handler();
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final FlowCollector<List<StatusBarNotification>> mFlowCollector;
     private List<StatusBarNotification> mNotifications = Collections.emptyList();
+    private boolean mActive = false;
 
     public MediaListener(Context context, Consumer<MediaListener> onChange) {
         mContext = context;
@@ -51,13 +54,18 @@ public class MediaListener extends MediaController.Callback {
     }
 
     public void onResume() {
+        mActive = true;
         updateTracking();
         mFlowCollector.start();
     }
 
     public void onPause() {
-        updateTracking();
+        mActive = false;
         mFlowCollector.stop();
+        unregisterControllers();
+        mTracking = null;
+        mNotifications = Collections.emptyList();
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     public MediaNotificationController getTracking() {
@@ -65,20 +73,53 @@ public class MediaListener extends MediaController.Callback {
     }
 
     public String getPackage() {
-        return mTracking.controller.getPackageName();
+        return mTracking != null ? mTracking.controller.getPackageName() : null;
+    }
+
+    @VisibleForTesting
+    public int getTrackedControllerCountForTesting() {
+        return mControllers.size();
+    }
+
+    @VisibleForTesting
+    public boolean isActiveForTesting() {
+        return mActive;
+    }
+
+    @VisibleForTesting
+    public boolean hasPendingCallbacksForTesting() {
+        return mHandler.hasCallbacks(mOnChange);
+    }
+
+    private void unregisterControllers() {
+        for (MediaNotificationController mnc : mControllers) {
+            try {
+                mnc.controller.unregisterCallback(this);
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Failed to unregister media controller callback", e);
+            }
+        }
+        mControllers = Collections.emptyList();
     }
 
     private void updateControllers(List<MediaNotificationController> controllers) {
-        for (MediaNotificationController mnc : mControllers) {
-            mnc.controller.unregisterCallback(this);
-        }
+        unregisterControllers();
+        List<MediaNotificationController> registered = new ArrayList<>(controllers.size());
         for (MediaNotificationController mnc : controllers) {
-            mnc.controller.registerCallback(this);
+            try {
+                mnc.controller.registerCallback(this, mHandler);
+                registered.add(mnc);
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Failed to register media controller callback", e);
+            }
         }
-        mControllers = controllers;
+        mControllers = registered;
     }
 
     private void updateTracking() {
+        if (!mActive) {
+            return;
+        }
         updateControllers(getControllers());
 
         if (mTracking != null) {

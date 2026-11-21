@@ -39,6 +39,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -73,7 +74,11 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
     private val jobLock = Any()
 
     override fun doSearch(query: String, callback: SearchCallback<BaseAllAppsAdapter.AdapterItem>) {
-        val requestSession = session.get()
+        val requestSession = synchronized(jobLock) {
+            currentJob?.cancel()
+            currentJob = null
+            session.incrementAndGet()
+        }
         appState.model.enqueueModelUpdateTask { _, _, apps ->
             if (session.get() != requestSession) return@enqueueModelUpdateTask
             val appResults = appSearchProvider.search(context, query, apps)
@@ -118,7 +123,7 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
     }
 
     override fun doZeroStateSearch(callback: SearchCallback<BaseAllAppsAdapter.AdapterItem>) {
-        endSession()
+        val requestSession = endSession()
 
         val prefs = PreferenceManager.getInstance(context)
         val historyEnabled = prefs.searchResulRecentSuggestion.get()
@@ -126,31 +131,36 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
         if (!historyEnabled) {
             callback.clearSearchResult()
         } else {
-            val historyJob = coroutineScope.launch {
-                val prefs2 = PreferenceManager2.getInstance(context)
-                val maxHistory = prefs2.maxRecentResultCount.firstCached()
+            synchronized(jobLock) {
+                if (session.get() != requestSession) return
+                currentJob?.cancel()
+                currentJob = coroutineScope.launch {
+                    val prefs2 = PreferenceManager2.getInstance(context)
+                    val maxHistory = prefs2.maxRecentResultCount.firstCached()
 
-                val historyResults = historySearchProvider.getRecentKeywords(context, maxHistory)
+                    val historyResults = historySearchProvider.getRecentKeywords(context, maxHistory)
 
-                val resultsToTranslate = if (historyResults.isNotEmpty()) {
-                    historyResults + listOf(SearchResult.Action.SearchSettings)
-                } else {
-                    listOf(
-                        SearchResult.Action.EmptyState(
-                            titleRes = R.string.search_empty_state_title,
-                            subtitleRes = R.string.search_empty_state_no_history_subtitle,
-                        ),
-                        SearchResult.Action.SearchSettings,
-                    )
-                }
+                    val resultsToTranslate = if (historyResults.isNotEmpty()) {
+                        historyResults + listOf(SearchResult.Action.SearchSettings)
+                    } else {
+                        listOf(
+                            SearchResult.Action.EmptyState(
+                                titleRes = R.string.search_empty_state_title,
+                                subtitleRes = R.string.search_empty_state_no_history_subtitle,
+                            ),
+                            SearchResult.Action.SearchSettings,
+                        )
+                    }
 
-                val searchTargets = translateToSearchTargets("", resultsToTranslate)
-                val adapterItems = transformSearchResults(searchTargets)
-                withContext(Dispatchers.Main) {
-                    callback.onSearchResult("", ArrayList(adapterItems))
+                    val searchTargets = translateToSearchTargets("", resultsToTranslate)
+                    val adapterItems = transformSearchResults(searchTargets)
+                    withContext(Dispatchers.Main) {
+                        if (session.get() == requestSession) {
+                            callback.onSearchResult("", ArrayList(adapterItems))
+                        }
+                    }
                 }
             }
-            synchronized(jobLock) { currentJob = historyJob }
         }
     }
 
@@ -159,16 +169,28 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
         if (interruptActiveRequests) {
             endSession()
         } else {
-            synchronized(jobLock) { currentJob?.cancel() }
+            synchronized(jobLock) {
+                session.incrementAndGet()
+                currentJob?.cancel()
+                currentJob = null
+            }
         }
     }
 
-    private fun endSession() {
-        synchronized(jobLock) {
-            session.incrementAndGet()
+    override fun destroy() {
+        super.destroy()
+        endSession()
+        coroutineScope.cancel()
+    }
+
+    private fun endSession(): Int {
+        val nextSession = synchronized(jobLock) {
             currentJob?.cancel()
+            currentJob = null
+            session.incrementAndGet()
         }
         nonAppProviderResults.clear()
+        return nextSession
     }
 
     private fun generateActionResults(query: String): List<SearchResult.Action> {

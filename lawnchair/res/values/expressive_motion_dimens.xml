@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Clean-room Material 3 Expressive v2 home-return critically-damped spring tokens -->
+    <item name="swipe_up_rect_scale_stiffness_v2" type="dimen" format="float">500.0</item>
+    <item name="swipe_up_rect_scale_damping_ratio_v2" type="dimen" format="float">0.99</item>
+    <item name="widget_rect_scale_stiffness" type="dimen" format="float">600.0</item>
+    <dimen name="folder_blur_radius">20dp</dimen>
+</resources>

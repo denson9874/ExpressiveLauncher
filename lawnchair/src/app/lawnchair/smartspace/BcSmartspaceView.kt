@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
@@ -11,13 +12,13 @@ import android.view.View.MeasureSpec.EXACTLY
 import android.view.View.MeasureSpec.makeMeasureSpec
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.annotation.VisibleForTesting
 import androidx.viewpager.widget.ViewPager
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import app.lawnchair.smartspace.provider.SmartspaceProvider
 import app.lawnchair.util.repeatOnAttached
 import com.android.launcher3.R
 import kotlin.math.roundToInt
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -34,7 +35,13 @@ class BcSmartspaceView @JvmOverloads constructor(
     private val adapter = CardPagerAdapter(context)
     private var scrollState = ViewPager.SCROLL_STATE_IDLE
     private var pendingTargets: List<SmartspaceTarget>? = null
-    private var runningAnimation: Animator? = null
+    @VisibleForTesting
+    internal var runningAnimation: Animator? = null
+    private var animatingOldCard: View? = null
+    private var animatingOverlayParent: ViewGroup? = null
+
+    @VisibleForTesting
+    internal fun getAnimatingOldCardForTesting(): View? = animatingOldCard
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -137,10 +144,36 @@ class BcSmartspaceView @JvmOverloads constructor(
         adapter.notifyDataSetChanged()
     }
 
-    private fun animateSmartspaceUpdate(oldCard: BcSmartspaceCard) {
+    override fun onDetachedFromWindow() {
+        runningAnimation?.cancel()
+        clearRunningAnimationOverlay()
+        super.onDetachedFromWindow()
+    }
+
+    private fun clearRunningAnimationOverlay() {
+        animatingOldCard?.let { card ->
+            animatingOverlayParent?.overlay?.remove(card)
+        }
+        animatingOldCard = null
+        animatingOverlayParent = null
+        if (::viewPager.isInitialized) {
+            viewPager.translationY = 0f
+        }
+        runningAnimation = null
+    }
+
+    @VisibleForTesting
+    internal fun animateSmartspaceUpdate(oldCard: BcSmartspaceCard) {
         if (runningAnimation != null || oldCard.parent != null) return
 
-        val animParent = viewPager.parent as ViewGroup
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            if (::viewPager.isInitialized) {
+                viewPager.translationY = 0f
+            }
+            return
+        }
+
+        val animParent = viewPager.parent as? ViewGroup ?: return
         oldCard.measure(makeMeasureSpec(viewPager.width, EXACTLY), makeMeasureSpec(viewPager.height, EXACTLY))
         oldCard.layout(viewPager.left, viewPager.top, viewPager.right, viewPager.bottom)
         val shift = resources.getDimension(R.dimen.enhanced_smartspace_dismiss_margin)
@@ -164,12 +197,17 @@ class BcSmartspaceView @JvmOverloads constructor(
         )
         animator.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationStart(animation: Animator) {
+                animatingOverlayParent = animParent
+                animatingOldCard = oldCard
                 animParent.overlay.add(oldCard)
             }
 
+            override fun onAnimationCancel(animation: Animator) {
+                clearRunningAnimationOverlay()
+            }
+
             override fun onAnimationEnd(animation: Animator) {
-                animParent.overlay.remove(oldCard)
-                runningAnimation = null
+                clearRunningAnimationOverlay()
             }
         })
         runningAnimation = animator

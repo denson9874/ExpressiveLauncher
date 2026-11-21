@@ -84,6 +84,7 @@ import com.android.launcher3.util.TouchController
 import com.android.launcher3.views.ActivityContext
 import com.android.launcher3.views.OptionsPopupView
 import com.android.launcher3.views.OptionsPopupView.OptionItem
+import com.android.launcher3.widget.BaseLauncherAppWidgetHostView
 import com.android.launcher3.widget.LauncherWidgetHolder
 import com.android.launcher3.widget.RoundedCornerEnforcement
 import com.android.systemui.plugins.shared.LauncherOverlayManager
@@ -155,6 +156,15 @@ class LawnchairLauncher : QuickstepLauncher() {
 
     val gestureController by unsafeLazy { GestureController(this) }
 
+    private fun refreshWidgetEnforcedCornerRadii() {
+        workspace?.mapOverItems { _, view ->
+            if (view is BaseLauncherAppWidgetHostView) {
+                view.refreshEnforcedCornerRadius()
+            }
+            false
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         layoutInflater.factory2 = LawnchairLayoutFactory(this)
         super.onCreate(savedInstanceState)
@@ -213,10 +223,11 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
         preferenceManager2.roundedWidgets.onEach(launchIn = lifecycleScope) {
             RoundedCornerEnforcement.sRoundedCornerEnabled = it
+            refreshWidgetEnforcedCornerRadii()
         }
         preferenceManager2.widgetCornerRadius.onEach(launchIn = lifecycleScope) { radiusDp ->
-            val density = resources.displayMetrics.density
-            RoundedCornerEnforcement.sCustomCornerRadius = radiusDp * density
+            RoundedCornerEnforcement.sCustomCornerRadiusDp = radiusDp.toFloat()
+            refreshWidgetEnforcedCornerRadii()
         }
         val isWorkspaceDarkText = Themes.getAttrBoolean(this, R.attr.isWorkspaceDarkText)
         combine(

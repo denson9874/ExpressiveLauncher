@@ -55,6 +55,7 @@ import app.lawnchair.theme.color.ColorOption
 import app.lawnchair.theme.color.tokens.ColorTokens
 import com.android.launcher3.BaseActivity
 import com.android.launcher3.BuildConfig
+import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
@@ -69,6 +70,9 @@ import java.util.concurrent.ExecutionException
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.system.exitProcess
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 
@@ -95,8 +99,8 @@ fun restartLauncher(context: Context) {
     var intent: Intent? = Intent(Intent.ACTION_MAIN)
         .addCategory(Intent.CATEGORY_HOME)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    val componentName = intent!!.resolveActivity(pm)
-    if (context.packageName != componentName.packageName) {
+    val componentName = intent?.resolveActivity(pm)
+    if (context.packageName != componentName?.packageName) {
         intent = pm.getLaunchIntentForPackage(context.packageName)
             ?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
     }
@@ -104,17 +108,37 @@ fun restartLauncher(context: Context) {
 }
 
 fun restartLauncher(context: Context, intent: Intent?) {
-    context.startActivity(intent)
+    flushPreferencesBeforeExit(context)
 
-    // Create a pending intent so the application is restarted after System.exit(0) was called.
-    // We use an AlarmManager to call this intent in 100ms
-    val mPendingIntent =
-        PendingIntent.getActivity(context, 0, intent, FLAG_CANCEL_CURRENT or FLAG_IMMUTABLE)
-    val mgr = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    mgr[AlarmManager.RTC, System.currentTimeMillis() + 100] = mPendingIntent
+    if (intent != null) {
+        context.startActivity(intent)
+
+        // Create a pending intent so the application is restarted after System.exit(0) was called.
+        // We use an AlarmManager to call this intent in 100ms
+        val mPendingIntent =
+            PendingIntent.getActivity(context, 0, intent, FLAG_CANCEL_CURRENT or FLAG_IMMUTABLE)
+        val mgr = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        mgr[AlarmManager.RTC, System.currentTimeMillis() + 100] = mPendingIntent
+    }
 
     // Kill the application
     killLauncher()
+}
+
+internal fun flushPreferencesBeforeExit(context: Context) {
+    // SharedPreferences.Editor.commit() acquires SharedPreferencesImpl's disk lock, flushing
+    // any previously queued asynchronous apply() writes before exitProcess(0).
+    runCatching { LauncherPrefs.getDevicePrefs(context).edit().commit() }
+    if (UserManagerCompat.isUserUnlocked(context)) {
+        runCatching { LauncherPrefs.getPrefs(context).edit().commit() }
+        runCatching {
+            runBlocking {
+                withTimeoutOrNull(500L) {
+                    PreferenceManager2.getInstance(context).preferencesDataStore.data.first()
+                }
+            }
+        }
+    }
 }
 
 fun killLauncher() {

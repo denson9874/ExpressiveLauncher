@@ -37,10 +37,35 @@ class TorchProvider(context: Context) :
         }
 
         // Collect all flash-capable camera IDs
-        val flashCameraIds = cameraManager.cameraIdList
+        val cameraIds = try {
+            cameraManager.cameraIdList
+        } catch (e: CameraAccessException) {
+            Log.w(TAG, "Failed to query camera list", e)
+            trySend(false)
+            close()
+            return@callbackFlow
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Camera access denied while querying camera list", e)
+            trySend(false)
+            close()
+            return@callbackFlow
+        }
+
+        val flashCameraIds = cameraIds
             .filter { id ->
-                cameraManager.getCameraCharacteristics(id)
-                    .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                try {
+                    cameraManager.getCameraCharacteristics(id)
+                        .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                } catch (e: CameraAccessException) {
+                    Log.w(TAG, "Failed to read camera characteristics for $id", e)
+                    false
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "Camera access denied reading characteristics for $id", e)
+                    false
+                } catch (e: IllegalArgumentException) {
+                    Log.w(TAG, "Invalid camera id $id while reading characteristics", e)
+                    false
+                }
             }
             .toSet()
 
@@ -72,8 +97,17 @@ class TorchProvider(context: Context) :
             }
         }
 
-        cameraManager.registerTorchCallback(callback, Handler(Looper.getMainLooper()))
-        awaitClose { cameraManager.unregisterTorchCallback(callback) }
+        try {
+            cameraManager.registerTorchCallback(callback, Handler(Looper.getMainLooper()))
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Camera access denied registering torch callback", e)
+            trySend(false)
+            close()
+            return@callbackFlow
+        }
+        awaitClose {
+            runCatching { cameraManager.unregisterTorchCallback(callback) }
+        }
     }
 
     private fun getSmartspaceTarget(): SmartspaceTarget {
@@ -101,10 +135,18 @@ class TorchProvider(context: Context) :
                                     "Failed to turn off torch for camera $cameraId: ${e.message}",
                                     e,
                                 )
+                            } catch (e: SecurityException) {
+                                Log.e(
+                                    TAG,
+                                    "Camera permission denied turning off torch for camera $cameraId",
+                                    e,
+                                )
                             }
                         }
                     } catch (e: CameraAccessException) {
                         Log.e(TAG, "Failed to access camera list", e)
+                    } catch (e: SecurityException) {
+                        Log.e(TAG, "Camera permission denied accessing camera list", e)
                     }
                 },
             ),

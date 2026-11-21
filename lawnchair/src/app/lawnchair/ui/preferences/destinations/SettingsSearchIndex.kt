@@ -76,14 +76,21 @@ internal class SearchableText(
 data class SettingsSearchProduct(
     val standardHomeOnly: Boolean,
     val expressive: Boolean,
+    val expressiveCore: Boolean = false,
 ) {
     companion object {
         val Expressive = SettingsSearchProduct(standardHomeOnly = true, expressive = true)
+        val ExpressiveCore = SettingsSearchProduct(
+            standardHomeOnly = true,
+            expressive = true,
+            expressiveCore = true,
+        )
         val Lawnchair = SettingsSearchProduct(standardHomeOnly = false, expressive = false)
 
         fun current() = SettingsSearchProduct(
             standardHomeOnly = BuildConfig.STANDARD_HOME_ONLY,
             expressive = BuildConfig.IS_EXPRESSIVE_PRODUCT,
+            expressiveCore = BuildConfig.EXPRESSIVE_CORE,
         )
     }
 }
@@ -110,6 +117,7 @@ enum class SettingsSearchAvailability(private val appliesTo: (SettingsSearchProd
     NOT_STANDARD_HOME({ !it.standardHomeOnly }),
     EXPRESSIVE_ONLY({ it.expressive }),
     UPSTREAM_ONLY({ !it.expressive }),
+    NON_CORE_ONLY({ !it.expressiveCore }),
     ;
 
     fun isAvailableIn(product: SettingsSearchProduct) = appliesTo(product)
@@ -161,8 +169,16 @@ object SettingsSearchIndex {
             entry(R.string.theme_label, keywords = "dark mode, light mode, night, system theme, dark theme")
             entry(R.string.accent_color, keywords = "palette, monet, tint, wallpaper colors")
             entry(R.string.color_style_label, keywords = "monet, palette, tonal, vibrant")
-            entry(R.string.notification_dots, keywords = "badge, badges, notifications, app badges")
-            entry(R.string.show_notification_count, keywords = "badge count, dot number")
+            entry(
+                R.string.notification_dots,
+                availability = SettingsSearchAvailability.NON_CORE_ONLY,
+                keywords = "badge, badges, notifications, app badges",
+            )
+            entry(
+                R.string.show_notification_count,
+                availability = SettingsSearchAvailability.NON_CORE_ONLY,
+                keywords = "badge count, dot number",
+            )
             entry(R.string.themed_icon_title, destination = GeneralIconPack, keywords = "monochrome, material you, home screen icons")
             entry(R.string.force_monochrome_label, R.string.force_monochrome_description, destination = GeneralIconPack, keywords = "themed icons, recolor")
         }
@@ -212,9 +228,24 @@ object SettingsSearchIndex {
             entry(R.string.smartspace_widget_toggle_label, keywords = "smartspace, widget, date, weather")
             entry(R.string.smartspace_mode_label, keywords = "smartspacer, source")
             entry(R.string.smartspace_weather, keywords = "temperature, forecast")
+            entry(
+                R.string.smartspace_fallback_weather,
+                R.string.smartspace_fallback_weather_description,
+                keywords = "weather, backup weather, temperature, forecast, met norway",
+            )
+            entry(
+                R.string.smartspace_glance_messages,
+                R.string.smartspace_glance_messages_description,
+                keywords = "daily messages, quotes, holidays, greeting, at a glance",
+            )
             entry(R.string.smartspace_battery_status, keywords = "charging, power")
+            entry(R.string.smartspace_bt_battery_title, keywords = "bluetooth, headphones, earbuds, battery")
             entry(R.string.smartspace_torch, keywords = "torch, flashlight")
-            entry(R.string.smartspace_now_playing, keywords = "music, song, media")
+            entry(
+                R.string.smartspace_now_playing,
+                availability = SettingsSearchAvailability.NON_CORE_ONLY,
+                keywords = "music, song, media",
+            )
             entry(R.string.smartspace_onboarding, keywords = "setup, tips")
             entry(R.string.smartspace_date, keywords = "day, calendar")
             entry(R.string.smartspace_time, keywords = "clock")
@@ -353,6 +384,12 @@ object SettingsSearchIndex {
 
         page(SettingsSearchPage.ABOUT) {
             entry(R.string.expressive_update_channel_label, R.string.expressive_update_channel_description, availability = SettingsSearchAvailability.EXPRESSIVE_ONLY, keywords = "qa, stable, release channel, updates, github, notifications")
+            entry(
+                R.string.expressive_update_notification_channel,
+                R.string.expressive_update_notifications_description,
+                availability = SettingsSearchAvailability.EXPRESSIVE_ONLY,
+                keywords = "update notifications, build notifications, alerts, notify, updates, qa, release",
+            )
             entry(R.string.privacy_policy, availability = SettingsSearchAvailability.EXPRESSIVE_ONLY, keywords = "privacy, data, legal")
             entry(R.string.acknowledgements, keywords = "licenses, open source, credits, libraries")
         }

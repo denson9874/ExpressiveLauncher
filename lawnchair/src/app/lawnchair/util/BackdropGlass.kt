@@ -20,6 +20,7 @@ import androidx.core.view.children
 import app.lawnchair.preferences.PreferenceManager
 import com.android.launcher3.Utilities
 import com.android.systemui.shared.system.BlurUtils
+import java.lang.reflect.Method
 
 /**
  * Frosted glass on Android 17 QPR2 (API 37.2): [View.setBackdropRenderEffect] blurs the content
@@ -36,6 +37,17 @@ object BackdropGlass {
     private const val RADIUS_DP = 24f
     private const val SATURATION = 1.6f
     private const val PIECE_ALPHA = 184 // 72%: frosted, still easy to read text on
+
+    // Reflection: the framework-16 prebuilt's Window, which the compiler sees, has no setDimColor.
+    // Cache the reflected Method once per process instead of looking it up on every window open.
+    private val setDimColorMethod: Method? by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        try {
+            Window::class.java.getMethod("setDimColor", Long::class.javaPrimitiveType)
+        } catch (e: ReflectiveOperationException) {
+            Log.w(TAG, "Window.setDimColor unavailable; keeping the black dim", e)
+            null
+        }
+    }
 
     @JvmStatic
     fun isEnabled(context: Context): Boolean = isEnabled(
@@ -107,12 +119,11 @@ object BackdropGlass {
         window.attributes = window.attributes.also {
             it.blurBehindRadius = (RADIUS_DP * window.context.resources.displayMetrics.density).toInt()
         }
-        // Reflection: the framework-16 prebuilt's Window, which the compiler sees, has no setDimColor.
+        val method = setDimColorMethod ?: return
         try {
-            Window::class.java.getMethod("setDimColor", Long::class.javaPrimitiveType)
-                .invoke(window, Color.pack(dimColor))
+            method.invoke(window, Color.pack(dimColor))
         } catch (e: ReflectiveOperationException) {
-            Log.w(TAG, "Window.setDimColor unavailable; keeping the black dim", e)
+            Log.w(TAG, "Window.setDimColor invocation failed; keeping the black dim", e)
         }
     }
 

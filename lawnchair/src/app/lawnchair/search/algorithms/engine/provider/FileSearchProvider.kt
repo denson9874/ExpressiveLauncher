@@ -387,7 +387,10 @@ object FileSearchProvider : SearchProvider {
             // However, it's more robust to check the file system attributes if possible,
             // or rely on MediaStore.Files.FileColumns.MEDIA_TYPE (equals MEDIA_TYPE_NONE for folders)
             // For now, let's use a filesystem check on the path.
-            val filePath = cursor.getString(cursor.getColumnIndexOrThrow(commonProjection[0])).toPath()
+            val rawPath = cursor.getString(cursor.getColumnIndexOrThrow(commonProjection[0]))
+                ?.takeIf { it.isNotBlank() }
+                ?: return@contentResolverQuery null
+            val filePath = rawPath.toPath()
             if (filePath.isDirectory() && !filePath.isRegularFile()) {
                 createFolderInfoFromCursor(cursor)
             } else {
@@ -607,11 +610,13 @@ object FileSearchProvider : SearchProvider {
         crossinline factory: (Cursor) -> T?,
     ): Sequence<T> = withContext(Dispatchers.IO) {
         try {
+            currentCoroutineContext().ensureActive()
             context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
                 ?.use { cursor ->
                     var count = 0
                     buildList {
                         while (cursor.moveToNext() && count < maxResult) {
+                            currentCoroutineContext().ensureActive()
                             factory(cursor)?.let { item ->
                                 add(item)
                                 count++
@@ -619,6 +624,8 @@ object FileSearchProvider : SearchProvider {
                         }
                     }.asSequence()
                 } ?: emptySequence()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             // Log error (e.g., SecurityException if permissions are somehow still an issue)
             Log.e("FileSearchProvider", "Error querying MediaStore at $uri: ${e.message}")

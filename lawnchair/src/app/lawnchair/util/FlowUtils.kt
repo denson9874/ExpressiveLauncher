@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.annotation.Discouraged
 import androidx.compose.runtime.Composable
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -43,8 +44,13 @@ fun broadcastReceiverFlow(context: Context, filter: IntentFilter) = callbackFlow
             trySend(intent)
         }
     }
-    context.registerReceiver(receiver, filter)
-    awaitClose { context.unregisterReceiver(receiver) }
+    ContextCompat.registerReceiver(
+        context,
+        receiver,
+        filter,
+        ContextCompat.RECEIVER_NOT_EXPORTED,
+    )
+    awaitClose { runCatching { context.unregisterReceiver(receiver) } }
 }
 
 fun <T> Flow<T>.dropWhileBusy(): Flow<T> = channelFlow {
