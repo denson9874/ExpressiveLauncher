@@ -27,12 +27,20 @@ def badging(code=9, version="1.0.8", package=verify.QA_PACKAGE, debug=False):
     )
 
 
-def signing(cert=CERT, count=1, label="V2 Signer"):
-    return (
-        "Verifies\nVerified using v2 scheme (APK Signature Scheme v2): true\n"
-        f"Number of signers: {count}\n{label}: certificate SHA-256 digest: {cert}\n"
-        f"{label}: public key SHA-256 digest: {'b' * 64}\n"
-    )
+def signing(cert=CERT, count=1, label="V2 Signer", v1=True, v2=True, v3=True):
+    lines = ["Verifies"]
+    if v1 is not None:
+        lines.append(f"Verified using v1 scheme (JAR signing): {'true' if v1 else 'false'}")
+    if v2 is not None:
+        lines.append(f"Verified using v2 scheme (APK Signature Scheme v2): {'true' if v2 else 'false'}")
+    if v3 is not None:
+        lines.append(f"Verified using v3 scheme (APK Signature Scheme v3): {'true' if v3 else 'false'}")
+    lines.extend([
+        f"Number of signers: {count}",
+        f"{label}: certificate SHA-256 digest: {cert}",
+        f"{label}: public key SHA-256 digest: {'b' * 64}",
+    ])
+    return "\n".join(lines) + "\n"
 
 
 class ParserTests(unittest.TestCase):
@@ -65,6 +73,20 @@ class ParserTests(unittest.TestCase):
             verify.parse_signer(signing(count=2))
         with self.assertRaisesRegex(verify.VerificationError, "more than one signer"):
             verify.parse_signer(signing() + f"Signer #2: certificate SHA-256 digest: {CERT}\n")
+
+    def test_missing_or_false_v1_v2_v3_signature_schemes_rejected(self):
+        cases = (
+            ("v1", signing(v1=False)),
+            ("v2", signing(v2=False)),
+            ("v3", signing(v3=False)),
+            ("v1", signing(v1=None)),
+            ("v2", signing(v2=None)),
+            ("v3", signing(v3=None)),
+        )
+        for scheme, output in cases:
+            with self.subTest(scheme=scheme, output=output):
+                with self.assertRaisesRegex(verify.VerificationError, f"signature scheme {scheme}"):
+                    verify.parse_signer(output)
 
     def test_unverified_missing_malformed_and_ambiguous_certificates_rejected(self):
         for output in (
@@ -132,7 +154,10 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertTrue(metadata["baseline"]["candidateIsNewer"])
         self.assertTrue(metadata["baseline"]["signerMatches"])
         self.assertEqual(8, metadata["baseline"]["versionCode"])
-        self.assertEqual(["verify", "--verbose", "--print-certs"], self.commands[0][1:-1])
+        self.assertEqual(
+            ["verify", "--verbose", "--print-certs", "--min-sdk-version", "21"],
+            self.commands[0][1:-1],
+        )
         self.assertEqual(["dump", "badging"], self.commands[1][1:-1])
         self.assertEqual(b"immutable candidate bytes", self.apk.read_bytes())
         self.assertEqual(b"previously delivered baseline bytes", self.baseline.read_bytes())
@@ -175,6 +200,15 @@ class ReleaseContractTests(unittest.TestCase):
         with patch.object(verify.subprocess, "run", return_value=subprocess.CompletedProcess([], 1, signing(), "DOES NOT VERIFY")):
             with self.assertRaisesRegex(verify.VerificationError, "DOES NOT VERIFY"):
                 verify.verify_qa(self.apk, self.baseline, "1.0.8", 9, self.tools)
+
+    def test_candidate_missing_required_signing_scheme_fails_qa(self):
+        for scheme, kwargs in (("v1", {"v1": False}), ("v2", {"v2": False}), ("v3", {"v3": False})):
+            with self.subTest(scheme=scheme), patch.dict(
+                self.responses,
+                {("apksigner", self.apk.name): signing(**kwargs)},
+            ):
+                with self.assertRaisesRegex(verify.VerificationError, f"signature scheme {scheme}"):
+                    self.verify_candidate()
 
     def test_candidate_mutation_during_baseline_inspection_rejected(self):
         def mutate(command, **kwargs):

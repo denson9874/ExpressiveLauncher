@@ -38,12 +38,13 @@ done
 
 mkdir -p "$signing_dir"
 signing_password=$(openssl rand -hex 32)
+trap 'unset signing_password KEYTOOL_SIGNING_PASSWORD' EXIT INT TERM
 
-"$keytool_path" -genkeypair \
+KEYTOOL_SIGNING_PASSWORD="$signing_password" "$keytool_path" -genkeypair \
     -keystore "$keystore_path" \
-    -storepass "$signing_password" \
+    -storepass:env KEYTOOL_SIGNING_PASSWORD \
     -alias "$key_alias" \
-    -keypass "$signing_password" \
+    -keypass:env KEYTOOL_SIGNING_PASSWORD \
     -keyalg RSA \
     -keysize 4096 \
     -sigalg SHA256withRSA \
@@ -60,9 +61,9 @@ signing_password=$(openssl rand -hex 32)
 cp "$backup_properties_path" "$repository_properties_path"
 
 # Export the public RFC PEM certificate for Google Play Console / Play App Signing registration
-"$keytool_path" -export -rfc \
+KEYTOOL_SIGNING_PASSWORD="$signing_password" "$keytool_path" -export -rfc \
     -keystore "$keystore_path" \
-    -storepass "$signing_password" \
+    -storepass:env KEYTOOL_SIGNING_PASSWORD \
     -alias "$key_alias" \
     -file "$cert_export_path"
 
@@ -81,8 +82,8 @@ print "Active build configuration: $repository_properties_path"
 print "Public upload certificate: $cert_export_path"
 print "Repository upload certificate: $repo_cert_path"
 print "================================================================="
-"$keytool_path" -list -v \
+KEYTOOL_SIGNING_PASSWORD="$signing_password" "$keytool_path" -list -v \
     -keystore "$keystore_path" \
-    -storepass "$signing_password" \
+    -storepass:env KEYTOOL_SIGNING_PASSWORD \
     -alias "$key_alias"
 print "================================================================="

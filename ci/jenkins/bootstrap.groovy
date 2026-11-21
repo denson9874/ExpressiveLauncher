@@ -1,3 +1,8 @@
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.PosixFilePermissions
 import jenkins.model.Jenkins
 import hudson.model.Node
 import hudson.model.User
@@ -7,6 +12,21 @@ import hudson.slaves.DumbSlave
 import hudson.slaves.JNLPLauncher
 import hudson.slaves.RetentionStrategy
 import jenkins.security.ApiTokenProperty
+
+def writeSecretAtomic0600 = { File target, String content ->
+    def mode0600 = PosixFilePermissions.fromString('rw-------')
+    def attrs = PosixFilePermissions.asFileAttribute(mode0600)
+    def dir = target.parentFile.toPath()
+    Files.createDirectories(dir)
+    def tmp = Files.createTempFile(dir, '.' + target.name + '.', '.tmp', attrs)
+    try {
+        Files.write(tmp, content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING)
+        Files.setPosixFilePermissions(tmp, mode0600)
+        Files.move(tmp, target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+    } finally {
+        Files.deleteIfExists(tmp)
+    }
+}
 
 // First-start provisioning. Inputs and generated credentials live outside Git, mode 0600.
 def j = Jenkins.get()
@@ -38,13 +58,9 @@ if (!credentialFile.exists()) {
     def user = User.getById(account, false)
     def token = user.getProperty(ApiTokenProperty.class).tokenStore.generateNewToken('Expressive CI local administration')
     user.save()
-    credentialFile.text = account + ':' + token.plainValue
-    credentialFile.setReadable(false, false); credentialFile.setReadable(true, true)
-    credentialFile.setWritable(false, false); credentialFile.setWritable(true, true)
+    writeSecretAtomic0600(credentialFile, account + ':' + token.plainValue)
 }
 def workerSecret = new File(base, 'config/agent-secret')
-workerSecret.text = j.getNode(agentName).getComputer().getJnlpMac()
-workerSecret.setReadable(false, false); workerSecret.setReadable(true, true)
-workerSecret.setWritable(false, false); workerSecret.setWritable(true, true)
+writeSecretAtomic0600(workerSecret, j.getNode(agentName).getComputer().getJnlpMac())
 jenkins.model.JenkinsLocationConfiguration.get().setUrl('http://127.0.0.1:8091/')
 j.save()

@@ -448,15 +448,19 @@ public class TaskbarDragController extends DragController<BaseTaskbarContext> im
                 }
             } else if (item.itemType == ITEM_TYPE_SEARCH_ACTION) {
                 // TODO(b/289261756): Buggy behavior when split opposite to an existing search pane.
-                intent.putExtra(
-                        ClipDescription.EXTRA_PENDING_INTENT,
-                        PendingIntent.getActivityAsUser(
-                                mActivity,
-                                /* requestCode= */ 0,
-                                item.getIntent(),
-                                PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT,
-                                /* options= */ null,
-                                item.user));
+                Intent searchIntent = item.getIntent();
+                if (searchIntent != null) {
+                    intent.putExtra(
+                            ClipDescription.EXTRA_PENDING_INTENT,
+                            PendingIntent.getActivityAsUser(
+                                    mActivity,
+                                    /* requestCode= */ 0,
+                                    searchIntent,
+                                    PendingIntent.FLAG_IMMUTABLE
+                                            | PendingIntent.FLAG_UPDATE_CURRENT,
+                                    /* options= */ null,
+                                    item.user));
+                }
             } else {
                 intent.putExtra(ClipDescription.EXTRA_PENDING_INTENT,
                         launcherApps.getMainActivityLaunchIntent(item.getIntent().getComponent(),

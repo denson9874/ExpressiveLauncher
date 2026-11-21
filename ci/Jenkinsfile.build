@@ -8,12 +8,6 @@ pipeline {
         string(name: 'BASELINE_RELEASE_ID', defaultValue: '', description: 'Optional sealed QA baseline for initial GitHub channel bootstrap')
     }
     environment {
-        SOURCE_REPOSITORY = '/Users/densond/Developer/ExpressiveLauncher'
-        EXPRESSIVE_CI_HOME = '/Users/densond/Library/Application Support/Expressive CI'
-        ANDROID_HOME = '/Users/densond/Library/Android/sdk'
-        ANDROID_SDK_ROOT = '/Users/densond/Library/Android/sdk'
-        JAVA_HOME = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
-        EXPRESSIVE_KEYSTORE_PROPERTIES = '/Users/densond/Developer/ExpressiveLauncher/keystore.properties'
         PATH = '/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/opt/python@3.14/libexec/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
     }
     stages {
@@ -23,6 +17,13 @@ pipeline {
                     if (!(params.SOURCE_REVISION ==~ /[0-9a-f]{40}/)) { error('A full source commit is required') }
                     if (!(params.VERSION_NAME ==~ /[0-9]+\.[0-9]+\.[0-9]+/) || !(params.VERSION_CODE ==~ /[1-9][0-9]*/)) { error('Invalid version') }
                     if (params.BASELINE_RELEASE_ID && !(params.BASELINE_RELEASE_ID ==~ /qa-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-build-[0-9]+/)) { error('Invalid baseline release ID') }
+                    def homeDir = env.HOME ?: env.WORKSPACE
+                    env.SOURCE_REPOSITORY = env.SOURCE_REPOSITORY ?: "${homeDir}/Developer/ExpressiveLauncher"
+                    env.EXPRESSIVE_CI_HOME = env.EXPRESSIVE_CI_HOME ?: "${homeDir}/Library/Application Support/Expressive CI"
+                    env.ANDROID_HOME = env.ANDROID_HOME ?: "${homeDir}/Library/Android/sdk"
+                    env.ANDROID_SDK_ROOT = env.ANDROID_SDK_ROOT ?: env.ANDROID_HOME
+                    env.JAVA_HOME = env.JAVA_HOME ?: '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home'
+                    env.EXPRESSIVE_KEYSTORE_PROPERTIES = env.EXPRESSIVE_KEYSTORE_PROPERTIES ?: "${env.SOURCE_REPOSITORY}/keystore.properties"
                     env.RUN_WORKSPACE = "${env.WORKSPACE}/build-${env.BUILD_NUMBER}"
                     env.RELEASE_ID = "qa-${params.VERSION_NAME}-${params.VERSION_CODE}-build-${env.BUILD_NUMBER}"
                     env.CORE_RELEASE_ID = "qa-core-${params.VERSION_NAME}-${params.VERSION_CODE}-build-${env.BUILD_NUMBER}"

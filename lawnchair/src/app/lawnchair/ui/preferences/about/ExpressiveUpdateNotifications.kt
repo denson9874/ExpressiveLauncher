@@ -110,9 +110,35 @@ internal class ExpressiveUpdateNotificationStore(context: Context) {
             .apply()
     }
 
+    fun lastImmediateCheckScheduledMillis(): Long =
+        preferences.getLong(KEY_LAST_IMMEDIATE_CHECK_SCHEDULED_MILLIS, 0L)
+
+    fun recordImmediateCheckScheduled(nowMillis: Long = System.currentTimeMillis()) {
+        preferences.edit()
+            .putLong(KEY_LAST_IMMEDIATE_CHECK_SCHEDULED_MILLIS, nowMillis)
+            .apply()
+    }
+
+    fun clearImmediateCheckCooldown() {
+        preferences.edit()
+            .remove(KEY_LAST_IMMEDIATE_CHECK_SCHEDULED_MILLIS)
+            .apply()
+    }
+
     private companion object {
         const val PREFERENCES_NAME = "expressive_update_notifications"
+        const val KEY_LAST_IMMEDIATE_CHECK_SCHEDULED_MILLIS = "last_immediate_check_scheduled_millis"
     }
+}
+
+internal fun shouldScheduleImmediateCheck(
+    lastScheduledMillis: Long,
+    nowMillis: Long,
+    cooldownMillis: Long = ExpressiveUpdateScheduler.IMMEDIATE_CHECK_COOLDOWN_MILLIS,
+): Boolean {
+    if (lastScheduledMillis <= 0L) return true
+    if (nowMillis < lastScheduledMillis) return true
+    return (nowMillis - lastScheduledMillis) >= cooldownMillis
 }
 
 internal object ExpressiveUpdateNotifications {
@@ -207,36 +233,58 @@ internal val ExpressiveUpdateChannel.displayNameResId: Int
     }
 
 internal object ExpressiveUpdateScheduler {
-    private const val PERIODIC_JOB_ID = 0x455851
-    private const val IMMEDIATE_JOB_ID = 0x455852
-    private const val SNOOZE_JOB_ID = 0x455853
+    internal const val PERIODIC_JOB_ID = 0x455851
+    internal const val IMMEDIATE_JOB_ID = 0x455852
+    internal const val SNOOZE_JOB_ID = 0x455853
     private val PERIOD_MILLIS = TimeUnit.HOURS.toMillis(6)
     private val FLEX_MILLIS = TimeUnit.HOURS.toMillis(1)
+    internal val IMMEDIATE_CHECK_COOLDOWN_MILLIS = PERIOD_MILLIS
 
-    fun ensureScheduled(context: Context) {
-        selectedExpressiveUpdateConfig(context) ?: return
+    fun ensureScheduled(
+        context: Context,
+        nowMillis: Long = System.currentTimeMillis(),
+        forceImmediate: Boolean = false,
+        config: ExpressiveUpdateConfig? = selectedExpressiveUpdateConfig(context),
+        canNotify: Boolean = ExpressiveUpdateNotifications.canNotify(context),
+        scheduleJob: ((JobScheduler, JobInfo) -> Int)? = null,
+    ) {
+        config ?: return
         val scheduler = context.getSystemService(JobScheduler::class.java)
-        if (!ExpressiveUpdateNotifications.canNotify(context)) {
+        if (!canNotify) {
             scheduler.cancel(PERIODIC_JOB_ID)
             scheduler.cancel(IMMEDIATE_JOB_ID)
             scheduler.cancel(SNOOZE_JOB_ID)
             return
         }
+        val enqueue: (JobInfo) -> Int = { jobInfo ->
+            scheduleJob?.invoke(scheduler, jobInfo) ?: scheduler.schedule(jobInfo)
+        }
         val component = ComponentName(context, ExpressiveUpdateJobService::class.java)
-        scheduler.schedule(
-            JobInfo.Builder(PERIODIC_JOB_ID, component)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPersisted(true)
-                .setPeriodic(PERIOD_MILLIS, FLEX_MILLIS)
-                .build(),
+        if (scheduler.getPendingJob(PERIODIC_JOB_ID) == null) {
+            enqueue(
+                JobInfo.Builder(PERIODIC_JOB_ID, component)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                    .setPersisted(true)
+                    .setPeriodic(PERIOD_MILLIS, FLEX_MILLIS)
+                    .build(),
+            )
+        }
+        val store = ExpressiveUpdateNotificationStore(context)
+        val cooldownElapsed = forceImmediate || shouldScheduleImmediateCheck(
+            lastScheduledMillis = store.lastImmediateCheckScheduledMillis(),
+            nowMillis = nowMillis,
+            cooldownMillis = IMMEDIATE_CHECK_COOLDOWN_MILLIS,
         )
-        if (scheduler.getPendingJob(IMMEDIATE_JOB_ID) == null) {
-            scheduler.schedule(
+        if (cooldownElapsed && scheduler.getPendingJob(IMMEDIATE_JOB_ID) == null) {
+            val result = enqueue(
                 JobInfo.Builder(IMMEDIATE_JOB_ID, component)
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                     .setMinimumLatency(0L)
                     .build(),
             )
+            if (result == JobScheduler.RESULT_SUCCESS) {
+                store.recordImmediateCheckScheduled(nowMillis)
+            }
         }
     }
 
@@ -255,10 +303,24 @@ internal object ExpressiveUpdateScheduler {
         )
     }
 
-    fun onChannelChanged(context: Context) {
+    fun onChannelChanged(
+        context: Context,
+        nowMillis: Long = System.currentTimeMillis(),
+        config: ExpressiveUpdateConfig? = selectedExpressiveUpdateConfig(context),
+        canNotify: Boolean = ExpressiveUpdateNotifications.canNotify(context),
+        scheduleJob: ((JobScheduler, JobInfo) -> Int)? = null,
+    ) {
         val scheduler = context.getSystemService(JobScheduler::class.java)
         listOf(PERIODIC_JOB_ID, IMMEDIATE_JOB_ID, SNOOZE_JOB_ID).forEach(scheduler::cancel)
-        ensureScheduled(context)
+        ExpressiveUpdateNotificationStore(context).clearImmediateCheckCooldown()
+        ensureScheduled(
+            context = context,
+            nowMillis = nowMillis,
+            forceImmediate = true,
+            config = config,
+            canNotify = canNotify,
+            scheduleJob = scheduleJob,
+        )
     }
 }
 
@@ -275,17 +337,17 @@ class ExpressiveUpdateJobService : JobService() {
         runningJob = scope.launch {
             var shouldRetry = false
             try {
-                when (
-                    val decision = fetchExpressiveUpdateDecision(
-                        api = gitHubApiRetrofit.create(),
-                        config = config,
-                        currentVersionCode = BuildConfig.VERSION_CODE.toLong(),
-                        currentPackageName = BuildConfig.APPLICATION_ID,
-                        installedChannel = installedChannel,
-                    )
-                ) {
+                val store = ExpressiveUpdateNotificationStore(this@ExpressiveUpdateJobService)
+                val decision = fetchExpressiveUpdateDecision(
+                    api = gitHubApiRetrofit.create(),
+                    config = config,
+                    currentVersionCode = BuildConfig.VERSION_CODE.toLong(),
+                    currentPackageName = BuildConfig.APPLICATION_ID,
+                    installedChannel = installedChannel,
+                )
+                store.recordImmediateCheckScheduled(System.currentTimeMillis())
+                when (decision) {
                     is ExpressiveUpdateDecision.Available -> {
-                        val store = ExpressiveUpdateNotificationStore(this@ExpressiveUpdateJobService)
                         val manifest = decision.manifest
                         if (
                             shouldPostExpressiveUpdateNotification(

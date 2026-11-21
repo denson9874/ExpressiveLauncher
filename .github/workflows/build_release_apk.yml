@@ -18,16 +18,24 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
         with:
-          cache-encryption-key: Da25KUVSE5jbGds2zXmfXw==
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Write sign info
         if: github.repository_owner == 'LawnchairLauncher'
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ ! -z "${{ secrets.KEYSTORE }}" ]; then
-            echo storePassword='${{ secrets.KEYSTORE_PASSWORD }}' >> keystore.properties
-            echo keyAlias='${{ secrets.KEY_ALIAS }}' >> keystore.properties
-            echo keyPassword='${{ secrets.KEY_PASSWORD }}' >> keystore.properties
-            echo storeFile='${{ github.workspace }}/key.jks' >> keystore.properties
-            echo ${{ secrets.KEYSTORE }} | base64 --decode > ${{ github.workspace }}/key.jks
+          if [ -n "$KEYSTORE" ]; then
+            umask 077
+            : > keystore.properties
+            printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD" >> keystore.properties
+            printf 'keyAlias=%s\n' "$KEY_ALIAS" >> keystore.properties
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD" >> keystore.properties
+            printf 'storeFile=%s/key.jks\n' "$GITHUB_WORKSPACE" >> keystore.properties
+            printf '%s' "$KEYSTORE" | base64 --decode > "$GITHUB_WORKSPACE/key.jks"
+            chmod 600 keystore.properties "$GITHUB_WORKSPACE/key.jks"
           fi
       - name: Build release APK
         run: ./gradlew assembleLawnWithQuickstepGithubRelease bundleLawnWithQuickstepPlayRelease
@@ -36,4 +44,12 @@ jobs:
         with:
           name: Release APK
           path: build/outputs/*
+      - name: Clean up signing material
+        if: always()
+        run: |
+          for secret_file in keystore.properties "$GITHUB_WORKSPACE/key.jks"; do
+            if [ -f "$secret_file" ]; then
+              shred -uz "$secret_file" 2>/dev/null || rm -f "$secret_file"
+            fi
+          done
 

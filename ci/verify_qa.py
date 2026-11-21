@@ -43,6 +43,12 @@ VARIANTS = ("full", "core")
 # Android 17 classes the app reaches only by reflection. R8 merges lambdas and moves class constants
 # ahead of the shared switch, so a literal one crashes unrelated code on older Android (5.0.5-5.0.9).
 ANDROID_17_ONLY_CLASSES = ("android/window/TaskSnapshotListener", "android/window/TaskSnapshot")
+APKSIGNER_MIN_SDK_VERSION = "21"
+REQUIRED_SIGNATURE_SCHEMES = (
+    ("v1", r"^Verified using v1 scheme \(JAR signing\):\s*(true|false)\s*$"),
+    ("v2", r"^Verified using v2 scheme \(APK Signature Scheme v2\):\s*(true|false)\s*$"),
+    ("v3", r"^Verified using v3 scheme \(APK Signature Scheme v3\):\s*(true|false)\s*$"),
+)
 
 
 class VerificationError(ValueError):
@@ -80,6 +86,11 @@ def parse_signer(output):
     """Handle legacy Signer #1 and Build Tools 37 V2 Signer certificate labels."""
     if not re.search(r"^Verifies\s*$", output, re.MULTILINE):
         raise VerificationError("apksigner did not report a verified signature")
+    for scheme, pattern in REQUIRED_SIGNATURE_SCHEMES:
+        results = re.findall(pattern, output, re.MULTILINE)
+        if results != ["true"]:
+            found = results[0] if len(results) == 1 else (",".join(results) or "missing")
+            raise VerificationError(f"APK must verify with signature scheme {scheme} (got {found})")
     counts = re.findall(r"^Number of signers:\s*(\d+)\s*$", output, re.MULTILINE)
     if counts != ["1"]:
         raise VerificationError("QA APK must have exactly one signer")
@@ -138,7 +149,17 @@ def inspect_apk(apk, build_tools):
     if not apk.is_file():
         raise VerificationError("APK does not exist or is not a regular file: " + str(apk))
     before = file_digest(apk)
-    signer = parse_signer(run_tool(build_tools / "apksigner", "verify", "--verbose", "--print-certs", apk))
+    signer = parse_signer(
+        run_tool(
+            build_tools / "apksigner",
+            "verify",
+            "--verbose",
+            "--print-certs",
+            "--min-sdk-version",
+            APKSIGNER_MIN_SDK_VERSION,
+            apk,
+        )
+    )
     identity = parse_badging(run_tool(build_tools / "aapt2", "dump", "badging", apk))
     if file_digest(apk) != before:
         raise VerificationError("APK changed while being verified: " + str(apk))

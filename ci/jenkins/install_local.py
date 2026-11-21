@@ -12,12 +12,38 @@ import plistlib
 import secrets
 import shutil
 import subprocess
+import tempfile
+import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-BASE = Path.home() / 'Library/Application Support/Expressive CI'
+BASE = Path(os.environ.get('EXPRESSIVE_CI_HOME') or (Path.home() / 'Library/Application Support/Expressive CI'))
 JAVA = '/opt/homebrew/opt/openjdk@21/bin/java'
 WAR = '/opt/homebrew/opt/jenkins-lts/libexec/jenkins.war'
 URL = 'http://127.0.0.1:8091/'
+
+
+def write_atomic(path, data, mode=0o600):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix='.' + path.name + '.', suffix='.tmp', dir=str(path.parent))
+    tmp_path = Path(tmp_name)
+    try:
+        os.fchmod(fd, mode)
+        with os.fdopen(fd, 'wb') as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, path)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+
+def download_agent_jar(url, destination):
+    with urllib.request.urlopen(url, timeout=60) as response:
+        payload = response.read()
+    if not payload:
+        raise SystemExit(f'Empty response downloading {url}')
+    write_atomic(destination, payload, mode=0o644)
 
 
 def service(label, arguments, environment):
@@ -31,7 +57,7 @@ def service(label, arguments, environment):
               'StandardErrorPath': str(BASE / 'logs' / (label + '.err.log'))}
     if path.exists() and plistlib.loads(path.read_bytes()) != config:
         raise SystemExit(f'Existing service differs: {path}; review before replacing it')
-    path.write_bytes(plistlib.dumps(config)); path.chmod(0o600)
+    write_atomic(path, plistlib.dumps(config), mode=0o600)
     domain = f'gui/{os.getuid()}'
     if subprocess.run(['launchctl', 'print', domain + '/' + label],
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
@@ -53,15 +79,14 @@ def main():
     if args.component == 'controller':
         props = BASE / 'config/bootstrap.properties'
         if not props.exists():
-            props.write_text(f'adminUser={getpass.getuser()}\nadminPassword={secrets.token_urlsafe(32)}\n')
-            props.chmod(0o600)
+            credentials = f'adminUser={getpass.getuser()}\nadminPassword={secrets.token_urlsafe(32)}\n'
+            write_atomic(props, credentials.encode('utf-8'), mode=0o600)
         shutil.copyfile(ROOT / 'ci/jenkins/bootstrap.groovy', BASE / 'jenkins/init.groovy.d/bootstrap.groovy')
         service('dev.expressive.jenkins', [JAVA, '-Djenkins.install.runSetupWizard=false',
                 '-Djava.awt.headless=true', '-jar', WAR, '--httpListenAddress=127.0.0.1',
                 '--httpPort=8091'], environment)
     else:
-        import urllib.request
-        urllib.request.urlretrieve(URL + 'jnlpJars/agent.jar', BASE / 'bin/agent.jar')
+        download_agent_jar(URL + 'jnlpJars/agent.jar', BASE / 'bin/agent.jar')
         if not (BASE / 'config/agent-secret').exists():
             raise SystemExit('Controller has not provisioned the agent secret yet')
         service('dev.expressive.jenkins-agent', [JAVA, '-jar', str(BASE / 'bin/agent.jar'),

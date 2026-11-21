@@ -38,12 +38,13 @@ fi
 
 mkdir -p "$signing_dir"
 signing_password=$(openssl rand -hex 32)
+trap 'unset signing_password KEYTOOL_SIGNING_PASSWORD' EXIT INT TERM
 
-"$keytool_path" -genkeypair \
+KEYTOOL_SIGNING_PASSWORD="$signing_password" "$keytool_path" -genkeypair \
     -keystore "$keystore_path" \
-    -storepass "$signing_password" \
+    -storepass:env KEYTOOL_SIGNING_PASSWORD \
     -alias "$key_alias" \
-    -keypass "$signing_password" \
+    -keypass:env KEYTOOL_SIGNING_PASSWORD \
     -keyalg RSA \
     -keysize 4096 \
     -sigalg SHA256withRSA \
@@ -64,8 +65,8 @@ print "Created the Expressive Launcher release key without exposing its password
 print "Keystore: $keystore_path"
 print "Offline credential backup: $backup_properties_path"
 print "Ignored build configuration: $repository_properties_path"
-"$keytool_path" -list -v \
+KEYTOOL_SIGNING_PASSWORD="$signing_password" "$keytool_path" -list -v \
     -keystore "$keystore_path" \
-    -storepass "$signing_password" \
+    -storepass:env KEYTOOL_SIGNING_PASSWORD \
     -alias "$key_alias" \
     | sed -n '/SHA256:/p;/Valid from:/p'

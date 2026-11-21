@@ -45,24 +45,42 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
         with:
-          cache-encryption-key: Da25KUVSE5jbGds2zXmfXw==
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Write sign info
         if: github.repository_owner == 'LawnchairLauncher'
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ ! -z "${{ secrets.KEYSTORE }}" ]; then
-            echo storePassword='${{ secrets.KEYSTORE_PASSWORD }}' >> keystore.properties
-            echo keyAlias='${{ secrets.KEY_ALIAS }}' >> keystore.properties
-            echo keyPassword='${{ secrets.KEY_PASSWORD }}' >> keystore.properties
-            echo storeFile='${{ github.workspace }}/key.jks' >> keystore.properties
-            echo ${{ secrets.KEYSTORE }} | base64 --decode > ${{ github.workspace }}/key.jks
+          if [ -n "$KEYSTORE" ]; then
+            umask 077
+            : > keystore.properties
+            printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD" >> keystore.properties
+            printf 'keyAlias=%s\n' "$KEY_ALIAS" >> keystore.properties
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD" >> keystore.properties
+            printf 'storeFile=%s/key.jks\n' "$GITHUB_WORKSPACE" >> keystore.properties
+            printf '%s' "$KEYSTORE" | base64 --decode > "$GITHUB_WORKSPACE/key.jks"
+            chmod 600 keystore.properties "$GITHUB_WORKSPACE/key.jks"
           fi
       - name: Build APK
-        run: ./gradlew ${{ matrix.build-variant }}
+        env:
+          BUILD_VARIANT: ${{ matrix.build-variant }}
+        run: ./gradlew "$BUILD_VARIANT"
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.build-variant }}
           path: build/outputs/apk/**/*.apk
+      - name: Clean up signing material
+        if: always()
+        run: |
+          for secret_file in keystore.properties "$GITHUB_WORKSPACE/key.jks"; do
+            if [ -f "$secret_file" ]; then
+              shred -uz "$secret_file" 2>/dev/null || rm -f "$secret_file"
+            fi
+          done
 
   check-style:
     runs-on: ubuntu-latest
@@ -119,8 +137,8 @@ jobs:
           GH_TOKEN: ${{ secrets.LAWNCHAIR_BOT_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          gh pr comment $PR_URL --body "No issues found, auto-merging the Crowdin pull request."
-          gh pr merge $PR_URL --auto --squash --delete-branch
+          gh pr comment "$PR_URL" --body "No issues found, auto-merging the Crowdin pull request."
+          gh pr merge "$PR_URL" --auto --squash --delete-branch
 
   # Status check that is required in branch protection rules.
   final-status:
@@ -156,7 +174,13 @@ jobs:
           name: assembleLawnWithQuickstepNightlyRelease
       # Note the # and () symbols are not supported in GitHub Release filenames, even manually
       - name: Export APK_NAME for later use
-        run: echo "APK_NAME=Lawnchair.Debug.${{ github.ref_name }}.Nightly-CI_${{ github.run_number }}-$(echo ${{ github.sha }} | cut -c1-7).apk" >> $GITHUB_ENV
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          short_sha="$(printf '%s' "$COMMIT_SHA" | cut -c1-7)"
+          printf 'APK_NAME=Lawnchair.Debug.%s.Nightly-CI_%s-%s.apk\n' "$REF_NAME" "$RUN_NUMBER" "$short_sha" >> "$GITHUB_ENV"
       - name: Rename .apk file
         run: mv "./lawnWithQuickstepNightly/release/"*.apk "./$APK_NAME"
       - name: Delete release if exist then create release
