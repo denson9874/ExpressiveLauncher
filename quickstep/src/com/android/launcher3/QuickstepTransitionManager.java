@@ -1187,7 +1187,11 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             backgroundRadiusAnim.addListener(AnimatorListeners.forEndCallback(() -> {
                 // Use try-with-resources to ensure the transaction gets closed.
                 try (SurfaceControl.Transaction transaction = new SurfaceControl.Transaction()) {
-                    transaction.remove(dimLayer).apply();
+                    if (dimLayer.isValid()) {
+                        transaction.remove(dimLayer).apply();
+                    }
+                } finally {
+                    dimLayer.release();
                 }
             }));
         }
@@ -1907,9 +1911,12 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 RemoteAnimationTarget[] wallpaperTargets,
                 RemoteAnimationTarget[] nonAppTargets,
                 LauncherAnimationRunner.AnimationResult result) {
+            final RemoteAnimationTargets targets = new RemoteAnimationTargets(
+                    appTargets, wallpaperTargets, nonAppTargets, MODE_CLOSING);
             if (mLauncher.isDestroyed()) {
                 AnimatorSet anim = new AnimatorSet();
                 anim.play(getFallbackClosingWindowAnimators(appTargets));
+                anim.addListener(AnimatorListeners.forEndCallback(targets::release));
                 result.setAnimation(anim, mLauncher.getApplicationContext());
                 return;
             }
@@ -1938,6 +1945,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
             TaskViewUtils.createSplitAuxiliarySurfacesAnimator(nonAppTargets, false, null);
             mLauncher.clearForceInvisibleFlag(INVISIBLE_ALL);
+            bankAnimState.addOnAnimCompleteCallback(targets::release);
             bankAnimState.applyToAnimationResult(result, mLauncher);
         }
     }

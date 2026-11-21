@@ -73,9 +73,9 @@ public class ScrimView extends View implements Insettable {
     @Override
     public void setBackgroundColor(int color) {
         mBackgroundColor = color;
+        super.setBackgroundColor(color);
         updateSysUiColors();
         dispatchVisibilityListenersIfNeeded();
-        super.setBackgroundColor(color);
     }
 
     public int getBackgroundColor() {
@@ -189,8 +189,25 @@ public class ScrimView extends View implements Insettable {
      * Set foreground and background color to this ScrimView
      */
     public void setScrimColors(ScrimColors scrimColors) {
-        this.setBackgroundColor(scrimColors.getBackgroundColor());
-        setForeground(new ColorDrawable(scrimColors.getForegroundColor()));
+        int backgroundColor = scrimColors.getBackgroundColor();
+        if (!(getBackground() instanceof ColorDrawable bg)
+                || bg.getColor() != backgroundColor
+                || mBackgroundColor != backgroundColor) {
+            this.setBackgroundColor(backgroundColor);
+        }
+        int foregroundColor = scrimColors.getForegroundColor();
+        if (foregroundColor == Color.TRANSPARENT) {
+            if (getForeground() != null) {
+                setForeground(null);
+            }
+        } else if (getForeground() instanceof ColorDrawable colorDrawable) {
+            if (colorDrawable.getColor() != foregroundColor) {
+                colorDrawable.setColor(foregroundColor);
+                invalidate();
+            }
+        } else {
+            setForeground(new ColorDrawable(foregroundColor));
+        }
     }
 
     /**

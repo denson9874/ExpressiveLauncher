@@ -21,17 +21,15 @@ import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_OVERVIEW;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.SystemProperties;
-
-import androidx.core.graphics.ColorUtils;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
 import com.android.launcher3.util.DisplayController;
-import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.ScrimColors;
 import com.android.quickstep.util.BaseDepthController;
@@ -167,13 +165,12 @@ public class OverviewState extends LauncherState {
 
     @Override
     public ScrimColors getWorkspaceScrimColor(Launcher launcher) {
-        // Lawnchair-TODO-Colour: Check overviewScrimForegroundPrimary and overviewScrimForegroundSecondary
-        // Lawnchair-TODO-Colour: Move to OverviewScrim
+        int backgroundColor = launcher.isOverviewBackgroundBlurEnabled()
+                ? ColorTokens.OverviewScrimOverBlur.resolveColor(launcher)
+                : ColorTokens.OverviewScrim.resolveColor(launcher);
         return new ScrimColors(
-                /* backgroundColor */ Themes.getAttrColor(launcher, ColorTokens.OverviewScrimOverBlur.resolveColor(launcher)),
-                /* foregroundColor */ ColorUtils.compositeColors(
-                Themes.getAttrColor(launcher, R.attr.overviewScrimForegroundPrimary),
-                Themes.getAttrColor(launcher, R.attr.overviewScrimForegroundSecondary)));
+                /* backgroundColor */ backgroundColor,
+                /* foregroundColor */ Color.TRANSPARENT);
     }
 
     @Override

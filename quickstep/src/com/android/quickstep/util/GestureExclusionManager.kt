@@ -25,11 +25,15 @@ import android.view.IWindowManager
 import android.view.WindowManagerGlobal
 import androidx.annotation.VisibleForTesting
 import com.android.launcher3.util.Executors
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** Wrapper over system gesture exclusion listener to optimize for multiple RPCs */
 class GestureExclusionManager(private val windowManager: IWindowManager) {
 
-    private val listeners = mutableListOf<ExclusionListener>()
+    private val listeners = CopyOnWriteArrayList<ExclusionListener>()
+
+    @Volatile private var registrationDenied = false
+    @Volatile private var registered = false
 
     private var lastExclusionRegion: Region? = null
     private var lastUnrestrictedOrNull: Region? = null
@@ -66,12 +70,18 @@ class GestureExclusionManager(private val windowManager: IWindowManager) {
         val wasEmpty = listeners.isEmpty()
         listeners.add(listener)
         if (wasEmpty) {
+            if (registrationDenied) return
             Executors.UI_HELPER_EXECUTOR.execute {
+                if (registrationDenied || listeners.isEmpty()) return@execute
                 try {
                     windowManager.registerSystemGestureExclusionListener(
                         exclusionListener,
                         DEFAULT_DISPLAY
                     )
+                    registered = true
+                } catch (e: SecurityException) {
+                    registrationDenied = true
+                    Log.w(TAG, "Gesture exclusion listener registration denied; disabling retries", e)
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to register gesture exclusion listener", e)
                 }
@@ -86,12 +96,15 @@ class GestureExclusionManager(private val windowManager: IWindowManager) {
     /** Removes a previously added exclusion listener */
     fun removeListener(listener: ExclusionListener) {
         if (listeners.remove(listener) && listeners.isEmpty()) {
+            if (!registered) return
             Executors.UI_HELPER_EXECUTOR.execute {
+                if (!registered || listeners.isNotEmpty()) return@execute
                 try {
                     windowManager.unregisterSystemGestureExclusionListener(
                         exclusionListener,
                         DEFAULT_DISPLAY
                     )
+                    registered = false
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to unregister gesture exclusion listener", e)
                 }

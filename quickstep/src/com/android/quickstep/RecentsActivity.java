@@ -61,6 +61,7 @@ import com.android.launcher3.LauncherAnimationRunner.RemoteAnimationFactory;
 import com.android.launcher3.LauncherRootView;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.anim.AnimatorListeners;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
@@ -515,12 +516,16 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
 
                 RemoteAnimationTargets targets = new RemoteAnimationTargets(
                         appTargets, wallpaperTargets, nonAppTargets, MODE_OPENING);
-                for (RemoteAnimationTarget app : targets.apps) {
-                    new Transaction().setAlpha(app.leash, 1).apply();
+                try (Transaction transaction = new Transaction()) {
+                    for (RemoteAnimationTarget app : targets.apps) {
+                        transaction.setAlpha(app.leash, 1);
+                    }
+                    transaction.apply();
                 }
                 AnimatorSet anim = new AnimatorSet();
                 anim.play(controller.getAnimationPlayer());
                 anim.setDuration(HOME_APPEAR_DURATION);
+                anim.addListener(AnimatorListeners.forEndCallback(targets::release));
                 result.setAnimation(anim, RecentsActivity.this,
                         () -> getStateManager().goToState(RecentsState.HOME, false),
                         true /* skipFirstFrame */);

@@ -209,7 +209,7 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
         try {
             mPipIsActive = LawnchairApp.isRecentsEnabled() && Utilities.ATLEAST_S && ActivityTaskManager.getService().getRootTaskInfo(
                     WINDOWING_MODE_PINNED, ACTIVITY_TYPE_UNDEFINED) != null;
-        } catch (RemoteException e) {
+        } catch (RemoteException | SecurityException e) {
             // Do nothing
         }
         mPipListener = new TaskStackChangeListener() {
@@ -265,7 +265,7 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
             ActiveGestureLog.INSTANCE.setIsFullyGesturalNavMode(isFullyGesturalNavMode());
             mNavBarPosition = new NavBarPosition(mMode, info);
 
-            if (mMode == NO_BUTTON) {
+            if (mMode == NO_BUTTON && LawnchairApp.isRecentsEnabled()) {
                 registerExclusionListener();
             } else {
                 unregisterExclusionListener();

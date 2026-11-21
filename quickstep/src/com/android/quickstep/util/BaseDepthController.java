@@ -23,15 +23,15 @@ import static com.android.launcher3.Flags.enableScalingRevealHomeAnimation;
 import android.app.WallpaperManager;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
-import android.gui.EarlyWakeupInfo;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.Trace;
 import android.util.FloatProperty;
 import android.util.Log;
-import android.view.AttachedSurfaceControl;
 import android.view.CrossWindowBlurListeners;
 import android.view.SurfaceControl;
+import android.view.View;
+import android.view.ViewRootImpl;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -47,7 +47,15 @@ import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.util.MultiPropertyFactory;
 import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
+import com.android.launcher3.views.ScrimView;
 import com.android.systemui.shared.system.BlurUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import app.lawnchair.LawnchairApp;
+import app.lawnchair.compat.LawnchairQuickstepCompat;
 
 /**
  * Utility class for applying depth effect
@@ -119,17 +127,50 @@ public class BaseDepthController {
 
     protected boolean mWaitingOnSurfaceValidity;
 
+    @Nullable
+    protected SurfaceTransactionApplier mSurfaceTransactionApplier;
+
     private SurfaceControl mBlurSurface = null;
+    private SurfaceControl mPendingBlurSurfaceRelease = null;
+    private final List<SurfaceControl> mDeferredBlurSurfaceReleases = new ArrayList<>();
+    private final AtomicInteger mImmediateApplyGeneration = new AtomicInteger();
 
     /** Whether a blur {@link RenderEffect} may currently be set on the depth blur targets. */
     private boolean mWorkspaceEffectApplied;
     /** Last workspace blur effect, reused while the radius stays the same. */
     private RenderEffect mWorkspaceBlurEffect;
     private int mWorkspaceBlurEffectRadius;
+    private boolean mRendererHintsUnsupported;
     /**
-     * Info for early wakeup requests to SurfaceFlinger.
+     * Isolated Android 16+ early-wakeup helper so API 31-35 ART never resolves
+     * {@code android.gui.EarlyWakeupInfo} on {@link BaseDepthController}.
      */
-//    private EarlyWakeupInfo mEarlyWakeupInfo = new EarlyWakeupInfo();
+    @Nullable
+    private final EarlyWakeupController mEarlyWakeupController;
+
+    private interface EarlyWakeupController {
+        boolean setEarlyWakeup(@NonNull SurfaceControl.Transaction transaction, boolean start);
+    }
+
+    private static final class BaklavaEarlyWakeup implements EarlyWakeupController {
+        private final android.gui.EarlyWakeupInfo mInfo = new android.gui.EarlyWakeupInfo();
+
+        BaklavaEarlyWakeup() {
+            mInfo.token = new Binder();
+            mInfo.trace = BaseDepthController.class.getName();
+        }
+
+        @Override
+        public boolean setEarlyWakeup(
+                @NonNull SurfaceControl.Transaction transaction, boolean start) {
+            if (start) {
+                transaction.setEarlyWakeupStart(mInfo);
+            } else {
+                transaction.setEarlyWakeupEnd(mInfo);
+            }
+            return true;
+        }
+    }
 
     public BaseDepthController(QuickstepLauncher activity) {
         mLauncher = activity;
@@ -151,8 +192,24 @@ public class BaseDepthController {
                 new MultiPropertyFactory<>(this, DEPTH, DEPTH_INDEX_COUNT, Float::max);
         stateDepth = depthProperty.get(DEPTH_INDEX_STATE_TRANSITION);
         widgetDepth = depthProperty.get(DEPTH_INDEX_WIDGET);
-//        mEarlyWakeupInfo.token = new Binder();
-//        mEarlyWakeupInfo.trace = BaseDepthController.class.getName();
+        mEarlyWakeupController = createEarlyWakeupController();
+    }
+
+    @Nullable
+    private static EarlyWakeupController createEarlyWakeupController() {
+        if (!Utilities.ATLEAST_BAKLAVA || !LawnchairApp.isRecentsEnabled()) {
+            return null;
+        }
+        try {
+            return new BaklavaEarlyWakeup();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    public void setSurfaceTransactionApplier(
+            @Nullable SurfaceTransactionApplier surfaceTransactionApplier) {
+        mSurfaceTransactionApplier = surfaceTransactionApplier;
     }
 
     /**
@@ -193,33 +250,56 @@ public class BaseDepthController {
     /**
      * Applies depth and blur to the launcher.
      *
-     * @param transaction      optional Surface to apply to the blur to.
+     * @param transaction      optional {@link SurfaceTransaction} to apply the blur to.
      * @param applyImmediately whether to apply the blur immediately or defer to the next frame.
      */
-    protected void applyDepthAndBlur(SurfaceControl.Transaction transaction,
+    protected void applyDepthAndBlur(@Nullable SurfaceTransaction transaction,
             boolean applyImmediately, boolean skipSimilarBlur) {
-        try (transaction) {
-            applyDepthAndBlurInternal(transaction, applyImmediately, skipSimilarBlur);
+        boolean scheduledDeferred = false;
+        boolean dispatched = false;
+        try {
+            int outcome = applyDepthAndBlurInternal(
+                    transaction, applyImmediately, skipSimilarBlur);
+            dispatched = outcome != DISPATCH_NONE;
+            scheduledDeferred = outcome == DISPATCH_DEFERRED;
+        } finally {
+            if (!dispatched && transaction != null) {
+                applyImmediateTransaction(transaction.getTransaction());
+            }
+            if (scheduledDeferred) {
+                deferPendingBlurSurfaceRelease();
+            } else {
+                releasePendingBlurSurface();
+            }
         }
     }
 
-    private void applyDepthAndBlurInternal(SurfaceControl.Transaction transaction,
+    private static final int DISPATCH_NONE = 0;
+    private static final int DISPATCH_IMMEDIATE = 1;
+    private static final int DISPATCH_DEFERRED = 2;
+
+    private int applyDepthAndBlurInternal(@Nullable SurfaceTransaction transaction,
             boolean applyImmediately, boolean skipSimilarBlur) {
         float depth = mDepth;
-        IBinder windowToken = mLauncher.getRootView().getWindowToken();
-        if (windowToken != null && Utilities.ATLEAST_R) {
-            if (enableScalingRevealHomeAnimation()) {
-                mWallpaperManager.setWallpaperZoomOut(windowToken, depth);
-            } else {
-                // The API's full zoom-out is three times larger than the zoom-out we apply
-                // to the
-                // icons. To keep the two consistent throughout the animation while keeping
-                // Launcher's concept of full depth unchanged, we divide the depth by 3 here.
-                mWallpaperManager.setWallpaperZoomOut(windowToken, depth / 3);
+        View rootView = mLauncher.getRootView();
+        IBinder windowToken = rootView != null ? rootView.getWindowToken() : null;
+        if (windowToken != null && Utilities.ATLEAST_R && mWallpaperManager != null) {
+            try {
+                if (enableScalingRevealHomeAnimation()) {
+                    mWallpaperManager.setWallpaperZoomOut(windowToken, depth);
+                } else {
+                    // The API's full zoom-out is three times larger than the zoom-out we apply
+                    // to the icons. To keep the two consistent throughout the animation while
+                    // keeping Launcher's concept of full depth unchanged, we divide by 3 here.
+                    mWallpaperManager.setWallpaperZoomOut(windowToken, depth / 3);
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Window token can become invalid during activity teardown.
             }
         }
 
-        boolean hasOpaqueBg = mLauncher.getScrimView().isFullyOpaque();
+        ScrimView scrimView = mLauncher.getScrimView();
+        boolean hasOpaqueBg = scrimView != null && scrimView.isFullyOpaque();
         boolean isSurfaceOpaque = !mHasContentBehindLauncher && hasOpaqueBg && !mPauseBlurs;
 
         float blurAmount;
@@ -246,55 +326,95 @@ public class BaseDepthController {
         }
 
         if (!BlurUtils.supportsBlursOnWindows()) {
-            return;
+            return applyUnconsumedTransaction(transaction, applyImmediately);
         }
         if (mBaseSurface == null) {
-            return;
+            return applyUnconsumedTransaction(transaction, applyImmediately);
         }
         if (!mBaseSurface.isValid()) {
             Log.d(TAG, "mSurface is not valid");
             mWaitingOnSurfaceValidity = true;
             onInvalidSurface();
-            return;
+            return applyUnconsumedTransaction(transaction, applyImmediately);
         }
         mWaitingOnSurfaceValidity = false;
 
         SurfaceControl blurSurface =
-                enableOverviewBackgroundWallpaperBlur() && mBlurSurface != null ? mBlurSurface
+                enableOverviewBackgroundWallpaperBlur()
+                        && mBlurSurface != null && mBlurSurface.isValid()
+                        ? mBlurSurface
                         : mBaseSurface;
 
         if (skipUpdate) {
-            return;
+            return applyUnconsumedTransaction(transaction, applyImmediately);
+        }
+        if (blurSurface == null || !blurSurface.isValid()) {
+            return applyUnconsumedTransaction(transaction, applyImmediately);
         }
 
-        final SurfaceControl.Transaction finalTransaction =
-                transaction == null ? createTransaction() : transaction;
+        SurfaceTransaction finalTransaction =
+                transaction != null ? transaction : new SurfaceTransaction();
+        return applyBlurTransaction(
+                finalTransaction, blurSurface, isSurfaceOpaque, blurAmount, applyImmediately);
+    }
 
-        // LC: Fix blur effect on Android 12.1/12.0
-        try (finalTransaction) {
-            if (blurSurface == null || !blurSurface.isValid()) {
-                return;
-            }
-            finalTransaction.setBackgroundBlurRadius(blurSurface, mCurrentBlur)
-                    .setOpaque(blurSurface, isSurfaceOpaque);
+    private int applyUnconsumedTransaction(
+            @Nullable SurfaceTransaction transaction, boolean applyImmediately) {
+        if (transaction == null) {
+            return DISPATCH_NONE;
+        }
+        return dispatchSurfaceTransaction(transaction, applyImmediately);
+    }
 
-            boolean wantsEarlyWakeUp = blurAmount > 0 && blurAmount < 1;
-            if (wantsEarlyWakeUp && !mInEarlyWakeUp) {
-                try {
-                    setEarlyWakeup(finalTransaction, true);
-                } catch (NoSuchMethodError e) {
-                    // LC-Ignored: wtf?
+    private int applyBlurTransaction(
+            @NonNull SurfaceTransaction finalTransaction,
+            @NonNull SurfaceControl blurSurface,
+            boolean isSurfaceOpaque,
+            float blurAmount,
+            boolean applyImmediately) {
+        finalTransaction.forSurface(blurSurface)
+                .setBackgroundBlurRadius(mCurrentBlur)
+                .setOpaque(isSurfaceOpaque);
+
+        boolean wantsEarlyWakeUp = blurAmount > 0 && blurAmount < 1;
+        if (wantsEarlyWakeUp && !mInEarlyWakeUp) {
+            setEarlyWakeup(finalTransaction.getTransaction(), true);
+        } else if (!wantsEarlyWakeUp && mInEarlyWakeUp) {
+            setEarlyWakeup(finalTransaction.getTransaction(), false);
+        }
+
+        return dispatchSurfaceTransaction(finalTransaction, applyImmediately);
+    }
+
+    private int dispatchSurfaceTransaction(
+            @NonNull SurfaceTransaction surfaceTransaction, boolean applyImmediately) {
+        if (!applyImmediately
+                && mSurfaceTransactionApplier != null
+                && LawnchairQuickstepCompat.ATLEAST_S) {
+            final int scheduledGen = mImmediateApplyGeneration.get();
+            mSurfaceTransactionApplier.scheduleApply(
+                    surfaceTransaction, () -> mImmediateApplyGeneration.get() == scheduledGen);
+            return DISPATCH_DEFERRED;
+        }
+        applyImmediateTransaction(surfaceTransaction.getTransaction());
+        return DISPATCH_IMMEDIATE;
+    }
+
+    /**
+     * Applies a synchronous transaction while invalidating any older in-flight RenderThread
+     * callbacks from this controller and carrying forward removals of deferred blur surfaces so
+     * an async callback can never resurrect a removed layer or strand early-wakeup state.
+     */
+    private void applyImmediateTransaction(@NonNull SurfaceControl.Transaction transaction) {
+        mImmediateApplyGeneration.incrementAndGet();
+        try (SurfaceControl.Transaction t = transaction) {
+            for (int i = 0; i < mDeferredBlurSurfaceReleases.size(); i++) {
+                SurfaceControl deferred = mDeferredBlurSurfaceReleases.get(i);
+                if (deferred.isValid()) {
+                    t.remove(deferred);
                 }
-            } else if (!wantsEarlyWakeUp && mInEarlyWakeUp) {
-                try {
-                    setEarlyWakeup(finalTransaction, false);
-                } catch (NoSuchMethodError e) {
-                    // LC-Ignored: wtf?
-                }
             }
-
-            // LC: Always apply immediately.
-            finalTransaction.apply();
+            t.apply();
         }
     }
 
@@ -307,10 +427,12 @@ public class BaseDepthController {
         if (mInEarlyWakeUp == inEarlyWakeUp) {
             return;
         }
-        try (SurfaceControl.Transaction transaction = createTransaction()) {
-            setEarlyWakeup(transaction, inEarlyWakeUp);
-            transaction.apply();
+        if (!LawnchairApp.isRecentsEnabled()) {
+            return;
         }
+        SurfaceControl.Transaction transaction = createTransaction();
+        setEarlyWakeup(transaction, inEarlyWakeUp);
+        applyImmediateTransaction(transaction);
     }
 
     /**
@@ -323,15 +445,58 @@ public class BaseDepthController {
         if (mInEarlyWakeUp == start) {
             return;
         }
+        if (!LawnchairApp.isRecentsEnabled()) {
+            return;
+        }
         Log.d(TAG, "setEarlyWakeup: " + start);
         if (start) {
-//            Trace.instantForTrack(TRACE_TAG_APP, TAG, "notifyRendererForGpuLoadUp");
-//            mLauncher.getRootView().getViewRootImpl().notifyRendererForGpuLoadUp("applyBlur");
-//            transaction.setEarlyWakeupStart();
+            notifyRendererForBlurStart();
+            if (mEarlyWakeupController != null) {
+                try {
+                    if (mEarlyWakeupController.setEarlyWakeup(transaction, true)) {
+                        mInEarlyWakeUp = true;
+                    }
+                } catch (Throwable ignored) {
+                    // Hidden SurfaceFlinger hint unavailable; keep mInEarlyWakeUp false so we
+                    // never send an unmatched setEarlyWakeupEnd later.
+                }
+            }
         } else {
-//            transaction.setEarlyWakeupEnd();
+            mInEarlyWakeUp = false;
+            if (mEarlyWakeupController != null) {
+                try {
+                    mEarlyWakeupController.setEarlyWakeup(transaction, false);
+                } catch (Throwable ignored) {
+                    // Hidden SurfaceFlinger hint unavailable.
+                }
+            }
         }
-        mInEarlyWakeUp = start;
+    }
+
+    private void notifyRendererForBlurStart() {
+        if (mRendererHintsUnsupported) {
+            return;
+        }
+        View rootView = mLauncher.getRootView();
+        ViewRootImpl viewRootImpl = rootView != null ? rootView.getViewRootImpl() : null;
+        if (viewRootImpl == null) {
+            return;
+        }
+        try {
+            if (Utilities.ATLEAST_BAKLAVA) {
+                try {
+                    Trace.instantForTrack(TRACE_TAG_APP, TAG, "notifyRendererForGpuLoadUp");
+                } catch (Throwable ignored) {
+                    // Trace.instantForTrack is a hidden API; ignore if restricted.
+                }
+                viewRootImpl.notifyRendererForGpuLoadUp("applyBlur");
+                viewRootImpl.notifyRendererOfExpensiveFrame("applyBlur");
+            } else if (Utilities.ATLEAST_U) {
+                viewRootImpl.notifyRendererOfExpensiveFrame();
+            }
+        } catch (Throwable ignored) {
+            mRendererHintsUnsupported = true;
+        }
     }
 
     /** @return {@code true} if the workspace should be blurred. */
@@ -436,40 +601,120 @@ public class BaseDepthController {
      */
     public void setBaseSurfaceOverride(@Nullable SurfaceControl baseSurfaceOverride,
             boolean applyOnDraw) {
-        if (mBaseSurfaceOverride != baseSurfaceOverride) {
-            boolean applyImmediately = mBaseSurfaceOverride != null && baseSurfaceOverride == null
+        SurfaceControl validOverride =
+                baseSurfaceOverride != null && baseSurfaceOverride.isValid()
+                        ? baseSurfaceOverride
+                        : null;
+        if (mBaseSurfaceOverride != validOverride) {
+            boolean applyImmediately = mBaseSurfaceOverride != null && validOverride == null
                     && !applyOnDraw;
-            mBaseSurfaceOverride = baseSurfaceOverride;
-            Log.d(TAG, "setBaseSurfaceOverride: applying blur behind leash " + baseSurfaceOverride);
-            SurfaceControl.Transaction transaction = setupBlurSurface();
+            mBaseSurfaceOverride = validOverride;
+            Log.d(TAG, "setBaseSurfaceOverride: applying blur behind leash " + validOverride);
+            SurfaceTransaction transaction = setupBlurSurface();
             applyDepthAndBlur(transaction, applyImmediately, /* skipSimilarBlur */ false);
         }
     }
 
-    private @Nullable SurfaceControl.Transaction setupBlurSurface() {
-        SurfaceControl.Transaction transaction = null;
-        if (mBaseSurface != null && mBaseSurfaceOverride != null) {
-            transaction = createTransaction().setBackgroundBlurRadius(mBaseSurface, 0)
-                    .setOpaque(mBaseSurface, false);
-            if (mBlurSurface == null) {
+    private @Nullable SurfaceTransaction setupBlurSurface() {
+        SurfaceTransaction transaction = null;
+        if (mBaseSurface != null && mBaseSurface.isValid()
+                && mBaseSurfaceOverride != null && mBaseSurfaceOverride.isValid()) {
+            transaction = new SurfaceTransaction();
+            transaction.forSurface(mBaseSurface)
+                    .setBackgroundBlurRadius(0)
+                    .setOpaque(false);
+            if (mBlurSurface == null || !mBlurSurface.isValid()) {
+                if (mBlurSurface != null) {
+                    mBlurSurface.release();
+                }
                 mBlurSurface = new SurfaceControl.Builder()
                         .setName("Overview Blur")
                         .setHidden(false)
                         .build();
                 Log.d(TAG,
                         "setupBlurSurface: creating Overview Blur surface " + mBlurSurface);
-                transaction.reparent(mBlurSurface, mBaseSurface);
+                transaction.forSurface(mBlurSurface).reparent(mBaseSurface);
                 Log.d(TAG,
                         "setupBlurSurface: reparenting " + mBlurSurface + " to " + mBaseSurface);
             }
-            transaction.setRelativeLayer(mBlurSurface, mBaseSurfaceOverride, -1);
+            transaction.forSurface(mBlurSurface).setRelativeLayer(mBaseSurfaceOverride, -1);
             Log.d(TAG, "setupBlurSurface: relayering to leash " + mBaseSurfaceOverride);
-        } else if (mBlurSurface != null) {
-            Log.d(TAG, "setupBlurSurface: removing blur surface " + mBlurSurface);
-            transaction = createTransaction().remove(mBlurSurface);
-            mBlurSurface = null;
+        } else {
+            if (mBaseSurfaceOverride != null && !mBaseSurfaceOverride.isValid()) {
+                mBaseSurfaceOverride = null;
+            }
+            if (mBlurSurface != null) {
+                Log.d(TAG, "setupBlurSurface: removing blur surface " + mBlurSurface);
+                SurfaceControl blurToRemove = mBlurSurface;
+                mBlurSurface = null;
+                if (blurToRemove.isValid()) {
+                    transaction = new SurfaceTransaction();
+                    transaction.forSurface(blurToRemove).setRemove();
+                }
+                releasePendingBlurSurface();
+                mPendingBlurSurfaceRelease = blurToRemove;
+            }
         }
         return transaction;
+    }
+
+    protected void releaseBlurSurface() {
+        mImmediateApplyGeneration.incrementAndGet();
+        SurfaceControl blurToRemove = mBlurSurface;
+        mBlurSurface = null;
+        if (blurToRemove != null || !mDeferredBlurSurfaceReleases.isEmpty()) {
+            try (SurfaceControl.Transaction transaction = createTransaction()) {
+                boolean hasRemovals = false;
+                if (blurToRemove != null && blurToRemove.isValid()) {
+                    transaction.remove(blurToRemove);
+                    hasRemovals = true;
+                }
+                for (int i = 0; i < mDeferredBlurSurfaceReleases.size(); i++) {
+                    SurfaceControl deferred = mDeferredBlurSurfaceReleases.get(i);
+                    if (deferred.isValid()) {
+                        transaction.remove(deferred);
+                        hasRemovals = true;
+                    }
+                }
+                if (hasRemovals) {
+                    transaction.apply();
+                }
+            } finally {
+                if (blurToRemove != null) {
+                    blurToRemove.release();
+                }
+                for (int i = mDeferredBlurSurfaceReleases.size() - 1; i >= 0; i--) {
+                    SurfaceControl deferred = mDeferredBlurSurfaceReleases.remove(i);
+                    deferred.release();
+                }
+            }
+        }
+        releasePendingBlurSurface();
+    }
+
+    private void deferPendingBlurSurfaceRelease() {
+        SurfaceControl blurToRelease = mPendingBlurSurfaceRelease;
+        if (blurToRelease == null) {
+            return;
+        }
+        mPendingBlurSurfaceRelease = null;
+        if (mSurfaceTransactionApplier == null) {
+            blurToRelease.release();
+            return;
+        }
+        mDeferredBlurSurfaceReleases.add(blurToRelease);
+        mSurfaceTransactionApplier.addOnSafeToReleaseCallback(() -> {
+            if (mDeferredBlurSurfaceReleases.remove(blurToRelease)) {
+                blurToRelease.release();
+            }
+        });
+    }
+
+    private void releasePendingBlurSurface() {
+        if (mPendingBlurSurfaceRelease != null) {
+            mPendingBlurSurfaceRelease.release();
+            mPendingBlurSurfaceRelease = null;
+        }
     }
 
     /**
@@ -480,11 +725,12 @@ public class BaseDepthController {
             mBaseSurface = baseSurface;
             Log.d(TAG, "setSurface:\n\tmWaitingOnSurfaceValidity: " + mWaitingOnSurfaceValidity
                     + "\n\tmBaseSurface: " + mBaseSurface);
-            SurfaceControl.Transaction transaction = null;
+            SurfaceTransaction transaction = null;
             if (enableOverviewBackgroundWallpaperBlur()) {
                 transaction = setupBlurSurface();
             }
-            applyDepthAndBlur(transaction, /* applyImmediately */ false,
+            boolean applyImmediately = baseSurface == null || !baseSurface.isValid();
+            applyDepthAndBlur(transaction, applyImmediately,
                     /* skipSimilarBlur */ false);
         }
     }

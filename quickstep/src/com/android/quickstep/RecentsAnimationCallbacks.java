@@ -110,8 +110,11 @@ public class RecentsAnimationCallbacks implements
             RemoteAnimationTarget[] apps, RemoteAnimationTarget[] wallpapers,
             Rect homeContentInsets, Rect minimizedHomeBounds) {
         if (transaction != null) {
-            transaction.apply();
+            try (transaction) {
+                transaction.apply();
+            }
         }
+        releaseAnimationSurfaces(apps, wallpapers, transitionInfo);
 //        onAnimationStart(controller, apps, wallpapers, homeContentInsets, minimizedHomeBounds);
     }
 
@@ -133,6 +136,7 @@ public class RecentsAnimationCallbacks implements
                 || isOpeningHome)) {
             if (Utilities.ATLEAST_S) ActiveGestureProtoLogProxy.logOnRecentsAnimationStartCancelled();
             // Edge case, if there are no closing app targets, then Launcher has nothing to handle
+            releaseAnimationSurfaces(appTargets, wallpaperTargets, transitionInfo);
             notifyAnimationCanceled();
             animationController.finish(false /* toHome */, false /* sendUserLeaveHint */,
                     null /* finishCb */);
@@ -142,6 +146,7 @@ public class RecentsAnimationCallbacks implements
         mController = new RecentsAnimationController(animationController,
                 this::onAnimationFinished);
         if (mCancelled) {
+            releaseAnimationSurfaces(appTargets, wallpaperTargets, transitionInfo);
             Utilities.postAsyncCallback(MAIN_EXECUTOR.getHandler(),
                     mController::finishAnimationToApp);
         } else {
@@ -160,10 +165,46 @@ public class RecentsAnimationCallbacks implements
 
             Utilities.postAsyncCallback(MAIN_EXECUTOR.getHandler(), () -> {
                 if (Utilities.ATLEAST_S) ActiveGestureProtoLogProxy.logOnRecentsAnimationStart(targets.apps.length);
-                for (RecentsAnimationListener listener : getListeners()) {
+                RecentsAnimationListener[] listeners = getListeners();
+                if (listeners.length == 0) {
+                    targets.release();
+                    if (transitionInfo != null) {
+                        transitionInfo.releaseAllSurfaces();
+                    }
+                    return;
+                }
+                for (RecentsAnimationListener listener : listeners) {
                     listener.onRecentsAnimationStart(mController, targets, transitionInfo);
                 }
             });
+        }
+    }
+
+    private static void releaseTargetLeashes(@Nullable RemoteAnimationTarget[] targets) {
+        if (targets == null) {
+            return;
+        }
+        for (RemoteAnimationTarget target : targets) {
+            if (target == null) {
+                continue;
+            }
+            if (target.leash != null) {
+                target.leash.release();
+            }
+            if (target.startLeash != null) {
+                target.startLeash.release();
+            }
+        }
+    }
+
+    private static void releaseAnimationSurfaces(
+            @Nullable RemoteAnimationTarget[] appTargets,
+            @Nullable RemoteAnimationTarget[] wallpaperTargets,
+            @Nullable TransitionInfo transitionInfo) {
+        releaseTargetLeashes(appTargets);
+        releaseTargetLeashes(wallpaperTargets);
+        if (transitionInfo != null) {
+            transitionInfo.releaseAllSurfaces();
         }
     }
 

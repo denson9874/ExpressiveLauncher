@@ -18,6 +18,8 @@ package com.android.launcher3.statehandlers
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.os.Debug
+import android.os.IBinder
+import android.os.Parcel
 import android.util.Log
 import android.util.Slog
 import android.util.SparseArray
@@ -42,6 +44,7 @@ import com.android.quickstep.GestureState.GestureEndTarget
 import com.android.quickstep.SystemUiProxy
 import com.android.quickstep.fallback.RecentsState
 import com.android.wm.shell.desktopmode.DisplayDeskState
+import com.android.wm.shell.desktopmode.IDesktopTaskListener
 import com.android.wm.shell.desktopmode.IDesktopTaskListener.Stub
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus.enableMultipleDesktops
 import com.android.wm.shell.shared.desktopmode.DesktopModeStatus.useRoundedCorners
@@ -676,6 +679,41 @@ constructor(
             displayManager.displays[DEFAULT_DISPLAY].displayId
         }
 
+        override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+            if (Utilities.ATLEAST_CINNAMON_BUN) {
+                when (code) {
+                    TRANSACTION_ON_TASKBAR_CORNER_ROUNDING_UPDATE -> {
+                        // Android 17 added displayId to onTaskbarCornerRoundingUpdate(boolean, int).
+                        data.enforceInterface(IDesktopTaskListener.DESCRIPTOR)
+                        val hasTasksRequiringTaskbarRounding = data.readBoolean()
+                        val targetDisplayId = data.readInt()
+                        data.enforceNoDataAvail()
+                        if (targetDisplayId == this.displayId) {
+                            onTaskbarCornerRoundingUpdate(hasTasksRequiringTaskbarRounding)
+                        }
+                        return true
+                    }
+                    TRANSACTION_ON_TASK_APPEARING_IN_DESK_WITH_OVERVIEW_SHOWING -> {
+                        // Android 17 added onTaskAppearingInDeskWithOverviewShowing(int, int, int).
+                        data.enforceInterface(IDesktopTaskListener.DESCRIPTOR)
+                        val taskId = data.readInt()
+                        val targetDisplayId = data.readInt()
+                        val deskId = data.readInt()
+                        data.enforceNoDataAvail()
+                        if (DEBUG) {
+                            Log.d(
+                                TAG,
+                                "onTaskAppearingInDeskWithOverviewShowing taskId=$taskId " +
+                                    "displayId=$targetDisplayId deskId=$deskId",
+                            )
+                        }
+                        return true
+                    }
+                }
+            }
+            return super.onTransact(code, data, reply, flags)
+        }
+
         override fun onListenerConnected(
             displayDeskStates: Array<DisplayDeskState>,
             canCreateDesks: Boolean,
@@ -817,5 +855,11 @@ constructor(
         private const val DEBUG = false
 
         const val INACTIVE_DESK_ID = -1
+
+        // Sequential AIDL transaction codes on IDesktopTaskListener (0-based from FIRST_CALL_TRANSACTION).
+        internal const val TRANSACTION_ON_TASKBAR_CORNER_ROUNDING_UPDATE =
+            IBinder.FIRST_CALL_TRANSACTION + 3
+        internal const val TRANSACTION_ON_TASK_APPEARING_IN_DESK_WITH_OVERVIEW_SHOWING =
+            IBinder.FIRST_CALL_TRANSACTION + 10
     }
 }

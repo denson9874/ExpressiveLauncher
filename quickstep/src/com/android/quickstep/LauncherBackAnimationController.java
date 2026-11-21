@@ -445,11 +445,13 @@ public class LauncherBackAnimationController {
         if (mScrimLayer == null) {
             return;
         }
-        if (mScrimLayer.isValid()) {
-            mTransaction.remove(mScrimLayer);
+        SurfaceControl scrimLayer = mScrimLayer;
+        mScrimLayer = null;
+        if (scrimLayer.isValid()) {
+            mTransaction.remove(scrimLayer);
             applyTransaction();
         }
-        mScrimLayer = null;
+        scrimLayer.release();
     }
 
     private void updateBackProgress(float progress, BackEvent event) {

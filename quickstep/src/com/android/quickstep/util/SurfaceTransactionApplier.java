@@ -18,6 +18,7 @@ package com.android.quickstep.util;
 import android.annotation.TargetApi;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.view.SurfaceControl;
 import android.view.SurfaceControl.Transaction;
@@ -25,8 +26,11 @@ import android.view.View;
 import android.view.View.OnAttachStateChangeListener;
 import android.view.ViewRootImpl;
 
-import com.android.launcher3.Utilities;
+import androidx.annotation.Nullable;
+
 import com.android.quickstep.RemoteAnimationTargets.ReleaseCheck;
+
+import java.util.function.BooleanSupplier;
 
 import app.lawnchair.compat.LawnchairQuickstepCompat;
 
@@ -52,37 +56,40 @@ public class SurfaceTransactionApplier extends ReleaseCheck {
      * @param targetView The view in the surface that acts as synchronization anchor.
      */
     public SurfaceTransactionApplier(View targetView) {
+        targetView.addOnAttachStateChangeListener(new OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                initialize(v);
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                mInitialized = false;
+                mTargetViewRootImpl = null;
+                mBarrierSurfaceControl = null;
+                setCanRelease(true);
+            }
+        });
         if (targetView.isAttachedToWindow()) {
             initialize(targetView);
         } else {
             mInitialized = false;
-            targetView.addOnAttachStateChangeListener(new OnAttachStateChangeListener() {
-                @Override
-                public void onViewAttachedToWindow(View v) {
-                    if (!mInitialized) {
-                        targetView.removeOnAttachStateChangeListener(this);
-                        initialize(targetView);
-                    }
-                }
-
-                @Override
-                public void onViewDetachedFromWindow(View v) {
-                    // Do nothing
-                }
-            });
         }
-        mApplyHandler = new Handler(this::onApplyMessage);
+        mApplyHandler = new Handler(Looper.getMainLooper(), this::onApplyMessage);
         setCanRelease(true);
     }
 
     private void initialize(View view) {
         mTargetViewRootImpl = view.getViewRootImpl();
-        try {
-            mBarrierSurfaceControl = mTargetViewRootImpl.getSurfaceControl();
-        } catch (Throwable t) {
-            // Ignore
+        mBarrierSurfaceControl = null;
+        if (mTargetViewRootImpl != null) {
+            try {
+                mBarrierSurfaceControl = mTargetViewRootImpl.getSurfaceControl();
+            } catch (Throwable t) {
+                // Hidden API may be blocked on unrooted installs; scheduleApply will fall back.
+            }
         }
-        mInitialized = true;
+        mInitialized = mTargetViewRootImpl != null;
     }
 
     protected boolean onApplyMessage(Message msg) {
@@ -100,34 +107,72 @@ public class SurfaceTransactionApplier extends ReleaseCheck {
      *               this method to avoid synchronization issues.
      */
     public void scheduleApply(SurfaceTransaction params) {
-        if (!mInitialized) {
-            params.getTransaction().apply();
-            return;
-        }
-        View view = mTargetViewRootImpl.getView();
-        if (view == null) {
+        scheduleApply(params, /* shouldApply= */ null);
+    }
+
+    /**
+     * Schedules applying surface parameters on the next frame, gated by an optional
+     * {@code shouldApply} check evaluated on RenderThread right before committing.
+     */
+    public void scheduleApply(SurfaceTransaction params, @Nullable BooleanSupplier shouldApply) {
+        View view = mTargetViewRootImpl != null ? mTargetViewRootImpl.getView() : null;
+        if (!mInitialized
+                || mTargetViewRootImpl == null
+                || view == null
+                || !view.isAttachedToWindow()
+                || view.getWindowVisibility() != View.VISIBLE
+                || mBarrierSurfaceControl == null
+                || !mBarrierSurfaceControl.isValid()) {
+            if (shouldApply == null || shouldApply.getAsBoolean()) {
+                params.getTransaction().apply();
+            }
+            if (!mInitialized || view == null || !view.isAttachedToWindow()) {
+                setCanRelease(true);
+            }
             return;
         }
         Transaction t = params.getTransaction();
 
         mLastSequenceNumber++;
         final int toApplySeqNo = mLastSequenceNumber;
+        final ViewRootImpl targetVri = mTargetViewRootImpl;
+        final SurfaceControl barrierSurface = mBarrierSurfaceControl;
         setCanRelease(false);
-        mTargetViewRootImpl.registerRtFrameCallback(frame -> {
-            if (mBarrierSurfaceControl == null && !Utilities.ATLEAST_Q) return;
-            if (mBarrierSurfaceControl == null || !mBarrierSurfaceControl.isValid()) {
-                Message.obtain(mApplyHandler, MSG_UPDATE_SEQUENCE_NUMBER, toApplySeqNo, 0)
-                        .sendToTarget();
-                return;
-            }
-            if (LawnchairQuickstepCompat.ATLEAST_S) {
-                mTargetViewRootImpl.mergeWithNextTransaction(t, frame);
-            } else {
+        try {
+            targetVri.registerRtFrameCallback(frame -> {
+                try {
+                    if (shouldApply != null && !shouldApply.getAsBoolean()) {
+                        return;
+                    }
+                    if (!barrierSurface.isValid()) {
+                        t.apply();
+                        return;
+                    }
+                    if (LawnchairQuickstepCompat.ATLEAST_S) {
+                        targetVri.mergeWithNextTransaction(t, frame);
+                    } else {
+                        t.apply();
+                    }
+                } catch (Throwable ignored) {
+                    if (shouldApply == null || shouldApply.getAsBoolean()) {
+                        try {
+                            t.apply();
+                        } catch (Throwable ignoredApply) {
+                            // Ignore fallback failure on teardown.
+                        }
+                    }
+                } finally {
+                    Message.obtain(mApplyHandler, MSG_UPDATE_SEQUENCE_NUMBER, toApplySeqNo, 0)
+                            .sendToTarget();
+                }
+            });
+        } catch (Throwable ignored) {
+            if (shouldApply == null || shouldApply.getAsBoolean()) {
                 t.apply();
             }
-            Message.obtain(mApplyHandler, MSG_UPDATE_SEQUENCE_NUMBER, toApplySeqNo, 0)
-                    .sendToTarget();
-        });
+            setCanRelease(true);
+            return;
+        }
 
         // Make sure a frame gets scheduled.
         view.invalidate();

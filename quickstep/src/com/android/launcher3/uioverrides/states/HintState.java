@@ -28,8 +28,6 @@ import com.android.launcher3.LauncherState;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.ScrimColors;
 
-import app.lawnchair.theme.color.tokens.ColorTokens;
-
 /**
  * Scale down workspace/hotseat to hint at going to either overview (on pause) or first home screen.
  */
@@ -64,12 +62,11 @@ public class HintState extends LauncherState {
 
     @Override
     public ScrimColors getWorkspaceScrimColor(Launcher launcher) {
-//        ScrimColors overviewStateColor = OVERVIEW.getWorkspaceScrimColor(launcher);
+        int overviewBg = OVERVIEW.getWorkspaceScrimColor(launcher).getBackgroundColor();
         return new ScrimColors(
                 /* backgroundColor */
-                ColorUtils.setAlphaComponent(ColorTokens.OverviewScrim.resolveColor(launcher),
-                        Math.round(Color.valueOf(ColorTokens.OverviewScrim.resolveColor(launcher)).alpha()
-                                * 100)),
+                ColorUtils.setAlphaComponent(overviewBg,
+                        Math.round(Color.valueOf(overviewBg).alpha() * 100)),
                 /* foregroundColor */ Color.TRANSPARENT);
     }
 

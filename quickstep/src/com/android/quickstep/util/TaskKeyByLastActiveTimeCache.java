@@ -139,6 +139,11 @@ public class TaskKeyByLastActiveTimeCache<V> implements TaskKeyCache<V> {
         }
     }
 
+    @Override
+    public synchronized boolean contains(int taskId) {
+        return mMap.containsKey(taskId);
+    }
+
     /**
      * Updates cache size and remove excess if the number of existing entries is larger than new
      * cache size

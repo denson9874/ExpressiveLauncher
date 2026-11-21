@@ -47,7 +47,10 @@ class HomeVisibilityState {
 
     fun init(transitions: IShellTransitions?) {
         if (!FeatureFlags.enableHomeTransitionListener()) return
-        transitions ?: return
+        if (transitions == null) {
+            isHomeVisible = true
+            return
+        }
         val listener =
             object : Stub() {
                 override fun onTransact(
@@ -90,15 +93,18 @@ class HomeVisibilityState {
                                 )
                                 .bottom
                         } else {
-                            // pE-TODO(QuickSwitch-Baklava): Investigate
-                            val method = InsetsState::class.java.getMethod(
-                                "calculateInsets",
-                                android.graphics.Rect::class.java,
-                                Integer.TYPE,
-                                java.lang.Boolean.TYPE
-                            )
-                            val insets = method.invoke(insetsState, displayFrame, WindowInsets.Type.navigationBars(), false) as android.graphics.Insets
-                            insets.bottom
+                            runCatching {
+                                val method = legacyCalculateInsetsMethod ?: return@runCatching 0
+                                val insets = method.invoke(
+                                    insetsState,
+                                    displayFrame,
+                                    WindowInsets.Type.navigationBars(),
+                                    false,
+                                ) as? android.graphics.Insets
+                                insets?.bottom ?: 0
+                            }.onFailure {
+                                Log.w(TAG, "Failed legacy InsetsState.calculateInsets", it)
+                            }.getOrDefault(0)
                         }
                     navbarInsetPosition = displayFrame.bottom - bottomInset
                 }
@@ -130,5 +136,16 @@ class HomeVisibilityState {
 
         // IBinder.FIRST_CALL_TRANSACTION + 0. The generated constant is package-private.
         private const val TRANSACTION_HOME_VISIBILITY = IBinder.FIRST_CALL_TRANSACTION
+
+        private val legacyCalculateInsetsMethod by lazy {
+            runCatching {
+                InsetsState::class.java.getMethod(
+                    "calculateInsets",
+                    android.graphics.Rect::class.java,
+                    Integer.TYPE,
+                    java.lang.Boolean.TYPE,
+                )
+            }.getOrNull()
+        }
     }
 }

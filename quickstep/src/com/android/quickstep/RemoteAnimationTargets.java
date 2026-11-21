@@ -185,7 +185,7 @@ public class RemoteAnimationTargets {
         /**
          * Adds a callback to notify when the surface can safely be released
          */
-        void addOnSafeToReleaseCallback(Runnable callback) {
+        public void addOnSafeToReleaseCallback(Runnable callback) {
             if (mCanRelease) {
                 callback.run();
             } else {

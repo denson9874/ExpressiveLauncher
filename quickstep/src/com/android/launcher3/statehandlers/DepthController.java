@@ -139,6 +139,7 @@ public class DepthController extends BaseDepthController implements StateHandler
      */
     public void dispose() {
         removeSecondaryListeners();
+        releaseBlurSurface();
 
         if (mLauncher.getRootView() != null && mOnAttachListener != null) {
             mLauncher.getRootView().removeOnAttachStateChangeListener(mOnAttachListener);

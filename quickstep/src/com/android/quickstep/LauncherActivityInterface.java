@@ -15,16 +15,20 @@
  */
 package com.android.quickstep;
 
+import static com.android.app.animation.Interpolators.INSTANT;
 import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.app.animation.Interpolators.clampToProgress;
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.BACKGROUND_APP;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
+import static com.android.launcher3.LauncherState.OVERVIEW_ACTIONS;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.MultiPropertyFactory.MULTI_PROPERTY_VALUE;
 
 import android.animation.Animator;
 import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Rect;
 import android.view.RemoteAnimationTarget;
@@ -37,6 +41,7 @@ import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherAnimUtils;
 import com.android.launcher3.LauncherInitListener;
 import com.android.launcher3.LauncherState;
+import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.statehandlers.DepthController;
 import com.android.launcher3.statemanager.StateManager;
@@ -316,18 +321,46 @@ public final class LauncherActivityInterface extends
         LauncherTaskbarUIController uiController = getTaskbarController();
         Animator superAnimator = super.getParallelAnimationToGestureEndTarget(
                 endTarget, duration, callbacks);
-        if (uiController == null || callbacks == null) {
+        Animator actionsAnimator = null;
+        if (endTarget == GestureEndTarget.RECENTS) {
+            QuickstepLauncher launcher = getCreatedContainer();
+            RecentsView recentsView = launcher != null ? launcher.getOverviewPanel() : null;
+            boolean allowActionsFade = recentsView == null
+                    || !recentsView.showAsGrid()
+                    || recentsView.isFocusedTaskInExpectedScrollPosition();
+            if (launcher != null && launcher.getActionsView() != null
+                    && allowActionsFade
+                    && OVERVIEW.areElementsVisible(launcher, OVERVIEW_ACTIONS)) {
+                ObjectAnimator fadeActions = ObjectAnimator.ofFloat(
+                        launcher.getActionsView().getVisibilityAlpha(),
+                        AnimatedFloat.VALUE,
+                        1f);
+                fadeActions.setDuration(duration);
+                fadeActions.setAutoCancel(true);
+                fadeActions.setInterpolator(
+                        recentsView != null && recentsView.isKeyboardTaskFocusPending()
+                                ? INSTANT
+                                : clampToProgress(LINEAR, 0.5f, 1f));
+                actionsAnimator = fadeActions;
+            }
+        }
+        Animator taskbarAnimator = (uiController != null && callbacks != null)
+                ? uiController.getParallelAnimationToGestureEndTarget(endTarget, duration, callbacks)
+                : null;
+        if (actionsAnimator == null && taskbarAnimator == null) {
             return superAnimator;
         }
-        Animator taskbarAnimator = uiController.getParallelAnimationToGestureEndTarget(endTarget,
-                duration, callbacks);
-        if (superAnimator == null) {
-            return taskbarAnimator;
-        } else {
-            AnimatorSet animatorSet = new AnimatorSet();
-            animatorSet.playTogether(superAnimator, taskbarAnimator);
-            return animatorSet;
+        AnimatorSet animatorSet = new AnimatorSet();
+        if (superAnimator != null) {
+            animatorSet.play(superAnimator);
         }
+        if (actionsAnimator != null) {
+            animatorSet.play(actionsAnimator);
+        }
+        if (taskbarAnimator != null) {
+            animatorSet.play(taskbarAnimator);
+        }
+        return animatorSet;
     }
 
     @Override

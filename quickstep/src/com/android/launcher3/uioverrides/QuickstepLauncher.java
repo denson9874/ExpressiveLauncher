@@ -199,6 +199,7 @@ import com.android.quickstep.util.SplitSelectStateController;
 import com.android.quickstep.util.SplitTask;
 import com.android.quickstep.util.SplitToWorkspaceController;
 import com.android.quickstep.util.SplitWithKeyboardShortcutController;
+import com.android.quickstep.util.SurfaceTransactionApplier;
 import com.android.quickstep.util.TISBindHelper;
 import com.android.quickstep.util.unfold.LauncherUnfoldTransitionController;
 import com.android.quickstep.util.unfold.ProxyUnfoldTransitionProvider;
@@ -321,6 +322,10 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
         mOverviewBlurEnabled = isOverviewBackgroundBlurEnabled();
         getTheme().applyStyle(getOverviewBlurStyleResId(), true);
         super.setupViews();
+        if (Utilities.ATLEAST_R && LawnchairApp.isRecentsEnabled() && getRootView() != null) {
+            mDepthController.setSurfaceTransactionApplier(
+                    new SurfaceTransactionApplier(getRootView()));
+        }
 
         mActionsView = findViewById(R.id.overview_actions_view);
         RecentsView<?, LauncherState> overviewPanel = getOverviewPanel();
@@ -667,6 +672,10 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
         RecentsView recentsView = getOverviewPanel();
         if (recentsView != null) {
             recentsView.destroy();
+        }
+        if (mDepthController != null) {
+            removeMultiWindowModeChangedListener(mDepthController);
+            mDepthController.dispose();
         }
 
         super.onDestroy();

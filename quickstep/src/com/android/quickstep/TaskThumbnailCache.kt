@@ -80,9 +80,13 @@ internal constructor(
     }
 
     /** Synchronously updates the thumbnail in the cache if it is already there. */
-    fun updateTaskSnapShot(taskId: Int, thumbnail: ThumbnailData?) {
+    fun updateTaskSnapShot(taskId: Int, thumbnail: ThumbnailData?): Boolean {
         Preconditions.assertUIThread()
-        cache.updateIfAlreadyInCache(taskId, thumbnail)
+        val existed = cache.contains(taskId)
+        if (existed) {
+            cache.updateIfAlreadyInCache(taskId, thumbnail)
+        }
+        return existed
     }
 
     // TODO(b/387496731): Add ensureActive() calls if they show performance benefit
@@ -129,6 +133,7 @@ internal constructor(
                 if (
                     newCachedThumbnail?.thumbnail != null && !newCachedThumbnail.reducedResolution
                 ) {
+                    thumbnailData.recycleBitmap()
                     return@withContext newCachedThumbnail
                 }
             }
@@ -219,6 +224,7 @@ internal constructor(
                             newCachedThumbnail?.thumbnail != null &&
                                 !newCachedThumbnail.reducedResolution
                         ) {
+                            result.recycleBitmap()
                             return@Consumer
                         }
                     }

@@ -16,21 +16,28 @@
 
 package com.android.quickstep.views
 
+import android.app.WindowConfiguration
 import com.android.launcher3.Flags.enableOverviewBackgroundWallpaperBlur
+import com.android.launcher3.Utilities
 import com.android.quickstep.RemoteTargetGluer.RemoteTargetHandle
 
 /** Applies blur either behind launcher surface or live tile app. */
 class BlurUtils(private val recentsView: RecentsView<*, *>) {
 
-    private fun getLiveTileRemoteTargetHandles() =
-        if (
-            recentsView.remoteTargetHandles != null &&
-                recentsView.recentsAnimationController != null
-        )
-            recentsView.remoteTargetHandles
-        else null
+    private fun getLiveTileRemoteTargetHandles(): List<RemoteTargetHandle>? {
+        val handles = recentsView.remoteTargetHandles
+        if (handles == null || recentsView.recentsAnimationController == null) {
+            return null
+        }
+        return handles.filter { handle ->
+            val apps = handle.transformParams.targetSet?.apps
+            apps == null ||
+                apps.isEmpty() ||
+                apps.any { it.windowConfiguration?.activityType != WindowConfiguration.ACTIVITY_TYPE_HOME }
+        }
+    }
 
-    private fun Array<RemoteTargetHandle>.setDrawBelowRecents(drawBelowRecents: Boolean) {
+    private fun Iterable<RemoteTargetHandle>.setDrawBelowRecents(drawBelowRecents: Boolean) {
         forEach { it.taskViewSimulator.drawsBelowRecents = drawBelowRecents }
     }
 
@@ -39,7 +46,13 @@ class BlurUtils(private val recentsView: RecentsView<*, *>) {
      * apply blur to in BaseDepthController.
      */
     fun setDrawLiveTileBelowRecents(drawBelowRecents: Boolean) {
-        getLiveTileRemoteTargetHandles()?.setDrawBelowRecents(drawBelowRecents)
+        if (drawBelowRecents) {
+            getLiveTileRemoteTargetHandles()?.setDrawBelowRecents(true)
+        } else {
+            // Clear drawsBelowRecents even if recentsAnimationController has already been nulled
+            // (e.g. during onRecentsAnimationComplete).
+            recentsView.remoteTargetHandles?.asIterable()?.setDrawBelowRecents(false)
+        }
         updateBlurLayer()
     }
 
@@ -48,21 +61,32 @@ class BlurUtils(private val recentsView: RecentsView<*, *>) {
      * apply blur to in BaseDepthController.
      */
     fun setDrawAboveRecents(remoteTargetHandles: Array<RemoteTargetHandle>) {
-        remoteTargetHandles.setDrawBelowRecents(false)
+        remoteTargetHandles.asIterable().setDrawBelowRecents(false)
         updateBlurLayer(drawingAboveRecents = true)
     }
 
     private fun updateBlurLayer(drawingAboveRecents: Boolean = false) {
         if (!enableOverviewBackgroundWallpaperBlur()) return
         // Blurs behind lowest live tile surface that's below recents or Launcher if there
-        // are none.
-        recentsView.depthController?.setBaseSurfaceOverride(
+        // are none. Filter each target individually so home targets and already-released leashes
+        // never capture the blur layer.
+        val nonHomeValidTargets =
             getLiveTileRemoteTargetHandles()
                 ?.asSequence()
                 ?.filter { it.taskViewSimulator.drawsBelowRecents }
-                ?.flatMap { it.transformParams.targetSet.apps.asIterable() }
-                ?.map { it.leash }
-                ?.maxByOrNull { it.layerId },
+                ?.flatMap { it.transformParams.targetSet?.apps?.asIterable() ?: emptyList() }
+                ?.filter {
+                    it.windowConfiguration?.activityType != WindowConfiguration.ACTIVITY_TYPE_HOME
+                }
+                ?.filter { it.leash != null && it.leash.isValid }
+        val targetLeash =
+            if (Utilities.ATLEAST_S_V2) {
+                nonHomeValidTargets?.maxByOrNull { it.leash.layerId }?.leash
+            } else {
+                nonHomeValidTargets?.maxByOrNull { it.prefixOrderIndex }?.leash
+            }
+        recentsView.depthController?.setBaseSurfaceOverride(
+            targetLeash,
             /* applyOnDraw= */ drawingAboveRecents,
         )
     }

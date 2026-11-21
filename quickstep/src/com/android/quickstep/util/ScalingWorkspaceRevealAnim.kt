@@ -309,6 +309,7 @@ class ScalingWorkspaceRevealAnim(
     }
 
     private fun addBlurLayer() {
+        removeBlurLayer()
         val parent = launcher.dragLayer.viewRootImpl?.surfaceControl ?: return
         if (!parent.isValid) {
             Log.e(TAG, "Parent surface is not ready at the moment. Can't apply blur.")
@@ -332,15 +333,17 @@ class ScalingWorkspaceRevealAnim(
     }
 
     private fun removeBlurLayer() {
-        blurLayer?.let {
-            if (it.isValid) {
-                // Schedule the removal of the blur layer.
-                val removalTransaction = SurfaceTransaction()
-                removalTransaction.forSurface(it).setRemove()
-                surfaceTransactionApplier.scheduleApply(removalTransaction)
-            }
-        }
+        val layer = blurLayer ?: return
         blurLayer = null
+        if (layer.isValid) {
+            // Schedule the removal of the blur layer, then release once the transaction applies.
+            val removalTransaction = SurfaceTransaction()
+            removalTransaction.forSurface(layer).setRemove()
+            surfaceTransactionApplier.scheduleApply(removalTransaction)
+            surfaceTransactionApplier.addOnSafeToReleaseCallback { layer.release() }
+        } else {
+            layer.release()
+        }
     }
 
     private fun applyBlur(blurRadius: Float) {

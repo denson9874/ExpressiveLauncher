@@ -60,6 +60,13 @@ public interface TaskKeyCache<V> {
     void updateIfAlreadyInCache(int taskId, V data);
 
     /**
+     * Returns whether an entry for {@code taskId} currently exists in the cache.
+     */
+    default boolean contains(int taskId) {
+        return false;
+    }
+
+    /**
      * Updates cache size and remove excess if the number of existing entries is larger than new
      * cache size.
      */

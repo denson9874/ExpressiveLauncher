@@ -178,10 +178,31 @@ public class TouchInteractionService extends Service {
      */
     public static class TISBinder extends ILauncherProxy.Stub {
 
+        private static final int TRANSACTION_INVOKE_CONTEXTUAL_SEARCH =
+                IBinder.FIRST_CALL_TRANSACTION + 40;
+
         private final WeakReference<TouchInteractionService> mTis;
 
         private TISBinder(TouchInteractionService tis) {
             mTis = new WeakReference<>(tis);
+        }
+
+        @Override
+        public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply,
+                int flags) throws RemoteException {
+            if (Utilities.ATLEAST_CINNAMON_BUN && code == TRANSACTION_INVOKE_CONTEXTUAL_SEARCH) {
+                // Android 17 added invokeContextualSearch(int entryPoint, ContextualSearchConfig).
+                data.enforceInterface(ILauncherProxy.DESCRIPTOR);
+                final int entryPoint = data.readInt();
+                MAIN_EXECUTOR.execute(() -> executeForTouchInteractionService(tis -> {
+                    if (!new ContextualSearchInvoker(tis).show(entryPoint)) {
+                        Log.w(TAG, "Failed to invoke contextual search for entryPoint="
+                                + entryPoint);
+                    }
+                }));
+                return true;
+            }
+            return super.onTransact(code, data, reply, flags);
         }
 
         @BinderThread
@@ -237,7 +258,11 @@ public class TouchInteractionService extends Service {
         @BinderThread
         public void onOverviewToggle() {
             TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "onOverviewToggle");
-            executeForTouchInteractionService(tis -> {
+            MAIN_EXECUTOR.execute(() -> executeForTouchInteractionService(tis -> {
+                OverviewCommandHelper commandHelper = tis.mOverviewCommandHelper;
+                if (commandHelper == null) {
+                    return;
+                }
                 int displayId = tis.focusedDisplayIdForOverviewOnConnectedDisplays();
                 RecentsAnimationDeviceState deviceState = tis.mDeviceStateRepository.get(
                         displayId);
@@ -252,14 +277,18 @@ public class TouchInteractionService extends Service {
                     }
                 }
                 TaskUtils.closeSystemWindowsAsync(CLOSE_SYSTEM_WINDOWS_REASON_RECENTS);
-                tis.mOverviewCommandHelper.addCommand(CommandType.TOGGLE, displayId);
-            });
+                commandHelper.addCommand(CommandType.TOGGLE, displayId);
+            }));
         }
 
         @BinderThread
         @Override
         public void onOverviewShown(boolean triggeredFromAltTab) {
-            executeForTouchInteractionService(tis -> {
+            MAIN_EXECUTOR.execute(() -> executeForTouchInteractionService(tis -> {
+                OverviewCommandHelper commandHelper = tis.mOverviewCommandHelper;
+                if (commandHelper == null) {
+                    return;
+                }
                 final int displayId =
                         triggeredFromAltTab
                                 ? tis.focusedDisplayIdForAltTabKqsOnConnectedDisplays()
@@ -274,17 +303,21 @@ public class TouchInteractionService extends Service {
 
                 if (triggeredFromAltTab) {
                     TaskUtils.closeSystemWindowsAsync(CLOSE_SYSTEM_WINDOWS_REASON_RECENTS);
-                    tis.mOverviewCommandHelper.addCommand(CommandType.SHOW_ALT_TAB, displayId);
+                    commandHelper.addCommand(CommandType.SHOW_ALT_TAB, displayId);
                 } else {
-                    tis.mOverviewCommandHelper.addCommand(CommandType.SHOW_WITH_FOCUS, displayId);
+                    commandHelper.addCommand(CommandType.SHOW_WITH_FOCUS, displayId);
                 }
-            });
+            }));
         }
 
         @BinderThread
         @Override
         public void onOverviewHidden(boolean triggeredFromAltTab, boolean triggeredFromHomeKey) {
-            executeForTouchInteractionService(tis -> {
+            MAIN_EXECUTOR.execute(() -> executeForTouchInteractionService(tis -> {
+                OverviewCommandHelper commandHelper = tis.mOverviewCommandHelper;
+                if (commandHelper == null) {
+                    return;
+                }
                 if (triggeredFromAltTab && !triggeredFromHomeKey) {
                     // onOverviewShownFromAltTab hides the overview and ends at the target app
                     int displayId = tis.focusedDisplayIdForAltTabKqsOnConnectedDisplays();
@@ -295,9 +328,9 @@ public class TouchInteractionService extends Service {
                                 + " because the command is blocked");
                         return;
                     }
-                    tis.mOverviewCommandHelper.addCommand(CommandType.HIDE_ALT_TAB, displayId);
+                    commandHelper.addCommand(CommandType.HIDE_ALT_TAB, displayId);
                 }
-            });
+            }));
         }
 
         @BinderThread
@@ -364,16 +397,20 @@ public class TouchInteractionService extends Service {
         @BinderThread
         @Override
         public void enterStageSplitFromRunningApp(int displayId, boolean leftOrTop) {
-            executeForTouchInteractionService(tis -> {
-                BaseContainerInterface<?, ?> containerInterface = tis.mOverviewComponentObserver
-                        .getContainerInterface(displayId);
+            MAIN_EXECUTOR.execute(() -> executeForTouchInteractionService(tis -> {
+                OverviewComponentObserver observer = tis.mOverviewComponentObserver;
+                if (observer == null) {
+                    return;
+                }
+                BaseContainerInterface<?, ?> containerInterface =
+                        observer.getContainerInterface(displayId);
                 if (containerInterface != null) {
                     RecentsViewContainer container = containerInterface.getCreatedContainer();
                     if (container != null) {
                         container.enterStageSplitFromRunningApp(leftOrTop, displayId);
                     }
                 }
-            });
+            }));
         }
 
         @BinderThread
@@ -625,6 +662,7 @@ public class TouchInteractionService extends Service {
     private final TaskbarNavButtonCallbacks mNavCallbacks = new TaskbarNavButtonCallbacks() {
         @Override
         public void onNavigateHome(int displayId) {
+            if (mOverviewCommandHelper == null) return;
             if (enableOverviewOnConnectedDisplays()) {
                 mOverviewCommandHelper.addCommand(CommandType.HOME, displayId);
             } else {
@@ -634,6 +672,7 @@ public class TouchInteractionService extends Service {
 
         @Override
         public void onToggleOverview(int displayId) {
+            if (mOverviewCommandHelper == null) return;
             if (enableOverviewOnConnectedDisplays()) {
                 mOverviewCommandHelper.addCommand(CommandType.TOGGLE, displayId);
             } else {
@@ -833,13 +872,19 @@ public class TouchInteractionService extends Service {
                 && (mTrackpadsConnected.isEmpty())) {
             return;
         }
-        if (ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS) {
-            mInputMonitorDisplayModel = new InputMonitorDisplayModel(
-                    this, mSystemDecorationChangeObserver);
-        } else {
-            mInputMonitorCompat = new InputMonitorCompat("swipe-up", DEFAULT_DISPLAY);
-            mInputEventReceiver = mInputMonitorCompat.getInputReceiver(Looper.getMainLooper(),
-                    mMainChoreographer, this::onInputEvent);
+        try {
+            if (ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS) {
+                mInputMonitorDisplayModel = new InputMonitorDisplayModel(
+                        this, mSystemDecorationChangeObserver);
+            } else {
+                mInputMonitorCompat = new InputMonitorCompat("swipe-up", DEFAULT_DISPLAY);
+                mInputEventReceiver = mInputMonitorCompat.getInputReceiver(Looper.getMainLooper(),
+                        mMainChoreographer, this::onInputEvent);
+            }
+        } catch (SecurityException e) {
+            Log.w(TAG, "InputMonitorCompat unavailable without MONITOR_INPUT permission", e);
+            disposeEventHandlers("SecurityException during initInputMonitor");
+            return;
         }
 
         mRotationTouchHelperRepository.get(DEFAULT_DISPLAY).updateGestureTouchRegions();
@@ -941,7 +986,7 @@ public class TouchInteractionService extends Service {
 
     @UiThread
     private void onSystemUiFlagsChanged(@SystemUiStateFlags long lastSysUIFlags, int displayId) {
-        if (LockedUserState.get(this).isUserUnlocked()) {
+        if (mOverviewComponentObserver != null) {
             RecentsAnimationDeviceState deviceState = mDeviceStateRepository.get(displayId);
             TaskAnimationManager taskAnimationManager = mTaskAnimationManagerRepository.get(
                     displayId);
@@ -962,7 +1007,7 @@ public class TouchInteractionService extends Service {
 
     @UiThread
     private void onAssistantVisibilityChanged() {
-        if (LockedUserState.get(this).isUserUnlocked()) {
+        if (mOverviewComponentObserver != null) {
             mOverviewComponentObserver.getContainerInterface(
                     DEFAULT_DISPLAY).onAssistantVisibilityChanged(
                     mDeviceStateRepository.get(DEFAULT_DISPLAY).getAssistantVisibility());
@@ -973,11 +1018,21 @@ public class TouchInteractionService extends Service {
     public void onDestroy() {
         Log.d(TAG, "onDestroy: user=" + getUserId()
                 + " instance=" + System.identityHashCode(this));
-        if (LockedUserState.get(this).isUserUnlocked()) {
-            mInputConsumer.unregisterInputConsumer();
+        if (mUserUnlocked) {
+            try {
+                mInputConsumer.unregisterInputConsumer();
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed to unregister input consumer during onDestroy", t);
+            }
             mQuickstepKeyGestureEventsHandler.onDestroy();
+        }
+        if (mOverviewComponentObserver != null) {
             mOverviewComponentObserver.setHomeDisabled(false);
             mOverviewComponentObserver.removeOverviewChangeListener(mOverviewChangeListener);
+        }
+        if (mOverviewCommandHelper != null) {
+            mOverviewCommandHelper.destroy();
+            mOverviewCommandHelper = null;
         }
         disposeEventHandlers("TouchInteractionService onDestroy()");
         SystemUiProxy.INSTANCE.get(this).clearProxy();
@@ -1342,7 +1397,7 @@ public class TouchInteractionService extends Service {
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
-        if (!LockedUserState.get(this).isUserUnlocked()) {
+        if (mOverviewComponentObserver == null) {
             return;
         }
         // TODO (b/399094853): handle config updates for all connected displays (relevant only for

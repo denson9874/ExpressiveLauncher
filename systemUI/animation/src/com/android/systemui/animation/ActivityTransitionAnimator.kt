@@ -32,6 +32,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.Parcel
 import android.os.RemoteException
 import android.util.ArrayMap
 import android.util.Log
@@ -1886,6 +1887,43 @@ constructor(
             fun fromIShellTransitions(iShellTransitions: IShellTransitions): TransitionRegister {
                 return TransitionRegister(iShellTransitions = iShellTransitions)
             }
+
+            private const val TRANSACTION_REGISTER_REMOTE = IBinder.FIRST_CALL_TRANSACTION + 1
+            private const val TRANSACTION_REGISTER_REMOTE_FOR_TAKEOVER =
+                IBinder.FIRST_CALL_TRANSACTION + 6
+
+            private val remoteTransitionSetFilterMethod by lazy {
+                runCatching {
+                    RemoteTransition::class.java.getMethod(
+                        "setFilter",
+                        TransitionFilter::class.java,
+                    )
+                }.getOrNull()
+            }
+
+            private fun registerIShellTransitionCompat(
+                transitions: IShellTransitions,
+                filter: TransitionFilter,
+                remoteTransition: RemoteTransition,
+                transactionCode: Int,
+            ): Boolean {
+                val setFilter = remoteTransitionSetFilterMethod ?: return false
+                try {
+                    setFilter.invoke(remoteTransition, filter)
+                } catch (e: ReflectiveOperationException) {
+                    Log.e(TAG, "RemoteTransition.setFilter failed", e)
+                    return false
+                }
+                val data = Parcel.obtain()
+                try {
+                    data.writeInterfaceToken(IShellTransitions.DESCRIPTOR)
+                    data.writeTypedObject(remoteTransition, 0)
+                    transitions.asBinder().transact(transactionCode, data, null, IBinder.FLAG_ONEWAY)
+                } finally {
+                    data.recycle()
+                }
+                return true
+            }
         }
 
         /** Register [remoteTransition] with WM Shell using the given [filter]. */
@@ -1895,10 +1933,32 @@ constructor(
             includeTakeover: Boolean,
         ) {
             shellTransitions?.registerRemote(filter, remoteTransition)
-            iShellTransitions?.registerRemote(filter, remoteTransition)
+            iShellTransitions?.let { transitions ->
+                if (Build.VERSION.SDK_INT >= 37) {
+                    registerIShellTransitionCompat(
+                        transitions,
+                        filter,
+                        remoteTransition,
+                        TRANSACTION_REGISTER_REMOTE,
+                    )
+                } else {
+                    transitions.registerRemote(filter, remoteTransition)
+                }
+            }
             if (includeTakeover) {
                 shellTransitions?.registerRemoteForTakeover(filter, remoteTransition)
-                iShellTransitions?.registerRemoteForTakeover(filter, remoteTransition)
+                iShellTransitions?.let { transitions ->
+                    if (Build.VERSION.SDK_INT >= 37) {
+                        registerIShellTransitionCompat(
+                            transitions,
+                            filter,
+                            remoteTransition,
+                            TRANSACTION_REGISTER_REMOTE_FOR_TAKEOVER,
+                        )
+                    } else {
+                        transitions.registerRemoteForTakeover(filter, remoteTransition)
+                    }
+                }
             }
         }
 

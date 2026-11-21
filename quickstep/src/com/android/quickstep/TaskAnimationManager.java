@@ -231,7 +231,16 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
                     // It's possible for the recents animation to have finished and be cleaned up
                     // by the time we process the start callback, and in that case, just we can skip
                     // handling this call entirely
+                    if (targets != null) {
+                        targets.release();
+                    }
+                    if (transitionInfo != null) {
+                        transitionInfo.releaseAllSurfaces();
+                    }
                     return;
+                }
+                if (mTransitionInfo != null && mTransitionInfo != transitionInfo) {
+                    mTransitionInfo.releaseAllSurfaces();
                 }
                 mController = controller;
                 mTargets = targets;
@@ -593,6 +602,9 @@ public class TaskAnimationManager implements RecentsAnimationCallbacks.RecentsAn
         // Release all the target leashes
         if (mTargets != null) {
             mTargets.release();
+        }
+        if (mTransitionInfo != null) {
+            mTransitionInfo.releaseAllSurfaces();
         }
 
         // Clean up all listeners to ensure we don't get subsequent callbacks

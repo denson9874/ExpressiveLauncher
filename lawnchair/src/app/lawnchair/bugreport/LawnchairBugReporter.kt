@@ -10,6 +10,7 @@ import app.lawnchair.util.MainThreadInitializedObject
 import app.lawnchair.util.requireSystemService
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
+import com.android.launcher3.util.LockedUserState
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,16 +50,22 @@ class LawnchairBugReporter(private val context: Context) {
             }
         }
 
-        removeDismissedLogs()
+        LockedUserState.get(context).runOnUserUnlocked {
+            removeDismissedLogs()
+        }
     }
 
     private fun removeDismissedLogs() {
-        val activeIds = notificationManager.activeNotifications
-            .mapTo(mutableSetOf()) { String.format("%x", it.id) }
-        logsFolder.listFiles().orEmpty()
-            .asSequence()
-            .filter { it.name !in activeIds }
-            .forEach { it.deleteRecursively() }
+        try {
+            val activeIds = notificationManager.activeNotifications
+                .mapTo(mutableSetOf()) { String.format("%x", it.id) }
+            logsFolder.listFiles().orEmpty()
+                .asSequence()
+                .filter { it.name !in activeIds }
+                .forEach { it.deleteRecursively() }
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Skipping dismissed log cleanup while credential storage is locked", e)
+        }
     }
 
     private fun sendNotification(throwable: Throwable) {

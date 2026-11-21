@@ -175,6 +175,8 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         setFreezeViewVisibility(true);
     }
 
+    private boolean mWasOverviewShown;
+
     @Override
     public void onStateTransitionComplete(LauncherState finalState) {
         DesktopVisibilityController.INSTANCE.get(mContainer).onLauncherStateChanged(finalState);
@@ -185,8 +187,18 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         }
 
         if (!finalState.isRecentsViewVisible) {
+            if (mWasOverviewShown) {
+                mWasOverviewShown = false;
+                if (com.android.launcher3.Utilities.ATLEAST_CINNAMON_BUN) {
+                    com.android.quickstep.SystemUiProxy.INSTANCE.get(mContainer)
+                            .onOverviewHidden(mContainer.getDisplayId(), "LauncherRecentsView");
+                }
+            }
             // Clean-up logic that occurs when recents is no longer in use/visible.
             reset();
+        } else if (finalState == OVERVIEW || finalState == OVERVIEW_MODAL_TASK
+                || finalState == OVERVIEW_SPLIT_SELECT) {
+            mWasOverviewShown = true;
         }
         boolean isOverlayEnabled = finalState == OVERVIEW || finalState == OVERVIEW_MODAL_TASK;
         setOverlayEnabled(isOverlayEnabled);

@@ -43,11 +43,15 @@ data class ThumbnailData(
     var snapshotId: Long = 0,
 ) {
     fun recycleBitmap() {
-        thumbnail?.recycle()
+        thumbnail?.let {
+            if (!it.isRecycled) {
+                it.recycle()
+            }
+        }
     }
 
     companion object {
-        private fun makeThumbnail(snapshot: TaskSnapshot): Bitmap {
+        private fun makeThumbnail(snapshot: TaskSnapshot): Bitmap? {
             var thumbnail: Bitmap? = null
             try {
                 if (LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN) {
@@ -61,18 +65,30 @@ data class ThumbnailData(
             } catch (ex: IllegalArgumentException) {
                 // TODO(b/157562905): Workaround for a crash when we get a snapshot without this
                 // state
+                val bufferInfo = if (LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN) {
+                    "snapshotId=${snapshot.id}"
+                } else {
+                    "${snapshot.hardwareBuffer}"
+                }
                 Log.e(
                     "ThumbnailData",
-                    "Unexpected snapshot without USAGE_GPU_SAMPLED_IMAGE: " +
-                        "${snapshot.hardwareBuffer}",
+                    "Unexpected snapshot without USAGE_GPU_SAMPLED_IMAGE: $bufferInfo",
                     ex,
                 )
             }
 
-            return thumbnail
-                ?: Bitmap.createBitmap(snapshot.taskSize.x, snapshot.taskSize.y, ARGB_8888).apply {
-                    eraseColor(Color.BLACK)
-                }
+            if (thumbnail != null) {
+                return thumbnail
+            }
+            val width = snapshot.taskSize.x
+            val height = snapshot.taskSize.y
+            if (width <= 0 || height <= 0) {
+                Log.w("ThumbnailData", "Ignoring snapshot with invalid taskSize=${width}x$height")
+                return null
+            }
+            return Bitmap.createBitmap(width, height, ARGB_8888).apply {
+                eraseColor(Color.BLACK)
+            }
         }
 
         @JvmStatic
@@ -92,6 +108,12 @@ data class ThumbnailData(
         @JvmStatic
         fun fromSnapshot(snapshot: TaskSnapshot): ThumbnailData {
             val thumbnail = makeThumbnail(snapshot)
+            val taskWidth = snapshot.taskSize.x
+            val scale = if (thumbnail != null && taskWidth > 0) {
+                thumbnail.width.toFloat() / taskWidth
+            } else {
+                1f
+            }
             return ThumbnailData(
                 thumbnail = thumbnail,
                 insets = Rect(snapshot.contentInsets),
@@ -101,7 +123,7 @@ data class ThumbnailData(
                 reducedResolution = snapshot.isLowResolution,
                 // TODO(b/149579527): Pass task size instead of computing scale.
                 // Assume width and height were scaled the same; compute scale only for width
-                scale = thumbnail.width.toFloat() / snapshot.taskSize.x,
+                scale = scale,
                 isRealSnapshot = snapshot.isRealSnapshot,
                 isTranslucent = snapshot.isTranslucent,
                 windowingMode = snapshot.windowingMode,

@@ -68,7 +68,9 @@ public class MainProcessInitializer implements ResourceBasedOverride {
     }
 
     protected void init(Context context) {
-        FileLog.setDir(context.getApplicationContext().getFilesDir());
+        // TouchInteractionService is directBootAware; defer CE filesDir access until user unlock.
+        LockedUserState.get(context).runOnUserUnlocked(
+                () -> FileLog.setDir(context.getApplicationContext().getFilesDir()));
 
         if (BitmapCreationCheck.ENABLED) {
             BitmapCreationCheck.startTracking(context);

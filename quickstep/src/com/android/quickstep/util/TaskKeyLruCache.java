@@ -96,6 +96,11 @@ public class TaskKeyLruCache<V> implements TaskKeyCache<V> {
     }
 
     @Override
+    public synchronized boolean contains(int taskId) {
+        return mMap.containsKey(taskId);
+    }
+
+    @Override
     public int getMaxSize() {
         return mMap.mMaxSize;
     }

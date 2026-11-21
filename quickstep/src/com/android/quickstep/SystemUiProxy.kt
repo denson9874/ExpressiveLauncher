@@ -37,6 +37,7 @@ import android.os.Trace.traceBegin
 import android.os.Trace.traceEnd
 import android.os.UserHandle
 import android.util.Log
+import android.view.Display.DEFAULT_DISPLAY
 import android.view.IRemoteAnimationRunner
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -61,6 +62,7 @@ import com.android.internal.view.AppearanceRegion
 import com.android.launcher3.Flags
 import com.android.launcher3.Utilities.ATLEAST_BAKLAVA
 import com.android.launcher3.Utilities.ATLEAST_CINNAMON_BUN
+import com.android.launcher3.Utilities.ATLEAST_U
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppComponent
 import com.android.launcher3.dagger.LauncherAppSingleton
@@ -184,21 +186,34 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      * process). It is bare-bones, so it's expected that the component and options will be provided
      * via fill-in intent.
      */
-    private fun getRecentsPendingIntent(displayId: Int) =
-        PendingIntent.getActivity(
+    private fun getRecentsPendingIntent(displayId: Int): PendingIntent {
+        val flags =
+            if (ATLEAST_U) {
+                PendingIntent.FLAG_MUTABLE or
+                    PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT or
+                    Intent.FILL_IN_COMPONENT
+            } else {
+                PendingIntent.FLAG_MUTABLE or Intent.FILL_IN_COMPONENT
+            }
+        val options =
+            ActivityOptions.makeBasic()
+                .apply {
+                    if (ATLEAST_U) {
+                        setPendingIntentCreatorBackgroundActivityStartMode(
+                            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                        )
+                    }
+                    setLaunchDisplayId(displayId)
+                }
+                .toBundle()
+        return PendingIntent.getActivity(
             context,
             0,
             Intent().setPackage(context.packageName),
-            PendingIntent.FLAG_MUTABLE or
-                PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT or
-                Intent.FILL_IN_COMPONENT,
-            ActivityOptions.makeBasic()
-                .setPendingIntentCreatorBackgroundActivityStartMode(
-                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                )
-                .setLaunchDisplayId(displayId)
-                .toBundle(),
+            flags,
+            options,
         )
+    }
 
     val unfoldTransitionProvider: ProxyUnfoldTransitionProvider? =
         if ((Flags.enableUnfoldStateAnimation() && ResourceUnfoldTransitionConfig().isEnabled))
@@ -217,9 +232,16 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         }
     }
 
-    fun onBackEvent(backEvent: KeyEvent?) =
+    @JvmOverloads
+    fun onBackEvent(backEvent: KeyEvent?, displayId: Int = DEFAULT_DISPLAY) =
         executeWithErrorLog({ "Failed call onBackPressed" }) {
-            systemUiProxy?.onBackEvent(backEvent)
+            systemUiProxy?.let { proxy ->
+                if (ATLEAST_CINNAMON_BUN) {
+                    CinnamonBunCompat.onBackEvent(proxy, backEvent, displayId)
+                } else {
+                    proxy.onBackEvent(backEvent)
+                }
+            }
         }
 
     fun onImeSwitcherPressed() =
@@ -345,12 +367,29 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
             systemUiProxy?.startScreenPinning(taskId)
         }
 
-    fun onOverviewShown(fromHome: Boolean, tag: String = TAG) =
+    @JvmOverloads
+    fun onOverviewShown(fromHome: Boolean, tag: String = TAG, displayId: Int = DEFAULT_DISPLAY) =
         executeWithErrorLog(
             { "Failed call onOverviewShown from: ${(if (fromHome) "home" else "app")}" },
             tag = tag,
         ) {
-            systemUiProxy?.onOverviewShown(fromHome)
+            systemUiProxy?.let { proxy ->
+                if (ATLEAST_CINNAMON_BUN) {
+                    CinnamonBunCompat.onOverviewShown(proxy, displayId)
+                } else {
+                    proxy.onOverviewShown(fromHome)
+                }
+            }
+        }
+
+    @JvmOverloads
+    fun onOverviewHidden(displayId: Int = DEFAULT_DISPLAY, tag: String = TAG) =
+        executeWithErrorLog({ "Failed call onOverviewHidden on display $displayId" }, tag = tag) {
+            if (ATLEAST_CINNAMON_BUN) {
+                systemUiProxy?.let { proxy ->
+                    CinnamonBunCompat.onOverviewHidden(proxy, displayId)
+                }
+            }
         }
 
     @MainThread
@@ -427,8 +466,11 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      */
     fun notifyTaskbarAutohideSuspend(suspend: Boolean) =
         executeWithErrorLog({ "Failed call notifyTaskbarAutohideSuspend with arg: $suspend" }) {
-            // LC-Ignored
-            //systemUiProxy?.notifyTaskbarAutohideSuspend(suspend)
+            try {
+                systemUiProxy?.notifyTaskbarAutohideSuspend(suspend)
+            } catch (e: SecurityException) {
+                Log.w(TAG, "notifyTaskbarAutohideSuspend denied", e)
+            }
         }
 
     fun notifyRecentsButtonPositionChanged(bounds: Rect) {
@@ -994,12 +1036,23 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
         activityClass: String?,
         controller: ILauncherUnlockAnimationController?,
     ) {
-        executeWithErrorLog({ "Failed call setLauncherUnlockAnimationController" }) {
-            // LC-Ignored
-//            sysuiUnlockAnimationController?.apply {
-//                setLauncherUnlockController(activityClass, controller)
-//                controller?.dispatchSmartspaceStateToSysui()
-//            }
+        if (
+            activityClass != null ||
+                controller != null ||
+                launcherActivityClass != null ||
+                launcherUnlockAnimationController != null
+        ) {
+            executeWithErrorLog({ "Failed call setLauncherUnlockAnimationController" }) {
+                try {
+                    sysuiUnlockAnimationController?.apply {
+                        setLauncherUnlockController(activityClass, controller)
+                        controller?.dispatchSmartspaceStateToSysui()
+                    }
+                } catch (t: Throwable) {
+                    if (t is RemoteException) throw t
+                    Log.w(TAG, "Ignoring unlock controller registration failure on this ROM", t)
+                }
+            }
         }
         launcherActivityClass = activityClass
         launcherUnlockAnimationController = controller
@@ -1011,8 +1064,12 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
      */
     fun notifySysuiSmartspaceStateUpdated(state: SmartspaceState?) =
         executeWithErrorLog({ "Failed call notifySysuiSmartspaceStateUpdated" }) {
-            // LC-Ignored
-            //sysuiUnlockAnimationController?.onLauncherSmartspaceStateUpdated(state)
+            try {
+                sysuiUnlockAnimationController?.onLauncherSmartspaceStateUpdated(state)
+            } catch (t: Throwable) {
+                if (t is RemoteException) throw t
+                Log.w(TAG, "Ignoring smartspace unlock state update failure on this ROM", t)
+            }
         }
 
     //

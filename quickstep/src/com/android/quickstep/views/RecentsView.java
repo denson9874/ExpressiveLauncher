@@ -137,6 +137,7 @@ import android.window.TransitionInfo;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.graphics.ColorUtils;
 import androidx.dynamicanimation.animation.SpringAnimation;
 
@@ -653,6 +654,7 @@ public abstract class RecentsView<
             // Remove the task immediately from the task list
             TaskView taskView = getTaskViewByTaskId(taskId);
             if (taskView != null) {
+                mAppliedTaskGroups = null;
                 removeView(taskView);
             }
         }
@@ -706,9 +708,12 @@ public abstract class RecentsView<
     private int mPipCornerRadius;
     private int mPipShadowRadius;
 
-    // Used to keep track of the last requested task list id, so that we do not request to load the
-    // tasks again if we have already requested it and the task list has not changed
+    // Used to keep track of the last applied/requested task list id, so that we do not request
+    // to load the tasks again if we have already requested or applied the same list.
     private int mAppliedTaskListChangeId = -1;
+    private int mRequestedTaskListChangeId = -1;
+    @Nullable
+    private List<GroupTask> mAppliedTaskGroups;
 
     // Only valid until the launcher state changes to NORMAL
     /**
@@ -1083,6 +1088,8 @@ public abstract class RecentsView<
      */
     private void invalidateTaskList() {
         mAppliedTaskListChangeId = -1;
+        mRequestedTaskListChangeId = -1;
+        mAppliedTaskGroups = null;
     }
 
     public OverScroller getScroller() {
@@ -1926,6 +1933,7 @@ public abstract class RecentsView<
         mCurrentPageScrollDiff = primaryScroll - currentPageScroll;
 
         mMovingTaskView = runningTaskView;
+        mAppliedTaskGroups = null;
         removeView(runningTaskView);
         mMovingTaskView = null;
         runningTaskView.resetPersistentViewTransforms();
@@ -1951,6 +1959,7 @@ public abstract class RecentsView<
                 && RecentsDependencies.Companion.hasScope(mContext))) {
             // This can happen if a TaskView callback is triggered after the view is destroyed
             // (b/404920951). Prevent crashes by returning immediately.
+            mRequestedTaskListChangeId = -1;
             Log.d(TAG, "applyLoadPlan - view invalid, isAttachedToWindow: " + isAttachedToWindow()
                     + ", hasScope: " + RecentsDependencies.Companion.hasScope(mContext));
             return;
@@ -1959,6 +1968,13 @@ public abstract class RecentsView<
             final List<GroupTask> finalTaskGroups = taskGroups;
             mPendingAnimation.addEndListener(
                     success -> applyLoadPlan(finalTaskGroups, taskListChangeId));
+            return;
+        }
+        if (mAppliedTaskListChangeId != -1
+                && mModel.isTaskListValid(mAppliedTaskListChangeId)
+                && !mModel.isTaskListValid(taskListChangeId)) {
+            Log.d(TAG, "applyLoadPlan - ignoring stale taskListChangeId: " + taskListChangeId
+                    + ", current valid applied id: " + mAppliedTaskListChangeId);
             return;
         }
 
@@ -1970,6 +1986,11 @@ public abstract class RecentsView<
         }
         mLoadPlanEverApplied = true;
         if (taskGroups == null || taskGroups.isEmpty()) {
+            mAppliedTaskGroups = null;
+            mAppliedTaskListChangeId = taskListChangeId;
+            if (mRequestedTaskListChangeId == taskListChangeId) {
+                mRequestedTaskListChangeId = -1;
+            }
             removeAllTaskViews();
             onTaskStackUpdated();
             // With all tasks removed, touch handling in PagedView is disabled and we need to reset
@@ -1978,6 +1999,26 @@ public abstract class RecentsView<
             if (isPageScrollsInitialized()) {
                 onPageScrollsInitialized();
             }
+            return;
+        }
+
+        List<GroupTask> sortedTaskGroups = taskGroups;
+        if (enableLargeDesktopWindowingTile()) {
+            sortedTaskGroups = mUtils.sortDesktopTasksToFront(sortedTaskGroups);
+        }
+        sortedTaskGroups = mUtils.sortExternalDisplayTasksToFront(sortedTaskGroups);
+
+        if (canSkipUnchangedLoadPlan(sortedTaskGroups)) {
+            mAppliedTaskListChangeId = taskListChangeId;
+            if (mRequestedTaskListChangeId == taskListChangeId) {
+                mRequestedTaskListChangeId = -1;
+            }
+            mFilterState.updateInstanceCountMap(sortedTaskGroups);
+            if (!enableRefactorTaskThumbnail()) {
+                loadVisibleTaskData(TaskView.FLAG_UPDATE_ALL);
+            }
+            updateEnabledOverlays();
+            Log.d(TAG, "applyLoadPlan - skipping unchanged task list: " + taskListChangeId);
             return;
         }
 
@@ -2042,15 +2083,8 @@ public abstract class RecentsView<
             stagedTaskIdToBeRemoved = INVALID_TASK_ID;
         }
         // update the map of instance counts
+        taskGroups = sortedTaskGroups;
         mFilterState.updateInstanceCountMap(taskGroups);
-
-        // Clear out desktop view if it is set
-
-        // Move Desktop Tasks to the end of the list
-        if (enableLargeDesktopWindowingTile()) {
-            taskGroups = mUtils.sortDesktopTasksToFront(taskGroups);
-        }
-        taskGroups = mUtils.sortExternalDisplayTasksToFront(taskGroups);
 
         if (mAddDesktopButton != null) {
             // Add `mAddDesktopButton` as the first child.
@@ -2183,6 +2217,12 @@ public abstract class RecentsView<
         }
 
         mAppliedTaskListChangeId = taskListChangeId;
+        if (mRequestedTaskListChangeId == taskListChangeId) {
+            mRequestedTaskListChangeId = -1;
+        }
+        mAppliedTaskGroups = !isSplitSelectionActive() && getTaskViewCount() == taskGroups.size()
+                ? new ArrayList<>(taskGroups)
+                : null;
         resetTaskVisuals();
         onTaskStackUpdated();
         updateEnabledOverlays();
@@ -2768,6 +2808,8 @@ public abstract class RecentsView<
         mCurrentPageScrollDiff = 0;
         mIgnoreResetTaskId = -1;
         mAppliedTaskListChangeId = -1;
+        mRequestedTaskListChangeId = -1;
+        mAppliedTaskGroups = null;
         setFocusedTaskViewId(INVALID_TASK_ID);
         mAnyTaskHasBeenDismissed = false;
         setTaskIconVisible(true);
@@ -2913,16 +2955,136 @@ public abstract class RecentsView<
      * Reloads the view if anything in recents changed.
      */
     public void reloadIfNeeded() {
-        if (!mModel.isTaskListValid(mAppliedTaskListChangeId)) {
-            mModel.getTasks(this::applyLoadPlan, RecentsFilterState
+        if (!mModel.isTaskListValid(mAppliedTaskListChangeId)
+                && !mModel.isTaskListValid(mRequestedTaskListChangeId)) {
+            mRequestedTaskListChangeId = mModel.getTasks(this::applyLoadPlan, RecentsFilterState
                     .getFilter(mFilterState.getPackageNameToFilter(), mContainer.getDisplayId()));
-            Log.d(TAG, "reloadIfNeeded - getTasks: " + mAppliedTaskListChangeId);
+            Log.d(TAG, "reloadIfNeeded - getTasks: " + mAppliedTaskListChangeId
+                    + " -> requested: " + mRequestedTaskListChangeId);
             if (enableRefactorTaskThumbnail()) {
                 mRecentsViewModel.refreshAllTaskData();
             }
         } else {
-            Log.d(TAG, "reloadIfNeeded - task list still valid: " + mAppliedTaskListChangeId);
+            Log.d(TAG, "reloadIfNeeded - task list still valid: " + mAppliedTaskListChangeId
+                    + " (requested: " + mRequestedTaskListChangeId + ")");
         }
+    }
+
+    private boolean canSkipUnchangedLoadPlan(@NonNull List<GroupTask> sortedTaskGroups) {
+        if (mAppliedTaskGroups == null
+                || mAnyTaskHasBeenDismissed
+                || isSplitSelectionActive()
+                || getTaskViewCount() != sortedTaskGroups.size()) {
+            return false;
+        }
+        if (isGestureActive() && getRunningTaskView() == null) {
+            return false;
+        }
+        if (!areTaskGroupListsEquivalent(mAppliedTaskGroups, sortedTaskGroups)) {
+            return false;
+        }
+        // Verify live child TaskViews actually match sortedTaskGroups in reverse insertion order.
+        int expectedIdx = sortedTaskGroups.size() - 1;
+        for (TaskView taskView : getTaskViews()) {
+            if (expectedIdx < 0) {
+                return false;
+            }
+            GroupTask expected = sortedTaskGroups.get(expectedIdx--);
+            if (taskView.getType() != expected.taskViewType) {
+                return false;
+            }
+            if (expected instanceof DesktopTask expectedDesk) {
+                if (!(taskView instanceof DesktopTaskView dtv)
+                        || dtv.getDeskId() != expectedDesk.getDeskId()) {
+                    return false;
+                }
+            }
+            int[] boundIds = taskView.getTaskIds();
+            List<Task> expectedTasks = expected.getTasks();
+            if (boundIds.length != expectedTasks.size()) {
+                return false;
+            }
+            for (int i = 0; i < boundIds.length; i++) {
+                if (boundIds[i] != expectedTasks.get(i).key.id) {
+                    return false;
+                }
+            }
+        }
+        return expectedIdx == -1;
+    }
+
+    @VisibleForTesting
+    static boolean areTaskGroupListsEquivalent(
+            @Nullable List<GroupTask> previous, @Nullable List<GroupTask> current) {
+        if (previous == null || current == null || previous.size() != current.size()) {
+            return false;
+        }
+        for (int i = 0; i < previous.size(); i++) {
+            GroupTask a = previous.get(i);
+            GroupTask b = current.get(i);
+            if (a.taskViewType != b.taskViewType || a.getDisplayId() != b.getDisplayId()) {
+                return false;
+            }
+            if (a instanceof DesktopTask aDesk && b instanceof DesktopTask bDesk) {
+                if (aDesk.getDeskId() != bDesk.getDeskId()) {
+                    return false;
+                }
+            } else if (a instanceof SplitTask aSplit && b instanceof SplitTask bSplit) {
+                if (!java.util.Objects.equals(aSplit.getSplitBounds(), bSplit.getSplitBounds())) {
+                    return false;
+                }
+            }
+            List<Task> aTasks = a.getTasks();
+            List<Task> bTasks = b.getTasks();
+            if (aTasks.size() != bTasks.size()) {
+                return false;
+            }
+            for (int t = 0; t < aTasks.size(); t++) {
+                if (!areTasksEquivalent(aTasks.get(t), bTasks.get(t))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean areTasksEquivalent(@NonNull Task a, @NonNull Task b) {
+        Task.TaskKey aKey = a.key;
+        Task.TaskKey bKey = b.key;
+        if (aKey.id != bKey.id
+                || aKey.userId != bKey.userId
+                || aKey.windowingMode != bKey.windowingMode
+                || aKey.displayId != bKey.displayId
+                || aKey.lastActiveTime != bKey.lastActiveTime
+                || aKey.isActivityStackTransparent != bKey.isActivityStackTransparent
+                || aKey.isTopActivityNoDisplay != bKey.isTopActivityNoDisplay
+                || !java.util.Objects.equals(aKey.baseActivity, bKey.baseActivity)
+                || !java.util.Objects.equals(aKey.getComponent(), bKey.getComponent())) {
+            return false;
+        }
+        if (a.isLocked != b.isLocked
+                || a.isDockable != b.isDockable
+                || a.colorPrimary != b.colorPrimary
+                || a.colorBackground != b.colorBackground
+                || a.isMinimized != b.isMinimized
+                || a.isVisible != b.isVisible
+                || !java.util.Objects.equals(a.topActivity, b.topActivity)
+                || !java.util.Objects.equals(a.appBounds, b.appBounds)
+                || !java.util.Objects.equals(a.positionInParent, b.positionInParent)) {
+            return false;
+        }
+        android.app.ActivityManager.TaskDescription aTd = a.taskDescription;
+        android.app.ActivityManager.TaskDescription bTd = b.taskDescription;
+        if (aTd == null && bTd == null) {
+            return true;
+        }
+        if (aTd == null || bTd == null) {
+            return false;
+        }
+        return java.util.Objects.equals(aTd.getLabel(), bTd.getLabel())
+                && aTd.getPrimaryColor() == bTd.getPrimaryColor()
+                && aTd.getBackgroundColor() == bTd.getBackgroundColor()
+                && aTd.getIconResource() == bTd.getIconResource();
     }
 
     /**
@@ -3101,6 +3263,7 @@ public abstract class RecentsView<
             if (mAddDesktopButton != null && wasEmpty) {
                 addView(mAddDesktopButton);
             }
+            mAppliedTaskGroups = null;
             addView(taskView, mUtils.getRunningTaskExpectedIndex(taskView));
             runningTaskViewId = taskView.getTaskViewId();
             if (wasEmpty) {
@@ -3246,7 +3409,11 @@ public abstract class RecentsView<
     public void startIconFadeInOnGestureComplete() {
         mTaskIconVisible = true;
         for (TaskView taskView : getTaskViews()) {
-            taskView.startIconFadeInOnGestureComplete();
+            if (isTaskViewVisible(taskView)) {
+                taskView.startIconFadeInOnGestureComplete();
+            } else {
+                taskView.setIconVisibleForGesture(true);
+            }
         }
     }
 

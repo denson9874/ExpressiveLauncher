@@ -66,6 +66,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -177,6 +178,12 @@ constructor(
         commandQueue.removeAll { it.status != CommandStatus.PROCESSING }
     }
 
+    /** Cancels pending coroutines and clears queued commands when the service is destroyed. */
+    fun destroy() {
+        commandQueue.clear()
+        coroutineScope.cancel()
+    }
+
     /**
      * Executes the next command from the queue. If the command finishes immediately (returns true),
      * it continues to execute the next command, until the queue is empty of a command defer's its
@@ -229,7 +236,9 @@ constructor(
                     isCompleted,
                 )
                 if (isCompleted) {
-                    continuation.resume(Unit)
+                    if (continuation.isActive) {
+                        continuation.resume(Unit)
+                    }
                 } else {
                     if (Utilities.ATLEAST_S) OverviewCommandHelperProtoLogProxy.logWaitingForCommandCallback(command)
                 }
@@ -363,7 +372,7 @@ constructor(
         if (taskAnimationManager == null) {
             Log.e(TAG, "No TaskAnimationManager found for display ${command.displayId}")
             if (Utilities.ATLEAST_S) ActiveGestureProtoLogProxy.logOnTaskAnimationManagerNotAvailable(command.displayId)
-            return false
+            return true
         }
 
         when (command.type) {
@@ -608,9 +617,9 @@ constructor(
         // {@link View#requestFocusNoSearch(int, Rect)} when touch mode is false. To note,
         // here we launch overview with live tile.
         if (recentsView.isAttachedToWindow) {
-            recentsView.viewRootImpl.touchModeChanged(false)
+            exitTouchModeSafely(recentsView)
         } else {
-            recentsView.post { recentsView.viewRootImpl.touchModeChanged(false) }
+            recentsView.post { exitTouchModeSafely(recentsView) }
         }
         // Ensure that recents view has focus so that it receives the followup key inputs
         // Stops requesting focused after first view gets focused.
@@ -635,6 +644,12 @@ constructor(
         recentsView.currentPage =
             recentsView.indexOfChild(recentsView.taskViews.elementAtOrNull(keyboardTaskFocusIndex))
         keyboardTaskFocusIndex = PagedView.INVALID_PAGE
+    }
+
+    private fun exitTouchModeSafely(recentsView: RecentsView<*, *>) {
+        val viewRoot = recentsView.viewRootImpl ?: return
+        runCatching { viewRoot.touchModeChanged(false) }
+            .onFailure { Log.w(TAG, "Failed to exit touch mode on recents ViewRootImpl", it) }
     }
 
     private fun View?.requestFocus(): Boolean {

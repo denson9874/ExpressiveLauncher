@@ -34,7 +34,9 @@ public class SurfaceTransaction {
      * Creates a new builder for the provided surface
      */
     public SurfaceProperties forSurface(SurfaceControl surface) {
-        return surface.isValid() ? new SurfaceProperties(surface) : new MockProperties();
+        return surface != null && surface.isValid()
+                ? new SurfaceProperties(surface)
+                : new MockProperties();
     }
 
     /**
@@ -121,6 +123,37 @@ public class SurfaceTransaction {
         }
 
         /**
+         * @param isOpaque Whether the surface can be treated as opaque by SurfaceFlinger.
+         * @return this Builder
+         */
+        public SurfaceProperties setOpaque(boolean isOpaque) {
+            mTransaction.setOpaque(mSurface, isOpaque);
+            return this;
+        }
+
+        /**
+         * Reparents this surface under {@code newParent} if valid.
+         * @return this Builder
+         */
+        public SurfaceProperties reparent(SurfaceControl newParent) {
+            if (newParent != null && newParent.isValid()) {
+                mTransaction.reparent(mSurface, newParent);
+            }
+            return this;
+        }
+
+        /**
+         * Sets the relative z-layer of this surface against {@code relativeTo} if valid.
+         * @return this Builder
+         */
+        public SurfaceProperties setRelativeLayer(SurfaceControl relativeTo, int relativeLayer) {
+            if (relativeTo != null && relativeTo.isValid()) {
+                mTransaction.setRelativeLayer(mSurface, relativeTo, relativeLayer);
+            }
+            return this;
+        }
+
+        /**
          * Requests to show the given surface.
          * @return this Builder
          */
@@ -193,6 +226,21 @@ public class SurfaceTransaction {
         @Override
         public SurfaceProperties setBackgroundBlurRadius(int radius) {
             this.backgroundBlurRadius = radius;
+            return this;
+        }
+
+        @Override
+        public SurfaceProperties setOpaque(boolean isOpaque) {
+            return this;
+        }
+
+        @Override
+        public SurfaceProperties reparent(SurfaceControl newParent) {
+            return this;
+        }
+
+        @Override
+        public SurfaceProperties setRelativeLayer(SurfaceControl relativeTo, int relativeLayer) {
             return this;
         }
 

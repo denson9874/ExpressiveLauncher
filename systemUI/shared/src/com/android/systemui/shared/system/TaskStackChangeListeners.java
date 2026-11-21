@@ -158,12 +158,20 @@ public class TaskStackChangeListeners {
         private boolean mRegistered;
         // Android 17 delivers snapshot changes through TaskSnapshotManager instead.
         private SnapshotListener mSnapshotListener;
+        private boolean mRegistrationDenied;
 
         /** Only loaded on Android 17, where {@link TaskSnapshotListener} exists. */
         private final class SnapshotListener extends TaskSnapshotListener {
             @Override
             protected void onTaskSnapshotChanged(int taskId, TaskSnapshot snapshot) {
-                mHandler.obtainMessage(ON_TASK_SNAPSHOT_CHANGED, taskId, 0, snapshot)
+                if (snapshot == null) {
+                    return;
+                }
+                // Wrap and close the TaskSnapshot immediately upon receipt instead of queuing the
+                // raw TaskSnapshot across the main handler. ThumbnailData.fromSnapshot() performs
+                // the single Android 17 closeBuffer() via CinnamonBunCompat.wrapSnapshotToBitmap().
+                final ThumbnailData thumbnail = ThumbnailData.fromSnapshot(snapshot);
+                mHandler.obtainMessage(ON_TASK_SNAPSHOT_CHANGED, taskId, 0, thumbnail)
                         .sendToTarget();
             }
 
@@ -186,12 +194,17 @@ public class TaskStackChangeListeners {
             synchronized (mTaskStackListeners) {
                 mTaskStackListeners.add(listener);
             }
-            if (!mRegistered) {
+            if (!mRegistered && !mRegistrationDenied) {
                 // Register mTaskStackListener to IActivityManager only once if needed.
                 try {
                     if (!LawnchairQuickstepCompat.ATLEAST_V) return;
                     ActivityTaskManager.getService().registerTaskStackListener(this);
                     mRegistered = true;
+                } catch (SecurityException e) {
+                    // Latch permanent denial on unprivileged installs instead of retrying on every
+                    // addListener() call.
+                    mRegistrationDenied = true;
+                    Log.w(TAG, "registerTaskStackListener denied; disabling retries", e);
                 } catch (NoClassDefFoundError | ExceptionInInitializerError | Exception e) {
                     // pE-TODO(CompatTier2): Find a way to deal with LawnchairQuickstepCompat instead of NoClassDefFoundError | ExceptionInInitializerError catch
                     Log.w(TAG, "Failed to call registerTaskStackListener", e);
@@ -400,8 +413,15 @@ public class TaskStackChangeListeners {
                     }
                     case ON_TASK_SNAPSHOT_CHANGED: {
                         Trace.beginSection("onTaskSnapshotChanged");
-                        final TaskSnapshot snapshot = (TaskSnapshot) msg.obj;
-                        final ThumbnailData thumbnail = ThumbnailData.fromSnapshot(snapshot);
+                        final TaskSnapshot snapshot;
+                        final ThumbnailData thumbnail;
+                        if (msg.obj instanceof ThumbnailData) {
+                            snapshot = null;
+                            thumbnail = (ThumbnailData) msg.obj;
+                        } else {
+                            snapshot = (TaskSnapshot) msg.obj;
+                            thumbnail = ThumbnailData.fromSnapshot(snapshot);
+                        }
                         boolean snapshotConsumed = false;
                         for (int i = mTaskStackListeners.size() - 1; i >= 0; i--) {
                             boolean consumed = mTaskStackListeners.get(i).onTaskSnapshotChanged(
@@ -410,7 +430,9 @@ public class TaskStackChangeListeners {
                         }
                         if (!snapshotConsumed) {
                             thumbnail.recycleBitmap();
-                            if (snapshot.getHardwareBuffer() != null) {
+                            if (snapshot != null
+                                    && !LawnchairQuickstepCompat.ATLEAST_CINNAMON_BUN
+                                    && snapshot.getHardwareBuffer() != null) {
                                 snapshot.getHardwareBuffer().close();
                             }
                         }

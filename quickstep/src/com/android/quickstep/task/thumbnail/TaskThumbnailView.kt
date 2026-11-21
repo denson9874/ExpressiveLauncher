@@ -43,12 +43,26 @@ import com.android.quickstep.task.thumbnail.TaskThumbnailUiState.Uninitialized
 import com.android.quickstep.views.FixedSizeImageView
 
 class TaskThumbnailView : FrameLayout, ViewPool.Reusable {
-    private val scrimView: View by lazy { findViewById(R.id.task_thumbnail_scrim) }
+    private val scrimView: View by lazy {
+        findViewById<View>(R.id.task_thumbnail_scrim).apply {
+            forceHasOverlappingRendering(false)
+        }
+    }
     private val liveTileView: LiveTileView by lazy { findViewById(R.id.task_thumbnail_live_tile) }
     private val thumbnailView: FixedSizeImageView by lazy { findViewById(R.id.task_thumbnail) }
-    private val splashBackground: View by lazy { findViewById(R.id.splash_background) }
-    private val splashIcon: FixedSizeImageView by lazy { findViewById(R.id.splash_icon) }
+    private val splashBackground: View by lazy {
+        findViewById<View>(R.id.splash_background).apply {
+            forceHasOverlappingRendering(false)
+        }
+    }
+    private val splashIcon: FixedSizeImageView by lazy {
+        findViewById<FixedSizeImageView>(R.id.splash_icon).apply {
+            forceHasOverlappingRendering(false)
+        }
+    }
+    private var dimAlphaInitialized = false
     private val dimAlpha: MultiPropertyFactory<View> by lazy {
+        dimAlphaInitialized = true
         MultiPropertyFactory(scrimView, VIEW_ALPHA, ScrimViewAlpha.entries.size, ::maxOf)
     }
     private val outlinePath = Path()
@@ -140,15 +154,20 @@ class TaskThumbnailView : FrameLayout, ViewPool.Reusable {
      */
     fun updateTintAmount(tintAmount: Float) {
         dimAlpha[ScrimViewAlpha.TintAmount.ordinal].value = tintAmount
+        scrimView.isInvisible = !(scrimView.alpha > 0f)
     }
 
     fun updateMenuOpenProgress(progress: Float) {
         dimAlpha[ScrimViewAlpha.MenuProgress.ordinal].value = progress * MAX_SCRIM_ALPHA
+        scrimView.isInvisible = !(scrimView.alpha > 0f)
     }
 
     fun updateSplashAlpha(value: Float) {
+        val visible = value > 0f
         splashBackground.alpha = value
+        splashBackground.isInvisible = !visible
         splashIcon.alpha = value
+        splashIcon.isInvisible = !visible
     }
 
     fun doOnSizeChange(action: (width: Int, height: Int) -> Unit) {
@@ -201,10 +220,17 @@ class TaskThumbnailView : FrameLayout, ViewPool.Reusable {
         thumbnailView.isInvisible = true
         thumbnailView.setImageBitmap(null)
         splashBackground.alpha = 0f
+        splashBackground.isInvisible = true
         splashBackground.setBackgroundColor(Color.TRANSPARENT)
         splashIcon.alpha = 0f
+        splashIcon.isInvisible = true
         splashIcon.setImageDrawable(null)
+        if (dimAlphaInitialized) {
+            dimAlpha[ScrimViewAlpha.MenuProgress.ordinal].value = 0f
+            dimAlpha[ScrimViewAlpha.TintAmount.ordinal].value = 0f
+        }
         scrimView.alpha = 0f
+        scrimView.isInvisible = true
         alpha = 1.0f
         setBackgroundColor(Color.TRANSPARENT)
     }
