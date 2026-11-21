@@ -19,7 +19,7 @@ class LawnchairAppWidgetHostView @JvmOverloads constructor(
 
     private var customView: ViewGroup? = null
 
-    override fun setAppWidget(appWidgetId: Int, info: AppWidgetProviderInfo) {
+    override fun setAppWidget(appWidgetId: Int, info: AppWidgetProviderInfo?) {
         inflateCustomView(info)
         super.setAppWidget(appWidgetId, info)
     }
@@ -29,7 +29,7 @@ class LawnchairAppWidgetHostView @JvmOverloads constructor(
         inflateCustomView(appWidgetInfo)
     }
 
-    private fun inflateCustomView(info: AppWidgetProviderInfo) {
+    private fun inflateCustomView(info: AppWidgetProviderInfo?) {
         customView = inflateCustomView(context, info, previewMode)
         if (customView == null) {
             return
@@ -65,8 +65,9 @@ class LawnchairAppWidgetHostView @JvmOverloads constructor(
         )
 
         @JvmStatic
-        fun inflateCustomView(context: Context, info: AppWidgetProviderInfo, previewMode: Boolean): ViewGroup? {
-            val layoutId = customLayouts[info.provider] ?: return null
+        fun inflateCustomView(context: Context, info: AppWidgetProviderInfo?, previewMode: Boolean): ViewGroup? {
+            val provider = info?.provider ?: return null
+            val layoutId = customLayouts[provider] ?: return null
 
             val inflationContext = if (previewMode) Themes.createWidgetPreviewContext(context) else context
             return LayoutInflater.from(inflationContext)

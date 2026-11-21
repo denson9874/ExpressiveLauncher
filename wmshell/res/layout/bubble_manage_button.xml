@@ -27,7 +27,7 @@
     android:layout_marginBottom="@dimen/bubble_manage_button_margin"
     android:focusable="true"
     android:text="@string/manage_bubbles_text"
-    android:textSize="@*android:dimen/text_size_body_2_material"
+    android:textSize="@dimen/wmshell_text_size_body_2"
     android:textColor="?android:attr/textColorPrimary"
     android:background="@drawable/bubble_manage_btn_bg"
     />

@@ -134,10 +134,7 @@ class LawnchairApp : LauncherApplication() {
     }
 
     fun renameRestoredDb(dbName: String) {
-        val restoredDbFile = getDatabasePath(LawnchairBackup.RESTORED_DB_FILE_NAME)
-        if (!restoredDbFile.exists()) return
-        val dbFile = getDatabasePath(dbName)
-        restoredDbFile.renameTo(dbFile)
+        LawnchairBackup.renameRestoredDbFile(this, dbName)
     }
 
     fun migrateDbName(dbName: String) {
@@ -150,10 +147,23 @@ class LawnchairApp : LauncherApplication() {
         val oldDbFile = getDatabasePath(oldDbName)
         val oldDbJournalFile = getJournalFile(oldDbFile)
         if (oldDbFile.exists()) {
-            oldDbFile.copyTo(dbFile)
-            oldDbJournalFile.copyTo(dbJournalFile)
+            dbFile.parentFile?.mkdirs()
+            LawnchairBackup.deleteSqliteSidecars(dbFile)
+            oldDbFile.copyTo(dbFile, overwrite = true)
+            if (oldDbJournalFile.exists()) {
+                oldDbJournalFile.copyTo(dbJournalFile, overwrite = true)
+            }
+            for (suffix in arrayOf("-wal", "-shm")) {
+                val oldSidecar = File(oldDbFile.parentFile, "${oldDbFile.name}$suffix")
+                if (oldSidecar.exists()) {
+                    oldSidecar.copyTo(File(dbFile.parentFile, "${dbFile.name}$suffix"), overwrite = true)
+                    oldSidecar.delete()
+                }
+            }
             oldDbFile.delete()
-            oldDbJournalFile.delete()
+            if (oldDbJournalFile.exists()) {
+                oldDbJournalFile.delete()
+            }
         }
     }
 
@@ -236,6 +246,13 @@ class LawnchairApp : LauncherApplication() {
             recentsComponent.className == RecentsActivity::class.java.name
         if (!isRecentsComponent) {
             Log.d(TAG, "config_recentsComponentName ($recentsComponent) is not Lawnchair, disabling recents")
+            return false
+        }
+
+        val hasTaskPrivilege = checkSelfPermission("android.permission.MANAGE_ACTIVITY_TASKS") ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!hasTaskPrivilege) {
+            Log.w(TAG, "MANAGE_ACTIVITY_TASKS is not granted; disabling recents")
             return false
         }
 

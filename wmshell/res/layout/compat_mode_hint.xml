@@ -35,8 +35,8 @@
         android:textAlignment="viewStart"
         android:textColor="@color/compat_controls_text"
         android:textSize="14sp"
-        android:fontFamily="@*android:string/config_bodyFontFamily"
-        android:textAppearance="@*android:style/TextAppearance.DeviceDefault.Subhead"
+        android:fontFamily="sans-serif"
+        android:textAppearance="@android:style/TextAppearance.Material.Subhead"
     />
 
     <ImageView

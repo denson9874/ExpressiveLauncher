@@ -246,8 +246,11 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
         boolean force = PreferenceCacheExtensionsKt.firstCached(pref2.getForceWidgetResize());
         boolean unlimited = PreferenceCacheExtensionsKt.firstCached(pref2.getWidgetUnlimitedSize());
 
-        // If widget is not added to view hierarchy, we cannot show resize frame at correct location
-        if (widget.getParent() == null) {
+        // If widget is not added to view hierarchy, or lacks bound provider/item metadata,
+        // we cannot safely show or configure the resize frame.
+        if (widget == null || widget.getParent() == null
+                || !(widget.getAppWidgetInfo() instanceof LauncherAppWidgetProviderInfo)
+                || !(widget.getTag() instanceof LauncherAppWidgetInfo)) {
             return;
         }
         Launcher launcher = Launcher.getLauncher(cellLayout.getContext());
@@ -275,6 +278,9 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
         if (mWidgetView != null && mWidgetView.hasEnforcedCornerRadius()) {
             float enforcedCornerRadius = mWidgetView.getEnforcedCornerRadius();
             ImageView imageView = findViewById(R.id.widget_resize_frame);
+            if (imageView == null) {
+                return;
+            }
             Drawable d = imageView.getDrawable();
             if (d instanceof GradientDrawable) {
                 GradientDrawable gd = (GradientDrawable) d.mutate();
@@ -294,9 +300,13 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
             DragLayer dragLayer, boolean force, boolean unlimited) {
         mCellLayout = cellLayout;
         mWidgetView = widgetView;
-        LauncherAppWidgetProviderInfo info = (LauncherAppWidgetProviderInfo)
-                widgetView.getAppWidgetInfo();
         mDragLayer = dragLayer;
+        AppWidgetProviderInfo rawInfo = widgetView.getAppWidgetInfo();
+        Object rawTag = mWidgetView.getTag();
+        if (!(rawInfo instanceof LauncherAppWidgetProviderInfo info)
+                || !(rawTag instanceof LauncherAppWidgetInfo widgetInfoOnView)) {
+            return;
+        }
         InvariantDeviceProfile idp = LauncherAppState.getIDP(cellLayout.getContext());
 
         int resizeMode;
@@ -323,7 +333,6 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
             mMaxVSpan = info.maxSpanY;
         }
 
-        LauncherAppWidgetInfo widgetInfoOnView = (LauncherAppWidgetInfo) mWidgetView.getTag();
         // Only show resize handles for the directions in which resizing is possible.
 
         // on font / display change, the dp/px size of a cell changes, which means, existing spans
@@ -487,19 +496,18 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
                 Rect resizeFrameBound = sTmpRect2;
                 findViewById(R.id.widget_resize_frame).getGlobalVisibleRect(resizeFrameBound);
                 float progress = 1f;
+                float opacityMargin = Math.max(1f, mDragAcrossTwoPanelOpacityMargin);
                 if (workspace.indexOfChild(pairedCellLayout) < workspace.indexOfChild(mCellLayout)
                         && mDeltaX < 0
                         && resizeFrameBound.left < focusedCellLayoutBound.left) {
                     // Resize from right to left.
-                    progress = (mDragAcrossTwoPanelOpacityMargin + mDeltaX)
-                            / mDragAcrossTwoPanelOpacityMargin;
+                    progress = (opacityMargin + mDeltaX) / opacityMargin;
                 } else if (workspace.indexOfChild(pairedCellLayout)
                                 > workspace.indexOfChild(mCellLayout)
                         && mDeltaX > 0
                         && resizeFrameBound.right > focusedCellLayoutBound.right) {
                     // Resize from left to right.
-                    progress = (mDragAcrossTwoPanelOpacityMargin - mDeltaX)
-                            / mDragAcrossTwoPanelOpacityMargin;
+                    progress = (opacityMargin - mDeltaX) / opacityMargin;
                 }
                 float alpha = Math.max(MIN_OPACITY_FOR_CELL_LAYOUT_DURING_INVALID_RESIZE, progress);
                 float springLoadedProgress = Math.min(1f, 1f - progress);
@@ -519,13 +527,16 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
      *  Based on the current deltas, we determine if and how to resize the widget.
      */
     private void resizeWidgetIfNeeded(boolean onDismiss) {
+        if (mWidgetView == null || mCellLayout == null) {
+            return;
+        }
         ViewGroup.LayoutParams wlp = mWidgetView.getLayoutParams();
         if (!(wlp instanceof CellLayoutLayoutParams)) {
             return;
         }
         DeviceProfile dp = mLauncher.getDeviceProfile();
-        float xThreshold = mCellLayout.getCellWidth() + dp.cellLayoutBorderSpacePx.x;
-        float yThreshold = mCellLayout.getCellHeight() + dp.cellLayoutBorderSpacePx.y;
+        float xThreshold = Math.max(1f, mCellLayout.getCellWidth() + dp.cellLayoutBorderSpacePx.x);
+        float yThreshold = Math.max(1f, mCellLayout.getCellHeight() + dp.cellLayoutBorderSpacePx.y);
 
         int hSpanInc = getSpanIncrement((mDeltaX + mDeltaXAddOn) / xThreshold - mRunningHInc);
         int vSpanInc = getSpanIncrement((mDeltaY + mDeltaYAddOn) / yThreshold - mRunningVInc);
@@ -602,17 +613,23 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
 
+        if (mWidgetView == null) {
+            return;
+        }
         // We are done with resizing the widget. Save the widget size & position to LauncherModel
         // Lawnchair: unless the widget has left Home: saving would mark its old cells occupied
         // again.
         if (!mWidgetViewDetached) {
             resizeWidgetIfNeeded(true);
         }
-        mLauncher.getStatsLogManager()
-                .logger()
-                .withInstanceId(logInstanceId)
-                .withItemInfo((ItemInfo) mWidgetView.getTag())
-                .log(LAUNCHER_WIDGET_RESIZE_COMPLETED);
+        Object tag = mWidgetView.getTag();
+        if (tag instanceof ItemInfo) {
+            mLauncher.getStatsLogManager()
+                    .logger()
+                    .withInstanceId(logInstanceId)
+                    .withItemInfo((ItemInfo) tag)
+                    .log(LAUNCHER_WIDGET_RESIZE_COMPLETED);
+        }
     }
 
     private void onTouchUp() {
@@ -827,13 +844,17 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
 
     @Override
     protected void handleClose(boolean animate) {
-        if (FeatureFlags.ENABLE_WIDGET_TRANSITION_FOR_RESIZING.get()) {
-            mWidgetView.clearCellChildViewPreLayoutListener();
-            mWidgetView.setLayoutTransition(null);
+        if (mWidgetView != null) {
+            if (FeatureFlags.ENABLE_WIDGET_TRANSITION_FOR_RESIZING.get()) {
+                mWidgetView.clearCellChildViewPreLayoutListener();
+                mWidgetView.setLayoutTransition(null);
+            }
+            mWidgetView.removeOnLayoutChangeListener(mWidgetViewLayoutListener);
+            mWidgetView.removeOnAttachStateChangeListener(mWidgetViewAttachListener);
         }
-        mDragLayer.removeView(this);
-        mWidgetView.removeOnLayoutChangeListener(mWidgetViewLayoutListener);
-        mWidgetView.removeOnAttachStateChangeListener(mWidgetViewAttachListener);
+        if (mDragLayer != null) {
+            mDragLayer.removeView(this);
+        }
     }
 
     private void updateInvalidResizeEffect(CellLayout cellLayout, CellLayout pairedCellLayout,

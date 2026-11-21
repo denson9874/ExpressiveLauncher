@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:textColor="?android:attr/textColorPrimary"
-            android:textAppearance="@*android:style/TextAppearance.DeviceDefault"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault"
             android:text="@string/bubble_dismiss_text" />
 
     </LinearLayout>
@@ -73,7 +73,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:textColor="?android:attr/textColorPrimary"
-            android:textAppearance="@*android:style/TextAppearance.DeviceDefault"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault"
             android:text="@string/bubbles_dont_bubble_conversation" />
 
     </LinearLayout>
@@ -101,7 +101,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:textColor="?android:attr/textColorPrimary"
-            android:textAppearance="@*android:style/TextAppearance.DeviceDefault" />
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault" />
 
     </LinearLayout>
 
@@ -132,7 +132,7 @@
             android:layout_marginStart="16dp"
             android:text="@string/bubble_fullscreen_text"
             android:textColor="?android:attr/textColorPrimary"
-            android:textAppearance="@*android:style/TextAppearance.DeviceDefault" />
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault" />
 
     </LinearLayout>
 

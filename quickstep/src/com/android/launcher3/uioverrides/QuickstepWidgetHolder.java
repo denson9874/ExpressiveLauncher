@@ -25,6 +25,7 @@ import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Context;
+import android.util.Log;
 import android.util.SparseArray;
 import android.widget.RemoteViews;
 
@@ -34,6 +35,7 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.SafeCloseable;
+import com.android.launcher3.widget.BaseLauncherAppWidgetHostView;
 import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.launcher3.widget.LauncherWidgetHolder;
@@ -53,6 +55,8 @@ import java.util.function.BiConsumer;
  * {@link LauncherWidgetHolder} that puts the app widget host in the background
  */
 public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
+
+    private static final String TAG = "QuickstepWidgetHolder";
 
     private static final UpdateKey<AppWidgetProviderInfo> KEY_PROVIDER_UPDATE =
             AppWidgetHostView::onUpdateProviderInfo;
@@ -89,15 +93,31 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
                 continue;
             }
             if (pendingUpdate.providerInfo != null) {
-                KEY_PROVIDER_UPDATE.accept(view, pendingUpdate.providerInfo);
+                safeApplyUpdate(widgetId, view, KEY_PROVIDER_UPDATE, pendingUpdate.providerInfo);
             }
             if (pendingUpdate.remoteViews != null) {
-                KEY_VIEWS_UPDATE.accept(view, pendingUpdate.remoteViews);
+                safeApplyUpdate(widgetId, view, KEY_VIEWS_UPDATE, pendingUpdate.remoteViews);
             }
             pendingUpdate.changedViews.forEach(
-                    viewId -> KEY_VIEW_DATA_CHANGED.accept(view, viewId));
+                    viewId -> safeApplyUpdate(widgetId, view, KEY_VIEW_DATA_CHANGED, viewId));
         }
         mPendingUpdateMap.clear();
+    }
+
+    private <T> void safeApplyUpdate(int widgetId, AppWidgetHostView view, UpdateKey<T> key,
+            T data) {
+        try {
+            key.accept(view, data);
+        } catch (RuntimeException e) {
+            if (!isRecoverableWidgetCreateException(e)) {
+                throw e;
+            }
+            Log.w(TAG, "Widget update failed for appWidgetId=" + widgetId
+                    + ", falling back to error view", e);
+            if (view instanceof BaseLauncherAppWidgetHostView baseView) {
+                baseView.switchToErrorView();
+            }
+        }
     }
 
     private <T> void onWidgetUpdate(int widgetId, UpdateKey<T> key, T data) {
@@ -106,7 +126,7 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
             if (view == null) {
                 return;
             }
-            key.accept(view, data);
+            safeApplyUpdate(widgetId, view, key, data);
             return;
         }
 
@@ -155,8 +175,13 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
         }
 
         getWidgetHolderExecutor().execute(() -> {
-            mWidgetHost.setAppWidgetHidden();
-            setListeningFlag(false);
+            try {
+                mWidgetHost.setAppWidgetHidden();
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Failed to hide app widgets on Quickstep host", e);
+            } finally {
+                setListeningFlag(false);
+            }
         });
     }
 
@@ -186,7 +211,7 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
     @Override
     protected LauncherAppWidgetHostView recycleExistingView(LauncherAppWidgetHostView view) {
         RemoteViews views = getHolderListener(view.getAppWidgetId()).addHolder(mUpdateHandler);
-        view.updateAppWidget(views);
+        safeApplyUpdate(view.getAppWidgetId(), view, KEY_VIEWS_UPDATE, views);
         return view;
     }
 
@@ -196,7 +221,8 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
             int appWidgetId, @NonNull LauncherAppWidgetProviderInfo appWidget) {
         LauncherAppWidgetHostView widgetView = new LauncherAppWidgetHostView(mContext);
         widgetView.setAppWidget(appWidgetId, appWidget);
-        widgetView.updateAppWidget(getHolderListener(appWidgetId).addHolder(mUpdateHandler));
+        RemoteViews views = getHolderListener(appWidgetId).addHolder(mUpdateHandler);
+        safeApplyUpdate(appWidgetId, widgetView, KEY_VIEWS_UPDATE, views);
         return widgetView;
     }
 
@@ -204,7 +230,12 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
         QuickstepWidgetHolderListener listener = sListeners.get(appWidgetId);
         if (listener == null) {
             listener = new QuickstepWidgetHolderListener(appWidgetId);
-            getStaticQuickstepHost().setListener(appWidgetId, listener);
+            try {
+                getStaticQuickstepHost().setListener(appWidgetId, listener);
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Failed to register AppWidgetHostListener for appWidgetId="
+                        + appWidgetId, e);
+            }
             sListeners.put(appWidgetId, listener);
         }
         return listener;

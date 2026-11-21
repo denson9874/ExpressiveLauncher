@@ -74,6 +74,8 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
 
     private final PreferenceManager2 mPreferenceManager2;
     @Nullable
+    private Boolean mLastAllowWidgetOverlap = null;
+    @Nullable
     private TranslationProvider mTranslationProvider = null;
 
     public ShortcutAndWidgetContainer(Context context, @ContainerType int containerType) {
@@ -88,10 +90,19 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        boolean mAllowWidgetOverlap = PreferenceCacheExtensionsKt.firstCached(mPreferenceManager2.getAllowWidgetOverlap());
-        setClipChildren(!mAllowWidgetOverlap);
-        setClipToPadding(!mAllowWidgetOverlap);
-        setClipToOutline(!mAllowWidgetOverlap);
+        refreshAllowWidgetOverlap();
+    }
+
+    /** Re-reads allowWidgetOverlap dynamically so live setting toggles apply without re-attach. */
+    public void refreshAllowWidgetOverlap() {
+        boolean allowWidgetOverlap = PreferenceCacheExtensionsKt.firstCached(
+                mPreferenceManager2.getAllowWidgetOverlap(), mPreferenceManager2);
+        if (mLastAllowWidgetOverlap == null || mLastAllowWidgetOverlap != allowWidgetOverlap) {
+            mLastAllowWidgetOverlap = allowWidgetOverlap;
+            setClipChildren(!allowWidgetOverlap);
+            setClipToPadding(!allowWidgetOverlap);
+            setClipToOutline(!allowWidgetOverlap);
+        }
     }
 
     public void setCellDimensions(int cellWidth, int cellHeight, int countX, int countY,
@@ -224,6 +235,7 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         Trace.beginSection("ShortcutAndWidgetConteiner#onLayout");
+        refreshAllowWidgetOverlap();
         mHasOnLayoutBeenCalled = true; // b/349929393 - is the required call to onLayout not done?
         int count = getChildCount();
         for (int i = 0; i < count; i++) {

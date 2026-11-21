@@ -15,6 +15,7 @@
  */
 package com.android.launcher3.model
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.graphics.Point
@@ -225,7 +226,10 @@ class GridSizeMigrationLogic {
         destReader: DbReader,
         idsInUse: MutableList<Int>,
     ) {
-        if (hotseatToBeAdded.isEmpty()) {
+        val overflowDstIds = dstHotseatItems
+            .filter { it.screenId !in 0 until destHotseatSize }
+            .mapTo(HashSet()) { it.id }
+        if (hotseatToBeAdded.isEmpty() && overflowDstIds.isEmpty()) {
             return
         }
 
@@ -236,13 +240,27 @@ class GridSizeMigrationLogic {
         val placementSolutionHotseat =
             solveHotseatPlacement(destHotseatSize, dstHotseatItems, hotseatToBeAdded)
         for (entryToPlace in placementSolutionHotseat) {
-            GridSizeMigrationDBController.insertEntryInDb(
-                helper,
-                entryToPlace,
-                srcReader.mTableName,
-                destReader.mTableName,
-                idsInUse,
-            )
+            if (entryToPlace.id in overflowDstIds) {
+                val values = ContentValues().apply {
+                    put(LauncherSettings.Favorites.SCREEN, entryToPlace.screenId)
+                    put(LauncherSettings.Favorites.CELLX, entryToPlace.cellX)
+                    put(LauncherSettings.Favorites.CELLY, entryToPlace.cellY)
+                }
+                destReader.mDb.update(
+                    destReader.mTableName,
+                    values,
+                    "${LauncherSettings.Favorites._ID} = ?",
+                    arrayOf(entryToPlace.id.toString()),
+                )
+            } else {
+                GridSizeMigrationDBController.insertEntryInDb(
+                    helper,
+                    entryToPlace,
+                    srcReader.mTableName,
+                    destReader.mTableName,
+                    idsInUse,
+                )
+            }
         }
     }
 
@@ -470,16 +488,21 @@ class GridSizeMigrationLogic {
         return entryCountDiff
     }
 
-    private fun solveHotseatPlacement(
+    @VisibleForTesting
+    internal fun solveHotseatPlacement(
         hotseatSize: Int,
         placedHotseatItems: List<DbEntry>,
         itemsToPlace: List<DbEntry>,
     ): List<DbEntry> {
         val placementSolution: MutableList<DbEntry> = ArrayList()
         val remainingItemsToPlace: MutableList<DbEntry> = ArrayList(itemsToPlace)
-        val occupied = BooleanArray(hotseatSize)
+        val occupied = BooleanArray(hotseatSize.coerceAtLeast(0))
         for (entry in placedHotseatItems) {
-            occupied[entry.screenId] = true
+            if (entry.screenId in occupied.indices) {
+                occupied[entry.screenId] = true
+            } else {
+                remainingItemsToPlace.add(entry)
+            }
         }
 
         for (i in occupied.indices) {

@@ -31,14 +31,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="16dp"
-        android:fontFamily="@*android:string/config_bodyFontFamilyMedium"
+        android:fontFamily="sans-serif-medium"
         android:maxLines="2"
         android:ellipsize="end"
         android:gravity="start"
         android:textAlignment="viewStart"
         android:text="@string/bubbles_user_education_title"
         android:textColor="@android:color/system_neutral1_900"
-        android:textAppearance="@*android:style/TextAppearance.DeviceDefault.Headline"/>
+        android:textAppearance="@android:style/TextAppearance.Material.Headline"/>
 
     <TextView
         android:id="@+id/stack_education_description"
@@ -49,6 +49,6 @@
         android:textAlignment="viewStart"
         android:text="@string/bubbles_user_education_description"
         android:textColor="@android:color/system_neutral1_900"
-        android:fontFamily="@*android:string/config_bodyFontFamily"
-        android:textAppearance="@*android:style/TextAppearance.DeviceDefault.Body2"/>
+        android:fontFamily="sans-serif"
+        android:textAppearance="@android:style/TextAppearance.Material.Body2"/>
 </LinearLayout>

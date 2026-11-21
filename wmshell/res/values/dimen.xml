@@ -15,6 +15,7 @@
     limitations under the License.
 -->
 <resources>
+    <dimen name="wmshell_text_size_body_2">14sp</dimen>
     <dimen name="dismiss_circle_size">96dp</dimen>
     <dimen name="dismiss_circle_small">60dp</dimen>
 

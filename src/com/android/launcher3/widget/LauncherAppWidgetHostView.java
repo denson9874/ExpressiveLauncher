@@ -86,6 +86,7 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
     private boolean mReapplyOnResumeUpdates = false;
 
     private boolean mTrackingWidgetUpdate = false;
+    private @Nullable String mTrackingTraceName = null;
 
     private int mFocusRectOutsets = 0;
 
@@ -147,7 +148,9 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
             mTrackingWidgetUpdate = true;
             Log.i(TAG, "App widget created with id: " + appWidgetId);
             if (ATLEAST_Q) {
-                Trace.beginAsyncSection(TRACE_METHOD_NAME + info.provider, appWidgetId);
+                Object provider = info != null ? info.provider : null;
+                mTrackingTraceName = TRACE_METHOD_NAME + provider;
+                Trace.beginAsyncSection(mTrackingTraceName, appWidgetId);
             }
         }
     }
@@ -157,8 +160,12 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
         if (mTrackingWidgetUpdate && remoteViews != null) {
             Log.i(TAG, "App widget with id: " + getAppWidgetId() + " loaded");
             if (ATLEAST_Q) {
-                Trace.endAsyncSection(
-                    TRACE_METHOD_NAME + getAppWidgetInfo().provider, getAppWidgetId());
+                AppWidgetProviderInfo info = getAppWidgetInfo();
+                String traceName = mTrackingTraceName != null
+                        ? mTrackingTraceName
+                        : TRACE_METHOD_NAME + (info != null ? info.provider : null);
+                Trace.endAsyncSection(traceName, getAppWidgetId());
+                mTrackingTraceName = null;
             }
             mTrackingWidgetUpdate = false;
         }
@@ -381,7 +388,9 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
                 mAutoAdvanceRunnable = this::runAutoAdvance;
             }
 
-            handler.removeCallbacks(mAutoAdvanceRunnable);
+            if (handler != null) {
+                handler.removeCallbacks(mAutoAdvanceRunnable);
+            }
             scheduleNextAdvance();
         }
     }

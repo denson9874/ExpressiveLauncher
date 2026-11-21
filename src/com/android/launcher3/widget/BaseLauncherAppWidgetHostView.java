@@ -16,6 +16,7 @@
 
 package com.android.launcher3.widget;
 
+import android.appwidget.AppWidgetProviderInfo;
 import android.content.Context;
 import android.graphics.Outline;
 import android.graphics.Rect;
@@ -48,7 +49,7 @@ public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHo
     protected final LayoutInflater mInflater;
 
     private final Rect mEnforcedRectangle = new Rect();
-    private final float mEnforcedCornerRadius;
+    private float mEnforcedCornerRadius;
     private final ViewOutlineProvider mCornerRadiusEnforcementOutline = new ViewOutlineProvider() {
         @Override
         public void getOutline(View view, Outline outline) {
@@ -86,7 +87,19 @@ public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHo
      */
     public void switchToErrorView() {
         // Update the widget with 0 Layout id, to reset the view to error view.
-        updateAppWidget(new RemoteViews(getAppWidgetInfo().provider.getPackageName(), 0));
+        AppWidgetProviderInfo info = getAppWidgetInfo();
+        String packageName = (info != null && info.provider != null)
+                ? info.provider.getPackageName()
+                : getContext().getPackageName();
+        try {
+            updateAppWidget(new RemoteViews(packageName, 0));
+        } catch (RuntimeException e) {
+            removeAllViews();
+            View errorView = getErrorView();
+            if (errorView != null) {
+                addView(errorView);
+            }
+        }
     }
 
     @Override
@@ -136,6 +149,13 @@ public abstract class BaseLauncherAppWidgetHostView extends NavigableAppWidgetHo
         setOutlineProvider(mCornerRadiusEnforcementOutline);
         mIsCornerRadiusEnforced = true;
         invalidateOutline();
+    }
+
+    /** Recomputes enforced corner radius from current display/settings and reapplies outline. */
+    @UiThread
+    public void refreshEnforcedCornerRadius() {
+        mEnforcedCornerRadius = RoundedCornerEnforcement.computeEnforcedRadius(getContext());
+        enforceRoundedCorners();
     }
 
     /** Returns the corner radius currently enforced, in pixels. */

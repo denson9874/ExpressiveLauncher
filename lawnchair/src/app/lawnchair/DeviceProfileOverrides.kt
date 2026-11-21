@@ -166,7 +166,13 @@ class DeviceProfileOverrides @Inject constructor(
             idp.numAllAppsColumns = numAllAppsColumns
             idp.numDatabaseAllAppsColumns = numAllAppsColumns
             idp.numFolderRows[INDEX_DEFAULT] = numFolderRows
+            idp.numFolderRows[INDEX_LANDSCAPE] = numFolderRows
+            idp.numFolderRows[INDEX_TWO_PANEL_PORTRAIT] = numFolderRows
+            idp.numFolderRows[INDEX_TWO_PANEL_LANDSCAPE] = numFolderRows
             idp.numFolderColumns[INDEX_DEFAULT] = numFolderColumns
+            idp.numFolderColumns[INDEX_LANDSCAPE] = numFolderColumns
+            idp.numFolderColumns[INDEX_TWO_PANEL_PORTRAIT] = numFolderColumns
+            idp.numFolderColumns[INDEX_TWO_PANEL_LANDSCAPE] = numFolderColumns
 
             // Foldable overrides for hotseat and allapps columns
             if (foldableShownHotseatIcons > 0) {

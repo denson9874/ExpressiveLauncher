@@ -75,6 +75,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import app.lawnchair.LawnchairApp;
+import app.lawnchair.backup.LawnchairBackup;
 import app.lawnchair.folder.widget.FolderWidgets;
 import app.lawnchair.LawnchairAppKt;
 
@@ -136,16 +137,20 @@ public class ModelDbController {
 
     protected DatabaseHelper createDatabaseHelper(boolean forMigration, String dbFile) {
         boolean isSandbox = mContext instanceof SandboxContext;
-        String dbName = isSandbox ? null : InvariantDeviceProfile.INSTANCE.get(mContext).dbFile;
+        String dbName = (isSandbox || TextUtils.isEmpty(dbFile)) ? null : dbFile;
 
         try {
             if (!forMigration && dbName != null) {
-                LawnchairApp app = LawnchairAppKt.getLawnchairApp(mContext);
-                app.renameRestoredDb(dbName);
-                app.migrateDbName(dbName);
+                Context appContext = mContext.getApplicationContext();
+                if (appContext instanceof LawnchairApp app) {
+                    app.renameRestoredDb(dbName);
+                    app.migrateDbName(dbName);
+                } else {
+                    LawnchairBackup.renameRestoredDbFile(mContext, dbName);
+                }
             }
         } catch (Throwable t) {
-            // LC-Ignored
+            Log.w(TAG, "Failed to prepare restored/migrated DB " + dbName, t);
         }
 
         // Set the flag for empty DB
@@ -503,6 +508,16 @@ public class ModelDbController {
     public SQLiteDatabase getDb() {
         createDbIfNotExists();
         return mOpenHelper.getWritableDatabase();
+    }
+
+    /**
+     * Closes the underlying SQLite helper if currently open.
+     */
+    public synchronized void close() {
+        if (mOpenHelper != null) {
+            mOpenHelper.close();
+            mOpenHelper = null;
+        }
     }
 
     private void onAddOrDeleteOp(SQLiteDatabase db) {

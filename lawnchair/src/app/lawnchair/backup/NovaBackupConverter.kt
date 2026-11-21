@@ -1,5 +1,7 @@
 package app.lawnchair.backup
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -8,6 +10,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Process
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import app.lawnchair.DeviceProfileOverrides
 import app.lawnchair.preferences.PreferenceManager
 import com.android.launcher3.GridType
@@ -17,6 +20,7 @@ import com.android.launcher3.LauncherSettings.Favorites
 import com.android.launcher3.model.DatabaseHelper
 import com.android.launcher3.model.DeviceGridState
 import com.android.launcher3.model.ModelDbController
+import com.android.launcher3.model.data.LauncherAppWidgetInfo
 import com.android.launcher3.pm.UserCache
 import com.android.launcher3.provider.RestoreDbTask
 import com.android.launcher3.shortcuts.ShortcutKey
@@ -24,12 +28,17 @@ import com.android.launcher3.shortcuts.ShortcutRequest
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
 import java.net.URISyntaxException
 import java.util.UUID
+import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
+import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.parsers.ParserConfigurationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.xml.sax.SAXException
 
 class NovaBackupConverter(
     private val context: Context,
@@ -85,7 +94,7 @@ class NovaBackupConverter(
         val iconPackLabel: String?,
     )
 
-    private data class NovaConfig(
+    internal data class NovaConfig(
         val columns: Int?,
         val rows: Int?,
         val dockCols: Int?,
@@ -147,13 +156,18 @@ class NovaBackupConverter(
 
             val novaDbFile = File(tempDir, NOVA_DB)
             require(novaDbFile.exists()) { "Missing $NOVA_DB" }
+            LawnchairBackup.validateSqliteFile(novaDbFile, requireFavoritesTable = true)
 
             val stagedDbFile = File(tempDir, NOVA_WORKSPACE_DB)
             val importedDeepShortcuts = createRestoredDb(novaDbFile, stagedDbFile)
+            // Validate the complete staging SQLite DB BEFORE mutating grid prefs or live DB files.
+            LawnchairBackup.validateSqliteFile(stagedDbFile, requireFavoritesTable = true)
 
             val columns = info.columns
             val rows = info.rows
             val hotseatCount = info.hotseatCount
+            val idp = InvariantDeviceProfile.INSTANCE.get(context)
+            val activeDeviceType = InvariantDeviceProfile.deviceType
             if (columns != null && rows != null && hotseatCount != null) {
                 val gridInfo = DeviceProfileOverrides.DBGridInfo(
                     numHotseatColumns = hotseatCount,
@@ -164,23 +178,31 @@ class NovaBackupConverter(
                     columns,
                     rows,
                     hotseatCount,
-                    InvariantDeviceProfile.TYPE_PHONE,
+                    activeDeviceType,
                     gridInfo.dbFile,
                     GridType.GRID_TYPE_ANY,
                 )
                 gridState.writeToPrefs(context, true)
                 gridState.writeToPrefs(context)
-                InvariantDeviceProfile.INSTANCE.get(context).dbFile = gridInfo.dbFile
+                idp.dbFile = gridInfo.dbFile
             }
             writeGridToLawnchairPrefs(info)
 
             val restoredDbFile = context.getDatabasePath(LawnchairBackup.RESTORED_DB_FILE_NAME)
             restoredDbFile.parentFile?.mkdirs()
+            LawnchairBackup.deleteSqliteSidecars(restoredDbFile)
             stagedDbFile.copyTo(restoredDbFile, overwrite = true)
 
             val dbController = ModelDbController(context)
-            RestoreDbTask.performRestore(context, dbController)
-            dbController.clearFlagEmptyDbCreated()
+            try {
+                val restoredOk = RestoreDbTask.performRestore(context, dbController)
+                if (!restoredOk) {
+                    throw IOException("RestoreDbTask failed to sanitize converted Nova database")
+                }
+                dbController.clearFlagEmptyDbCreated()
+            } finally {
+                dbController.close()
+            }
             val targetDb = InvariantDeviceProfile.INSTANCE.get(context).dbFile
             if (targetDb != null) {
                 LauncherPrefs.get(context).removeSync(ModelDbController.getEmptyDbCreatedKey(targetDb))
@@ -209,8 +231,22 @@ class NovaBackupConverter(
         }.commit()
     }
 
-    private fun parseNovaConfig(xmlFile: File): NovaConfig {
-        val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xmlFile)
+    @VisibleForTesting
+    internal fun parseNovaConfig(xmlFile: File): NovaConfig {
+        val rawXml = xmlFile.readText(Charsets.UTF_8)
+        if (rawXml.contains("<!DOCTYPE", ignoreCase = true) ||
+            rawXml.contains("<!ENTITY", ignoreCase = true)
+        ) {
+            throw SAXException("DTD/XXE declarations are disallowed in Nova backup XML")
+        }
+        val factory = createSecureDocumentBuilderFactory()
+        val builder = factory.newDocumentBuilder().apply {
+            setEntityResolver { _, _ -> throw SAXException("External XML entities are disallowed") }
+        }
+        val doc = xmlFile.inputStream().use { builder.parse(it) }
+        if (doc.doctype != null) {
+            throw SAXException("DOCTYPE declarations are disallowed in Nova backup XML")
+        }
         val root = doc.documentElement
         var columns: Int? = null
         var rows: Int? = null
@@ -245,6 +281,27 @@ class NovaBackupConverter(
         }
 
         return NovaConfig(columns, rows, dockCols, iconPackPackage)
+    }
+
+    private fun createSecureDocumentBuilderFactory(): DocumentBuilderFactory {
+        return DocumentBuilderFactory.newInstance().apply {
+            setFeatureSafely(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+            setFeatureSafely("http://apache.org/xml/features/disallow-doctype-decl", true)
+            setFeatureSafely("http://xml.org/sax/features/external-general-entities", false)
+            setFeatureSafely("http://xml.org/sax/features/external-parameter-entities", false)
+            setFeatureSafely("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+            isXIncludeAware = false
+            isExpandEntityReferences = false
+        }
+    }
+
+    private fun DocumentBuilderFactory.setFeatureSafely(feature: String, value: Boolean) {
+        try {
+            setFeature(feature, value)
+        } catch (_: ParserConfigurationException) {
+            // Android's Harmony DOM implementation may not recognize Xerces feature URIs;
+            // explicit DOCTYPE pre-check and rejecting EntityResolver enforce XXE rejection.
+        }
     }
 
     private fun countItems(dbFile: File): ItemCounts {
@@ -317,6 +374,13 @@ class NovaBackupConverter(
         importedDeepShortcuts: MutableMap<String, MutableSet<String>>,
     ) {
         val smartFolderMap = buildSmartFolderMap(src)
+        val installedWidgetProviders = runCatching {
+            AppWidgetManager.getInstance(context)
+                ?.installedProviders
+                ?.mapNotNull { it.provider }
+                ?.toSet()
+                .orEmpty()
+        }.getOrDefault(emptySet())
 
         src.rawQuery(
             "SELECT * FROM $NOVA_TABLE_FAVORITES WHERE $NOVA_COL_ITEM_TYPE != -1",
@@ -368,6 +432,34 @@ class NovaBackupConverter(
                 val spanY = cursor.getDouble(cursor.getColumnIndexOrThrow(NOVA_COL_SPAN_Y)).toInt().coerceAtLeast(1)
                 val icon = getBlobOrNull(cursor, NOVA_COL_ICON)
                 val appWidgetProvider = getStringOrNull(cursor, NOVA_COL_APP_WIDGET_PROVIDER)
+                val restoredFlags = when (itemType) {
+                    Favorites.ITEM_TYPE_APPWIDGET -> {
+                        val providerComponent = appWidgetProvider?.let(ComponentName::unflattenFromString)
+                            ?: continue
+                        if (providerComponent in installedWidgetProviders) {
+                            LauncherAppWidgetInfo.FLAG_ID_NOT_VALID or
+                                LauncherAppWidgetInfo.FLAG_UI_NOT_READY
+                        } else {
+                            LauncherAppWidgetInfo.FLAG_ID_NOT_VALID or
+                                LauncherAppWidgetInfo.FLAG_PROVIDER_NOT_READY or
+                                LauncherAppWidgetInfo.FLAG_UI_NOT_READY
+                        }
+                    }
+
+                    Favorites.ITEM_TYPE_CUSTOM_APPWIDGET -> {
+                        // Nova custom widgets cannot be resolved by ExpressiveLauncher without a valid provider.
+                        if (appWidgetProvider.isNullOrBlank() ||
+                            ComponentName.unflattenFromString(appWidgetProvider) == null
+                        ) {
+                            continue
+                        }
+                        LauncherAppWidgetInfo.FLAG_ID_NOT_VALID or
+                            LauncherAppWidgetInfo.FLAG_PROVIDER_NOT_READY or
+                            LauncherAppWidgetInfo.FLAG_UI_NOT_READY
+                    }
+
+                    else -> 0
+                }
                 val rank = when {
                     isFolderChild || isSmartFolderChild -> calculateFolderRank(screen, cellX, cellY)
                     isHotseat -> screen
@@ -380,7 +472,7 @@ class NovaBackupConverter(
                         spanX, spanY, itemType, appWidgetId, icon,
                         appWidgetProvider, modified, restored, profileId,
                         rank, options, appWidgetSource
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, -1, ?, ?, ?, 0, ?, ?, 0, -1)""",
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, -1)""",
                     arrayOf(
                         novaId,
                         title,
@@ -392,9 +484,11 @@ class NovaBackupConverter(
                         spanX,
                         spanY,
                         itemType,
+                        LauncherAppWidgetInfo.NO_ID,
                         icon,
                         appWidgetProvider,
                         now,
+                        restoredFlags,
                         profileId,
                         rank,
                     ),
@@ -443,23 +537,41 @@ class NovaBackupConverter(
         val pfd = context.contentResolver.openFileDescriptor(uri, "r")
             ?: throw IllegalStateException("Unable to open backup URI")
         val destCanonical = destDir.canonicalPath
-        pfd.use {
-            FileInputStream(it.fileDescriptor).use { fis ->
+        val stagedZip = File(destDir, "nova_staged.zip")
+        try {
+            pfd.use {
+                FileInputStream(it.fileDescriptor).use { fis ->
+                    FileOutputStream(stagedZip).use { fos -> fis.copyTo(fos) }
+                }
+            }
+            // Validate central directory / EOCD to catch truncated archives early.
+            ZipFile(stagedZip).use { zf ->
+                if (zf.size() == 0) {
+                    throw IOException("Nova backup archive is empty")
+                }
+            }
+            FileInputStream(stagedZip).buffered().use { fis ->
                 ZipInputStream(fis).use { zis ->
                     var entry = zis.nextEntry
                     while (entry != null) {
-                        if (!entry.isDirectory && entry.name in fileNames) {
-                            val outFile = File(destDir, entry.name)
-                            require(outFile.canonicalPath.startsWith(destCanonical + File.separator)) {
-                                "Zip entry outside target dir: ${entry.name}"
+                        try {
+                            if (!entry.isDirectory && entry.name in fileNames) {
+                                val outFile = File(destDir, entry.name)
+                                require(outFile.canonicalPath.startsWith(destCanonical + File.separator)) {
+                                    "Zip entry outside target dir: ${entry.name}"
+                                }
+                                outFile.parentFile?.mkdirs()
+                                FileOutputStream(outFile).use { fos -> zis.copyTo(fos) }
                             }
-                            outFile.parentFile?.mkdirs()
-                            FileOutputStream(outFile).use { fos -> zis.copyTo(fos) }
+                        } finally {
+                            zis.closeEntry()
                         }
                         entry = zis.nextEntry
                     }
                 }
             }
+        } finally {
+            stagedZip.delete()
         }
     }
 

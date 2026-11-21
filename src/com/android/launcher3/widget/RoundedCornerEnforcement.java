@@ -24,6 +24,7 @@ import android.content.res.Resources;
 import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
@@ -39,8 +40,9 @@ import java.util.List;
  * Utilities to compute the enforced the use of rounded corners on App Widgets.
  */
 public class RoundedCornerEnforcement {
-    public static boolean sRoundedCornerEnabled = true;
-    public static float sCustomCornerRadius = -1f;
+    public static volatile boolean sRoundedCornerEnabled = true;
+    /** Custom widget corner radius in dp, or negative to use the platform/default radius. */
+    public static volatile float sCustomCornerRadiusDp = -1f;
 
     // This class is only a namespace and not meant to be instantiated.
     private RoundedCornerEnforcement() {
@@ -90,9 +92,15 @@ public class RoundedCornerEnforcement {
         outRect.right = background.getWidth();
         outRect.top = 0;
         outRect.bottom = background.getHeight();
-        while (background != appWidget) {
-            outRect.offset(background.getLeft(), background.getTop());
-            background = (View) background.getParent();
+        View current = background;
+        while (current != appWidget) {
+            outRect.offset(current.getLeft(), current.getTop());
+            ViewParent parent = current.getParent();
+            if (!(parent instanceof View)) {
+                outRect.setEmpty();
+                return;
+            }
+            current = (View) parent;
         }
     }
 
@@ -104,8 +112,13 @@ public class RoundedCornerEnforcement {
         if (!sRoundedCornerEnabled) {
             return 0f;
         }
-        if (sCustomCornerRadius >= 0f) {
-            return sCustomCornerRadius;
+        float customRadiusDp = sCustomCornerRadiusDp;
+        if (customRadiusDp >= 0f) {
+            Resources res = context.getResources();
+            if (res != null && res.getDisplayMetrics() != null) {
+                return customRadiusDp * res.getDisplayMetrics().density;
+            }
+            return customRadiusDp;
         }
         Resources res = context.getResources();
         if (!Utilities.ATLEAST_S) {

@@ -32,9 +32,12 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.DeadObjectException;
+import android.os.DeadSystemException;
 import android.os.Looper;
 import android.util.Log;
 import android.util.SparseArray;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -192,8 +195,13 @@ public class LauncherWidgetHolder {
      * @param appWidgetId The ID of the app widget to be deleted
      */
     public void deleteAppWidgetId(int appWidgetId) {
-        mWidgetHost.deleteAppWidgetId(appWidgetId);
-        mViews.remove(appWidgetId);
+        try {
+            mWidgetHost.deleteAppWidgetId(appWidgetId);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Failed to delete appWidgetId=" + appWidgetId, e);
+        } finally {
+            mViews.remove(appWidgetId);
+        }
     }
 
     /**
@@ -218,7 +226,12 @@ public class LauncherWidgetHolder {
             return AppWidgetManager.INVALID_APPWIDGET_ID;
         }
 
-        return mWidgetHost.allocateAppWidgetId();
+        try {
+            return mWidgetHost.allocateAppWidgetId();
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Failed to allocate appWidgetId", e);
+            return AppWidgetManager.INVALID_APPWIDGET_ID;
+        }
     }
 
     /**
@@ -256,27 +269,7 @@ public class LauncherWidgetHolder {
      * @param requestCode The request code
      */
     public void startConfigActivity(@NonNull BaseActivity activity, int widgetId, int requestCode) {
-        startConfigActivity(activity, widgetId, requestCode, 0);
-    }
-
-    /**
-     * Starts the configuration activity for the widget with retry counter
-     * 
-     * @param activity    The activity in which to start the configuration page
-     * @param widgetId    The ID of the widget
-     * @param requestCode The request code
-     * @param retryCount  The number of retries attempted
-     */
-    private void startConfigActivity(@NonNull BaseActivity activity, int widgetId,
-            int requestCode, int retryCount) {
         if (!WIDGETS_ENABLED) {
-            sendActionCancelled(activity, requestCode);
-            return;
-        }
-
-        // Prevent infinite loops by limiting retries
-        if (retryCount >= 3) {
-            Log.e(this.getClass().getName(), "Too many retries for widget configuration, cancelling");
             sendActionCancelled(activity, requestCode);
             return;
         }
@@ -289,26 +282,24 @@ public class LauncherWidgetHolder {
             Toast.makeText(activity, R.string.activity_not_found, Toast.LENGTH_SHORT).show();
             sendActionCancelled(activity, requestCode);
         } catch (IllegalArgumentException e) {
-            // Widget ID became invalid, possibly due to two-step configuration some cases
-            Log.e(this.getClass().getName(), "Widget ID became invalid during configuration (retry " + retryCount + ")", e);
-            handleInvalidWidgetId(activity, widgetId, requestCode, retryCount + 1);
+            Log.e(TAG, "Widget ID became invalid during configuration: widgetId=" + widgetId, e);
+            handleInvalidWidgetId(activity, widgetId, requestCode);
+        } catch (RuntimeException e) {
+            if (!isRecoverableWidgetCreateException(e)) {
+                throw e;
+            }
+            Log.w(TAG, "AppWidgetService unavailable during configuration: widgetId=" + widgetId, e);
+            sendActionCancelled(activity, requestCode);
         }
     }
 
     private void handleInvalidWidgetId(BaseActivity activity, int widgetId, int requestCode) {
-        handleInvalidWidgetId(activity, widgetId, requestCode, 0);
-    }
-
-    private void handleInvalidWidgetId(BaseActivity activity, int widgetId, int requestCode, int retryCount) {
-        // Remove the invalid widget
-        deleteAppWidgetId(widgetId);
-
-        int newWidgetId = allocateAppWidgetId();
-        if (newWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            startConfigActivity(activity, newWidgetId, requestCode, retryCount);
-        } else {
-            sendActionCancelled(activity, requestCode);
+        // Delete the invalid widget ID without recursively allocating unbound replacement IDs,
+        // which would leak host IDs because callers still hold the original widgetId.
+        if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            deleteAppWidgetId(widgetId);
         }
+        sendActionCancelled(activity, requestCode);
     }
 
     private void sendActionCancelled(final BaseActivity activity, final int requestCode) {
@@ -373,8 +364,13 @@ public class LauncherWidgetHolder {
             return;
         }
         getWidgetHolderExecutor().execute(() -> {
-            mWidgetHost.stopListening();
-            setListeningFlag(false);
+            try {
+                mWidgetHost.stopListening();
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Failed to stop listening on AppWidgetHost", e);
+            } finally {
+                setListeningFlag(false);
+            }
         });
     }
 
@@ -396,7 +392,13 @@ public class LauncherWidgetHolder {
      */
     @NonNull
     public int[] getAppWidgetIds() {
-        return mWidgetHost.getAppWidgetIds();
+        try {
+            int[] ids = mWidgetHost.getAppWidgetIds();
+            return ids != null ? ids : new int[0];
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Failed to query appWidgetIds from AppWidgetHost", e);
+            return new int[0];
+        }
     }
 
     /**
@@ -510,13 +512,14 @@ public class LauncherWidgetHolder {
                 return (LauncherAppWidgetHostView) mWidgetHost.createView(
                         mContext, appWidgetId, appWidget);
             } catch (Exception e) {
-                if (!Utilities.isBinderSizeError(e)) {
+                if (!isRecoverableWidgetCreateException(e)) {
                     throw new RuntimeException(e);
                 }
 
-                // If the exception was thrown while fetching the remote views, let the view stay.
-                // This will ensure that if the widget posts a valid update later, the view
-                // will update.
+                Log.w(TAG, "Widget view creation failed for appWidgetId=" + appWidgetId
+                        + ", falling back to error view", e);
+                // If the exception was thrown while fetching or inflating remote views, let the
+                // view stay in error state so a subsequent valid update can recover it cleanly.
                 LauncherAppWidgetHostView view = mViews.get(appWidgetId);
                 if (view == null) {
                     view = new ListenableHostView(mContext);
@@ -526,6 +529,26 @@ public class LauncherWidgetHolder {
                 return view;
             }
         }
+    }
+
+    @VisibleForTesting
+    protected static boolean isRecoverableWidgetCreateException(@Nullable Throwable e) {
+        if (e instanceof Exception ex && Utilities.isBinderSizeError(ex)) {
+            return true;
+        }
+        Throwable cause = e;
+        int depth = 0;
+        while (cause != null && depth++ < 8) {
+            if (cause instanceof DeadSystemException
+                    || cause instanceof DeadObjectException
+                    || cause instanceof IllegalArgumentException
+                    || cause instanceof IndexOutOfBoundsException
+                    || cause instanceof RemoteViews.ActionException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     /** Clears all the views from the host */

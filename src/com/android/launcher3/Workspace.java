@@ -774,7 +774,9 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                 int pagePairScreenId = getScreenPair(getCellPosMapper().mapModelToPresenter(
                         dragObject.dragInfo).screenId);
                 CellLayout pagePair = mWorkspaceScreens.get(pagePairScreenId);
-                dragSourceChildCount += pagePair.getShortcutsAndWidgets().getChildCount();
+                if (pagePair != null) {
+                    dragSourceChildCount += pagePair.getShortcutsAndWidgets().getChildCount();
+                }
             }
 
             // When the drag view content is a LauncherAppWidgetHostView, we should increment the

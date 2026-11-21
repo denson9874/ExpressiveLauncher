@@ -33,6 +33,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import app.lawnchair.preferences2.PreferenceManager2;
 import com.android.launcher3.AutoInstallsLayout;
@@ -261,15 +262,18 @@ public class DatabaseHelper extends NoLocaleSQLiteHelper implements
             }
             case 30: {
                 PreferenceManager2 prefs = PreferenceManager2.INSTANCE.get(mContext);
-                if (PreferenceCacheExtensionsKt.firstCached(prefs.getEnableSmartspace())) {
-                    // Clean up first row in screen 0 as it might contain junk data.
-                    Log.d(TAG, "Cleaning up first row");
-                    db.delete(Favorites.TABLE_NAME,
-                            String.format(Locale.ENGLISH,
-                                    "%1$s = %2$d AND %3$s = %4$d AND %5$s = %6$d",
-                                    Favorites.SCREEN, 0,
-                                    Favorites.CONTAINER, Favorites.CONTAINER_DESKTOP,
-                                    Favorites.CELLY, 0), null);
+                if (PreferenceCacheExtensionsKt.firstCached(prefs.getEnableSmartspace(), prefs)) {
+                    Log.d(TAG, "Shifting screen 0 row 0 items off Smartspace row");
+                    int maxRows = 5;
+                    try {
+                        int persistedRows = new DeviceGridState(mContext).getRows();
+                        if (persistedRows > 0) {
+                            maxRows = persistedRows;
+                        }
+                    } catch (Exception ignored) {
+                        // Fall back to default row count if grid state prefs are not initialized.
+                    }
+                    shiftItemsOffFirstRowOnScreenZero(db, maxRows);
                 }
             }
             case 31: {
@@ -285,6 +289,63 @@ public class DatabaseHelper extends NoLocaleSQLiteHelper implements
         // DB was not upgraded
         Log.w(TAG, "Destroying all old data.");
         createEmptyDB(db);
+    }
+
+    /**
+     * Non-destructive v30 migration helper that clears screen 0 row 0 for Smartspace by shifting
+     * items down when vertical room exists, or relocating row-0 items to a trailing screen when
+     * screen 0 is already full, without deleting user items.
+     */
+    @VisibleForTesting
+    public static void shiftItemsOffFirstRowOnScreenZero(SQLiteDatabase db, int maxRows) {
+        int row0Count = 0;
+        int maxOccupiedRowEnd = 0;
+        try (Cursor c = db.query(
+                Favorites.TABLE_NAME,
+                new String[]{Favorites.CELLY, Favorites.SPANY},
+                Favorites.SCREEN + " = 0 AND " + Favorites.CONTAINER + " = ?",
+                new String[]{String.valueOf(Favorites.CONTAINER_DESKTOP)},
+                null, null, null)) {
+            while (c.moveToNext()) {
+                int cellY = c.getInt(0);
+                int spanY = Math.max(1, c.getInt(1));
+                if (cellY == 0) {
+                    row0Count++;
+                }
+                maxOccupiedRowEnd = Math.max(maxOccupiedRowEnd, cellY + spanY);
+            }
+        }
+        if (row0Count == 0) {
+            return;
+        }
+        int safeMaxRows = Math.max(1, maxRows);
+        try (SQLiteTransaction t = new SQLiteTransaction(db)) {
+            if (maxOccupiedRowEnd < safeMaxRows) {
+                db.execSQL(String.format(Locale.ENGLISH,
+                        "UPDATE %s SET %s = %s + 1 WHERE %s = 0 AND %s = %d",
+                        Favorites.TABLE_NAME, Favorites.CELLY, Favorites.CELLY,
+                        Favorites.SCREEN, Favorites.CONTAINER, Favorites.CONTAINER_DESKTOP));
+            } else {
+                int nextScreenId = 1;
+                try (Cursor maxCursor = db.rawQuery(
+                        "SELECT MAX(" + Favorites.SCREEN + ") FROM " + Favorites.TABLE_NAME
+                                + " WHERE " + Favorites.CONTAINER + " = ?",
+                        new String[]{String.valueOf(Favorites.CONTAINER_DESKTOP)})) {
+                    if (maxCursor.moveToFirst() && !maxCursor.isNull(0)) {
+                        nextScreenId = Math.max(0, maxCursor.getInt(0)) + 1;
+                    }
+                }
+                ContentValues values = new ContentValues();
+                values.put(Favorites.SCREEN, nextScreenId);
+                db.update(
+                        Favorites.TABLE_NAME,
+                        values,
+                        Favorites.SCREEN + " = 0 AND " + Favorites.CONTAINER + " = ? AND "
+                                + Favorites.CELLY + " = 0",
+                        new String[]{String.valueOf(Favorites.CONTAINER_DESKTOP)});
+            }
+            t.commit();
+        }
     }
 
     @Override
