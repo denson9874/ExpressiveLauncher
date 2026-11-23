@@ -26,8 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      EXPRESSIVE_UPLOAD_STORE_FILE: ${{ runner.temp }}/expressive-upload.jks
     steps:
       - uses: actions/checkout@v7
         with:
@@ -45,6 +43,7 @@ jobs:
           lintLawnWithQuickstepExpressiveRelease
       - name: Restore upload keystore
         env:
+          EXPRESSIVE_UPLOAD_STORE_FILE: ${{ runner.temp }}/expressive-upload.jks
           EXPRESSIVE_UPLOAD_KEYSTORE_BASE64: ${{ secrets.EXPRESSIVE_UPLOAD_KEYSTORE_BASE64 }}
         run: |
           umask 077
@@ -53,6 +52,7 @@ jobs:
           chmod 600 "$EXPRESSIVE_UPLOAD_STORE_FILE"
       - name: Build signed release bundle
         env:
+          EXPRESSIVE_UPLOAD_STORE_FILE: ${{ runner.temp }}/expressive-upload.jks
           EXPRESSIVE_UPLOAD_STORE_PASSWORD: ${{ secrets.EXPRESSIVE_UPLOAD_STORE_PASSWORD }}
           EXPRESSIVE_UPLOAD_KEY_ALIAS: ${{ secrets.EXPRESSIVE_UPLOAD_KEY_ALIAS }}
           EXPRESSIVE_UPLOAD_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_UPLOAD_KEY_PASSWORD }}
@@ -106,6 +106,8 @@ jobs:
           retention-days: 30
       - name: Clean up signing material
         if: always()
+        env:
+          EXPRESSIVE_UPLOAD_STORE_FILE: ${{ runner.temp }}/expressive-upload.jks
         run: |
           for secret_file in "$EXPRESSIVE_UPLOAD_STORE_FILE" keystore.properties "$GITHUB_WORKSPACE/key.jks"; do
             if [ -f "$secret_file" ]; then
