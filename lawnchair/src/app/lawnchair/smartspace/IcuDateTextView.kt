@@ -131,9 +131,12 @@ class IcuDateTextView @JvmOverloads constructor(
             when {
                 dateTimeOptions.timeFormat is SmartspaceTimeFormat.TwelveHourFormat ->
                     R.string.smartspace_icu_date_pattern_gregorian_time_12h
+
                 dateTimeOptions.timeFormat is SmartspaceTimeFormat.TwentyFourHourFormat ->
                     R.string.smartspace_icu_date_pattern_gregorian_time
+
                 is24HourFormat(context) -> R.string.smartspace_icu_date_pattern_gregorian_time
+
                 else -> R.string.smartspace_icu_date_pattern_gregorian_time_12h
             },
         )

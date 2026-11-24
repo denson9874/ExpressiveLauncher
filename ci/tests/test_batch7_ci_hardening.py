@@ -98,6 +98,31 @@ class WorkflowSecurityHardeningTests(unittest.TestCase):
                 self.assertIn("keystore.properties", text)
                 self.assertIn("key.jks", text)
 
+    def test_no_runner_context_in_job_level_env(self):
+        """GitHub Actions rejects ${{ runner.* }} inside job-level env: blocks at parse time."""
+        for path in sorted(WORKFLOWS_DIR.glob("*.yml")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            in_job_env = False
+            job_env_indent = 0
+            for lineno, line in enumerate(lines, start=1):
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                indent = len(line) - len(line.lstrip(" "))
+                if in_job_env and indent <= job_env_indent:
+                    in_job_env = False
+                if stripped == "env:" and indent <= 4:
+                    in_job_env = True
+                    job_env_indent = indent
+                    continue
+                if in_job_env:
+                    with self.subTest(workflow=path.name, line=lineno):
+                        self.assertNotRegex(
+                            line,
+                            r"\$\{\{\s*runner\.",
+                            f"{path.name}:{lineno} uses runner context in job-level env",
+                        )
+
 
 class JenkinsAndSigningScriptHardeningTests(unittest.TestCase):
     def test_jenkinsfiles_have_no_hardcoded_developer_home_paths(self):

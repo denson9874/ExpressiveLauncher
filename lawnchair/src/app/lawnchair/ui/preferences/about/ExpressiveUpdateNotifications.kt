@@ -110,8 +110,7 @@ internal class ExpressiveUpdateNotificationStore(context: Context) {
             .apply()
     }
 
-    fun lastImmediateCheckScheduledMillis(): Long =
-        preferences.getLong(KEY_LAST_IMMEDIATE_CHECK_SCHEDULED_MILLIS, 0L)
+    fun lastImmediateCheckScheduledMillis(): Long = preferences.getLong(KEY_LAST_IMMEDIATE_CHECK_SCHEDULED_MILLIS, 0L)
 
     fun recordImmediateCheckScheduled(nowMillis: Long = System.currentTimeMillis()) {
         preferences.edit()

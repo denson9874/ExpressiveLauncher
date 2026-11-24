@@ -35,6 +35,7 @@ class BcSmartspaceView @JvmOverloads constructor(
     private val adapter = CardPagerAdapter(context)
     private var scrollState = ViewPager.SCROLL_STATE_IDLE
     private var pendingTargets: List<SmartspaceTarget>? = null
+
     @VisibleForTesting
     internal var runningAnimation: Animator? = null
     private var animatingOldCard: View? = null

@@ -640,9 +640,11 @@ class PhysicsAnimator<T> private constructor(target: T) {
                     val endVal = if (springConfig.finalPosition != UNSET) springConfig.finalPosition else currentValue
                     endVal to false
                 }
+
                 flingConfig != null && springConfig == null -> {
                     estimateFlingEndValue(currentValue, flingConfig.startVelocity, flingConfig) to true
                 }
+
                 flingConfig != null && springConfig != null -> {
                     if (springConfig.finalPosition != UNSET) {
                         springConfig.finalPosition to false
@@ -652,6 +654,7 @@ class PhysicsAnimator<T> private constructor(target: T) {
                         clamped to (est in flingConfig.min..flingConfig.max)
                     }
                 }
+
                 else -> currentValue to false
             }
 
