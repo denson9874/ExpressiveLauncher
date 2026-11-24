@@ -542,10 +542,15 @@ class LawnchairBackup(
                 if (name.isEmpty() || name.startsWith(EMPTY_DATABASE_CREATED_PREFIX)) continue
                 when (el.tagName) {
                     "string" -> result[name] = el.textContent ?: ""
+
                     "int" -> el.getAttribute("value").toIntOrNull()?.let { result[name] = it }
+
                     "long" -> el.getAttribute("value").toLongOrNull()?.let { result[name] = it }
+
                     "float" -> el.getAttribute("value").toFloatOrNull()?.let { result[name] = it }
+
                     "boolean" -> result[name] = el.getAttribute("value").equals("true", ignoreCase = true)
+
                     "set" -> {
                         val setValues = LinkedHashSet<String>()
                         val items = el.childNodes

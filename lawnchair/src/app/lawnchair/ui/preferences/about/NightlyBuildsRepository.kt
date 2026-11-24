@@ -464,11 +464,9 @@ internal fun isSecureHttpsUrl(url: String): Boolean = url.toHttpUrlOrNull()?.let
     parsed.isHttps && parsed.username.isEmpty() && parsed.password.isEmpty()
 } == true
 
-internal fun isValidSha256Hex(digest: String?): Boolean =
-    digest != null && SHA256_HEX_REGEX.matches(digest)
+internal fun isValidSha256Hex(digest: String?): Boolean = digest != null && SHA256_HEX_REGEX.matches(digest)
 
-internal fun isValidNightlyAsset(url: String, sha256: String?): Boolean =
-    isSecureHttpsUrl(url) && isValidSha256Hex(sha256)
+internal fun isValidNightlyAsset(url: String, sha256: String?): Boolean = isSecureHttpsUrl(url) && isValidSha256Hex(sha256)
 
 internal fun pruneStaleUpdateApks(updatesDir: File, keepFiles: Set<File> = emptySet()) {
     val keepCanonical = keepFiles.mapTo(mutableSetOf()) { file ->

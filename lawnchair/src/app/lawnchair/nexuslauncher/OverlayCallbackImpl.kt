@@ -145,8 +145,7 @@ class OverlayCallbackImpl(private val mLauncher: LawnchairLauncher) :
     companion object {
         private const val PREF_PERSIST_FLAGS = "pref_persistent_flags"
 
-        internal fun clampOverlayScroll(progress: Float): Float =
-            if (progress.isNaN()) 0f else progress.coerceIn(0f, 1f)
+        internal fun clampOverlayScroll(progress: Float): Float = if (progress.isNaN()) 0f else progress.coerceIn(0f, 1f)
 
         fun minusOneAvailable(context: Context): Boolean {
             // Build type alone does not make a feed usable. Report availability only when a
