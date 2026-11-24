@@ -1,0 +1,5 @@
+Expressive Launcher 5.1.8
+• Android 17 Quickstep: trim Recents thumbnail VRAM (~152 MB saved), align CinnamonBun Binder IPC ordinals, and close SurfaceControl/HardwareBuffer leaks
+• Battery & LTPO: eliminate 1 Hz idle clock wakeups so LTPO displays stay at 1 Hz
+• Foldables: preserve the unfolded dock's fifth app across fold/unfold transitions
+• Storage & Signing: transactional backups, @*android resource cleanup, and enforced v1/v2/v3 APK signing
