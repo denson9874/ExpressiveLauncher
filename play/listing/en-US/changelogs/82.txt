@@ -1,0 +1,4 @@
+Expressive Launcher 5.1.9
+• Recents crash fix: prevent Canvas recycled-bitmap crashes when Android 17 updates a visible task snapshot outside the 3-slot thumbnail cache
+• Snapshot ownership: report thumbnail consumption from TasksRepository, TaskVisualsChangedDelegate, and RecentsView before recycling
+• Thumbnail hardening: guard mapper, cache, and thumbnail views against recycled bitmaps and clear drawables cleanly on reset

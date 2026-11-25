@@ -2,21 +2,44 @@ package com.android.quickstep
 
 import android.app.ActivityManager
 import android.app.Application
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.Region
 import android.os.Binder
 import android.os.Handler
 import android.os.IBinder
 import android.os.Message
 import android.os.Parcel
+import android.view.Display
 import android.view.IWindowManager
 import android.view.KeyEvent
+import android.view.LayoutInflater
+import android.view.Surface
+import android.view.View
+import android.widget.ImageView
 import app.lawnchair.compat.CinnamonBunCompat
+import com.android.launcher3.R
 import com.android.launcher3.statehandlers.DesktopVisibilityController
+import com.android.launcher3.util.coroutines.DispatcherProvider
+import com.android.quickstep.recents.data.HighResLoadingStateNotifier
+import com.android.quickstep.recents.data.RecentTasksDataSource
+import com.android.quickstep.recents.data.TaskVisualsChangeNotifier
+import com.android.quickstep.recents.data.TaskVisualsChangedDelegateImpl
+import com.android.quickstep.recents.data.TasksRepository
+import com.android.quickstep.task.thumbnail.TaskThumbnailUiState
+import com.android.quickstep.task.thumbnail.TaskThumbnailView
+import com.android.quickstep.task.thumbnail.data.TaskIconDataSource
+import com.android.quickstep.task.thumbnail.data.TaskThumbnailDataSource
 import com.android.quickstep.util.GestureExclusionManager
+import com.android.quickstep.util.GroupTask
+import com.android.quickstep.util.SingleTask
 import com.android.quickstep.util.TaskKeyByLastActiveTimeCache
 import com.android.quickstep.util.TaskKeyLruCache
+import com.android.quickstep.util.TaskVisualsChangeListener
 import com.android.systemui.shared.recents.ISystemUiProxy
 import com.android.systemui.shared.recents.model.Task
 import com.android.systemui.shared.recents.model.ThumbnailData
@@ -26,12 +49,21 @@ import com.android.wm.shell.shared.IFocusTransitionListener
 import com.google.common.truth.Truth.assertThat
 import java.lang.ref.WeakReference
 import java.lang.reflect.Proxy
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.function.Consumer
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -379,5 +411,129 @@ class Batch4QuickstepHardeningTest {
             listeners.unregisterTaskStackListener(consumer)
             consumedData.recycleBitmap()
         }
+    }
+
+    @Test
+    fun taskSnapshotChanged_visibleTaskNotInThumbnailCache_isNotRecycled() {
+        val context = RuntimeEnvironment.getApplication()
+        val thumbnailCache = TaskThumbnailCache(context, Executor { it.run() }, TaskKeyLruCache(3))
+        val visualListeners = CopyOnWriteArrayList<TaskVisualsChangeListener>()
+        val visualNotifier = object : TaskVisualsChangeNotifier {
+            override fun addThumbnailChangeListener(listener: TaskVisualsChangeListener) {
+                visualListeners.add(listener)
+            }
+
+            override fun removeThumbnailChangeListener(listener: TaskVisualsChangeListener) {
+                visualListeners.remove(listener)
+            }
+        }
+        val highResNotifier = object : HighResLoadingStateNotifier {
+            override fun addCallback(
+                callback: HighResLoadingState.HighResLoadingStateChangedCallback,
+            ) = Unit
+
+            override fun removeCallback(
+                callback: HighResLoadingState.HighResLoadingStateChangedCallback,
+            ) = Unit
+        }
+        val delegate = TaskVisualsChangedDelegateImpl(visualNotifier, highResNotifier)
+        val task77 = Task(
+            Task.TaskKey(77, 1, Intent(), ComponentName("com.example", ".Main"), 0, 1_000L)
+        )
+        val initialBitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+        val recentTasksDataSource = object : RecentTasksDataSource {
+            override fun getTasks(callback: Consumer<List<GroupTask>>?): Int {
+                callback?.accept(listOf(SingleTask(task77)))
+                return 1
+            }
+        }
+        val thumbnailDataSource = object : TaskThumbnailDataSource {
+            override suspend fun getThumbnail(task: Task): ThumbnailData =
+                ThumbnailData(thumbnail = initialBitmap, snapshotId = 1L)
+        }
+        val iconDataSource = object : TaskIconDataSource {
+            override suspend fun getIcon(task: Task): TaskIconCache.TaskCacheEntry =
+                TaskIconCache.TaskCacheEntry(ColorDrawable(Color.BLUE), "desc", "App")
+        }
+        val unconfined = object : DispatcherProvider {
+            override val default: CoroutineDispatcher = Dispatchers.Unconfined
+            override val ioBackground: CoroutineDispatcher = Dispatchers.Unconfined
+            override val lightweightBackground: CoroutineDispatcher = Dispatchers.Unconfined
+            override val main: CoroutineDispatcher = Dispatchers.Unconfined
+            override val unconfined: CoroutineDispatcher = Dispatchers.Unconfined
+        }
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val repo = TasksRepository(
+            recentTasksDataSource,
+            thumbnailDataSource,
+            iconDataSource,
+            delegate,
+            scope,
+            unconfined,
+        )
+        val listeners = TaskStackChangeListeners.getTestInstance()
+        val callback = listeners.listenerImpl as Handler.Callback
+        val recentsListener = object : TaskStackChangeListener {
+            override fun onTaskSnapshotChanged(taskId: Int, snapshot: ThumbnailData?): Boolean =
+                RecentsModel.dispatchTaskSnapshotChanged(
+                    thumbnailCache,
+                    visualListeners,
+                    taskId,
+                    snapshot,
+                )
+        }
+        listeners.registerTaskStackListener(recentsListener)
+        try {
+            repo.getAllTaskData(Display.DEFAULT_DISPLAY, forceRefresh = true)
+            repo.setVisibleTasks(Display.DEFAULT_DISPLAY, setOf(77))
+            assertThat(thumbnailCache.updateTaskSnapShot(77, null)).isFalse()
+
+            val updatedBitmap = Bitmap.createBitmap(16, 16, Bitmap.Config.ARGB_8888)
+            val updatedSnapshot = ThumbnailData(thumbnail = updatedBitmap, snapshotId = 2L)
+            val msg = Message.obtain(null, /* ON_TASK_SNAPSHOT_CHANGED */ 2, 77, 0, updatedSnapshot)
+            assertThat(callback.handleMessage(msg)).isTrue()
+
+            val retained = repo.getCurrentThumbnailById(77)
+            assertThat(retained).isSameInstanceAs(updatedSnapshot)
+            assertThat(updatedBitmap.isRecycled).isFalse()
+
+            // Unrelated task not in cache and not visible must still be recycled.
+            val unusedBitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+            val unusedSnapshot = ThumbnailData(thumbnail = unusedBitmap, snapshotId = 3L)
+            val unusedMsg =
+                Message.obtain(null, /* ON_TASK_SNAPSHOT_CHANGED */ 2, 999, 0, unusedSnapshot)
+            assertThat(callback.handleMessage(unusedMsg)).isTrue()
+            assertThat(unusedBitmap.isRecycled).isTrue()
+        } finally {
+            listeners.unregisterTaskStackListener(recentsListener)
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun taskThumbnailView_ignoresRecycledBitmapWhenDrawingSnapshot() {
+        val context = RuntimeEnvironment.getApplication()
+        val view =
+            LayoutInflater.from(context).inflate(R.layout.task_thumbnail, null) as TaskThumbnailView
+        val imageView = view.findViewById<ImageView>(R.id.task_thumbnail)
+        val bitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+        bitmap.recycle()
+
+        view.setState(
+            TaskThumbnailUiState.SnapshotSplash(
+                TaskThumbnailUiState.Snapshot(bitmap, Surface.ROTATION_0, Color.DKGRAY),
+                ColorDrawable(Color.WHITE),
+            )
+        )
+
+        assertThat(imageView.drawable).isNull()
+        assertThat(imageView.visibility).isEqualTo(View.INVISIBLE)
+
+        val spec = View.MeasureSpec.makeMeasureSpec(16, View.MeasureSpec.EXACTLY)
+        imageView.measure(spec, spec)
+        imageView.layout(0, 0, 16, 16)
+        val out = Bitmap.createBitmap(16, 16, Bitmap.Config.ARGB_8888)
+        imageView.draw(Canvas(out))
+        out.recycle()
     }
 }

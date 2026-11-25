@@ -1173,26 +1173,26 @@ public abstract class RecentsView<
     }
 
     @Override
-    @Nullable
-    public Task onTaskThumbnailChanged(int taskId, ThumbnailData thumbnailData) {
+    public boolean onTaskThumbnailChanged(int taskId, ThumbnailData thumbnailData) {
         if (enableRefactorTaskThumbnail()) {
-            return null;
+            return false;
         }
+        boolean consumed = false;
         if (mHandleTaskStackChanges) {
-            if (!enableRefactorTaskThumbnail()) {
-                TaskView taskView = getTaskViewByTaskId(taskId);
-                if (taskView != null) {
-                    for (TaskContainer container : taskView.getTaskContainers()) {
-                        if (taskId != container.getTask().key.id) {
-                            continue;
-                        }
-                        container.getThumbnailViewDeprecated().setThumbnail(container.getTask(),
-                                thumbnailData);
+            TaskView taskView = getTaskViewByTaskId(taskId);
+            if (taskView != null) {
+                for (TaskContainer container : taskView.getTaskContainers()) {
+                    if (taskId != container.getTask().key.id) {
+                        continue;
                     }
+                    Task task = container.getTask();
+                    task.thumbnail = thumbnailData;
+                    container.getThumbnailViewDeprecated().setThumbnail(task, thumbnailData);
+                    consumed = true;
                 }
             }
         }
-        return null;
+        return consumed;
     }
 
     @Override

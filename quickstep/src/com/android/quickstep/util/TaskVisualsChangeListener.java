@@ -19,7 +19,6 @@ package com.android.quickstep.util;
 import android.annotation.NonNull;
 import android.os.UserHandle;
 
-import com.android.systemui.shared.recents.model.Task;
 import com.android.systemui.shared.recents.model.ThumbnailData;
 
 /**
@@ -28,10 +27,12 @@ import com.android.systemui.shared.recents.model.ThumbnailData;
 public interface TaskVisualsChangeListener {
 
     /**
-     * Called when the task thumbnail changes
+     * Called when the task thumbnail changes.
+     *
+     * @return whether the listener consumed and retained {@code thumbnailData}.
      */
-    default Task onTaskThumbnailChanged(int taskId, ThumbnailData thumbnailData) {
-        return null;
+    default boolean onTaskThumbnailChanged(int taskId, ThumbnailData thumbnailData) {
+        return false;
     }
 
     /**

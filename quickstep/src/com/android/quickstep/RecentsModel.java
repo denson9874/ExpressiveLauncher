@@ -324,14 +324,20 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
 
     @Override
     public boolean onTaskSnapshotChanged(int taskId, ThumbnailData snapshot) {
-        boolean consumed = mThumbnailCache.updateTaskSnapShot(taskId, snapshot);
+        return dispatchTaskSnapshotChanged(
+                mThumbnailCache, mThumbnailChangeListeners, taskId, snapshot);
+    }
 
-        for (TaskVisualsChangeListener listener : mThumbnailChangeListeners) {
-            Task task = listener.onTaskThumbnailChanged(taskId, snapshot);
-            if (task != null) {
-                task.thumbnail = snapshot;
-                consumed = true;
-            }
+    @VisibleForTesting
+    static boolean dispatchTaskSnapshotChanged(
+            TaskThumbnailCache thumbnailCache,
+            Iterable<TaskVisualsChangeListener> listeners,
+            int taskId,
+            ThumbnailData snapshot) {
+        boolean consumed = thumbnailCache.updateTaskSnapShot(taskId, snapshot);
+
+        for (TaskVisualsChangeListener listener : listeners) {
+            consumed |= listener.onTaskThumbnailChanged(taskId, snapshot);
         }
         return consumed;
     }

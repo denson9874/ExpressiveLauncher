@@ -99,16 +99,21 @@ internal constructor(
         val lowResolution: Boolean = !highResLoadingState.isEnabled
         // Check task for thumbnail
         val taskThumbnail: ThumbnailData? = task.thumbnail
+        val taskBitmap = taskThumbnail?.thumbnail
         if (
-            taskThumbnail?.thumbnail != null && (!taskThumbnail.reducedResolution || lowResolution)
+            taskBitmap != null &&
+                !taskBitmap.isRecycled &&
+                (!taskThumbnail.reducedResolution || lowResolution)
         ) {
             return taskThumbnail
         }
 
         // Check cache for thumbnail
         val cachedThumbnail: ThumbnailData? = cache.getAndInvalidateIfModified(task.key)
+        val cachedBitmap = cachedThumbnail?.thumbnail
         if (
-            cachedThumbnail?.thumbnail != null &&
+            cachedBitmap != null &&
+                !cachedBitmap.isRecycled &&
                 (!cachedThumbnail.reducedResolution || lowResolution)
         ) {
             return cachedThumbnail
@@ -130,8 +135,11 @@ internal constructor(
                     highResLoadingState.isEnabled
             ) {
                 val newCachedThumbnail = cache.getAndInvalidateIfModified(task.key)
+                val newCachedBitmap = newCachedThumbnail?.thumbnail
                 if (
-                    newCachedThumbnail?.thumbnail != null && !newCachedThumbnail.reducedResolution
+                    newCachedBitmap != null &&
+                        !newCachedBitmap.isRecycled &&
+                        !newCachedThumbnail.reducedResolution
                 ) {
                     thumbnailData.recycleBitmap()
                     return@withContext newCachedThumbnail
@@ -156,8 +164,11 @@ internal constructor(
 
         val lowResolution = !highResLoadingState.isEnabled
         val taskThumbnail = task.thumbnail
+        val taskBitmap = taskThumbnail?.thumbnail
         if (
-            taskThumbnail?.thumbnail != null && (!taskThumbnail.reducedResolution || lowResolution)
+            taskBitmap != null &&
+                !taskBitmap.isRecycled &&
+                (!taskThumbnail.reducedResolution || lowResolution)
         ) {
             // Nothing to load, the thumbnail is already high-resolution or matches what the
             // request, so just callback
@@ -193,8 +204,10 @@ internal constructor(
         Preconditions.assertUIThread()
 
         val cachedThumbnail = cache.getAndInvalidateIfModified(key)
+        val cachedBitmap = cachedThumbnail?.thumbnail
         if (
-            cachedThumbnail?.thumbnail != null &&
+            cachedBitmap != null &&
+                !cachedBitmap.isRecycled &&
                 (!cachedThumbnail.reducedResolution || lowResolution)
         ) {
             // Already cached, lets use that thumbnail
@@ -220,8 +233,10 @@ internal constructor(
                             highResLoadingState.isEnabled
                     ) {
                         val newCachedThumbnail = cache.getAndInvalidateIfModified(key)
+                        val newCachedBitmap = newCachedThumbnail?.thumbnail
                         if (
-                            newCachedThumbnail?.thumbnail != null &&
+                            newCachedBitmap != null &&
+                                !newCachedBitmap.isRecycled &&
                                 !newCachedThumbnail.reducedResolution
                         ) {
                             result.recycleBitmap()

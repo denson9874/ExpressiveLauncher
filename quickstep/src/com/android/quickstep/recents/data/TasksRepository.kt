@@ -178,8 +178,8 @@ class TasksRepository(
         taskVisualsChangedDelegate.registerTaskThumbnailChangedCallback(
             task.key,
             object : TaskThumbnailChangedCallback {
-                override fun onTaskThumbnailChanged(thumbnailData: ThumbnailData?) {
-                    updateThumbnail(task.key.id, thumbnailData)
+                override fun onTaskThumbnailChanged(thumbnailData: ThumbnailData?): Boolean {
+                    return updateThumbnail(task.key.id, thumbnailData)
                 }
 
                 override fun onHighResLoadingStateChanged(highResEnabled: Boolean) {
@@ -212,11 +212,16 @@ class TasksRepository(
         }
     }
 
-    private fun updateThumbnail(taskId: Int, thumbnail: ThumbnailData?) {
+    private fun updateThumbnail(taskId: Int, thumbnail: ThumbnailData?): Boolean {
+        var consumed = false
         tasks.update { currentTasks ->
-            currentTasks[taskId]?.thumbnail = thumbnail
+            currentTasks[taskId]?.let {
+                it.thumbnail = thumbnail
+                consumed = true
+            }
             MapForStateFlow(currentTasks)
         }
+        return consumed
     }
 
     private suspend fun getThumbnailFromDataSource(task: Task) =

@@ -176,7 +176,9 @@ public class TaskThumbnailViewDeprecated extends View implements ViewPool.Reusab
             boolean refreshNow) {
         mTask = task;
         ThumbnailData oldThumbnailData = mThumbnailData;
-        mThumbnailData = (thumbnailData != null && thumbnailData.getThumbnail() != null)
+        mThumbnailData = (thumbnailData != null
+                && thumbnailData.getThumbnail() != null
+                && !thumbnailData.getThumbnail().isRecycled())
                 ? thumbnailData : null;
         if (mTask != null) {
             updateSplashView(mTask.icon);
@@ -204,7 +206,9 @@ public class TaskThumbnailViewDeprecated extends View implements ViewPool.Reusab
      * @param shouldRefreshOverlay whether to re-initialize overlay
      */
     private void refresh(boolean shouldRefreshOverlay) {
-        if (mThumbnailData != null && mThumbnailData.getThumbnail() != null) {
+        if (mThumbnailData != null
+                && mThumbnailData.getThumbnail() != null
+                && !mThumbnailData.getThumbnail().isRecycled()) {
             Bitmap bm = mThumbnailData.getThumbnail();
             bm.prepareToDraw();
             mBitmapShader = new BitmapShader(bm, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);

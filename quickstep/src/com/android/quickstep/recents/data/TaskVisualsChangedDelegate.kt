@@ -55,8 +55,12 @@ interface TaskVisualsChangedDelegate :
 
     /** A callback for task thumbnail changes */
     interface TaskThumbnailChangedCallback {
-        /** Informs the listener that the task thumbnail data has changed to [thumbnailData] */
-        fun onTaskThumbnailChanged(thumbnailData: ThumbnailData?)
+        /**
+         * Informs the listener that the task thumbnail data has changed to [thumbnailData].
+         *
+         * @return whether the callback consumed and retained [thumbnailData].
+         */
+        fun onTaskThumbnailChanged(thumbnailData: ThumbnailData?): Boolean
 
         /** Informs the listener that the default resolution for loading thumbnails has changed */
         fun onHighResLoadingStateChanged(highResEnabled: Boolean)
@@ -84,11 +88,9 @@ class TaskVisualsChangedDelegateImpl(
             .forEach { (_, callback) -> callback.onTaskIconChanged() }
     }
 
-    override fun onTaskThumbnailChanged(taskId: Int, thumbnailData: ThumbnailData?): Task? {
-        taskThumbnailChangedCallbacks[taskId]?.let { (_, callback) ->
-            callback.onTaskThumbnailChanged(thumbnailData)
-        }
-        return null
+    override fun onTaskThumbnailChanged(taskId: Int, thumbnailData: ThumbnailData?): Boolean {
+        return taskThumbnailChangedCallbacks[taskId]?.second?.onTaskThumbnailChanged(thumbnailData)
+            ?: false
     }
 
     override fun onHighResLoadingStateChanged(enabled: Boolean) {

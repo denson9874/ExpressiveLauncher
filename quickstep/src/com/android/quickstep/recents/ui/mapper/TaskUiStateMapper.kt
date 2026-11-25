@@ -92,13 +92,13 @@ object TaskUiStateMapper {
             else -> Uninitialized
         }
 
-    // LC-Note: A snapshot that came back without a bitmap shows the app's colour too, like
-    // upstream, instead of falling through to Uninitialized and a see-through card.
+    // LC-Note: A snapshot that came back without a usable bitmap shows the app's colour too, like
+    // upstream, instead of falling through to Uninitialized or passing a recycled bitmap to draw.
     private fun isBackgroundOnly(taskData: TaskData.Data) =
-        taskData.isLocked || taskData.thumbnailData?.thumbnail == null
+        taskData.isLocked || taskData.thumbnailData?.thumbnail?.isRecycled != false
 
     private fun isSnapshotSplash(taskData: TaskData.Data) =
-        taskData.thumbnailData?.thumbnail != null && !taskData.isLocked
+        taskData.thumbnailData?.thumbnail?.let { !it.isRecycled } == true && !taskData.isLocked
 
     private fun canHeaderBeCreated(
         taskData: TaskData.Data,

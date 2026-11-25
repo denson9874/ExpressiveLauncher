@@ -59,6 +59,16 @@ class OverviewCardStateTest {
     }
 
     @Test
+    fun snapshotWithRecycledBitmap_drawsAppColour() {
+        val thumbnail = snapshot()
+        thumbnail.recycleBitmap()
+
+        val state = TaskUiStateMapper.toTaskThumbnailUiState(taskData(thumbnail))
+
+        assertThat(state).isEqualTo(TaskThumbnailUiState.BackgroundOnly(BACKGROUND_COLOR))
+    }
+
+    @Test
     fun snapshotWithBitmap_drawsSnapshot() {
         val thumbnail = snapshot()
 

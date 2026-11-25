@@ -218,7 +218,7 @@ class TaskThumbnailView : FrameLayout, ViewPool.Reusable {
     private fun resetViews() {
         liveTileView.isInvisible = true
         thumbnailView.isInvisible = true
-        thumbnailView.setImageBitmap(null)
+        thumbnailView.setImageDrawable(null)
         splashBackground.alpha = 0f
         splashBackground.isInvisible = true
         splashBackground.setBackgroundColor(Color.TRANSPARENT)
@@ -255,8 +255,10 @@ class TaskThumbnailView : FrameLayout, ViewPool.Reusable {
         // Always draw the background since the snapshots might be translucent or partially empty
         // E.g. reparented tasks from drag-to-dismiss split screen.
         drawBackground(snapshot.backgroundColor)
-        thumbnailView.setImageBitmap(snapshot.bitmap)
-        thumbnailView.isInvisible = false
+        if (!snapshot.bitmap.isRecycled) {
+            thumbnailView.setImageBitmap(snapshot.bitmap)
+            thumbnailView.isInvisible = false
+        }
     }
 
     fun setImageMatrix(matrix: Matrix) {
