@@ -1,59 +1,54 @@
-<b>Expressive Launcher 5.1.7 (Build 80) — Your Photo, Your Icon</b>
+<b>Expressive Launcher 5.1.9 QA (Build 82) — Don't Recycle What's Still on Screen</b>
 
-5.1.7 lets you turn any picture into an app icon, hide the small app badge on shortcut icons, and open Google's Create My Widget from the widget picker. Backup weather now shows the temperature unit you chose on your phone.
+5.1.9 fixes a Recents crash introduced in 5.1.8 (81) where Overview cards could throw <code>Canvas: trying to use a recycled bitmap</code> after Android 17 delivered an updated task snapshot.
 
 ───────────────────────
 
 <b>✨ What's New &amp; Improved</b>
 
-<b>1. 🖼️ Make an app icon from your own image</b>
-• <b>Before</b>: the icon picker only offered icons from icon packs.
-• <b>Now</b>: pick <b>From an image</b> in the icon picker, choose a photo with Android's photo picker (no storage permission needed), then drag and pinch to frame a square. The icon takes your icon shape and keeps working after the photo is deleted. Layout backups carry your image icons. This is a Pro feature, like the other custom icons.
+<b>1. 🛠️ Fix Recents recycled-bitmap crash (5.1.8 regression)</b>
+• <b>Before</b>: in 5.1.8 (81), <code>RecentsModel.onTaskSnapshotChanged()</code> stopped unconditionally reporting snapshots as consumed, while <code>TaskVisualsChangedDelegateImpl</code> (and <code>RecentsView</code> on the legacy path) still returned <code>null</code> after handing the incoming <code>ThumbnailData</code> to <code>TasksRepository</code>. Whenever Android 17 delivered an updated snapshot for a visible Recents card that was not currently in the 3-slot <code>TaskThumbnailCache</code> (for example after LRU eviction, memory trim, or <code>lastActiveTime</code> invalidation), <code>TaskStackChangeListeners</code> immediately recycled the live <code>Bitmap</code> right before <code>TaskThumbnailView</code>'s <code>FixedSizeImageView</code> drew it—crashing the launcher with <code>Canvas: trying to use a recycled bitmap</code>.
+• <b>Now</b>: <code>TaskVisualsChangeListener</code>, <code>TaskVisualsChangedDelegateImpl</code>, <code>TasksRepository</code>, and <code>RecentsView</code> accurately report <code>true</code> whenever they retain a task snapshot, so live Recents card bitmaps are never prematurely recycled, while genuinely unused snapshots are still freed immediately.
 
-<b>2. 🔘 Hide the app badge on shortcut icons</b>
-• <b>Before</b>: shortcuts an app adds to Home always carried a small round icon of that app.
-• <b>Now</b>: turn off <b>Show app badge on shortcuts</b> in Settings &gt; Icons &amp; appearance to remove it from pinned shortcuts, the long-press list and the drag preview. It applies at once and is on by default.
-
-<b>3. 🌡️ Backup weather in your temperature unit</b>
-• <b>Before</b>: Backup weather picked Fahrenheit or Celsius from the phone's country alone, so a phone set to English (United States) showed Fahrenheit even with Celsius chosen.
-• <b>Now</b>: it follows the temperature you chose under Settings &gt; System &gt; Languages &gt; Regional preferences, and only falls back to the country's habit when you chose none.
-
-<b>4. 🧩 Create My Widget from the widget picker</b>
-• <b>Before</b>: the widget picker had no way into Google's Create My Widget.
-• <b>Now</b>: on Pixels that have Create My Widget, a <b>Create</b> button sits at the top of the widget picker. Build your widget there and it is added to Home when you finish. The button only shows when the phone has an app that offers it.
+<b>2. 🛡️ Defense-in-depth guards for Recents thumbnails</b>
+• <b>Before</b>: <code>TaskUiStateMapper</code>, <code>TaskThumbnailView</code>, <code>TaskThumbnailCache</code>, and <code>TaskThumbnailViewDeprecated</code> only checked for <code>null</code> bitmaps without checking <code>isRecycled</code>, and <code>TaskThumbnailView.resetViews()</code> cleared its <code>ImageView</code> with <code>setImageBitmap(null)</code> (which still leaves an empty <code>BitmapDrawable</code>).
+• <b>Now</b>: all four layers guard against recycled bitmaps (falling back cleanly to the task's background color or a cache miss), and <code>TaskThumbnailView.resetViews()</code> clears its drawable with <code>setImageDrawable(null)</code>.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>🖼️ <i>Your cat can finally be the icon for the camera app. It was always in charge of it anyway.</i></blockquote>
+<blockquote>♻️ <i>Being eco-friendly is great—just maybe wait until the Recents card is off screen before tossing its bitmap in the recycling bin.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Thanks</b>: the Celsius report came from a tester in our Telegram group, a day after Backup weather shipped.
-• <b>Validation</b>: see Verification &amp; Technical Details below.
-• <b>Developer Support</b>: Expressive Pro is available as a one-time $4.99 purchase. Every dollar funds the build servers, test devices and signing pipeline that keep Expressive fast, independent and ad-free.
+• <b>Thanks</b>: huge thanks to the Pixel 11 Pro XL tester on ExpressiveOS 1.3 who sent over the exact bug report and stack trace from <code>5.1.8 (81)</code>—it pinpointed the 9-layer Recents view hierarchy and the regression immediately.
+• <b>Free Core &amp; Developer Support</b>: Expressive Core continues to ship all core daily-driver launcher functionality for free. Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I was a photo this morning and a doorway to an app by lunch. What am I?</i></blockquote>
+<blockquote><i>I live in a tray of three, show you where you just were, and ruin the whole frame if someone recycles me too soon. What am I?</i></blockquote>
 
-<tg-spoiler><b>Your new app icon!</b> Pick From an image in the icon picker in 5.1.7. 🖼️</tg-spoiler>
+<tg-spoiler><b>A Recents task thumbnail!</b> 5.1.9 keeps active card bitmaps out of the recycling bin until nobody is drawing them. 🖼️</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Technical Details</b>
-• <b>Launcher Version</b>: <code>5.1.7</code> (Build <code>80</code>), QA channel
-• <b>Source revision</b>: <code>4c8dc97ca6281cb2d68c977f88f96844c95a5398</code>
-• <b>APK SHA-256</b>: <code>3f1881268c667ec2771eeb9bc1976307471e23a1a0808581c041e0950e89ab6b</code>
-• <b>Validation</b>: Jenkins QA build #36 passed 705 unit tests and its automated device checks on the pinned Android 17 emulator, including an upgrade over 5.1.5 (79) with the same signing key. Expressive Core passed the same checks. The Create button was checked by hand on a Pixel 11 Pro XL, where it opened Create My Widget and the finished widget was added to Home. Backup weather in Celsius is covered by a unit test and has not been checked on a phone yet.
+• <b>Launcher Version</b>: <code>5.1.9</code> (Build <code>82</code>), QA channel
+• <b>Source revision</b>: <code>374cc47748da826d6efa069e3afd50233e527c95</code>
+• <b>Full APK SHA-256</b>: <code>493c173f82ae7fa6fc3259c19cbbd18f48d72a8aaaf499eb10f271cbe7c9643c</code>
+• <b>Expressive Core APK SHA-256</b>: <code>1942020c7e9ef62b6c13a9f5a0e5a3c4f3a2cb2b8916c09b65a87de08d4f69e3</code>
+• <b>Validation</b>: Jenkins QA build #38 passed all 758 unit tests (including 3 new regression tests reproducing and verifying the <code>5.1.8</code> snapshot-recycling crash and recycled-bitmap guards) plus automated quiesced ADB upgrade and smoke checks on the pinned Android 17 emulator (<code>CP41.260831.015</code>, SDK 37)—upgrading in-place over <code>5.1.8 (81)</code> with the same signing key, retaining preferences, and finishing with zero fatal crashes or ANRs. Expressive Core passed the same emulator upgrade and smoke suite. Physical-device privileged Quickstep verification on <code>kodiak</code> / ExpressiveOS 1.3 has not been run yet—please share feedback if you hit anything on device.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
+• <b>Upstream Attribution</b>: Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
 
 🔗 <b>Links &amp; Downloads</b>:
-• <b>Download</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.7-80">Expressive Launcher 5.1.7 on GitHub</a>
+• <b>Download (Full QA)</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.9-82">Expressive Launcher 5.1.9 on GitHub</a>
+• <b>Download (Expressive Core)</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-core-v5.1.9-82">Expressive Launcher Core 5.1.9 on GitHub</a>
 • <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
+• <b>Telegram Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>
