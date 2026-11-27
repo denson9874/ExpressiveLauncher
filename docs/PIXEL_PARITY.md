@@ -4,6 +4,34 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Material 3 Expressive 5.2 cohesion upgrade across Settings, popups, sheets, search and Recents — 2026-11-26 (candidate 5.2.0 / code 83)
+
+Source: ExpressiveOS 2.0 Material 3 Expressive unified design-token audit.
+
+1. **Settings Dashboard & Monet Expressive DNA.** Clean installs of the `expressive` flavor now
+   default `color_style` to `ColorStyle.Expressive` (`ThemeStyle.EXPRESSIVE`) while preserving
+   existing user selections. `PreferenceGroup`, `LazyColumnPreferenceGroup` (`PreferenceGroupItem`),
+   and `ReorderablePreferenceGroup` are unified on `24dp` outer / `4dp` inner segmented cards with
+   `2dp` tonal gaps and zero hairline dividers. `Type.kt` fixes `displaySmall` and `headlineSmall`
+   to use `GoogleSansFlex` small optical-size axes (`36sp` / `24sp`), and `SliderPreference` +
+   `FolderWidgetSettingsSheet` use tabular numerals (`tnum`) with outcome-gated discrete step MSDL
+   ticks instead of per-pixel drag vibration.
+2. **Segmented `24dp` / `4dp` shortcut popups, spring motion & WCAG frosted glass.** Multi-row deep
+   shortcuts and system shortcuts in `PopupContainerWithArrow` / `ArrowPopup` now render as `24dp`
+   outer / `4dp` inner segmented cards with `2dp` transparent gaps instead of a flat un-segmented
+   wrapper, open with `SpringAnimationBuilder` spatial physics (`stiffness = 420f`,
+   `damping = 0.72f`), and raise `BackdropGlass` piece alpha floors from `72%` to `78%` (light) /
+   `82%` (dark) for WCAG 2.2 AA contrast.
+3. **`28dp` sheets, pill search/actions, Recents overview pills & Reduced Motion.** Upgraded
+   `lawnchair_dialog_corner_radius`, `default_dialog_corner_radius`, and `ComposeBottomSheet` top
+   corners to `28dp` (matching inner widget cards), fixed `ComposeBottomSheet` dark-mode nav-bar
+   icon contrast, upgraded Widget Picker's search bar and *Create* button plus All Apps / Widget
+   Picker Personal/Work tabs (`100dp`) and Recents Overview Action buttons (`1000dp`) to full M3
+   Expressive pills with `80%`/`84%` WCAG blur scrims, spring press scale (`0.94f -> 1.0f`), and
+   MSDL tap haptics. Enforced `ValueAnimator.areAnimatorsEnabled()` (`ANIMATOR_DURATION_SCALE == 0f`)
+   instant transitions across `ArrowPopup`, `Folder`, `AbstractSlideInView`, `AllAppsSearchInput`,
+   `LawnQsbUi`, `ExpandAndShrink`, and `MainSwitchPreference`.
+
 ## Frosted glass on Android 17 QPR2 and drawer search bar cutout clearance — 2026-10-30 (unreleased)
 
 Source: Android 17 QPR2 (API 37.2) backdrop blur APIs announced at Android Dev Summit 2026-10-29;
