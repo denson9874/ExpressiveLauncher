@@ -51,6 +51,7 @@ class ThemeProvider @Inject constructor(
     private var colorStyle: ColorStyle = preferenceManager2.colorStyle.firstCached()
 
     private val colorSchemeMap = HashMap<Pair<Int, Style>, ColorScheme>()
+    private var systemOverlayColorScheme: ColorScheme? = null
     private val listeners = mutableListOf<ColorSchemeChangeListener>()
     private val wallpaperColorsListener = object : WallpaperManagerCompat.OnColorsChangedListener {
         override fun onColorsChanged() {
@@ -61,7 +62,7 @@ class ThemeProvider @Inject constructor(
     }
     private val overlayChangedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            colorSchemeMap[Pair(0, Style.TONAL_SPOT)] = SystemColorScheme(context)
+            systemOverlayColorScheme = SystemColorScheme(context)
             if (accentColor is ColorOption.SystemAccent) {
                 notifyColorSchemeChanged()
             }
@@ -71,7 +72,7 @@ class ThemeProvider @Inject constructor(
 
     init {
         if (Utilities.ATLEAST_S) {
-            colorSchemeMap[Pair(0, Style.TONAL_SPOT)] = SystemColorScheme(context)
+            systemOverlayColorScheme = SystemColorScheme(context)
             registerOverlayChangedListener()
         }
         wallpaperManager.addOnChangeListener(wallpaperColorsListener)
@@ -114,7 +115,12 @@ class ThemeProvider @Inject constructor(
     }
 
     private val systemColorScheme get() = when {
-        Utilities.ATLEAST_S -> getColorScheme(0, colorStyle.style)
+        Utilities.ATLEAST_S -> {
+            systemOverlayColorScheme ?: SystemColorScheme(context).also {
+                systemOverlayColorScheme = it
+            }
+        }
+
         else -> getColorScheme(context.getSystemAccent(darkTheme = false), colorStyle.style)
     }
 
@@ -152,6 +158,7 @@ class ThemeProvider @Inject constructor(
             overlayReceiverRegistered = false
         }
         listeners.clear()
+        systemOverlayColorScheme = null
         colorSchemeMap.clear()
     }
 
