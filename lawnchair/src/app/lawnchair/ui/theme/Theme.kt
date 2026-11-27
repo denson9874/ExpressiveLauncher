@@ -45,6 +45,7 @@ import app.lawnchair.preferences.observeAsState
 import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.preferences2.asState
 import app.lawnchair.preferences2.preferenceManager2
+import app.lawnchair.theme.PureBlackTheme
 import app.lawnchair.theme.ThemeProvider
 import app.lawnchair.theme.color.ColorOption
 import app.lawnchair.theme.toComposeColorScheme
@@ -102,30 +103,46 @@ fun getColorScheme(darkTheme: Boolean): ColorScheme {
     val colorStyle by preferenceManager2.colorStyle.asState()
     val themeProvider = remember(context) { ThemeProvider.INSTANCE.get(context) }
     var themeRevision by remember(themeProvider) { mutableIntStateOf(0) }
+    var pureBlackEnabled by remember(context) { mutableStateOf(PureBlackTheme.isEnabled(context)) }
 
-    DisposableEffect(themeProvider) {
+    DisposableEffect(themeProvider, context) {
         val listener = ThemeProvider.ColorSchemeChangeListener {
+            pureBlackEnabled = PureBlackTheme.isEnabled(context)
             themeRevision++
         }
         themeProvider.addListener(listener)
-        onDispose { themeProvider.removeListener(listener) }
+        val pureBlackObserver = PureBlackTheme.registerObserver(context) {
+            pureBlackEnabled = PureBlackTheme.isEnabled(context)
+            themeRevision++
+        }
+        onDispose {
+            themeProvider.removeListener(listener)
+            PureBlackTheme.unregisterObserver(context, pureBlackObserver)
+        }
     }
 
-    if (shouldUseDynamicSystemColorScheme(Build.VERSION.SDK_INT, accentColor)) {
-        return remember(context, darkTheme, themeRevision, uiMode) {
+    val baseColorScheme = if (shouldUseDynamicSystemColorScheme(Build.VERSION.SDK_INT, accentColor)) {
+        remember(context, darkTheme, themeRevision, uiMode) {
             if (darkTheme) {
                 dynamicDarkColorScheme(context)
             } else {
                 dynamicLightColorScheme(context)
             }
         }
+    } else {
+        val colorScheme = remember(themeProvider, accentColor, colorStyle.style, themeRevision) {
+            themeProvider.colorScheme
+        }
+        colorScheme.toComposeColorScheme(isDark = darkTheme)
     }
 
-    val colorScheme = remember(themeProvider, accentColor, colorStyle.style, themeRevision) {
-        themeProvider.colorScheme
+    return remember(baseColorScheme, darkTheme, pureBlackEnabled) {
+        PureBlackTheme.applyToComposeColorScheme(
+            colorScheme = baseColorScheme,
+            darkTheme = darkTheme,
+            pureBlackEnabled = pureBlackEnabled,
+        )
     }
-
-    return colorScheme.toComposeColorScheme(isDark = darkTheme)
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

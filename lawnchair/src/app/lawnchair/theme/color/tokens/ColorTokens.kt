@@ -126,7 +126,10 @@ object ColorTokens {
 
     @JvmField val AllAppsScrimColor = StaticColorToken(0x404040).setAlpha(.40f)
 
-    @JvmField val AllAppsTabBackground = DayNightColorToken(Neutral1_100, Neutral1_800.setLStar(22.0))
+    @JvmField val AllAppsTabBackground = DayNightColorToken(
+        Neutral1_100,
+        SystemSurfaceColorToken(SystemSurfaceRole.SURFACE_CONTAINER_HIGH_DARK, Neutral1_800.setLStar(22.0)),
+    )
 
     @JvmField val AllAppsTabBackgroundSelected = DayNightColorToken(Accent1_600, Accent1_200)
 

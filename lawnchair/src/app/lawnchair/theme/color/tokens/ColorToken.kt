@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
+import app.lawnchair.theme.PureBlackTheme
 import app.lawnchair.theme.ResourceToken
 import app.lawnchair.theme.ThemeProvider
 import app.lawnchair.theme.UiColorMode
@@ -147,6 +148,9 @@ data class SystemSurfaceColorToken(
 ) : ColorToken {
 
     override fun resolve(context: Context, scheme: ColorScheme, uiColorMode: UiColorMode): Color {
+        if (PureBlackTheme.isEnabled(context)) {
+            PureBlackTheme.resolveDarkSurfaceColor(role)?.let { return AndroidColor(it) }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && scheme is SystemColorScheme) {
             resolveSystemSurface(context, role)?.let { return it }
         }

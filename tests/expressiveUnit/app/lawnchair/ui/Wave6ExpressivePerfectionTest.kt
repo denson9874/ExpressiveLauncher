@@ -23,13 +23,19 @@ import android.graphics.Color
 import android.graphics.Path
 import android.os.Build
 import android.os.Looper
+import android.provider.Settings
 import android.view.View
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.text.font.FontListFontFamily
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.test.core.app.ApplicationProvider
 import app.lawnchair.LawnchairApp
 import app.lawnchair.LawnchairLauncher
+import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.qsb.resolveQsbStrokeColor
+import app.lawnchair.theme.PureBlackTheme
+import app.lawnchair.theme.ThemeProvider
 import app.lawnchair.theme.UiColorMode
 import app.lawnchair.theme.buildComposeColorScheme
 import app.lawnchair.theme.color.ColorOption
@@ -52,6 +58,7 @@ import com.android.launcher3.shortcuts.DeepShortcutView
 import com.android.systemui.monet.Style
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.roundToInt
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -82,6 +89,8 @@ class Wave6ExpressivePerfectionTest {
 
     @After
     fun tearDown() {
+        Settings.Secure.putInt(context.contentResolver, PureBlackTheme.SETTING_EOS_BLACK_THEME, 0)
+        Settings.Secure.putInt(context.contentResolver, PureBlackTheme.SETTING_BERRY_BLACK_THEME, 0)
         shadowOf(Looper.getMainLooper()).idle()
         ReflectionHelpers.setStaticField(LawnchairApp::class.java, "instance", null)
     }
@@ -290,5 +299,113 @@ class Wave6ExpressivePerfectionTest {
         val scrim = SysUiScrim(View(launcher))
         val topMask = ReflectionHelpers.getField<Bitmap?>(scrim, "mTopMaskBitmap")
         assertThat(topMask).isNotNull()
+    }
+
+    @Test(timeout = 30_000)
+    fun pureBlackTheme_overridesComposeAndViewSurfacesUnderWallpaperAccent() {
+        val resolver = context.contentResolver
+        assertThat(PureBlackTheme.isEnabled(context)).isFalse()
+
+        val wallpaperMonet = MonetColorSchemeCompat(0xFFB36B00.toInt(), Style.EXPRESSIVE)
+        val baseDark = wallpaperMonet.buildComposeColorScheme(isDark = true)
+        val baseLight = wallpaperMonet.buildComposeColorScheme(isDark = false)
+
+        Settings.Secure.putInt(resolver, PureBlackTheme.SETTING_EOS_BLACK_THEME, 1)
+        assertThat(PureBlackTheme.isEnabled(context)).isTrue()
+
+        val pureBlackDark = PureBlackTheme.applyToComposeColorScheme(
+            colorScheme = baseDark,
+            darkTheme = true,
+            pureBlackEnabled = PureBlackTheme.isEnabled(context),
+        )
+        assertThat(pureBlackDark.background).isEqualTo(ComposeColor(0xFF000000))
+        assertThat(pureBlackDark.surface).isEqualTo(ComposeColor(0xFF000000))
+        assertThat(pureBlackDark.surfaceDim).isEqualTo(ComposeColor(0xFF000000))
+        assertThat(pureBlackDark.surfaceContainerLowest).isEqualTo(ComposeColor(0xFF000000))
+        assertThat(pureBlackDark.surfaceContainerLow).isEqualTo(ComposeColor(0xFF0D0D0D))
+        assertThat(pureBlackDark.surfaceContainer).isEqualTo(ComposeColor(0xFF141414))
+        assertThat(pureBlackDark.surfaceContainerHigh).isEqualTo(ComposeColor(0xFF1C1C1C))
+        assertThat(pureBlackDark.surfaceContainerHighest).isEqualTo(ComposeColor(0xFF242424))
+        assertThat(pureBlackDark.surfaceBright).isEqualTo(ComposeColor(0xFF2C2C2C))
+        assertThat(pureBlackDark.outline).isEqualTo(ComposeColor(0xFF8E9099))
+        assertThat(pureBlackDark.outlineVariant).isEqualTo(ComposeColor(0xFF3A3C42))
+        // Accent hues from WallpaperPrimary stay intact on top of Pure Black surfaces.
+        assertThat(pureBlackDark.primary).isEqualTo(baseDark.primary)
+        assertThat(pureBlackDark.secondary).isEqualTo(baseDark.secondary)
+        assertThat(pureBlackDark.tertiary).isEqualTo(baseDark.tertiary)
+
+        // Light mode is never blackened when eos_black_theme=1.
+        assertThat(
+            PureBlackTheme.applyToComposeColorScheme(
+                colorScheme = baseLight,
+                darkTheme = false,
+                pureBlackEnabled = true,
+            ),
+        ).isEqualTo(baseLight)
+
+        // View ColorTokens resolve the monotonic Pure Black ramp even under WallpaperPrimary Monet scheme.
+        assertThat(ColorTokens.ColorBackground.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE)
+        assertThat(ColorTokens.Surface.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE)
+        assertThat(ColorTokens.SurfaceContainerLow.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE_CONTAINER_LOW)
+        assertThat(ColorTokens.SurfaceContainer.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE_CONTAINER)
+        assertThat(ColorTokens.SurfaceContainerHigh.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE_CONTAINER_HIGH)
+        assertThat(ColorTokens.SurfaceContainerHighest.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE_CONTAINER_HIGHEST)
+        assertThat(ColorTokens.SurfaceBrightColor.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE_BRIGHT)
+        assertThat(ColorTokens.WidgetListRowColor.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE_CONTAINER_HIGH)
+        assertThat(ColorTokens.AllAppsTabBackground.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE_CONTAINER_HIGH)
+
+        // Disabling eos_black_theme and enabling berry_black_theme fallback still activates Pure Black.
+        Settings.Secure.putInt(resolver, PureBlackTheme.SETTING_EOS_BLACK_THEME, 0)
+        assertThat(PureBlackTheme.isEnabled(context)).isFalse()
+        assertThat(ColorTokens.ColorBackground.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isNotEqualTo(PureBlackTheme.SURFACE)
+
+        Settings.Secure.putInt(resolver, PureBlackTheme.SETTING_BERRY_BLACK_THEME, 1)
+        assertThat(PureBlackTheme.isEnabled(context)).isTrue()
+        assertThat(ColorTokens.ColorBackground.resolveColor(context, wallpaperMonet, UiColorMode.Dark))
+            .isEqualTo(PureBlackTheme.SURFACE)
+    }
+
+    @Test(timeout = 30_000)
+    fun themeProvider_notifiesListenersWhenPureBlackChangesUnderWallpaperAccent() {
+        val prefs2 = PreferenceManager2.getInstance(context)
+        runBlocking {
+            prefs2.preferencesDataStore.edit {
+                it[stringPreferencesKey("accent_color")] = ColorOption.WallpaperPrimary.toString()
+            }
+        }
+        prefs2.refreshCachedPreferences()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val provider = ThemeProvider(context)
+        try {
+            shadowOf(Looper.getMainLooper()).idle()
+            var notifications = 0
+            provider.addListener { notifications++ }
+
+            val uri = Settings.Secure.getUriFor(PureBlackTheme.SETTING_EOS_BLACK_THEME)
+            Settings.Secure.putInt(context.contentResolver, PureBlackTheme.SETTING_EOS_BLACK_THEME, 1)
+            context.contentResolver.notifyChange(uri, null)
+            shadowOf(Looper.getMainLooper()).idle()
+
+            assertThat(notifications).isAtLeast(1)
+        } finally {
+            provider.close()
+            runBlocking {
+                prefs2.preferencesDataStore.edit {
+                    it.remove(stringPreferencesKey("accent_color"))
+                }
+            }
+            prefs2.refreshCachedPreferences()
+        }
     }
 }

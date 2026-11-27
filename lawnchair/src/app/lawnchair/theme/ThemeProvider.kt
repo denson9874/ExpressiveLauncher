@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.os.PatternMatcher
@@ -69,11 +70,18 @@ class ThemeProvider @Inject constructor(
         }
     }
     private var overlayReceiverRegistered = false
+    private var pureBlackObserver: ContentObserver? = null
 
     init {
         if (Utilities.ATLEAST_S) {
             systemOverlayColorScheme = SystemColorScheme(context)
             registerOverlayChangedListener()
+        }
+        pureBlackObserver = PureBlackTheme.registerObserver(context) {
+            if (Utilities.ATLEAST_S) {
+                systemOverlayColorScheme = SystemColorScheme(context)
+            }
+            notifyColorSchemeChanged()
         }
         wallpaperManager.addOnChangeListener(wallpaperColorsListener)
         preferenceManager2.accentColor.onEach(launchIn = coroutineScope) {
@@ -153,6 +161,8 @@ class ThemeProvider @Inject constructor(
     override fun close() {
         coroutineScope.cancel()
         wallpaperManager.removeOnChangeListener(wallpaperColorsListener)
+        PureBlackTheme.unregisterObserver(context, pureBlackObserver)
+        pureBlackObserver = null
         if (overlayReceiverRegistered) {
             context.unregisterReceiver(overlayChangedReceiver)
             overlayReceiverRegistered = false
