@@ -4,6 +4,27 @@ This ledger records verified Pixel Launcher behavior, the public-API-compatible 
 implementation, and validation evidence. Pixel-only private APIs and privileged system behavior are
 out of scope for a third-party HOME app.
 
+## Restore Android 12+ / ExpressiveOS system Monet palette tracking — 2026-11-27 (candidate 5.2.1 / code 84)
+
+Source: Telegram feedback (`@ExpressiveLauncherFeedback` #753, 2026-11-26) reporting ExpressiveOS
+Quick Settings olive system accent mismatched by mint-green/burgundy App Drawer, themed icons, and
+Settings in `5.2.0 (83)`.
+
+1. **SystemColorScheme lookup independent of `color_style`.** Changing `config_default_color_style`
+   to `expressive` in `5.2.0` exposed a latent `ThemeProvider` cache-key bug where
+   `SystemColorScheme(context)` was only cached under `Pair(0, Style.TONAL_SPOT)` while
+   `systemColorScheme` queried `getColorScheme(0, colorStyle.style)`. On Android 12+ with
+   `Accent color = System`, `Pair(0, Style.EXPRESSIVE)` missed and fell through to
+   `MonetColorSchemeCompat(0, Style.EXPRESSIVE)`, where `0` (`Color.TRANSPARENT`) substituted
+   hardcoded `GOOGLE_BLUE` (`0xFF1B6EF3`) rotated by `Style.EXPRESSIVE`. `ThemeProvider` now caches
+   `SystemColorScheme(context)` in `systemOverlayColorScheme` on `Utilities.ATLEAST_S` and returns
+   it for `ColorOption.SystemAccent` regardless of `colorStyle`, while preserving
+   `config_default_color_style = expressive` for `CustomColor` and `WallpaperPrimary`.
+2. **Live `OVERLAY_CHANGED` refresh & regression coverage.** `overlayChangedReceiver` refreshes
+   `systemOverlayColorScheme` directly and notifies listeners so `LawnchairLauncher.updateTheme()`
+   and `AccentColorExtractor` track OS palette updates. Added `ThemeProviderSystemPaletteTest`
+   (SDK 36 & 37, real `ThemeProvider`); audited and closed shipped GitHub issues `#73` and `#74`.
+
 ## Material 3 Expressive 5.2 cohesion upgrade across Settings, popups, sheets, search and Recents — 2026-11-26 (candidate 5.2.0 / code 83)
 
 Source: ExpressiveOS 2.0 Material 3 Expressive unified design-token audit.

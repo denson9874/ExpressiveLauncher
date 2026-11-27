@@ -1,0 +1,4 @@
+Expressive Launcher 5.2.1
+• System Accent Fix: restore Android 12+ and ExpressiveOS system Monet palette tracking when Accent color is set to System
+• Live System Theme Updates: refresh the cached system palette on overlay changes across App Drawer, themed icons, search bar, and Settings
+• Custom Color Styles: keep default M3 Expressive style for Custom and Wallpaper accents without affecting System mode
