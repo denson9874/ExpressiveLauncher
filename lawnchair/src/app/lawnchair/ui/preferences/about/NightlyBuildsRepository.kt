@@ -292,8 +292,8 @@ internal class NightlyBuildsRepository(
                         requests.isCurrent(download.generation) &&
                         validatedDownload == download
                     ) {
-                        updateState.update { UpdateState.Failed }
                         discardCompletedDownload()
+                        updateState.update { UpdateState.Failed }
                     }
                 }
                 return@launch
