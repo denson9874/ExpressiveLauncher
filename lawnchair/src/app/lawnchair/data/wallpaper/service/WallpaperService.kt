@@ -4,10 +4,15 @@ import android.annotation.SuppressLint
 import android.app.WallpaperManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Environment
 import android.util.Log
 import androidx.core.graphics.drawable.toBitmap
 import androidx.room.withTransaction
+import kotlin.math.roundToInt
 import app.lawnchair.data.AppDatabase
 import app.lawnchair.data.wallpaper.Wallpaper
 import app.lawnchair.util.bitmapToByteArray
@@ -68,17 +73,61 @@ class WallpaperService @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun getCurrentWallpaperIfAuthorized(wallpaperManager: WallpaperManager) = if (canCaptureCurrentWallpaper()) {
+    private fun getCurrentWallpaperIfAuthorized(
+        wallpaperManager: WallpaperManager,
+        which: Int = WallpaperManager.FLAG_SYSTEM,
+    ): Drawable? = if (canCaptureCurrentWallpaper()) {
         // The call is guarded by the exact platform grants. Keep the suppression local because
         // lint cannot propagate the permission contract through Environment's app-op check.
         try {
-            wallpaperManager.drawable
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                wallpaperManager.getDrawable(which)
+            } else if (which == WallpaperManager.FLAG_SYSTEM) {
+                wallpaperManager.drawable
+            } else {
+                null
+            }
         } catch (exception: SecurityException) {
             Log.w("WallpaperService", "Wallpaper access changed during capture", exception)
+            null
+        } catch (exception: RuntimeException) {
+            Log.w("WallpaperService", "Wallpaper preview capture failed", exception)
             null
         }
     } else {
         null
+    }
+
+    /**
+     * Loads a downscaled thumbnail of the active static wallpaper when the platform has granted
+     * wallpaper read access (e.g. privileged ROM integration or existing storage manager grant).
+     * Returns null safely on unrooted devices without requesting permissions.
+     */
+    fun loadCurrentWallpaperPreview(
+        wallpaperManager: WallpaperManager,
+        which: Int,
+        reqWidth: Int,
+        reqHeight: Int,
+    ): Drawable? {
+        val drawable = getCurrentWallpaperIfAuthorized(wallpaperManager, which) ?: return null
+        if (reqWidth <= 0 || reqHeight <= 0) return drawable
+        val intrinsicWidth = drawable.intrinsicWidth
+        val intrinsicHeight = drawable.intrinsicHeight
+        if (intrinsicWidth <= 0 || intrinsicHeight <= 0) return drawable
+        val scale = maxOf(
+            reqWidth.toFloat() / intrinsicWidth.toFloat(),
+            reqHeight.toFloat() / intrinsicHeight.toFloat(),
+        ).coerceAtMost(1f)
+        val targetWidth = (intrinsicWidth * scale).roundToInt().coerceAtLeast(1)
+        val targetHeight = (intrinsicHeight * scale).roundToInt().coerceAtLeast(1)
+        return runCatching {
+            val bitmap = drawable.toBitmap(
+                width = targetWidth,
+                height = targetHeight,
+                config = Bitmap.Config.RGB_565,
+            )
+            BitmapDrawable(context.resources, bitmap)
+        }.getOrDefault(drawable)
     }
 
     private fun calculateChecksum(imageData: ByteArray): String {

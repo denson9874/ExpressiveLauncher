@@ -41,6 +41,8 @@ data class OverviewProfile(
                     res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_menu_drawable_touch_size)
                 else res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_size)
             val taskMarginPx = res.getDimensionPixelSize(R.dimen.overview_task_margin)
+            val iconMenuSnapshotGapPx =
+                res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_menu_snapshot_gap)
             return OverviewProfile(
                 taskMarginPx = taskMarginPx,
                 taskIconSizePx = taskIconSizePx,
@@ -49,7 +51,8 @@ data class OverviewProfile(
                 taskIconDrawableSizeGridPx =
                     res.getDimensionPixelSize(R.dimen.task_thumbnail_icon_drawable_size_grid),
                 taskThumbnailTopMarginPx =
-                    if (enableOverviewIconMenu()) 0 else taskIconSizePx + taskMarginPx,
+                    if (enableOverviewIconMenu()) taskIconSizePx + iconMenuSnapshotGapPx
+                    else taskIconSizePx + taskMarginPx,
                 // Don't add margin with floating search bar to minimize risk of overlapping.
                 actionsTopMarginPx =
                     if (Flags.floatingSearchBar()) 0

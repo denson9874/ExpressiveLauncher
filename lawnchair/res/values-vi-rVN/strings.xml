@@ -750,8 +750,8 @@
     <string name="custom_search_label">Tên công cụ tìm kiếm</string>
     <string name="custom_search_url">URL công cụ tìm kiếm</string>
     <string name="custom_search_suggestions_url">URL gợi ý tìm kiếm</string>
-    <string name="custom_search_input_hint">&#37; sẽ được thay thế bằng truy vấn tìm kiếm</string>
-    <string name="custom_search_suggestions_hint">&#37; sẽ được thay thế bằng truy vấn tìm kiếm. Kết quả phải ở định dạng JSON OpenSearch.</string>
+    <string name="custom_search_input_hint" formatted="false">&#37;s sẽ được thay thế bằng truy vấn tìm kiếm</string>
+    <string name="custom_search_suggestions_hint" formatted="false">&#37;s sẽ được thay thế bằng truy vấn tìm kiếm. Kết quả phải ở định dạng JSON OpenSearch.</string>
     <!-- Labels of each search result types -->
     <string name="show_search_result_types">Hiển thị trong kết quả tìm kiếm</string>
     <string name="search_pref_result_apps_and_shortcuts_title">Ứng dụng và phím tắt</string>

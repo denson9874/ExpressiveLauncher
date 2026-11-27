@@ -434,7 +434,7 @@ public class RecyclerViewFastScroller extends View {
         }
         int saveCount = canvas.save();
         int thumbCenterX = getWidth() / 2;
-        if (usesTransientAllAppsScrollbar()) {
+        if (usesEndInsetScrollbarPosition()) {
             int endInset = getResources().getDimensionPixelSize(R.dimen.fastscroll_end_inset);
             thumbCenterX = Utilities.isRtl(getResources()) ? endInset : getWidth() - endInset;
         }
@@ -498,6 +498,17 @@ public class RecyclerViewFastScroller extends View {
     private boolean usesTransientAllAppsScrollbar() {
         return BuildConfig.STANDARD_HOME_ONLY
                 && mFastScrollerLocation == FastScrollerLocation.ALL_APPS_SCROLLER;
+    }
+
+    /**
+     * Expressive overlays a 48dp end hit lane on both All Apps and Widgets without reserving
+     * grid/card width. Drawing the track/thumb at {@code fastscroll_end_inset} keeps the visual
+     * scrollbar inside the outer sheet gutter instead of cutting across card edges.
+     */
+    private boolean usesEndInsetScrollbarPosition() {
+        return usesTransientAllAppsScrollbar()
+                || (BuildConfig.STANDARD_HOME_ONLY
+                        && mFastScrollerLocation == FastScrollerLocation.WIDGET_SCROLLER);
     }
 
     private void revealTransientScrollbar() {

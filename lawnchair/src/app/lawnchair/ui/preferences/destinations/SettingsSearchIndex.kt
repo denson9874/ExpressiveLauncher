@@ -38,6 +38,7 @@ import app.lawnchair.ui.preferences.navigation.HomeScreenGrid
 import app.lawnchair.ui.preferences.navigation.HomeScreenPopupEditor
 import app.lawnchair.ui.preferences.navigation.Predictions
 import app.lawnchair.ui.preferences.navigation.PreferenceRoute
+import app.lawnchair.ui.preferences.navigation.Quickstep
 import app.lawnchair.ui.preferences.navigation.Search
 import app.lawnchair.ui.preferences.navigation.SearchProviderPreference
 import app.lawnchair.ui.preferences.navigation.Smartspace
@@ -77,6 +78,7 @@ data class SettingsSearchProduct(
     val standardHomeOnly: Boolean,
     val expressive: Boolean,
     val expressiveCore: Boolean = false,
+    val recentsEnabled: Boolean = false,
 ) {
     companion object {
         val Expressive = SettingsSearchProduct(standardHomeOnly = true, expressive = true)
@@ -91,6 +93,7 @@ data class SettingsSearchProduct(
             standardHomeOnly = BuildConfig.STANDARD_HOME_ONLY,
             expressive = BuildConfig.IS_EXPRESSIVE_PRODUCT,
             expressiveCore = BuildConfig.EXPRESSIVE_CORE,
+            recentsEnabled = isQuickstepSettingsVisible(),
         )
     }
 }
@@ -107,6 +110,7 @@ enum class SettingsSearchPage(@StringRes val label: Int, val route: PreferenceRo
     DOCK(R.string.dock_label, Dock),
     FOLDERS(R.string.folders_label, Folders),
     GESTURES(R.string.gestures_label, Gestures),
+    QUICKSTEP(R.string.quickstep_label, Quickstep),
     BACKUP_AND_RESTORE(R.string.backup_and_restore_label, BackupAndRestore),
     ABOUT(R.string.about_label, About),
 }
@@ -115,6 +119,7 @@ enum class SettingsSearchPage(@StringRes val label: Int, val route: PreferenceRo
 enum class SettingsSearchAvailability(private val appliesTo: (SettingsSearchProduct) -> Boolean) {
     EVERYWHERE({ true }),
     NOT_STANDARD_HOME({ !it.standardHomeOnly }),
+    QUICKSTEP_ENABLED({ it.recentsEnabled }),
     EXPRESSIVE_ONLY({ it.expressive }),
     UPSTREAM_ONLY({ !it.expressive }),
     NON_CORE_ONLY({ !it.expressiveCore }),
@@ -374,6 +379,67 @@ object SettingsSearchIndex {
             entry(R.string.gesture_home_tap, keywords = "home tap, press home")
             entry(R.string.gesture_back_tap, keywords = "back tap")
             entry(R.string.sleep_mode_label, keywords = "lock screen, screen off, accessibility, double tap")
+        }
+
+        page(SettingsSearchPage.QUICKSTEP) {
+            entry(
+                R.string.quickstep_label,
+                R.string.quickstep_description,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, recent apps, taskbar, quickswitch",
+            )
+            entry(
+                R.string.translucent_background,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, blur, transparency, quickstep",
+            )
+            entry(
+                R.string.translucent_background_alpha,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, opacity, transparency, quickstep",
+            )
+            entry(
+                R.string.action_screenshot,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, actions, quickstep",
+            )
+            entry(
+                R.string.action_share,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, actions, quickstep",
+            )
+            entry(
+                R.string.action_lens,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, actions, google lens, quickstep",
+            )
+            entry(
+                R.string.recents_lock_unlock,
+                R.string.recents_lock_unlock_description,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, pin app, lock app, quickstep",
+            )
+            entry(
+                R.string.recents_clear_all,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, close all, actions, quickstep",
+            )
+            entry(
+                R.string.override_window_corner_radius_label,
+                R.string.window_corner_radius_description,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, rounded corners, quickstep",
+            )
+            entry(
+                R.string.window_corner_radius_label,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "recents, overview, rounded corners, quickstep",
+            )
+            entry(
+                R.string.enable_taskbar_experimental,
+                availability = SettingsSearchAvailability.QUICKSTEP_ENABLED,
+                keywords = "taskbar, phone taskbar, recents, quickstep",
+            )
         }
 
         page(SettingsSearchPage.BACKUP_AND_RESTORE) {

@@ -218,14 +218,12 @@ public class WidgetsFullSheet extends BaseWidgetSheet
     protected void onFinishInflate() {
         super.onFinishInflate();
         mContent = findViewById(R.id.container);
-        mContent.setBackground(DrawableTokens.BgWidgetsFullSheet.resolve(getContext()));
+        setContentBackgroundWithParent(DrawableTokens.BgWidgetsFullSheet.resolve(getContext()),
+                mContent);
 
         View collapseHandle = findViewById(R.id.collapse_handle);
         collapseHandle.setBackgroundColor(ColorTokens.TextColorSecondary.resolveColor(getContext()));
 
-        mContent = findViewById(R.id.container);
-        setContentBackgroundWithParent(getContext().getDrawable(R.drawable.bg_widgets_full_sheet),
-                mContent);
         mContent.setOutlineProvider(mViewOutlineProvider);
         mContent.setClipToOutline(true);
         setupSheet();
@@ -261,7 +259,7 @@ public class WidgetsFullSheet extends BaseWidgetSheet
                 new android.graphics.drawable.GradientDrawable();
         pillBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         pillBg.setCornerRadius(1000f * dp);
-        pillBg.setColor(ColorTokens.Surface.resolveColor(context));
+        pillBg.setColor(ColorTokens.SurfaceContainerHigh.resolveColor(context));
         android.graphics.drawable.GradientDrawable pillMask =
                 new android.graphics.drawable.GradientDrawable();
         pillMask.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
@@ -330,6 +328,13 @@ public class WidgetsFullSheet extends BaseWidgetSheet
                 R.id.widget_recommendations_container);
         mWidgetRecommendationsView = mSearchScrollView.findViewById(
                 R.id.widget_recommendations_view);
+        if (mWidgetRecommendationsContainer != null) {
+            mWidgetRecommendationsContainer.setBackground(
+                    DrawableTokens.WidgetsRecommendationBackground.resolve(getContext()));
+        }
+        if (mWidgetRecommendationsView != null) {
+            mWidgetRecommendationsView.setBackground(null);
+        }
         // To save the currently displayed page, so that, it can be requested when rebinding
         // recommendations with different size constraints.
         mWidgetRecommendationsView.addPageSwitchListener(

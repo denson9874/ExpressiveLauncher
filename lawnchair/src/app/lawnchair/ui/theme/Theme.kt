@@ -17,6 +17,7 @@
 package app.lawnchair.ui.theme
 
 import android.graphics.Color
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -24,18 +25,20 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import app.lawnchair.preferences.observeAsState
@@ -43,6 +46,7 @@ import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.preferences2.asState
 import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.theme.ThemeProvider
+import app.lawnchair.theme.color.ColorOption
 import app.lawnchair.theme.toComposeColorScheme
 import app.lawnchair.ui.preferences.components.ThemeChoice
 import app.lawnchair.wallpaper.WallpaperManagerCompat
@@ -67,40 +71,58 @@ fun LawnchairTheme(
 @Composable
 fun ComponentActivity.EdgeToEdge() {
     val darkTheme = isSelectedThemeDark
-    val scrimColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f).toArgb()
-    val contentColor = MaterialTheme.colorScheme.onSurface.toArgb()
 
     LaunchedEffect(darkTheme) {
-        val statusBarStyle = SystemBarStyle.auto(
+        val barStyle = SystemBarStyle.auto(
             Color.TRANSPARENT,
             Color.TRANSPARENT,
             detectDarkMode = { darkTheme },
         )
 
-        val navigationBarStyle = if (!darkTheme) {
-            SystemBarStyle.light(scrimColor, contentColor)
-        } else {
-            SystemBarStyle.dark(scrimColor)
-        }
-
         enableEdgeToEdge(
-            statusBarStyle = statusBarStyle,
-            navigationBarStyle = navigationBarStyle,
+            statusBarStyle = barStyle,
+            navigationBarStyle = barStyle,
         )
     }
 }
+
+internal fun shouldUseDynamicSystemColorScheme(
+    sdkInt: Int,
+    accentColor: ColorOption,
+): Boolean = sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && accentColor is ColorOption.SystemAccent
 
 @Composable
 fun getColorScheme(darkTheme: Boolean): ColorScheme {
     if (LocalInspectionMode.current) return getPreviewColorScheme(darkTheme)
 
     val context = LocalContext.current
+    val uiMode = LocalConfiguration.current.uiMode
     val preferenceManager2 = preferenceManager2()
     val accentColor by preferenceManager2.accentColor.asState()
     val colorStyle by preferenceManager2.colorStyle.asState()
+    val themeProvider = remember(context) { ThemeProvider.INSTANCE.get(context) }
+    var themeRevision by remember(themeProvider) { mutableIntStateOf(0) }
 
-    val colorScheme = remember(accentColor, colorStyle.style) {
-        ThemeProvider.INSTANCE.get(context).colorScheme
+    DisposableEffect(themeProvider) {
+        val listener = ThemeProvider.ColorSchemeChangeListener {
+            themeRevision++
+        }
+        themeProvider.addListener(listener)
+        onDispose { themeProvider.removeListener(listener) }
+    }
+
+    if (shouldUseDynamicSystemColorScheme(Build.VERSION.SDK_INT, accentColor)) {
+        return remember(context, darkTheme, themeRevision, uiMode) {
+            if (darkTheme) {
+                dynamicDarkColorScheme(context)
+            } else {
+                dynamicLightColorScheme(context)
+            }
+        }
+    }
+
+    val colorScheme = remember(themeProvider, accentColor, colorStyle.style, themeRevision) {
+        themeProvider.colorScheme
     }
 
     return colorScheme.toComposeColorScheme(isDark = darkTheme)

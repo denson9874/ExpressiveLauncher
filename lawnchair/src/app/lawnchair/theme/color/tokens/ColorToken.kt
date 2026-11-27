@@ -1,12 +1,17 @@
 package app.lawnchair.theme.color.tokens
 
 import android.content.Context
+import android.content.res.Resources
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import app.lawnchair.theme.ResourceToken
 import app.lawnchair.theme.ThemeProvider
 import app.lawnchair.theme.UiColorMode
 import app.lawnchair.theme.color.AndroidColor
+import app.lawnchair.theme.color.SystemColorScheme
 import app.lawnchair.theme.toAndroidColor
 import com.android.launcher3.R
 import com.android.launcher3.util.Themes
@@ -118,6 +123,57 @@ class WithContextColorToken(
 
     override fun resolve(context: Context, scheme: ColorScheme, uiColorMode: UiColorMode): Color {
         return transform(token, context).resolve(context, scheme, uiColorMode)
+    }
+}
+
+enum class SystemSurfaceRole {
+    SURFACE_LIGHT,
+    SURFACE_DARK,
+    SURFACE_DIM_DARK,
+    SURFACE_BRIGHT_DARK,
+    SURFACE_CONTAINER_LOW_LIGHT,
+    SURFACE_CONTAINER_LOW_DARK,
+    SURFACE_CONTAINER_LIGHT,
+    SURFACE_CONTAINER_DARK,
+    SURFACE_CONTAINER_HIGH_LIGHT,
+    SURFACE_CONTAINER_HIGH_DARK,
+    SURFACE_CONTAINER_HIGHEST_LIGHT,
+    SURFACE_CONTAINER_HIGHEST_DARK,
+}
+
+data class SystemSurfaceColorToken(
+    private val role: SystemSurfaceRole,
+    private val fallback: ColorToken,
+) : ColorToken {
+
+    override fun resolve(context: Context, scheme: ColorScheme, uiColorMode: UiColorMode): Color {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && scheme is SystemColorScheme) {
+            resolveSystemSurface(context, role)?.let { return it }
+        }
+        return fallback.resolve(context, scheme, uiColorMode)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun resolveSystemSurface(context: Context, role: SystemSurfaceRole): AndroidColor? {
+        val resId = when (role) {
+            SystemSurfaceRole.SURFACE_LIGHT -> android.R.color.system_surface_light
+            SystemSurfaceRole.SURFACE_DARK -> android.R.color.system_surface_dark
+            SystemSurfaceRole.SURFACE_DIM_DARK -> android.R.color.system_surface_dim_dark
+            SystemSurfaceRole.SURFACE_BRIGHT_DARK -> android.R.color.system_surface_bright_dark
+            SystemSurfaceRole.SURFACE_CONTAINER_LOW_LIGHT -> android.R.color.system_surface_container_low_light
+            SystemSurfaceRole.SURFACE_CONTAINER_LOW_DARK -> android.R.color.system_surface_container_low_dark
+            SystemSurfaceRole.SURFACE_CONTAINER_LIGHT -> android.R.color.system_surface_container_light
+            SystemSurfaceRole.SURFACE_CONTAINER_DARK -> android.R.color.system_surface_container_dark
+            SystemSurfaceRole.SURFACE_CONTAINER_HIGH_LIGHT -> android.R.color.system_surface_container_high_light
+            SystemSurfaceRole.SURFACE_CONTAINER_HIGH_DARK -> android.R.color.system_surface_container_high_dark
+            SystemSurfaceRole.SURFACE_CONTAINER_HIGHEST_LIGHT -> android.R.color.system_surface_container_highest_light
+            SystemSurfaceRole.SURFACE_CONTAINER_HIGHEST_DARK -> android.R.color.system_surface_container_highest_dark
+        }
+        return try {
+            AndroidColor(ContextCompat.getColor(context, resId))
+        } catch (_: Resources.NotFoundException) {
+            null
+        }
     }
 }
 

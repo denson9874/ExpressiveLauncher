@@ -82,6 +82,8 @@
     <dimen name="task_thumbnail_icon_menu_app_icon_expanded_size">32dp</dimen>
     <!--  The size of the icon menu's icon touch target  -->
     <dimen name="task_thumbnail_icon_menu_drawable_touch_size">44dp</dimen>
+    <!-- Vertical clearance between the floating app chip pill and the rounded task snapshot card. -->
+    <dimen name="task_thumbnail_icon_menu_snapshot_gap">10dp</dimen>
     <dimen name="task_thumbnail_icon_menu_elevation">4dp</dimen>
     <dimen name="app_chip_round_corner_radius">28dp</dimen>
     <!--  The size of the text fading horizontally -->

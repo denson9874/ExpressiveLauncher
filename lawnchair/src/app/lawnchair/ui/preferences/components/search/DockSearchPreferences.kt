@@ -39,6 +39,7 @@ import app.lawnchair.qsb.providers.Google
 import app.lawnchair.qsb.providers.PixelSearch
 import app.lawnchair.qsb.providers.QsbSearchProvider
 import app.lawnchair.qsb.rememberHotseatQsbState
+import app.lawnchair.qsb.resolveQsbStrokeColor
 import app.lawnchair.theme.UiColorMode
 import app.lawnchair.theme.color.ColorOption
 import app.lawnchair.theme.color.tokens.ColorTokens
@@ -224,8 +225,11 @@ private fun DockSearchBarPreview(
                     cornerRadius = cornerRadiusFactor,
                     backgroundAlpha = transparency,
                     strokeWidth = strokeWidth,
-                    // Use light color as strokeColor is a static color that doesn't use darkColor
-                    strokeColor = strokeColor.colorPreferenceEntry.lightColor.invoke(context),
+                    strokeColor = resolveQsbStrokeColor(
+                        context = context,
+                        strokeColorOption = strokeColor,
+                        isDark = isSelectedThemeDark,
+                    ),
                 ),
                 actions = QsbActions(
                     onQsbClick = {},

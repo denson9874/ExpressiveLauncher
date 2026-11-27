@@ -202,6 +202,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         hint = ViewCompat.requireViewById(this, R.id.hint)
 
         input = ViewCompat.requireViewById(this, R.id.input)
+        input.setHint(R.string.all_apps_search_bar_hint)
+        input.setHintTextColor(ColorTokens.TextColorSecondary.resolveColor(context))
 
         qsbShell = ViewCompat.requireViewById(this, R.id.qsb_shell)
 
@@ -343,7 +345,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                     animatePadding(currentPaddingLeft, currentPaddingRight)
                 }
                 focusedResultTitle = ""
-                input.setHint("")
+                input.setHint(R.string.all_apps_search_bar_hint)
                 hint.text = ""
             }
 

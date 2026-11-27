@@ -784,7 +784,8 @@ class PortraitPagedViewHandler : DefaultPagedViewHandler(), RecentsPagedOrientat
                             )
                             .toInt()
                     secondaryAppChipView.setSplitTranslationY(
-                        (primarySnapshotHeight +
+                        (deviceProfile.overviewProfile.taskThumbnailTopMarginPx +
+                                primarySnapshotHeight +
                                 (if (deviceProfile.deviceProperties.isTablet) 0
                                 else dividerThickness))
                             .toFloat()

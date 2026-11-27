@@ -63,6 +63,8 @@ import com.android.launcher3.widget.model.WidgetsListHeaderEntry;
 import java.util.Collections;
 import java.util.List;
 
+import app.lawnchair.theme.drawable.DrawableTokens;
+
 /**
  * Popup for showing the full list of available widgets with a two-pane layout.
  */
@@ -133,6 +135,13 @@ public class WidgetsTwoPaneSheet extends WidgetsFullSheet {
                 R.id.widget_recommendations_container);
         mWidgetRecommendationsView = mContent.findViewById(
                 R.id.widget_recommendations_view);
+        if (mWidgetRecommendationsContainer != null) {
+            mWidgetRecommendationsContainer.setBackground(
+                    DrawableTokens.WidgetsRecommendationBackground.resolve(getContext()));
+        }
+        if (mWidgetRecommendationsView != null) {
+            mWidgetRecommendationsView.setBackground(null);
+        }
         mWidgetRecommendationsView.initParentViews(mWidgetRecommendationsContainer);
         mWidgetRecommendationsView.setWidgetCellLongClickListener(this);
         mWidgetRecommendationsView.setWidgetCellOnClickListener(this);

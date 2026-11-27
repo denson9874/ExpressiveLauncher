@@ -44,6 +44,7 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
     private var labelledDrawablePadding = 0
     private var iconOnly = false
     private val minimumGap = resources.getDimensionPixelSize(R.dimen.overview_actions_min_gap)
+    private val iconOnlyMinWidth = resources.getDimensionPixelSize(R.dimen.overview_actions_height)
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -160,8 +161,8 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
             button.contentDescription = if (iconOnly) label else null
             button.tooltipText = if (iconOnly) label else null
             button.compoundDrawablePadding = if (iconOnly) 0 else labelledDrawablePadding
-            button.minWidth = if (iconOnly) 0 else labelledMinWidth
-            button.minimumWidth = if (iconOnly) 0 else labelledMinimumWidth
+            button.minWidth = if (iconOnly) iconOnlyMinWidth else labelledMinWidth
+            button.minimumWidth = if (iconOnly) iconOnlyMinWidth else labelledMinimumWidth
         }
     }
 

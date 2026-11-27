@@ -379,7 +379,7 @@ fun FolderWidgetSettingsSheet(
                     val radiusInDp = (currentRadius / density).roundToInt()
                     StyleSliderRow(
                         label = stringResource(R.string.folder_widget_corner_radius),
-                        valueText = "$radiusInDp dp",
+                        valueText = stringResource(R.string.n_dp, radiusInDp),
                         value = currentRadius.coerceIn(0f, maxRadiusPx),
                         valueRange = 0f..maxRadiusPx,
                         onValueChange = { newRadius ->

@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
 import android.view.Gravity
@@ -217,15 +218,32 @@ class WallpaperCarouselView @JvmOverloads constructor(
         if (!useQpr2HomeMenu) addPreviewLabel(cardView, item.labelResId)
         if (index == currentItemIndex) addIconFrameToCenter(cardView)
 
+        val requestWidth = cardView.layoutParams?.width?.takeIf { it > 0 } ?: 0
+        val requestHeight = height.takeIf { it > 0 }
+            ?: resources.getDimensionPixelSize(R.dimen.wallpaper_carousel_height)
+
         // Both getWallpaperColors() and live-thumbnail loading may use IPC/package I/O. Android's
         // API documentation explicitly warns not to request wallpaper colors on the UI thread.
         renderScope.launch {
             val preview = withContext(Dispatchers.IO) {
                 val liveThumbnail = runCatching {
-                    wallpaperManager.getWallpaperInfo(item.which)
-                        ?.loadThumbnail(context.packageManager)
+                    val wallpaperInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        wallpaperManager.getWallpaperInfo(item.which)
+                    } else if (item.which == WallpaperManager.FLAG_SYSTEM) {
+                        wallpaperManager.wallpaperInfo
+                    } else {
+                        null
+                    }
+                    wallpaperInfo?.loadThumbnail(context.packageManager)
                 }.getOrNull()
-                liveThumbnail ?: createColorPreview(item.which)
+                liveThumbnail
+                    ?: wallpaperService.loadCurrentWallpaperPreview(
+                        wallpaperManager = wallpaperManager,
+                        which = item.which,
+                        reqWidth = requestWidth,
+                        reqHeight = requestHeight,
+                    )
+                    ?: createColorPreview(item.which)
             }
             imageView.setImageDrawable(preview)
         }

@@ -167,7 +167,7 @@ class ThemeProvider @Inject constructor(
         val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getThemeProvider)
     }
 
-    sealed interface ColorSchemeChangeListener {
+    fun interface ColorSchemeChangeListener {
         fun onColorSchemeChanged()
     }
 }

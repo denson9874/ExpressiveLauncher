@@ -1,9 +1,15 @@
 package app.lawnchair.ui.popup
 
+import android.content.Context
+import android.content.res.Configuration
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
+import androidx.annotation.ColorInt
+import app.lawnchair.preferences.PreferenceManager
+import app.lawnchair.theme.UiColorMode
+import app.lawnchair.theme.color.tokens.ColorTokens
+import app.lawnchair.ui.preferences.components.ThemeChoice
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import com.android.launcher3.shortcuts.DeepShortcutView
@@ -29,13 +35,42 @@ internal data class HomeMenuCarouselPlan(val currentPreviews: Int, val savedPrev
 /** QPR2 shows the current home wallpaper, then recent ones; there is no separate lock preview. */
 internal fun homeMenuCarouselPlan(savedCount: Int): HomeMenuCarouselPlan = HomeMenuCarouselPlan(currentPreviews = 1, savedPreviews = savedCount.coerceIn(0, HOME_MENU_MAX_RECENT_WALLPAPERS))
 
+internal data class HomeMenuColors(
+    @param:ColorInt val surface: Int,
+    @param:ColorInt val onSurface: Int,
+)
+
+internal fun isQpr2HomeMenuDark(
+    themeChoice: String,
+    systemDark: Boolean,
+): Boolean = when (themeChoice) {
+    ThemeChoice.LIGHT -> false
+    ThemeChoice.DARK -> true
+    else -> systemDark
+}
+
+internal fun resolveQpr2HomeMenuColors(context: Context): HomeMenuColors {
+    val themeChoice = PreferenceManager.getInstance(context).launcherTheme.get()
+    val systemDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+        Configuration.UI_MODE_NIGHT_YES
+    val colorMode = if (isQpr2HomeMenuDark(themeChoice, systemDark)) {
+        UiColorMode.Dark
+    } else {
+        UiColorMode.Light
+    }
+    return HomeMenuColors(
+        surface = ColorTokens.SurfaceContainerHigh.resolveColor(context, colorMode),
+        onSurface = ColorTokens.TextColorPrimary.resolveColor(context, colorMode),
+    )
+}
+
 /** Draws the popup as a single tinted card: rows sit directly on it with no gaps or shadows. */
 internal fun applyQpr2HomeMenuStyle(popup: ViewGroup) {
     val context = popup.context
-    val onSurface = ContextCompat.getColor(context, R.color.expressive_home_menu_on_surface)
+    val colors = resolveQpr2HomeMenuColors(context)
     popup.background = GradientDrawable().apply {
         cornerRadius = context.resources.getDimension(R.dimen.expressive_home_menu_corner_radius)
-        setColor(ContextCompat.getColor(context, R.color.expressive_home_menu_surface))
+        setColor(colors.surface)
     }
     popup.clipToOutline = true
     val verticalPadding = context.resources.getDimensionPixelSize(R.dimen.expressive_home_menu_vertical_padding)
@@ -46,8 +81,8 @@ internal fun applyQpr2HomeMenuStyle(popup: ViewGroup) {
         child.elevation = 0f
         (child.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
         if (child is DeepShortcutView) {
-            child.bubbleText.setTextColor(onSurface)
-            child.iconView.background?.mutate()?.setTint(onSurface)
+            child.bubbleText.setTextColor(colors.onSurface)
+            child.iconView.background?.mutate()?.setTint(colors.onSurface)
             child.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         }
     }

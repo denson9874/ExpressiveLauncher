@@ -19,16 +19,25 @@ package com.android.launcher3.shortcuts;
 import android.content.Context;
 import android.content.pm.ShortcutInfo;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+import androidx.core.graphics.ColorUtils;
 
 import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.Launcher;
@@ -145,7 +154,7 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
         mInfo = info;
         mDetail = detail;
         mBubbleText.applyFromWorkspaceItem(info);
-        mIconView.setBackground(mBubbleText.getIcon());
+        mIconView.setBackground(guardLowContrastShortcutIcon(getContext(), mBubbleText.getIcon()));
 
         // Use the long label as long as it exists and fits.
         CharSequence longLabel = mDetail.getLongLabel();
@@ -159,6 +168,115 @@ public class DeepShortcutView extends FrameLayout implements BubbleTextHolder {
         mBubbleText.setOnClickListener(container.getItemClickListener());
         mBubbleText.setOnLongClickListener(container.getItemDragHandler());
         mBubbleText.setOnTouchListener(container.getItemDragHandler());
+    }
+
+    private static final int ICON_CONTRAST_SAMPLE_SIZE = 16;
+
+    @VisibleForTesting
+    public static final int LOW_CONTRAST_NONE = 0;
+
+    @VisibleForTesting
+    public static final int LOW_CONTRAST_WHITE_GLYPH = 1;
+
+    @VisibleForTesting
+    public static final int LOW_CONTRAST_WHITE_SOLID = 2;
+
+    /**
+     * Classifies whether a sampled shortcut icon is effectively white-on-white or white-monochrome
+     * so light popup surfaces can add a subtle tonal container backing without touching colorful icons.
+     */
+    @VisibleForTesting
+    public static int classifyLowContrastIcon(@Nullable Bitmap bitmap) {
+        if (bitmap == null || bitmap.getWidth() <= 0 || bitmap.getHeight() <= 0) {
+            return LOW_CONTRAST_NONE;
+        }
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int totalPixels = width * height;
+        int opaquePixels = 0;
+        int nearWhitePixels = 0;
+        int contrastingPixels = 0;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int pixel = bitmap.getPixel(x, y);
+                if (Color.alpha(pixel) < 128) {
+                    continue;
+                }
+                opaquePixels++;
+                int r = Color.red(pixel);
+                int g = Color.green(pixel);
+                int b = Color.blue(pixel);
+                int maxChannel = Math.max(r, Math.max(g, b));
+                int minChannel = Math.min(r, Math.min(g, b));
+                int chroma = maxChannel - minChannel;
+                double luminance = ColorUtils.calculateLuminance(pixel);
+                if (luminance > 0.85 && chroma <= 28) {
+                    nearWhitePixels++;
+                }
+                if (luminance < 0.72 || chroma > 28) {
+                    contrastingPixels++;
+                }
+            }
+        }
+        if (opaquePixels == 0) {
+            return LOW_CONTRAST_NONE;
+        }
+        float whiteRatio = nearWhitePixels / (float) opaquePixels;
+        float contrastingRatio = contrastingPixels / (float) opaquePixels;
+        if (whiteRatio < 0.90f || contrastingRatio >= 0.05f) {
+            return LOW_CONTRAST_NONE;
+        }
+        float opaqueRatio = opaquePixels / (float) totalPixels;
+        return opaqueRatio < 0.55f ? LOW_CONTRAST_WHITE_GLYPH : LOW_CONTRAST_WHITE_SOLID;
+    }
+
+    @Nullable
+    @VisibleForTesting
+    static Drawable guardLowContrastShortcutIcon(Context context, @Nullable Drawable icon) {
+        if (icon == null) {
+            return null;
+        }
+        @ColorInt int popupBg = ColorTokens.PopupColorPrimary.resolveColor(context);
+        if (ColorUtils.calculateLuminance(popupBg) <= 0.5) {
+            return icon;
+        }
+        Bitmap sample = Bitmap.createBitmap(
+                ICON_CONTRAST_SAMPLE_SIZE,
+                ICON_CONTRAST_SAMPLE_SIZE,
+                Bitmap.Config.ARGB_8888);
+        int classification;
+        try {
+            Rect savedBounds = icon.copyBounds();
+            Canvas canvas = new Canvas(sample);
+            icon.setBounds(0, 0, ICON_CONTRAST_SAMPLE_SIZE, ICON_CONTRAST_SAMPLE_SIZE);
+            icon.draw(canvas);
+            icon.setBounds(savedBounds);
+            classification = classifyLowContrastIcon(sample);
+        } finally {
+            sample.recycle();
+        }
+        if (classification == LOW_CONTRAST_NONE) {
+            return icon;
+        }
+
+        @ColorInt int onSurface = ColorTokens.TextColorPrimary.resolveColor(context);
+        float density = context.getResources().getDisplayMetrics().density;
+        GradientDrawable backing = new GradientDrawable();
+        backing.setShape(GradientDrawable.OVAL);
+        if (classification == LOW_CONTRAST_WHITE_GLYPH) {
+            backing.setColor(ColorUtils.blendARGB(popupBg, onSurface, 0.72f));
+            LayerDrawable layered = new LayerDrawable(new Drawable[] { backing, icon });
+            int insetPx = Math.max(1, Math.round(3f * density));
+            layered.setLayerInset(1, insetPx, insetPx, insetPx, insetPx);
+            return layered;
+        } else {
+            backing.setColor(ColorUtils.setAlphaComponent(onSurface, 18));
+            backing.setStroke(
+                    Math.max(1, Math.round(1f * density)),
+                    ColorUtils.setAlphaComponent(onSurface, 64));
+            return new LayerDrawable(new Drawable[] { icon, backing });
+        }
     }
 
     /**

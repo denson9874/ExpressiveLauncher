@@ -90,6 +90,8 @@ fun TopBar(
                 Text(
                     text = label,
                     fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             },
             actions = {

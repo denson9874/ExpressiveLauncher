@@ -68,6 +68,7 @@ import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.preferences2.firstCached
 import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.ui.OverflowMenuGrouped
+import app.lawnchair.ui.preferences.LocalIsExpandedScreen
 import app.lawnchair.ui.preferences.components.AnnouncementPreference
 import app.lawnchair.ui.preferences.components.controls.PreferenceCategory
 import app.lawnchair.ui.preferences.components.controls.WarningPreference
@@ -108,6 +109,12 @@ import com.android.launcher3.util.MSDLPlayerWrapper
 import com.android.launcher3.util.PackageManagerHelper
 import com.google.android.msdl.data.model.MSDLToken
 
+internal fun isQuickstepSettingsVisible(
+    isRecentsEnabled: Boolean = LawnchairApp.isRecentsEnabled,
+    standardHomeOnly: Boolean = BuildConfig.STANDARD_HOME_ONLY,
+    isDebug: Boolean = BuildConfig.DEBUG,
+): Boolean = isRecentsEnabled || (!standardHomeOnly && isDebug)
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PreferencesDashboard(
@@ -116,6 +123,7 @@ fun PreferencesDashboard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val isExpandedScreen = LocalIsExpandedScreen.current
     val liveInformationAvailable = LiveInformationAvailability.isAvailable(BuildConfig.STANDARD_HOME_ONLY)
     if (liveInformationAvailable) {
         SyncLiveInformation()
@@ -141,7 +149,7 @@ fun PreferencesDashboard(
         label = stringResource(id = R.string.settings),
         modifier = modifier,
         verticalArrangement = Arrangement.Top,
-        backArrowVisible = false,
+        backArrowVisible = !isExpandedScreen,
         actions = {
             ClickableIcon(
                 imageVector = Icons.Rounded.Search,
@@ -277,8 +285,7 @@ fun PreferencesDashboard(
                     )
 
                     ExpandAndShrink(
-                        visible = !BuildConfig.STANDARD_HOME_ONLY &&
-                            (LawnchairApp.isRecentsEnabled || BuildConfig.DEBUG),
+                        visible = isQuickstepSettingsVisible(),
                     ) {
                         PreferenceCategory(
                             label = stringResource(id = R.string.quickstep_label),

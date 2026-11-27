@@ -118,21 +118,24 @@ public class SysUiScrim implements View.OnAttachStateChangeListener {
 
         mTopMaskHeight = ResourceUtils.pxFromDp(TOP_MASK_HEIGHT_DP, dm);
         mBottomMaskHeight = ResourceUtils.pxFromDp(BOTTOM_MASK_HEIGHT_DP, dm);
-        mHideSysUiScrim = Themes.getAttrBoolean(view.getContext(), R.attr.isWorkspaceDarkText);
+        boolean isWorkspaceDarkText = Themes.getAttrBoolean(view.getContext(), R.attr.isWorkspaceDarkText);
+        mHideSysUiScrim = false;
 
-        mTopMaskBitmap = mHideSysUiScrim ? null
-                : createDitheredAlphaMask(mTopMaskHeight,
-                        new int[] { 0x3DFFFFFF, 0x0AFFFFFF, 0x00FFFFFF },
-                        new float[] { 0f, 0.7f, 1f });
-        mTopMaskPaint.setColor(0xFF222222);
-        mBottomMaskBitmap = mHideSysUiScrim ? null
-                : createDitheredAlphaMask(mBottomMaskHeight,
-                        new int[] { 0x00FFFFFF, 0x2FFFFFFF },
-                        new float[] { 0f, 1f });
-
-        if (!mHideSysUiScrim) {
-            view.addOnAttachStateChangeListener(this);
-        }
+        // Always build both scrim masks so toggling Show top shadow or pairing with a light
+        // wallpaper never leaves mTopMaskBitmap null. Adapt polarity to status-bar icon contrast.
+        int[] topMaskStops = isWorkspaceDarkText
+                ? new int[] { 0x2BFFFFFF, 0x0EFFFFFF, 0x00FFFFFF }
+                : new int[] { 0x38FFFFFF, 0x10FFFFFF, 0x00FFFFFF };
+        mTopMaskBitmap = createDitheredAlphaMask(
+                mTopMaskHeight,
+                topMaskStops,
+                new float[] { 0f, 0.65f, 1f });
+        mTopMaskPaint.setColor(isWorkspaceDarkText ? 0xFFF8F8F8 : 0xFF1A1A1A);
+        mBottomMaskBitmap = createDitheredAlphaMask(
+                mBottomMaskHeight,
+                new int[] { 0x00FFFFFF, 0x2FFFFFFF },
+                new float[] { 0f, 1f });
+        view.addOnAttachStateChangeListener(this);
 
         PreferenceManager2 preferenceManager2 = PreferenceManager2.getInstance(mRoot.getContext());
         PreferenceExtensionsKt.onEach(

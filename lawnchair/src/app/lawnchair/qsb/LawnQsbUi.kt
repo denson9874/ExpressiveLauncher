@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
@@ -53,6 +52,7 @@ import app.lawnchair.qsb.providers.Google
 import app.lawnchair.qsb.providers.GoogleGo
 import app.lawnchair.qsb.providers.PixelSearch
 import app.lawnchair.qsb.providers.QsbSearchProvider
+import app.lawnchair.theme.color.ColorOption
 import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.ui.util.addIf
 import app.lawnchair.ui.util.preview.PreviewLawnchair
@@ -168,6 +168,20 @@ fun buildQsbStyle(
     strokeWidthPx = strokeWidth,
     cornerRadiusPx = getHotseatQsbCornerRadius(context, cornerRadius),
 )
+
+/**
+ * Resolves the QSB outline stroke color for the active light/dark theme polarity.
+ * Returns null for [ColorOption.Default] so [buildQsbStyle] delegates to the theme accent.
+ */
+fun resolveQsbStrokeColor(
+    context: Context,
+    strokeColorOption: ColorOption,
+    isDark: Boolean,
+): Int? {
+    if (strokeColorOption is ColorOption.Default) return null
+    val entry = strokeColorOption.colorPreferenceEntry
+    return if (isDark) entry.darkColor(context) else entry.lightColor(context)
+}
 
 /**
  * Creates and remembers a [QsbState] tailored for the Hotseat (dock) search bar.
@@ -418,16 +432,15 @@ fun LawnQsbUi(
             label = "endIcons",
             contentAlignment = Alignment.CenterEnd,
         ) { icons ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                icons.forEachIndexed { index, icon ->
-                    val isLast = index == icons.lastIndex
+            Row(
+                modifier = Modifier.addIf(icons.isNotEmpty()) { padding(end = 6.dp) },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                icons.forEach { icon ->
                     QsbIcon(
                         icon = icon,
                         shape = shape,
                         onClick = { actions.onEndIconClick(icon.id) },
-                        modifier = Modifier.addIf(isLast) {
-                            offset(x = (-6).dp)
-                        },
                     )
                 }
             }

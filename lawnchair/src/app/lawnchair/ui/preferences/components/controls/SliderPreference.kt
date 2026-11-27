@@ -19,7 +19,6 @@ package app.lawnchair.ui.preferences.components.controls
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
@@ -309,8 +308,7 @@ private fun SliderPreference(
                 valueRange = valueRange,
                 steps = getSteps(valueRange, step),
                 modifier = Modifier
-                    .padding(top = 2.dp, bottom = 8.dp)
-                    .height(24.dp),
+                    .padding(top = 2.dp, bottom = 8.dp),
                 enabled = enabled,
             )
         },

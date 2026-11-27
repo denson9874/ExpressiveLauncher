@@ -40,6 +40,7 @@ import app.lawnchair.qsb.providers.QsbSearchProvider
 import app.lawnchair.ui.preferences.PreferenceActivity
 import app.lawnchair.ui.preferences.navigation.Search
 import app.lawnchair.ui.theme.LawnchairTheme
+import app.lawnchair.ui.theme.isSelectedThemeDark
 import app.lawnchair.util.ProvideLifecycleState
 import app.lawnchair.util.repeatOnAttached
 import com.android.launcher3.BaseActivity
@@ -282,14 +283,18 @@ class LawnQsbLayout(context: Context, attrs: AttributeSet?) : FrameLayout(contex
                             showLens = lensIntent != null,
                         )
 
+                        val strokeColorOption by prefs2.strokeColorStyle.asState()
                         val style = buildQsbStyle(
                             context = LocalContext.current,
                             themed = themed,
                             backgroundColor = getHotseatBackgroundColor(context, themed),
                             backgroundAlpha = prefs.hotseatQsbAlpha.observeAsState().value,
                             cornerRadius = prefs.hotseatQsbCornerRadius.observeAsState().value,
-                            // Use light color as strokeColor is a static color that doesn't use darkColor
-                            strokeColor = prefs2.strokeColorStyle.asState().value.colorPreferenceEntry.lightColor.invoke(context),
+                            strokeColor = resolveQsbStrokeColor(
+                                context = context,
+                                strokeColorOption = strokeColorOption,
+                                isDark = isSelectedThemeDark,
+                            ),
                             strokeWidth = prefs.hotseatQsbStrokeWidth.observeAsState().value,
                         )
 

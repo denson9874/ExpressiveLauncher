@@ -267,7 +267,9 @@ constructor(
         anchorLayoutParams.topMargin = expandedMenuDefaultHeight + menuToChipGap
         menuAnchorView!!.layoutParams = anchorLayoutParams
 
-        // Layout Params for the Menu View (this)
+        // Layout Params for the Menu View (this). In natural orientation the chip floats in the
+        // reserved taskThumbnailTopMarginPx band above the rounded snapshot card (topMargin = 0)
+        // so the collapsed pill clears the app's TopAppBar/Back button by task_thumbnail_icon_menu_snapshot_gap.
         val iconMenuParams = layoutParams as LayoutParams
         iconMenuParams.width = getChipWidth()
         iconMenuParams.height = expandedMenuDefaultHeight
@@ -275,7 +277,7 @@ constructor(
             this,
             iconMenuParams,
             iconMenuMarginTopStart,
-            iconMenuMarginTopStart,
+            if (isLayoutNaturalToLauncher) 0 else iconMenuMarginTopStart,
         )
         layoutParams = iconMenuParams
 

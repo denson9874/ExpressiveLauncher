@@ -31,7 +31,7 @@ object DrawableTokens {
 
     @JvmField
     val BgWidgetsSearchbox = ResourceDrawableToken<GradientDrawable>(R.drawable.bg_widgets_searchbox)
-        .setColor(ColorTokens.Surface)
+        .setColor(ColorTokens.SurfaceContainerHigh)
 
     @JvmField
     val DropTargetBackground = ResourceDrawableToken<Drawable>(R.drawable.drop_target_background)
@@ -79,7 +79,7 @@ object DrawableTokens {
             context,
             R.drawable.bg_widgets_header,
         )
-        unselected?.setTint(ColorTokens.Surface.resolveColor(context, scheme, uiColorMode))
+        unselected?.setTint(ColorTokens.SurfaceContainer.resolveColor(context, scheme, uiColorMode))
 
         val selected = AppCompatResources.getDrawable(
             context,
@@ -102,7 +102,7 @@ object DrawableTokens {
             context,
             R.drawable.bg_widgets_content,
         )
-        unselected?.setTint(ColorTokens.Surface.resolveColor(context, scheme, uiColorMode))
+        unselected?.setTint(ColorTokens.SurfaceContainer.resolveColor(context, scheme, uiColorMode))
 
         val selected = AppCompatResources.getDrawable(
             context,

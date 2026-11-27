@@ -56,7 +56,7 @@ fun PreferenceLayout(
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     scrollState: ScrollState? = rememberScrollState(),
     actions: @Composable RowScope.() -> Unit = {},
-    bottomBar: @Composable () -> Unit = { BottomSpacer() },
+    bottomBar: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     PreferenceScaffold(

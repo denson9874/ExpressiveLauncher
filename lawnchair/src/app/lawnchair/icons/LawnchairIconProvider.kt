@@ -20,11 +20,13 @@ import android.content.pm.PackageItemInfo
 import android.content.res.Resources
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Handler
 import android.os.UserHandle
 import android.os.UserManager
 import android.util.ArrayMap
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import app.lawnchair.data.iconoverride.IconOverrideRepository
 import app.lawnchair.icons.iconpack.IconPack
@@ -157,14 +159,14 @@ class LawnchairIconProvider @Inject constructor(
 
         val themeData = getThemeDataForPackage(packageName)
         val overrideMonochrome = if (explicitOverride?.packPackageName == LAWNICONS_PACKAGE_NAME) {
-            (iconPackIcon as? AdaptiveIconDrawable)?.let { it.monochrome ?: it.foreground } ?: iconPackIcon
+            (iconPackIcon as? AdaptiveIconDrawable)?.let { it.monochromeCompat() ?: it.foreground } ?: iconPackIcon
         } else {
             null
         }
         val monochrome = overrideMonochrome ?: when (packageName) {
             mCalendar?.packageName -> {
                 // Calendar theme maps can be arrays; the platform resolves today's entry.
-                (loadCalendarDrawable(iconDpi, themeData) as? AdaptiveIconDrawable)?.monochrome
+                (loadCalendarDrawable(iconDpi, themeData) as? AdaptiveIconDrawable)?.monochromeCompat()
                     ?: themeData?.loadPaddedDrawable()
             }
 
@@ -174,10 +176,13 @@ class LawnchairIconProvider @Inject constructor(
             }
 
             else -> themeData?.loadPaddedDrawable()
-        } ?: (baseIcon as? AdaptiveIconDrawable)?.monochrome
+        } ?: (baseIcon as? AdaptiveIconDrawable)?.monochromeCompat()
 
         return if (monochrome == null) baseIcon else ThemedIconLayer(baseIcon, monochrome)
     }
+
+    private fun AdaptiveIconDrawable.monochromeCompat(): Drawable? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) monochrome else null
 
     override fun getStateForApp(info: ApplicationInfo?): String {
         val base = super.getStateForApp(info)
@@ -332,7 +337,14 @@ class LawnchairIconProvider @Inject constructor(
             filter.addAction(ACTION_TIME_TICK)
             filter.addAction(ACTION_TIME_CHANGED)
             filter.addAction(ACTION_DATE_CHANGED)
-            context.registerReceiver(this, filter, null, handler)
+            ContextCompat.registerReceiver(
+                context,
+                this,
+                filter,
+                null,
+                handler,
+                ContextCompat.RECEIVER_EXPORTED,
+            )
         }
 
         override fun onReceive(context: Context, intent: Intent) {
@@ -376,7 +388,14 @@ class LawnchairIconProvider @Inject constructor(
             filter.addDataScheme("package")
             // The selected source can change after this receiver is registered.
             // Filter the package in onReceive instead of pinning an old source in the filter.
-            context.registerReceiver(this, filter, null, handler)
+            ContextCompat.registerReceiver(
+                context,
+                this,
+                filter,
+                null,
+                handler,
+                ContextCompat.RECEIVER_EXPORTED,
+            )
         }
 
         override fun onReceive(context: Context, intent: Intent) {

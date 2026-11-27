@@ -751,8 +751,8 @@
     <string name="custom_search_label">Arama motoru adı</string>
     <string name="custom_search_url">Arama motoru URL\'si</string>
     <string name="custom_search_suggestions_url">Arama önerisi URL\'si</string>
-    <string name="custom_search_input_hint">&#37; arama sorgusu ile değiştirilecek</string>
-    <string name="custom_search_suggestions_hint">&#37; arama sorgusu ile değiştirilecek. Sonuçlar JSON OpenSearch biçiminde olmalı.</string>
+    <string name="custom_search_input_hint" formatted="false">&#37;s arama sorgusu ile değiştirilecek</string>
+    <string name="custom_search_suggestions_hint" formatted="false">&#37;s arama sorgusu ile değiştirilecek. Sonuçlar JSON OpenSearch biçiminde olmalı.</string>
     <!-- Labels of each search result types -->
     <string name="show_search_result_types">Arama sonuçlarında göster</string>
     <string name="search_pref_result_apps_and_shortcuts_title">Uygulamalar ve kısayollar</string>

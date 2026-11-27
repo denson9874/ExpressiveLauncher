@@ -19,13 +19,13 @@ package com.android.launcher3.widgetpicker
 import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalView
+import app.lawnchair.ui.theme.LawnchairTheme
+import app.lawnchair.ui.theme.isSelectedThemeDark
 import com.android.launcher3.Launcher
 import com.android.launcher3.R
 import com.android.launcher3.compose.ComposeFacade
@@ -85,14 +85,15 @@ constructor(
                 val scope = rememberCoroutineScope()
                 val view = LocalView.current
 
+                val darkTheme = isSelectedThemeDark
                 val widgetPickerColors =
-                    if (isSystemInDarkTheme()) {
+                    if (darkTheme) {
                         darkWidgetPickerColors()
                     } else {
                         lightWidgetPickerColors()
                     }
 
-                MaterialTheme { // TODO(b/408283627): Use launcher theme.
+                LawnchairTheme(darkTheme = darkTheme) {
                     WidgetPickerTheme(colors = widgetPickerColors) {
                         val eventListeners = remember { callbacks }
                         fullWidgetsCatalog.Content(eventListeners)

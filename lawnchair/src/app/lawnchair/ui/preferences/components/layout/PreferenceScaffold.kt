@@ -19,8 +19,12 @@ package app.lawnchair.ui.preferences.components.layout
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -34,7 +38,7 @@ fun PreferenceScaffold(
     modifier: Modifier = Modifier,
     backArrowVisible: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
-    bottomBar: @Composable () -> Unit = { BottomSpacer() },
+    bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val scrollBehavior = if (isExpandedScreen) TopAppBarDefaults.pinnedScrollBehavior() else TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -50,6 +54,7 @@ fun PreferenceScaffold(
             )
         },
         bottomBar = bottomBar,
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.union(WindowInsets.ime),
     ) {
         content(it)
     }

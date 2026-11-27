@@ -66,6 +66,7 @@
             android:ellipsize="end"
             android:focusableInTouchMode="true"
             android:gravity="start|center"
+            android:hint="@string/all_apps_search_bar_hint"
             android:imeOptions="actionGo|flagNoExtractUi"
             android:inputType="textNoSuggestions"
             android:letterSpacing="-0.01"

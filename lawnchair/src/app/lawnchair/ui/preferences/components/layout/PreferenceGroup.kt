@@ -21,22 +21,26 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import app.lawnchair.ui.theme.ExpressiveGroupShape
+
+internal val LocalInPreferenceGroup = compositionLocalOf { false }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -53,13 +57,51 @@ fun PreferenceGroup(
     ) {
         PreferenceGroupHeading(heading)
 
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .clip(ExpressiveGroupShape),
-            verticalArrangement = Arrangement.spacedBy(itemSpacing),
-        ) {
-            content()
+        CompositionLocalProvider(LocalInPreferenceGroup provides true) {
+            Layout(
+                content = content,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            ) { measurables, constraints ->
+                val childConstraints = constraints.copy(minHeight = 0)
+                val visiblePlaceables = measurables
+                    .map { it.measure(childConstraints) }
+                    .filter { it.height > 0 }
+                val spacingPx = itemSpacing.roundToPx()
+                val width = if (constraints.hasFixedWidth) {
+                    constraints.maxWidth
+                } else {
+                    (visiblePlaceables.maxOfOrNull { it.width } ?: 0)
+                        .coerceIn(constraints.minWidth, constraints.maxWidth)
+                }
+                val totalHeight = if (visiblePlaceables.isEmpty()) {
+                    0
+                } else {
+                    visiblePlaceables.sumOf { it.height } +
+                        spacingPx * (visiblePlaceables.size - 1)
+                }.coerceIn(constraints.minHeight, constraints.maxHeight)
+
+                layout(width, totalHeight) {
+                    var y = 0
+                    val lastIndex = visiblePlaceables.lastIndex
+                    visiblePlaceables.forEachIndexed { index, placeable ->
+                        val (topRadius, bottomRadius) = preferenceGroupItemCornerRadii(
+                            cutTop = index > 0,
+                            cutBottom = index < lastIndex,
+                        )
+                        val itemShape = RoundedCornerShape(
+                            topStart = topRadius,
+                            topEnd = topRadius,
+                            bottomStart = bottomRadius,
+                            bottomEnd = bottomRadius,
+                        )
+                        placeable.placeWithLayer(0, y) {
+                            clip = true
+                            shape = itemShape
+                        }
+                        y += placeable.height + spacingPx
+                    }
+                }
+            }
         }
         PreferenceGroupDescription(description = description, showDescription = showDescription)
     }
@@ -74,8 +116,8 @@ fun PreferenceGroupHeading(
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = modifier
-                .height(48.dp)
-                .padding(horizontal = 32.dp)
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 32.dp, vertical = 8.dp)
                 .fillMaxWidth(),
         ) {
             Text(

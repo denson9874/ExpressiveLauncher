@@ -12,17 +12,23 @@ class MonetColorSchemeCompat(
     val style: Style = Style.TONAL_SPOT,
 ) : ColorScheme() {
 
-    private val scheme = MonetColorScheme(
-        seedColor,
-        style,
-    )
+    override val neutral1: ColorSwatch
+    override val neutral2: ColorSwatch
+    override val accent1: ColorSwatch
+    override val accent2: ColorSwatch
+    override val accent3: ColorSwatch
 
-    override val neutral1: ColorSwatch = mapColors(scheme.neutral1.allShades)
-    override val neutral2: ColorSwatch = mapColors(scheme.neutral2.allShades)
-
-    override val accent1: ColorSwatch = mapColors(scheme.accent1.allShades)
-    override val accent2: ColorSwatch = mapColors(scheme.accent2.allShades)
-    override val accent3: ColorSwatch = mapColors(scheme.accent3.allShades)
+    init {
+        val scheme = MonetColorScheme(
+            seedColor,
+            style,
+        )
+        neutral1 = mapColors(scheme.neutral1.allShades)
+        neutral2 = mapColors(scheme.neutral2.allShades)
+        accent1 = mapColors(scheme.accent1.allShades)
+        accent2 = mapColors(scheme.accent2.allShades)
+        accent3 = mapColors(scheme.accent3.allShades)
+    }
 
     private fun mapColors(colors: List<Int>): Map<Int, Color> {
         val paletteSize = colors.size

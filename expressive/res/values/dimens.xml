@@ -7,4 +7,8 @@
     <dimen name="fastscroll_track_min_width">2dp</dimen>
     <dimen name="fastscroll_track_max_width">4dp</dimen>
     <dimen name="fastscroll_thumb_height">48dp</dimen>
+    <!-- Soften the app-shortcut popup caret into a wider, rounder M3 Expressive pointer. -->
+    <dimen name="popup_arrow_width">16dp</dimen>
+    <dimen name="popup_arrow_height">8dp</dimen>
+    <dimen name="popup_arrow_corner_radius">3dp</dimen>
 </resources>

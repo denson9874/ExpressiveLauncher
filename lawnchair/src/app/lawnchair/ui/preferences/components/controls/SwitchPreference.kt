@@ -106,8 +106,7 @@ fun SwitchPreference(
                 }
                 Switch(
                     modifier = Modifier
-                        .padding(start = if (onClick != null) 12.dp else 0.dp)
-                        .height(24.dp),
+                        .padding(start = if (onClick != null) 12.dp else 0.dp),
                     checked = checked,
                     onCheckedChange = wrappedOnCheckedChange,
                     enabled = enabled,

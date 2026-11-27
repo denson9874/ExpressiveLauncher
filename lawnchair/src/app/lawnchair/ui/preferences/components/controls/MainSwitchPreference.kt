@@ -7,7 +7,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -139,8 +138,7 @@ fun MainSwitchPreference(
             trailingContent = {
                 Switch(
                     modifier = Modifier
-                        .padding(top = contentPadding, bottom = contentPadding, start = contentPadding)
-                        .height(24.dp),
+                        .padding(start = contentPadding, top = 8.dp, bottom = 8.dp),
                     checked = checked,
                     onCheckedChange = wrappedOnCheckedChange,
                     enabled = enabled,

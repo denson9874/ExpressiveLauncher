@@ -18,20 +18,20 @@ package app.lawnchair.ui.preferences.components.layout
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import app.lawnchair.ui.theme.ExpressiveGroupInnerCornerRadius
 
 /***
  * A template used to create most preference-related components in the Preference UI.
@@ -47,7 +47,11 @@ fun PreferenceTemplate(
     description: (@Composable () -> Unit)? = null,
     startWidget: (@Composable () -> Unit)? = null,
     endWidget: (@Composable () -> Unit)? = null,
-    shapes: ListItemShapes = ListItemDefaults.shapes(),
+    shapes: ListItemShapes = if (LocalInPreferenceGroup.current) {
+        ListItemDefaults.shapes().copy(shape = RoundedCornerShape(ExpressiveGroupInnerCornerRadius))
+    } else {
+        ListItemDefaults.shapes()
+    },
     onClick: (() -> Unit)? = null,
     colors: ListItemColors = ListItemDefaults.segmentedColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
