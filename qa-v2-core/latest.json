@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "channel": "qa",
   "packageName": "dev.launcher.expressive.l3",
-  "versionCode": 82,
-  "versionName": "5.1.9",
-  "sha256": "1942020c7e9ef62b6c13a9f5a0e5a3c4f3a2cb2b8916c09b65a87de08d4f69e3",
-  "sizeBytes": 24519031,
-  "apkUrl": "https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-core-v5.1.9-82/ExpressiveLauncherL3-Core-5.1.9-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk",
-  "releaseNotes": "Expressive Launcher 5.1.9 QA build. The exact APK passed the retained automated and emulator QA gates."
+  "versionCode": 83,
+  "versionName": "5.2.0",
+  "sha256": "212f0b95bafc518cdb879208cc92d4315b280c6ee33c6b7b0eac973d11315625",
+  "sizeBytes": 24521083,
+  "apkUrl": "https://github.com/denson9874/ExpressiveLauncher/releases/download/qa-core-v5.2.0-83/ExpressiveLauncherL3-Core-5.2.0-Android17-QPR2-Beta5-Jenkins-QA-release-signed.apk",
+  "releaseNotes": "Expressive Launcher 5.2.0 QA build. The exact APK passed the retained automated and emulator QA gates."
 }
