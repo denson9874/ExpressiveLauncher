@@ -1,0 +1,4 @@
+Expressive Launcher 5.2.0
+• M3 Expressive Settings: 24dp/4dp segmented cards, default Expressive dynamic palette, Google Sans Flex optical sizing, and discrete slider haptics
+• Popups & Sheets: segmented 24dp/4dp app shortcuts with spring scale, 28dp widget/settings sheets, and WCAG 2.2 AA frosted glass contrast
+• Search, Folders & Recents: pill search & Overview action buttons with spring press feedback and full Reduced Motion compliance
