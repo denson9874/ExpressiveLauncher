@@ -1,54 +1,59 @@
-<b>Expressive Launcher 5.1.9 QA (Build 82) — Don't Recycle What's Still on Screen</b>
+<b>Expressive Launcher 5.2.1 QA (Build 84) — System Accent &amp; ExpressiveOS Palette Fix</b>
 
-5.1.9 fixes a Recents crash introduced in 5.1.8 (81) where Overview cards could throw <code>Canvas: trying to use a recycled bitmap</code> after Android 17 delivered an updated task snapshot.
+5.2.1 fixes a <code>5.2.0</code> regression where setting <b>Accent color</b> to <b>System</b> on Android 12+ / ExpressiveOS ignored the system color seed and rendered a hardcoded mint-green/burgundy palette across the App Drawer, themed icons, search bar, and Settings.
 
 ───────────────────────
 
 <b>✨ What's New &amp; Improved</b>
 
-<b>1. 🛠️ Fix Recents recycled-bitmap crash (5.1.8 regression)</b>
-• <b>Before</b>: in 5.1.8 (81), <code>RecentsModel.onTaskSnapshotChanged()</code> stopped unconditionally reporting snapshots as consumed, while <code>TaskVisualsChangedDelegateImpl</code> (and <code>RecentsView</code> on the legacy path) still returned <code>null</code> after handing the incoming <code>ThumbnailData</code> to <code>TasksRepository</code>. Whenever Android 17 delivered an updated snapshot for a visible Recents card that was not currently in the 3-slot <code>TaskThumbnailCache</code> (for example after LRU eviction, memory trim, or <code>lastActiveTime</code> invalidation), <code>TaskStackChangeListeners</code> immediately recycled the live <code>Bitmap</code> right before <code>TaskThumbnailView</code>'s <code>FixedSizeImageView</code> drew it—crashing the launcher with <code>Canvas: trying to use a recycled bitmap</code>.
-• <b>Now</b>: <code>TaskVisualsChangeListener</code>, <code>TaskVisualsChangedDelegateImpl</code>, <code>TasksRepository</code>, and <code>RecentsView</code> accurately report <code>true</code> whenever they retain a task snapshot, so live Recents card bitmaps are never prematurely recycled, while genuinely unused snapshots are still freed immediately.
+<b>1. 🎨 Restore System Accent &amp; ExpressiveOS Monet Palette Tracking (<code>5.2.0</code> regression)</b>
+• <b>Before</b>: <code>5.2.0</code> switched the <code>expressive</code> flavor's default <code>color_style</code> to <code>expressive</code>, exposing a latent cache-key mismatch in <code>ThemeProvider</code> where <code>SystemColorScheme</code> was only stored at <code>Pair(0, Style.TONAL_SPOT)</code>. On Android 12+ with <code>Accent color = System</code>, <code>getColorScheme(0, Style.EXPRESSIVE)</code> missed the cache and constructed <code>MonetColorSchemeCompat(0, Style.EXPRESSIVE)</code>, where <code>0</code> (<code>Color.TRANSPARENT</code>) fell back to hardcoded <code>GOOGLE_BLUE</code> (<code>#1B6EF3</code>) rotated by <code>Style.EXPRESSIVE</code>—causing mint-green accents and burgundy themed-icon circles instead of the OS/eOS system palette.
+• <b>Now</b>: <code>ThemeProvider</code> caches <code>SystemColorScheme(context)</code> in a dedicated <code>systemOverlayColorScheme</code> field on Android 12+ (<code>Utilities.ATLEAST_S</code>) and returns it for <code>ColorOption.SystemAccent</code> regardless of <code>colorStyle</code>, so App Drawer, themed icons, search bar, widgets, and Settings match the system/eOS palette directly.
 
-<b>2. 🛡️ Defense-in-depth guards for Recents thumbnails</b>
-• <b>Before</b>: <code>TaskUiStateMapper</code>, <code>TaskThumbnailView</code>, <code>TaskThumbnailCache</code>, and <code>TaskThumbnailViewDeprecated</code> only checked for <code>null</code> bitmaps without checking <code>isRecycled</code>, and <code>TaskThumbnailView.resetViews()</code> cleared its <code>ImageView</code> with <code>setImageBitmap(null)</code> (which still leaves an empty <code>BitmapDrawable</code>).
-• <b>Now</b>: all four layers guard against recycled bitmaps (falling back cleanly to the task's background color or a cache miss), and <code>TaskThumbnailView.resetViews()</code> clears its drawable with <code>setImageDrawable(null)</code>.
+<b>2. 🔄 Live System Overlay Refresh &amp; Non-System Color Style Preservation</b>
+• <b>Before</b>: <code>overlayChangedReceiver</code> only refreshed <code>colorSchemeMap[Pair(0, Style.TONAL_SPOT)]</code>, so system theme/wallpaper changes never invalidated non-<code>TONAL_SPOT</code> entries, and users who previously tried a custom color style and returned to <b>System</b> remained stuck on the broken fallback.
+• <b>Now</b>: <code>android.intent.action.OVERLAY_CHANGED</code> (for <code>package:android</code>) always refreshes <code>systemOverlayColorScheme</code> and notifies listeners; <b>Custom</b> and <b>Wallpaper</b> accent modes continue to default to M3 Expressive (<code>Style.EXPRESSIVE</code>) and respect user-selected color styles.
+
+<b>3. ✅ OTA Cleanup Race Fix, Regression Coverage &amp; GitHub Issue Closure</b>
+• Fixed a race in <code>NightlyBuildsRepository.installUpdate()</code> so invalid downloaded APKs are deleted before emitting <code>UpdateState.Failed</code>.
+• Added <code>ThemeProviderSystemPaletteTest</code> covering real <code>ThemeProvider</code> resolution (no <code>ShadowThemeProvider</code>) across SDK 36 and SDK 37 for default <code>SystemAccent</code> + <code>Expressive</code>, all <code>ColorStyle</code> values, <code>OVERLAY_CHANGED</code> refresh, and <code>CustomColor</code> → <code>SystemAccent</code> switching.
+• Audited and closed shipped GitHub feature requests <code>#73</code> (custom icons from images) and <code>#74</code> (hide app badge on shortcuts), both shipped since <code>5.1.7 (80)</code>.
 
 ───────────────────────
 
 <b>😄 Launcher Humor</b>
 
-<blockquote>♻️ <i>Being eco-friendly is great—just maybe wait until the Recents card is off screen before tossing its bitmap in the recycling bin.</i></blockquote>
+<blockquote>🎨 <i>When you ask for olive and the launcher hands you mint-green and burgundy, somebody definitely forgot to check the paint swatch.</i></blockquote>
 
 ───────────────────────
 
 <b>💬 Community Notes</b>
-• <b>Thanks</b>: huge thanks to the Pixel 11 Pro XL tester on ExpressiveOS 1.3 who sent over the exact bug report and stack trace from <code>5.1.8 (81)</code>—it pinpointed the 9-layer Recents view hierarchy and the regression immediately.
-• <b>Free Core &amp; Developer Support</b>: Expressive Core continues to ship all core daily-driver launcher functionality for free. Expressive Pro is available as a one-time $4.99 activation. Every dollar directly funds our ongoing tooling and infrastructure expenses—including automated CI/CD servers, dedicated Android 17 testing devices/emulators, signing pipelines, and active continuous development—keeping Expressive fast, independent, and completely ad-free.
+• <b>Thanks</b>: huge thanks to Patrick Braun (<code>@PaddyBraun</code>) in <code>@ExpressiveLauncherFeedback</code> for reporting the <code>5.2.0</code> ExpressiveOS system accent mismatch with Quick Settings, App Drawer, and Launcher Settings screenshots—those screenshots pinned down the exact <code>0 -&gt; GOOGLE_BLUE + Style.EXPRESSIVE</code> code path.
+• <b>Free Core &amp; Developer Support</b>: Expressive Core continues to ship all core daily-driver launcher functionality for free. Expressive Pro is available as a one-time $4.99 activation. Every dollar funds our ongoing build servers, Android 17 test devices/emulators, and signing pipelines—keeping Expressive fast, independent, and completely ad-free.
 
 ───────────────────────
 
 <b>🧩 Release Riddle</b>
 
-<blockquote><i>I live in a tray of three, show you where you just were, and ruin the whole frame if someone recycles me too soon. What am I?</i></blockquote>
+<blockquote><i>I pass zero to a color engine, get Google Blue back, spin it 240 degrees, and turn your olive phone mint and burgundy. What am I?</i></blockquote>
 
-<tg-spoiler><b>A Recents task thumbnail!</b> 5.1.9 keeps active card bitmaps out of the recycling bin until nobody is drawing them. 🖼️</tg-spoiler>
+<tg-spoiler><b>A cache miss on <code>Pair(0, Style.EXPRESSIVE)</code>!</b> 5.2.1 caches <code>SystemColorScheme</code> directly on Android 12+ so System Accent always reads your real OS palette. 🎨</tg-spoiler>
 
 ───────────────────────
 
 <b>🛡️ Verification &amp; Technical Details</b>
-• <b>Launcher Version</b>: <code>5.1.9</code> (Build <code>82</code>), QA channel
-• <b>Source revision</b>: <code>374cc47748da826d6efa069e3afd50233e527c95</code>
-• <b>Full APK SHA-256</b>: <code>493c173f82ae7fa6fc3259c19cbbd18f48d72a8aaaf499eb10f271cbe7c9643c</code>
-• <b>Expressive Core APK SHA-256</b>: <code>1942020c7e9ef62b6c13a9f5a0e5a3c4f3a2cb2b8916c09b65a87de08d4f69e3</code>
-• <b>Validation</b>: Jenkins QA build #38 passed all 758 unit tests (including 3 new regression tests reproducing and verifying the <code>5.1.8</code> snapshot-recycling crash and recycled-bitmap guards) plus automated quiesced ADB upgrade and smoke checks on the pinned Android 17 emulator (<code>CP41.260831.015</code>, SDK 37)—upgrading in-place over <code>5.1.8 (81)</code> with the same signing key, retaining preferences, and finishing with zero fatal crashes or ANRs. Expressive Core passed the same emulator upgrade and smoke suite. Physical-device privileged Quickstep verification on <code>kodiak</code> / ExpressiveOS 1.3 has not been run yet—please share feedback if you hit anything on device.
+• <b>Launcher Version</b>: <code>5.2.1</code> (Build <code>84</code>), QA channel
+• <b>Source revision</b>: <code>210f4cef1d8bf624e363363d8fe3ece648b866b9</code>
+• <b>Full APK SHA-256</b>: <code>cd049c735134be568b8dcd0d9aee71538ab73c838bd52c2d30479e829f2a2369</code>
+• <b>Expressive Core APK SHA-256</b>: <code>8a57237ee150ba581a9f3ffb6dca978d5d570044a15a21474e366a1eec2f58c0</code>
+• <b>Validation</b>: Jenkins QA build #40 passed all 433 CI contract tests, all 771 unit tests across 149 suites (including 6 new <code>ThemeProviderSystemPaletteTest</code> executions across SDK 36 &amp; 37), Android Developer Verification / Play Protect signature clearance, and automated quiesced ADB upgrade &amp; smoke checks on the pinned Android 17 emulator (<code>CP41.260831.015</code>, SDK 37)—upgrading in-place over <code>5.2.0 (83)</code> with the same signing key, retaining preferences, and finishing with zero fatal crashes or ANRs. Expressive Core passed the same emulator upgrade and smoke suite. Physical ExpressiveOS device verification is not yet completed—please report back in <code>@ExpressiveLauncherFeedback</code> once tested on device.
 • <b>Package ID</b>: <code>dev.launcher.expressive.l3</code>
 • <b>Release Certificate SHA-256</b>: <code>C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2</code>
 • <b>Upstream Attribution</b>: Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
 
 🔗 <b>Links &amp; Downloads</b>:
-• <b>Download (Full QA)</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.1.9-82">Expressive Launcher 5.1.9 on GitHub</a>
-• <b>Download (Expressive Core)</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-core-v5.1.9-82">Expressive Launcher Core 5.1.9 on GitHub</a>
+• <b>Download (Full QA)</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.2.1-84">Expressive Launcher 5.2.1 on GitHub</a>
+• <b>Download (Expressive Core)</b>: <a href="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-core-v5.2.1-84">Expressive Launcher Core 5.2.1 on GitHub</a>
 • <b>1-Click Add to Obtainium</b>: Add to Obtainium: <code>obtainium://add/https://github.com/denson9874/ExpressiveLauncher</code>
 • <b>GitHub Repository</b>: <a href="https://github.com/denson9874/ExpressiveLauncher">https://github.com/denson9874/ExpressiveLauncher</a>
 • <b>Telegram Community &amp; Feedback</b>: <a href="https://t.me/ExpressiveLauncherFeedback">@ExpressiveLauncherFeedback</a>

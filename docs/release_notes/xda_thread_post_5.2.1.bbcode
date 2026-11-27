@@ -1,0 +1,87 @@
+[CENTER][SIZE=6][B]Expressive Launcher 5.2.1 QA (Build 84) — System Accent & ExpressiveOS Palette Fix[/B][/SIZE]
+[SIZE=4][I]Official Release Announcement & Download Links[/I][/SIZE][/CENTER]
+
+[HR][/HR]
+
+5.2.1 fixes a [ICODE]5.2.0[/ICODE] regression where setting [B]Accent color[/B] to [B]System[/B] on Android 12+ / ExpressiveOS ignored the system color seed and rendered a hardcoded mint-green/burgundy palette across the App Drawer, themed icons, search bar, and Settings.
+
+[HR][/HR]
+
+[SIZE=5][B]✨ What's New & Improved[/B][/SIZE]
+
+[SIZE=5][B]1. 🎨 Restore System Accent & ExpressiveOS Monet Palette Tracking ([ICODE]5.2.0[/ICODE] regression)[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: [ICODE]5.2.0[/ICODE] switched the [ICODE]expressive[/ICODE] flavor's default [ICODE]color_style[/ICODE] to [ICODE]expressive[/ICODE], exposing a latent cache-key mismatch in [ICODE]ThemeProvider[/ICODE] where [ICODE]SystemColorScheme[/ICODE] was only stored at [ICODE]Pair(0, Style.TONAL_SPOT)[/ICODE]. On Android 12+ with [ICODE]Accent color = System[/ICODE], [ICODE]getColorScheme(0, Style.EXPRESSIVE)[/ICODE] missed the cache and constructed [ICODE]MonetColorSchemeCompat(0, Style.EXPRESSIVE)[/ICODE], where [ICODE]0[/ICODE] ([ICODE]Color.TRANSPARENT[/ICODE]) fell back to hardcoded [ICODE]GOOGLE_BLUE[/ICODE] ([ICODE]#1B6EF3[/ICODE]) rotated by [ICODE]Style.EXPRESSIVE[/ICODE]—causing mint-green accents and burgundy themed-icon circles instead of the OS/eOS system palette.
+[*][B]Now[/B]: [ICODE]ThemeProvider[/ICODE] caches [ICODE]SystemColorScheme(context)[/ICODE] in a dedicated [ICODE]systemOverlayColorScheme[/ICODE] field on Android 12+ ([ICODE]Utilities.ATLEAST_S[/ICODE]) and returns it for [ICODE]ColorOption.SystemAccent[/ICODE] regardless of [ICODE]colorStyle[/ICODE], so App Drawer, themed icons, search bar, widgets, and Settings match the system/eOS palette directly.
+
+[/LIST]
+[SIZE=5][B]2. 🔄 Live System Overlay Refresh & Non-System Color Style Preservation[/B][/SIZE]
+[LIST]
+[*][B]Before[/B]: [ICODE]overlayChangedReceiver[/ICODE] only refreshed [ICODE]colorSchemeMap[Pair(0, Style.TONAL_SPOT)][/ICODE], so system theme/wallpaper changes never invalidated non-[ICODE]TONAL_SPOT[/ICODE] entries, and users who previously tried a custom color style and returned to [B]System[/B] remained stuck on the broken fallback.
+[*][B]Now[/B]: [ICODE]android.intent.action.OVERLAY_CHANGED[/ICODE] (for [ICODE]package:android[/ICODE]) always refreshes [ICODE]systemOverlayColorScheme[/ICODE] and notifies listeners; [B]Custom[/B] and [B]Wallpaper[/B] accent modes continue to default to M3 Expressive ([ICODE]Style.EXPRESSIVE[/ICODE]) and respect user-selected color styles.
+
+[/LIST]
+[SIZE=5][B]3. ✅ OTA Cleanup Race Fix, Regression Coverage & GitHub Issue Closure[/B][/SIZE]
+[LIST]
+[*]Fixed a race in [ICODE]NightlyBuildsRepository.installUpdate()[/ICODE] so invalid downloaded APKs are deleted before emitting [ICODE]UpdateState.Failed[/ICODE].
+[*]Added [ICODE]ThemeProviderSystemPaletteTest[/ICODE] covering real [ICODE]ThemeProvider[/ICODE] resolution (no [ICODE]ShadowThemeProvider[/ICODE]) across SDK 36 and SDK 37 for default [ICODE]SystemAccent[/ICODE] + [ICODE]Expressive[/ICODE], all [ICODE]ColorStyle[/ICODE] values, [ICODE]OVERLAY_CHANGED[/ICODE] refresh, and [ICODE]CustomColor[/ICODE] → [ICODE]SystemAccent[/ICODE] switching.
+[*]Audited and closed shipped GitHub feature requests [ICODE]#73[/ICODE] (custom icons from images) and [ICODE]#74[/ICODE] (hide app badge on shortcuts), both shipped since [ICODE]5.1.7 (80)[/ICODE].
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]😄 Launcher Humor[/B][/SIZE]
+
+[QUOTE]🎨 [I]When you ask for olive and the launcher hands you mint-green and burgundy, somebody definitely forgot to check the paint swatch.[/I][/QUOTE]
+
+[HR][/HR]
+
+[SIZE=5][B]💬 Community Notes[/B][/SIZE]
+
+[LIST]
+[*][B]Thanks[/B]: huge thanks to Patrick Braun ([ICODE]@PaddyBraun[/ICODE]) in [ICODE]@ExpressiveLauncherFeedback[/ICODE] for reporting the [ICODE]5.2.0[/ICODE] ExpressiveOS system accent mismatch with Quick Settings, App Drawer, and Launcher Settings screenshots—those screenshots pinned down the exact [ICODE]0 -> GOOGLE_BLUE + Style.EXPRESSIVE[/ICODE] code path.
+[*][B]Free Core & Developer Support[/B]: Expressive Core continues to ship all core daily-driver launcher functionality for free. Expressive Pro is available as a one-time $4.99 activation. Every dollar funds our ongoing build servers, Android 17 test devices/emulators, and signing pipelines—keeping Expressive fast, independent, and completely ad-free.
+
+[/LIST]
+[HR][/HR]
+
+[SIZE=5][B]🧩 Release Riddle[/B][/SIZE]
+
+[QUOTE][I]I pass zero to a color engine, get Google Blue back, spin it 240 degrees, and turn your olive phone mint and burgundy. What am I?[/I][/QUOTE]
+
+[SPOILER="Tap to reveal answer"][B]A cache miss on [ICODE]Pair(0, Style.EXPRESSIVE)[/ICODE]![/B] 5.2.1 caches [ICODE]SystemColorScheme[/ICODE] directly on Android 12+ so System Accent always reads your real OS palette. 🎨[/SPOILER]
+
+[HR][/HR]
+
+[SIZE=5][B]🛡️ Verification & Technical Details[/B][/SIZE]
+
+[LIST]
+[*][B]Launcher Version[/B]: [ICODE]5.2.1[/ICODE] (Build [ICODE]84[/ICODE]), QA channel
+[*][B]Source revision[/B]: [ICODE]210f4cef1d8bf624e363363d8fe3ece648b866b9[/ICODE]
+[*][B]Full APK SHA-256[/B]: [ICODE]cd049c735134be568b8dcd0d9aee71538ab73c838bd52c2d30479e829f2a2369[/ICODE]
+[*][B]Expressive Core APK SHA-256[/B]: [ICODE]8a57237ee150ba581a9f3ffb6dca978d5d570044a15a21474e366a1eec2f58c0[/ICODE]
+[*][B]Validation[/B]: Jenkins QA build #40 passed all 433 CI contract tests, all 771 unit tests across 149 suites (including 6 new [ICODE]ThemeProviderSystemPaletteTest[/ICODE] executions across SDK 36 & 37), Android Developer Verification / Play Protect signature clearance, and automated quiesced ADB upgrade & smoke checks on the pinned Android 17 emulator ([ICODE]CP41.260831.015[/ICODE], SDK 37)—upgrading in-place over [ICODE]5.2.0 (83)[/ICODE] with the same signing key, retaining preferences, and finishing with zero fatal crashes or ANRs. Expressive Core passed the same emulator upgrade and smoke suite. Physical ExpressiveOS device verification is not yet completed—please report back in [ICODE]@ExpressiveLauncherFeedback[/ICODE] once tested on device.
+[*][B]Package ID[/B]: [ICODE]dev.launcher.expressive.l3[/ICODE]
+[*][B]Release Certificate SHA-256[/B]: [ICODE]C1:41:60:30:6D:5C:05:9B:3D:11:9F:15:FB:74:E0:8C:57:CC:27:23:16:E8:0B:36:E1:92:C7:1D:C9:E4:D0:D2[/ICODE]
+[*][B]Upstream Attribution[/B]: Derived from Lawnchair and AOSP Launcher3; see the repository's license and upstream notices.
+
+[/LIST]
+🔗 [B]Links & Downloads[/B]:
+[LIST]
+[*][B]Download (Full QA)[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.2.1-84"]Expressive Launcher 5.2.1 on GitHub[/URL]
+[*][B]Download (Expressive Core)[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-core-v5.2.1-84"]Expressive Launcher Core 5.2.1 on GitHub[/URL]
+[*][B]1-Click Add to Obtainium[/B]: [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL]
+[*][B]GitHub Repository[/B]: [URL="https://github.com/denson9874/ExpressiveLauncher"]https://github.com/denson9874/ExpressiveLauncher[/URL]
+[*][B]Telegram Community & Feedback[/B]: [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
+
+[HR][/HR]
+[SIZE=5][B]🔗 Downloads & Official Links[/B][/SIZE]
+[LIST]
+[*][B]Direct GitHub Release & Signed APK:[/B] [URL="https://github.com/denson9874/ExpressiveLauncher/releases/tag/qa-v5.2.1-84"]Download Expressive Launcher v5.2.1 (Build 84)[/URL]
+[*][B]In-App Updater:[/B] Automatic update prompt inside Launcher Settings via our verified GitHub feed
+[*][B]1-Click Obtainium Auto-Update:[/B] [URL="obtainium://add/https://github.com/denson9874/ExpressiveLauncher"]Add to Obtainium[/URL] on your Android device for background updates
+[*][B]IzzyOnDroid & FOSS Readiness:[/B] Complete Fastlane metadata and [ICODE].fdroid.yml[/ICODE] configured for F-Droid and IzzyOnDroid inclusion
+[*][B]Telegram Channel:[/B] [URL="https://t.me/ExpressiveGroup"]@ExpressiveGroup[/URL]
+[*][B]Telegram Community & Feedback:[/B] [URL="https://t.me/ExpressiveLauncherFeedback"]@ExpressiveLauncherFeedback[/URL]
+[/LIST]
