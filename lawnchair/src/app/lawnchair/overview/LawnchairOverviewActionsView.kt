@@ -1,7 +1,10 @@
 package app.lawnchair.overview
 
+import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Button
@@ -9,10 +12,17 @@ import android.widget.LinearLayout
 import android.widget.Space
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
+import androidx.dynamicanimation.animation.DynamicAnimation
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.util.isOnePlusStock
+import com.android.launcher3.LauncherAnimUtils.SCALE_PROPERTY
 import com.android.launcher3.R
+import com.android.launcher3.anim.SpringAnimationBuilder
+import com.android.launcher3.util.MSDLPlayerWrapper
 import com.android.quickstep.views.OverviewActionsView
+import com.android.wm.shell.shared.TypefaceUtils
+import com.android.wm.shell.shared.TypefaceUtils.FontFamily
+import com.google.android.msdl.data.model.MSDLToken
 import kotlin.math.ceil
 
 class LawnchairOverviewActionsView @JvmOverloads constructor(
@@ -50,8 +60,28 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
         labelledMinimumWidth = screenshotAction.minimumWidth
         labelledDrawablePadding = screenshotAction.compoundDrawablePadding
 
-        shareAction.setOnClickListener { mCallbacks?.onShare() }
-        lensAction.setOnClickListener { mCallbacks?.onLens() }
+        val pillButtons = listOfNotNull(
+            screenshotAction,
+            shareAction,
+            lensAction,
+            lockedAction,
+            clearAllAction,
+            findViewById<Button>(R.id.action_split),
+            findViewById<Button>(R.id.action_save_app_pair),
+        )
+        pillButtons.forEach { button ->
+            TypefaceUtils.setTypeface(button, FontFamily.GSF_LABEL_LARGE)
+            attachExpressivePillPressFeedback(button)
+        }
+
+        shareAction.setOnClickListener {
+            MSDLPlayerWrapper.INSTANCE.get(context).playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+            mCallbacks?.onShare()
+        }
+        lensAction.setOnClickListener {
+            MSDLPlayerWrapper.INSTANCE.get(context).playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+            mCallbacks?.onLens()
+        }
 
         prefs.recentsActionClearAll.subscribeChanges(this, ::updateVisibilities)
         prefs.recentsActionLens.subscribeChanges(this, ::updateVisibilities)
@@ -156,6 +186,54 @@ class LawnchairOverviewActionsView @JvmOverloads constructor(
     }
 
     override fun setClearAllClickListener(clearAllClickListener: OnClickListener?) {
-        clearAllAction.setOnClickListener(clearAllClickListener)
+        if (clearAllClickListener == null) {
+            clearAllAction.setOnClickListener(null)
+        } else {
+            clearAllAction.setOnClickListener { view ->
+                MSDLPlayerWrapper.INSTANCE.get(context).playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
+                clearAllClickListener.onClick(view)
+            }
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun attachExpressivePillPressFeedback(button: Button) {
+        var activeSpring: ValueAnimator? = null
+        button.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    activeSpring?.cancel()
+                    activeSpring = animateOverviewPillScale(view, PRESSED_PILL_SCALE)
+                }
+
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL,
+                -> {
+                    activeSpring?.cancel()
+                    activeSpring = animateOverviewPillScale(view, 1f)
+                }
+            }
+            false
+        }
+    }
+
+    private fun animateOverviewPillScale(view: View, targetScale: Float): ValueAnimator? {
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            view.scaleX = targetScale
+            view.scaleY = targetScale
+            return null
+        }
+        return SpringAnimationBuilder(context)
+            .setStiffness(450f)
+            .setDampingRatio(0.68f)
+            .setStartValue(view.scaleX)
+            .setEndValue(targetScale)
+            .setMinimumVisibleChange(DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE)
+            .build(view, SCALE_PROPERTY)
+            .also { it.start() }
+    }
+
+    companion object {
+        internal const val PRESSED_PILL_SCALE = 0.94f
     }
 }

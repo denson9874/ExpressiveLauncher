@@ -232,6 +232,8 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         if (mCallbacks == null) {
             return;
         }
+        com.android.launcher3.util.MSDLPlayerWrapper.INSTANCE.get(getContext())
+                .playToken(com.google.android.msdl.data.model.MSDLToken.TAP_MEDIUM_EMPHASIS);
         int id = view.getId();
         if (id == R.id.action_screenshot) {
             mCallbacks.onScreenshot();

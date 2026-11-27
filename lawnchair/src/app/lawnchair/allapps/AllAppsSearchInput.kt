@@ -12,6 +12,7 @@ import android.text.Spanned.SPAN_POINT_MARK
 import android.text.method.TextKeyListener
 import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
+import android.util.FloatProperty
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ViewTreeObserver
@@ -29,6 +30,7 @@ import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
+import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.findViewTreeLifecycleOwner
@@ -68,9 +70,12 @@ import com.android.launcher3.allapps.AllAppsStore
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem
 import com.android.launcher3.allapps.SearchUiManager
 import com.android.launcher3.allapps.search.AllAppsSearchBarController
+import com.android.launcher3.anim.SpringAnimationBuilder
 import com.android.launcher3.search.SearchCallback
+import com.android.launcher3.util.MSDLPlayerWrapper
 import com.android.launcher3.util.Themes
 import com.android.systemui.shared.system.BlurUtils
+import com.google.android.msdl.data.model.MSDLToken
 import java.util.Locale
 import kotlin.math.max
 import kotlinx.coroutines.launch
@@ -269,6 +274,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                         null
                     },
                     onEndIconClick = { id ->
+                        MSDLPlayerWrapper.INSTANCE.get(context).playToken(MSDLToken.TAP_LOW_EMPHASIS)
                         when (id) {
                             QsbIconId.MIC -> voiceIntent?.let { context.startActivity(it) }
 
@@ -391,8 +397,16 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         }
     }
 
+    private var paddingAnimator: ValueAnimator? = null
+
     private fun animateHintVisibility(visible: Boolean) {
         val targetAlpha = if (visible) 1f else 0f
+        hint.animate().cancel()
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            hint.alpha = targetAlpha
+            hint.isVisible = visible
+            return
+        }
         val duration = if (visible) 300L else 200L
 
         if (visible) {
@@ -411,20 +425,36 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     }
 
     private fun animatePadding(newPaddingLeft: Int, newPaddingRight: Int) {
-        val currentPaddingLeft = paddingLeft
-        val currentPaddingRight = paddingRight
-
-        ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 300
-            interpolator = FastOutSlowInInterpolator()
-            addUpdateListener { animation ->
-                val fraction = animation.animatedFraction
-                val leftPadding = currentPaddingLeft + (newPaddingLeft - currentPaddingLeft) * fraction
-                val rightPadding = currentPaddingRight + (newPaddingRight - currentPaddingRight) * fraction
-                setPadding(leftPadding.toInt(), paddingTop, rightPadding.toInt(), paddingBottom)
-            }
-            start()
+        paddingAnimator?.cancel()
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            paddingAnimator = null
+            setPadding(newPaddingLeft, paddingTop, newPaddingRight, paddingBottom)
+            return
         }
+        val startPaddingLeft = paddingLeft
+        val startPaddingRight = paddingRight
+        if (startPaddingLeft == newPaddingLeft && startPaddingRight == newPaddingRight) {
+            return
+        }
+
+        val progressProperty = object : FloatProperty<AllAppsSearchInput>("searchPaddingProgress") {
+            override fun setValue(view: AllAppsSearchInput, progress: Float) {
+                val leftPadding = startPaddingLeft + (newPaddingLeft - startPaddingLeft) * progress
+                val rightPadding = startPaddingRight + (newPaddingRight - startPaddingRight) * progress
+                view.setPadding(leftPadding.toInt(), view.paddingTop, rightPadding.toInt(), view.paddingBottom)
+            }
+
+            override fun get(view: AllAppsSearchInput): Float = 0f
+        }
+
+        paddingAnimator = SpringAnimationBuilder(context)
+            .setStiffness(420f)
+            .setDampingRatio(0.75f)
+            .setStartValue(0f)
+            .setEndValue(1f)
+            .setMinimumVisibleChange(DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE)
+            .build(this, progressProperty)
+            .also { it.start() }
     }
 
     override fun setFocusedResultTitle(title: CharSequence?, sub: CharSequence?, showArrow: Boolean) {
@@ -581,6 +611,13 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     override fun getEditText() = input
 
     override fun setBackgroundVisibility(visible: Boolean, maxAlpha: Float) {
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            bgAlphaAnimator.cancel()
+            bgVisible = visible
+            bgAlpha = maxAlpha
+            bgAlphaState = if (visible) maxAlpha else 0f
+            return
+        }
         if (bgVisible != visible) {
             bgVisible = visible
             bgAlpha = maxAlpha

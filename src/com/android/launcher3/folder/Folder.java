@@ -37,6 +37,7 @@ import static com.android.launcher3.util.window.RefreshRateTracker.getSingleFram
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
+import android.animation.ValueAnimator;
 import android.annotation.ColorInt;
 import android.annotation.SuppressLint;
 import android.appwidget.AppWidgetHostView;
@@ -1017,10 +1018,14 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
                 @SuppressLint("InlinedApi")
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    mFolderName.animate().setDuration(FOLDER_NAME_ANIMATION_DURATION)
-                            .translationX(0)
-                            .setInterpolator(AnimationUtils.loadInterpolator(
-                                    getContext(), android.R.interpolator.fast_out_slow_in));
+                    if (ValueAnimator.areAnimatorsEnabled()) {
+                        mFolderName.animate().setDuration(FOLDER_NAME_ANIMATION_DURATION)
+                                .translationX(0)
+                                .setInterpolator(AnimationUtils.loadInterpolator(
+                                        getContext(), android.R.interpolator.fast_out_slow_in));
+                    } else {
+                        mFolderName.setTranslationX(0);
+                    }
                     mPageIndicator.playEntryAnimation();
 
                     if (updateAnimationFlag) {
@@ -1039,11 +1044,17 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         // {@link AnimatorListener} before it so that {@link AnimatorListener#onAnimationStart} can
         // be called to register mCurrentAnimator, which will be used to cancel animator
         addAnimationStartListeners(animatorSet);
+        if (!mIsDragInProgress) {
+            com.android.launcher3.util.MSDLPlayerWrapper.INSTANCE.get(getContext())
+                    .playToken(com.google.android.msdl.data.model.MSDLToken.TAP_LOW_EMPHASIS);
+        }
         // Because t=0 has the folder match the folder icon, we can skip the
         // first frame and have the same movement one frame earlier.
         Log.d("b/311077782", "Folder.animateOpen");
-        animatorSet.setCurrentPlayTime(Math.min(
-                getSingleFrameMs(getContext()), animatorSet.getTotalDuration()));
+        if (ValueAnimator.areAnimatorsEnabled()) {
+            animatorSet.setCurrentPlayTime(Math.min(
+                    getSingleFrameMs(getContext()), animatorSet.getTotalDuration()));
+        }
         animatorSet.start();
 
 

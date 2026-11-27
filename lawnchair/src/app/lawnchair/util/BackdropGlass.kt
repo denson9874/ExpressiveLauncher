@@ -36,7 +36,11 @@ object BackdropGlass {
     private const val TAG = "BackdropGlass"
     private const val RADIUS_DP = 24f
     private const val SATURATION = 1.6f
-    private const val PIECE_ALPHA = 184 // 72%: frosted, still easy to read text on
+    internal const val PIECE_ALPHA_LIGHT = 199 // 78% WCAG 2.2 AA frosted scrim floor in light mode
+    internal const val PIECE_ALPHA_DARK = 210 // 82% WCAG 2.2 AA frosted scrim floor in dark mode
+
+    @JvmStatic
+    internal fun pieceAlphaForBase(@ColorInt baseColor: Int): Int = if (ColorUtils.calculateLuminance(baseColor) < 0.5) PIECE_ALPHA_DARK else PIECE_ALPHA_LIGHT
 
     // Reflection: the framework-16 prebuilt's Window, which the compiler sees, has no setDimColor.
     // Cache the reflected Method once per process instead of looking it up on every window open.
@@ -100,7 +104,7 @@ object BackdropGlass {
             val color = background?.color?.defaultColor
             if (background != null && color != null && Color.alpha(color) == 255) {
                 background.mutate()
-                background.setColor(ColorUtils.setAlphaComponent(color, PIECE_ALPHA))
+                background.setColor(ColorUtils.setAlphaComponent(color, pieceAlphaForBase(color)))
                 apply(child, color)
             } else if (child is ViewGroup) {
                 applyToPieces(child)

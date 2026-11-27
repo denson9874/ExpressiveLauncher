@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:color="@color/system_neutral1_900"
+        android:lStar="12"
+        android:alpha="0.84" />
+</selector>

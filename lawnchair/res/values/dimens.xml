@@ -26,7 +26,7 @@
     <dimen name="noqsb_hotseat_bottom_non_tall_padding">0dp</dimen>
     <dimen name="noqsb_hotseat_extra_vertical_size">34dp</dimen>
 
-    <dimen name="lawnchair_dialog_corner_radius">24dp</dimen>
+    <dimen name="lawnchair_dialog_corner_radius">28dp</dimen>
 
     <!-- Overview action row: smallest gap around each button before it shows icons only -->
     <dimen name="overview_actions_min_gap">8dp</dimen>
@@ -54,7 +54,7 @@
     <dimen name="search_box_container_height">60dp</dimen>
     <dimen name="search_box_height">52dp</dimen>
     <dimen name="search_decoration_padding">1dp</dimen>
-    <dimen name="search_group_radius">20dp</dimen>
+    <dimen name="search_group_radius">24dp</dimen>
     <dimen name="search_hero_inline_button_text_size">12sp</dimen>
     <dimen name="search_result_recycler_view_padding">8dp</dimen>
     <dimen name="search_result_hero_title_size">16sp</dimen>

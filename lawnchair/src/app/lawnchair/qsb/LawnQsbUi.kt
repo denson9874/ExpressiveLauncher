@@ -1,9 +1,12 @@
 package app.lawnchair.qsb
 
+import android.animation.ValueAnimator
 import android.content.Context
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -26,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
@@ -396,10 +400,20 @@ fun LawnQsbUi(
         Spacer(Modifier.weight(1f))
 
         val visibleIcons = state.endIcons.filter { it.visible }
+
+        @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+        val effectsSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+        val animationsEnabled = ValueAnimator.areAnimatorsEnabled()
         AnimatedContent(
             targetState = visibleIcons,
             transitionSpec = {
-                fadeIn() togetherWith fadeOut() using SizeTransform(clip = false)
+                if (animationsEnabled) {
+                    fadeIn(animationSpec = effectsSpec) togetherWith
+                        fadeOut(animationSpec = effectsSpec) using
+                        SizeTransform(clip = false)
+                } else {
+                    EnterTransition.None togetherWith ExitTransition.None
+                }
             },
             label = "endIcons",
             contentAlignment = Alignment.CenterEnd,

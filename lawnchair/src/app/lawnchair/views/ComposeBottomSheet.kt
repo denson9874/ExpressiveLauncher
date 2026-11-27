@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,7 +33,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import app.lawnchair.qsb.dropStaleWindowRecomposer
 import app.lawnchair.theme.color.tokens.ColorTokens
+import app.lawnchair.ui.theme.ExpressiveSheetTopShape
 import app.lawnchair.ui.theme.LawnchairTheme
+import app.lawnchair.ui.theme.isSelectedThemeDark
 import app.lawnchair.util.ProvideLifecycleState
 import app.lawnchair.util.minus
 import com.android.launcher3.Launcher
@@ -159,8 +160,7 @@ class ComposeBottomSheet<T>(context: Context) : AbstractSlideInView<T>(context, 
 
     @Composable
     private fun SystemUi(setStatusBar: Boolean = true, setNavBar: Boolean = true) {
-        // todo change to isLight
-        val useDarkIcons = true
+        val useDarkIcons = !isSelectedThemeDark
 
         SideEffect {
             var flags = 0
@@ -193,7 +193,6 @@ class ComposeBottomSheet<T>(context: Context) : AbstractSlideInView<T>(context, 
         LawnchairTheme {
             ProvideLifecycleState {
                 CompositionLocalProvider(
-                    LocalContentColor provides MaterialTheme.colorScheme.onSurface,
                     LocalContentColor provides MaterialTheme.colorScheme.onSurface,
                 ) {
                     content()
@@ -242,7 +241,7 @@ class ComposeBottomSheet<T>(context: Context) : AbstractSlideInView<T>(context, 
 
     companion object {
         private const val DEFAULT_CLOSE_DURATION = 200L
-        private val backgroundShape = RoundedCornerShape(24.dp, 24.dp, 0.dp, 0.dp)
+        private val backgroundShape = ExpressiveSheetTopShape
 
         private val HINT_CLOSE_PROGRESS = object : FloatProperty<ComposeBottomSheet<*>>("hintCloseProgress") {
 

@@ -247,23 +247,44 @@ public class WidgetsFullSheet extends BaseWidgetSheet
         if (intent == null) {
             return;
         }
+        float dp = getResources().getDisplayMetrics().density;
         Button create = new Button(context, null, 0,
                 android.R.style.Widget_Material_Button_Borderless_Colored);
         create.setId(R.id.widget_picker_create_button);
         create.setText(R.string.widget_picker_create);
         create.setAllCaps(false);
-        create.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        create.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         create.setTextColor(Themes.getAttrColor(context, R.attr.widgetPickerTitleColor));
         create.setContentDescription(context.getString(R.string.widget_picker_create_description));
-        create.setElevation(getResources().getDisplayMetrics().density * 2);
+        FontManager.INSTANCE.get(context).setCustomFont(create, R.id.font_heading_medium);
+        android.graphics.drawable.GradientDrawable pillBg =
+                new android.graphics.drawable.GradientDrawable();
+        pillBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        pillBg.setCornerRadius(1000f * dp);
+        pillBg.setColor(ColorTokens.Surface.resolveColor(context));
+        android.graphics.drawable.GradientDrawable pillMask =
+                new android.graphics.drawable.GradientDrawable();
+        pillMask.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        pillMask.setCornerRadius(1000f * dp);
+        pillMask.setColor(android.graphics.Color.WHITE);
+        int rippleColor = Themes.getAttrColor(context, android.R.attr.colorControlHighlight);
+        create.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(rippleColor), pillBg, pillMask));
+        int horizontalPad = Math.round(16 * dp);
+        int verticalPad = Math.round(8 * dp);
+        create.setMinHeight(Math.round(36 * dp));
+        create.setMinimumHeight(Math.round(36 * dp));
+        create.setPaddingRelative(horizontalPad, verticalPad, horizontalPad, verticalPad);
+        create.setElevation(dp * 2);
         RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
         lp.addRule(RelativeLayout.ALIGN_PARENT_END);
-        float dp = getResources().getDisplayMetrics().density;
         lp.topMargin = Math.round(18 * dp);
-        lp.setMarginEnd(Math.round(12 * dp));
+        lp.setMarginEnd(Math.round(16 * dp));
         create.setOnClickListener(v -> {
+            com.android.launcher3.util.MSDLPlayerWrapper.INSTANCE.get(context)
+                    .playToken(com.google.android.msdl.data.model.MSDLToken.TAP_MEDIUM_EMPHASIS);
             try {
                 context.startActivity(intent);
                 close(true);

@@ -16,5 +16,5 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="@color/materialColorSurfaceContainer"/>
-    <corners android:radius="@dimen/dialogCornerRadius"/>
+    <corners android:radius="@dimen/popup_outer_radius"/>
 </shape>

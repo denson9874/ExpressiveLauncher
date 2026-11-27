@@ -21,7 +21,7 @@
     <dimen name="task_corner_radius_override">-1dp</dimen>
 
     <!--  Task Menu View  -->
-    <dimen name="task_menu_corner_radius">26dp</dimen>
+    <dimen name="task_menu_corner_radius">24dp</dimen>
     <dimen name="task_menu_item_corner_radius">4dp</dimen>
     <dimen name="task_menu_spacing">2dp</dimen>
     <dimen name="task_menu_width_grid">216dp</dimen>
@@ -117,7 +117,7 @@
     <dimen name="overview_actions_top_margin">24dp</dimen>
     <dimen name="overview_actions_height">48dp</dimen>
     <dimen name="overview_actions_button_spacing">16dp</dimen>
-    <dimen name="overview_actions_button_radius">28dp</dimen>
+    <dimen name="overview_actions_button_radius">1000dp</dimen>
     <dimen name="overview_actions_button_vertical_padding">10dp</dimen>
     <dimen name="overview_actions_button_horizontal_padding">16dp</dimen>
 

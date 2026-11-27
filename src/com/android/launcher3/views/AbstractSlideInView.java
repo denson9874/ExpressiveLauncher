@@ -175,9 +175,10 @@ public abstract class AbstractSlideInView<T extends Context & ActivityContext>
      * @see #setUpOpenCloseAnimation(float, float, long)
      */
     protected final AnimatorPlaybackController setUpDefaultOpenAnimation() {
+        long duration = ValueAnimator.areAnimatorsEnabled() ? DEFAULT_DURATION : 0;
         AnimatorPlaybackController animation = setUpOpenCloseAnimation(
-                TRANSLATION_SHIFT_CLOSED, TRANSLATION_SHIFT_OPENED, DEFAULT_DURATION);
-        animation.getAnimationPlayer().setInterpolator(Interpolators.FAST_OUT_SLOW_IN);
+                TRANSLATION_SHIFT_CLOSED, TRANSLATION_SHIFT_OPENED, duration);
+        animation.getAnimationPlayer().setInterpolator(Interpolators.EMPHASIZED_DECELERATE);
         return animation;
     }
 

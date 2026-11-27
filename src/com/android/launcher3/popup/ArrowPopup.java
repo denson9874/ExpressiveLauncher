@@ -33,6 +33,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
+import android.util.FloatProperty;
 import android.util.Pair;
 import android.util.Property;
 import android.view.Gravity;
@@ -40,15 +41,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Interpolator;
-import android.view.animation.PathInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.annotation.VisibleForTesting;
+import androidx.dynamicanimation.animation.DynamicAnimation;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.InsettableFrameLayout;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.anim.SpringAnimationBuilder;
 import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.shortcuts.DeepShortcutView;
 import com.android.launcher3.util.RunnableList;
@@ -93,6 +95,30 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
     private static final int CLOSE_FADE_DURATION_U = 83;
     private static final int CLOSE_CHILD_FADE_START_DELAY_U = 150;
     private static final int CLOSE_CHILD_FADE_DURATION_U = 83;
+    private static final float OPEN_SPRING_STIFFNESS = 420f;
+    private static final float OPEN_SPRING_DAMPING = 0.72f;
+    private static final FloatProperty<View> VIEW_SCALE_X = new FloatProperty<>("scaleX") {
+        @Override
+        public void setValue(View view, float value) {
+            view.setScaleX(value);
+        }
+
+        @Override
+        public Float get(View view) {
+            return view.getScaleX();
+        }
+    };
+    private static final FloatProperty<View> VIEW_SCALE_Y = new FloatProperty<>("scaleY") {
+        @Override
+        public void setValue(View view, float value) {
+            view.setScaleY(value);
+        }
+
+        @Override
+        public Float get(View view) {
+            return view.getScaleY();
+        }
+    };
 
     protected final Rect mTempRect = new Rect();
 
@@ -137,16 +163,16 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
     public ArrowPopup(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mInflater = LayoutInflater.from(context);
-        mOutlineRadius = Themes.getDialogCornerRadius(context);
+        final Resources resources = getResources();
+        mOutlineRadius = resources.getDimension(R.dimen.popup_outer_radius);
         mActivityContext = ActivityContext.lookupContext(context);
-        mIsRtl = Utilities.isRtl(getResources());
+        mIsRtl = Utilities.isRtl(resources);
 
         int popupPrimaryColor = ColorTokens.PopupColorPrimary.resolveColor(context);
         mArrowColor = popupPrimaryColor;
-        mElevation = getResources().getDimension(R.dimen.deep_shortcuts_elevation);
+        mElevation = resources.getDimension(R.dimen.deep_shortcuts_elevation);
 
         // Initialize arrow view
-        final Resources resources = getResources();
         mArrowColor = ColorTokens.PopupArrow.resolveColor(context);
         mChildContainerMargin = resources.getDimensionPixelSize(R.dimen.popup_margin);
         mArrowWidth = resources.getDimensionPixelSize(R.dimen.popup_arrow_width);
@@ -258,30 +284,46 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
                 MarginLayoutParams mlp = (MarginLayoutParams) lastView.getLayoutParams();
                 mlp.bottomMargin = 0;
 
+                if (view instanceof ViewGroup childGroup && isShortcutContainer(view)) {
+                    int containerColor = (colors != null) ? colors[0] : backgroundColor;
+                    if (colors != null) {
+                        mArrowColor = containerColor;
+                    }
+                    if (hasVisibleShortcutWrappers(childGroup)) {
+                        view.setBackground(null);
+                        view.setElevation(0f);
+                        assignMarginsAndBackgrounds(childGroup, containerColor);
+                    } else {
+                        if (colors != null) {
+                            setChildColor(view, containerColor, colorAnimator);
+                        }
+                        assignMarginsAndBackgrounds(childGroup, backgroundColor);
+                    }
+                    continue;
+                }
+
                 if (colors != null && isShortcutContainer(view)) {
                     setChildColor(view, colors[0], colorAnimator);
                     mArrowColor = colors[0];
                 }
 
-                if (view instanceof ViewGroup && isShortcutContainer(view)) {
-                    assignMarginsAndBackgrounds((ViewGroup) view, backgroundColor);
-                    continue;
-                }
-
                 if (isShortcutOrWrapper(view)) {
                     if (totalVisibleShortcuts == 1) {
-                        // Lawnchair-TODO-High: view.setBackgroundResource is use instead
-                        view.setBackground(DrawableTokens.SingleItemPrimary.resolve(getContext()));
+                        view.setBackground(DrawableTokens.SingleItemPrimary.resolve(getContext()).mutate());
                     } else if (totalVisibleShortcuts > 1) {
                         if (numVisibleShortcut == 0) {
-                            view.setBackground(mRoundedTop.getConstantState().newDrawable());
+                            view.setBackground(mRoundedTop.getConstantState().newDrawable().mutate());
                         } else if (numVisibleShortcut == (totalVisibleShortcuts - 1)) {
-                            view.setBackground(mRoundedBottom.getConstantState().newDrawable());
+                            view.setBackground(mRoundedBottom.getConstantState().newDrawable().mutate());
                         } else {
-                            view.setBackground(DrawableTokens.MiddleItemPrimary.resolve(getContext()));
+                            view.setBackground(DrawableTokens.MiddleItemPrimary.resolve(getContext()).mutate());
+                        }
+                        if (numVisibleShortcut < totalVisibleShortcuts - 1) {
+                            mlp.bottomMargin = mChildContainerMargin;
                         }
                         numVisibleShortcut++;
                     }
+                    view.setClipToOutline(true);
                 }
 
                 setChildColor(view, backgroundColor, colorAnimator);
@@ -290,6 +332,20 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
 
         colorAnimator.setDuration(0).start();
         measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
+    }
+
+    /**
+     * Returns {@code true} if {@code group} contains at least one visible shortcut wrapper row.
+     */
+    protected boolean hasVisibleShortcutWrappers(ViewGroup group) {
+        int childCount = group.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() == VISIBLE && isShortcutOrWrapper(child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -327,7 +383,6 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
      */
     public void show() {
         setupForDisplay();
-        assignMarginsAndBackgrounds(this);
         if (shouldAddArrow()) {
             addArrow();
         }
@@ -341,6 +396,7 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
         setVisibility(View.INVISIBLE);
         mIsOpen = true;
         getPopupContainer().addView(this);
+        assignMarginsAndBackgrounds(this);
         orientAboutObject();
     }
 
@@ -426,15 +482,7 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
         measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
 
         int extraVerticalSpace = mArrowHeight + mArrowOffsetVertical + getExtraVerticalOffset();
-        // The margins are added after we call this method, so we need to account for them here.
-        int numVisibleChildren = 0;
-        for (int i = getChildCount() - 1; i >= 0; --i) {
-            if (getChildAt(i).getVisibility() == VISIBLE) {
-                numVisibleChildren++;
-            }
-        }
-        int childMargins = (numVisibleChildren - 1) * mChildContainerMargin;
-        int height = getMeasuredHeight() + extraVerticalSpace + childMargins;
+        int height = getMeasuredHeight() + extraVerticalSpace;
         int width = getMeasuredWidth() + getPaddingLeft() + getPaddingRight();
 
         getTargetObjectLocation(mTempRect);
@@ -564,6 +612,15 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
 
     protected void animateOpen() {
         setVisibility(View.VISIBLE);
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            setAlpha(1f);
+            setScaleX(1f);
+            setScaleY(1f);
+            mArrow.setAlpha(1f);
+            announceAccessibilityChanges();
+            mOpenCloseAnimator = null;
+            return;
+        }
         mOpenCloseAnimator = getOpenCloseAnimator(
                         true,
                         OPEN_DURATION_U,
@@ -578,6 +635,8 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
             @Override
             public void onAnimationEnd(Animator animation) {
                 setAlpha(1f);
+                setScaleX(1f);
+                setScaleY(1f);
                 announceAccessibilityChanges();
                 mOpenCloseAnimator = null;
             }
@@ -616,6 +675,15 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
             mOpenCloseAnimator.cancel();
         }
         mIsOpen = false;
+        if (!ValueAnimator.areAnimatorsEnabled()) {
+            mOpenCloseAnimator = null;
+            if (mDeferContainerRemoval) {
+                setVisibility(INVISIBLE);
+            } else {
+                closeComplete();
+            }
+            return;
+        }
 
         mOpenCloseAnimator = getOpenCloseAnimator(
                         false,
@@ -667,29 +735,34 @@ public abstract class ArrowPopup<T extends Context & ActivityContext>
         setPivotForOpenCloseAnimation();
 
         float[] alphaValues = isOpening ? new float[] {0, 1} : new float[] {1, 0};
-        float[] scaleValues = isOpening ? new float[] {0.5f, 1.02f} : new float[] {1f, 0.5f};
         Animator alpha = getAnimatorOfFloat(this, View.ALPHA, fadeDuration, fadeStartDelay,
                 LINEAR, alphaValues);
         Animator arrowAlpha = getAnimatorOfFloat(mArrow, View.ALPHA, fadeDuration, fadeStartDelay,
                 LINEAR, alphaValues);
-        Animator scaleY = getAnimatorOfFloat(this, View.SCALE_Y, scaleDuration, 0, interpolator,
-                scaleValues);
-        Animator scaleX = getAnimatorOfFloat(this, View.SCALE_X, scaleDuration, 0, interpolator,
-                scaleValues);
 
         final AnimatorSet animatorSet = new AnimatorSet();
         if (isOpening) {
-            float[] scaleValuesOvershoot = new float[] {1.02f, 1f};
-            PathInterpolator overshootInterpolator = new PathInterpolator(0.3f, 0, 0.33f, 1f);
-            Animator overshootY = getAnimatorOfFloat(this, View.SCALE_Y,
-                    OPEN_OVERSHOOT_DURATION_U, scaleDuration, overshootInterpolator,
-                    scaleValuesOvershoot);
-            Animator overshootX = getAnimatorOfFloat(this, View.SCALE_X,
-                    OPEN_OVERSHOOT_DURATION_U, scaleDuration, overshootInterpolator,
-                    scaleValuesOvershoot);
-
-            animatorSet.playTogether(alpha, arrowAlpha, scaleY, scaleX, overshootX, overshootY);
+            Animator scaleX = new SpringAnimationBuilder(getContext())
+                    .setStiffness(OPEN_SPRING_STIFFNESS)
+                    .setDampingRatio(OPEN_SPRING_DAMPING)
+                    .setStartValue(0.5f)
+                    .setEndValue(1f)
+                    .setMinimumVisibleChange(DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE)
+                    .build(this, VIEW_SCALE_X);
+            Animator scaleY = new SpringAnimationBuilder(getContext())
+                    .setStiffness(OPEN_SPRING_STIFFNESS)
+                    .setDampingRatio(OPEN_SPRING_DAMPING)
+                    .setStartValue(0.5f)
+                    .setEndValue(1f)
+                    .setMinimumVisibleChange(DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE)
+                    .build(this, VIEW_SCALE_Y);
+            animatorSet.playTogether(alpha, arrowAlpha, scaleX, scaleY);
         } else {
+            float[] scaleValues = new float[] {1f, 0.5f};
+            Animator scaleY = getAnimatorOfFloat(this, View.SCALE_Y, scaleDuration, 0, interpolator,
+                    scaleValues);
+            Animator scaleX = getAnimatorOfFloat(this, View.SCALE_X, scaleDuration, 0, interpolator,
+                    scaleValues);
             animatorSet.playTogether(alpha, arrowAlpha, scaleY, scaleX);
         }
 
