@@ -66,7 +66,12 @@ import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.pro.ProManager
 import app.lawnchair.pro.proManager
 import app.lawnchair.ui.preferences.components.colorpreference.pickers.CustomColorPicker
+import app.lawnchair.ui.preferences.components.controls.SliderHapticOutcome
+import app.lawnchair.ui.preferences.components.controls.SliderThreshold
 import app.lawnchair.ui.preferences.components.controls.SwitchPreference
+import app.lawnchair.ui.preferences.components.controls.evaluateSliderHaptic
+import app.lawnchair.ui.preferences.components.controls.playScaledSliderHaptic
+import app.lawnchair.ui.preferences.components.controls.snapSliderValue
 import app.lawnchair.ui.preferences.components.layout.Chip
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
@@ -77,6 +82,7 @@ import app.lawnchair.util.navigationBarsOrDisplayCutoutPadding
 import app.lawnchair.util.resolveFolderBackgroundColor
 import com.android.launcher3.Launcher
 import com.android.launcher3.R
+import com.android.launcher3.Utilities
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.google.android.msdl.data.model.MSDLToken
 import kotlin.math.min
@@ -465,6 +471,16 @@ private fun StyleSliderRow(
     modifier: Modifier = Modifier,
     steps: Int = 0,
 ) {
+    val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
+    val discreteStep = if (steps > 0) {
+        (valueRange.endInclusive - valueRange.start) / (steps + 1)
+    } else {
+        0f
+    }
+    var thresholdReached by remember { mutableStateOf<SliderThreshold?>(null) }
+    var lastHapticValue by remember(discreteStep) {
+        mutableStateOf(snapSliderValue(valueRange.start, value, discreteStep))
+    }
     PreferenceTemplate(
         title = {
             Row(
@@ -475,7 +491,7 @@ private fun StyleSliderRow(
                 Text(text = label)
                 Text(
                     text = valueText,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -483,7 +499,49 @@ private fun StyleSliderRow(
         description = {
             Slider(
                 value = value,
-                onValueChange = onValueChange,
+                onValueChange = { newValue ->
+                    val decision = evaluateSliderHaptic(
+                        newValue = newValue,
+                        valueRange = valueRange,
+                        step = discreteStep,
+                        previousThreshold = thresholdReached,
+                        lastHapticValue = lastHapticValue,
+                    )
+                    thresholdReached = decision.nextThreshold
+                    lastHapticValue = decision.nextLastHapticValue
+                    when (decision.outcome) {
+                        SliderHapticOutcome.LIMIT_START,
+                        SliderHapticOutcome.LIMIT_END,
+                        -> mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_THRESHOLD_INDICATOR_LIMIT)
+
+                        SliderHapticOutcome.STEP_DISCRETE -> {
+                            if (Utilities.ATLEAST_S) {
+                                playScaledSliderHaptic(
+                                    mMSDLPlayerWrapper,
+                                    MSDLToken.DRAG_INDICATOR_DISCRETE,
+                                    decision.scale,
+                                )
+                            } else {
+                                mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_INDICATOR_DISCRETE)
+                            }
+                        }
+
+                        SliderHapticOutcome.STEP_CONTINUOUS -> {
+                            if (Utilities.ATLEAST_S) {
+                                playScaledSliderHaptic(
+                                    mMSDLPlayerWrapper,
+                                    MSDLToken.DRAG_INDICATOR_CONTINUOUS,
+                                    decision.scale,
+                                )
+                            } else {
+                                mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_INDICATOR_CONTINUOUS)
+                            }
+                        }
+
+                        SliderHapticOutcome.NONE -> Unit
+                    }
+                    onValueChange(newValue)
+                },
                 valueRange = valueRange,
                 steps = steps,
                 modifier = Modifier.fillMaxWidth(),

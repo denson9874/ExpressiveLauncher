@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -194,11 +195,11 @@ fun FontSelection(
                         key = { _, family -> family.toString() },
                         contentType = { _, _ -> ContentType.FONT },
                     ) { index, family ->
+                        Spacer(modifier = Modifier.height(2.dp))
                         PreferenceGroupItem(
                             cutTop = true,
                             cutBottom = index != customFonts.lastIndex,
                         ) {
-                            PreferenceDivider(startIndent = 40.dp)
                             FontSelectionItem(
                                 adapter = adapter,
                                 family = family,

@@ -1,6 +1,9 @@
 package app.lawnchair.ui.preferences.components.controls
 
+import android.animation.ValueAnimator
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -86,7 +89,13 @@ fun MainSwitchPreference(
             }
         }
     }
-    Crossfade(targetState = checked, label = "") { targetState ->
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    val fadeSpec: FiniteAnimationSpec<Float> = if (ValueAnimator.areAnimatorsEnabled()) {
+        MaterialTheme.motionScheme.defaultEffectsSpec()
+    } else {
+        tween(0)
+    }
+    Crossfade(targetState = checked, animationSpec = fadeSpec, label = "MainSwitchContent") { targetState ->
         if (targetState) {
             Column {
                 content()

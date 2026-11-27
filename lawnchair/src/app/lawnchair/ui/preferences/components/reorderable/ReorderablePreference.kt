@@ -31,6 +31,7 @@ import app.lawnchair.ui.preferences.components.controls.ClickablePreference
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroupHeading
+import app.lawnchair.ui.theme.ExpressiveGroupShape
 import app.lawnchair.ui.theme.preferenceGroupColor
 import com.android.launcher3.R
 import com.android.launcher3.util.MSDLPlayerWrapper
@@ -69,7 +70,7 @@ fun <T> ReorderablePreferenceGroup(
         )
         Surface(
             modifier = Modifier.padding(horizontal = 16.dp),
-            shape = MaterialTheme.shapes.large,
+            shape = ExpressiveGroupShape,
         ) {
             ReorderableColumn(
                 list = localItems,

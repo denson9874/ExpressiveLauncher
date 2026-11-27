@@ -32,3 +32,13 @@ val Shapes = Shapes(
     extraLargeIncreased = RoundedCornerShape(32.dp),
     extraExtraLarge = RoundedCornerShape(48.dp),
 )
+
+val ExpressiveGroupOuterCornerRadius = 24.dp
+val ExpressiveGroupInnerCornerRadius = 4.dp
+val ExpressiveGroupShape = RoundedCornerShape(ExpressiveGroupOuterCornerRadius)
+val ExpressiveSheetTopShape = RoundedCornerShape(
+    topStart = 28.dp,
+    topEnd = 28.dp,
+    bottomStart = 0.dp,
+    bottomEnd = 0.dp,
+)

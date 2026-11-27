@@ -234,7 +234,7 @@ class PreferenceManager2 @Inject constructor(
 
     val colorStyle = preference(
         key = stringPreferencesKey("color_style"),
-        defaultValue = ColorStyle.fromString("tonal_spot"),
+        defaultValue = ColorStyle.fromString(context.getString(R.string.config_default_color_style)),
         parse = ColorStyle::fromString,
         save = ColorStyle::toString,
         onSet = { reloadHelper.restart() },

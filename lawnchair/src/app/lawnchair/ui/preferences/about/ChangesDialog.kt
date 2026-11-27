@@ -124,7 +124,9 @@ fun ChangesDialog(
                     ) {
                         CommitItem(commit = commit)
                     }
-                    Spacer(Modifier.height(3.dp))
+                    if (index != commits.lastIndex) {
+                        Spacer(Modifier.height(2.dp))
+                    }
                 }
             } else {
                 item {

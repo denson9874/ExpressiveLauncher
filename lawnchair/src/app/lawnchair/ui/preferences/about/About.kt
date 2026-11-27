@@ -368,7 +368,7 @@ fun About(
                 }
             }
             item {
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(2.dp))
             }
             if (BuildConfig.PRIVACY_POLICY_URL.isNotBlank()) {
                 item {

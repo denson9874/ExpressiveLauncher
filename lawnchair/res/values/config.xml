@@ -75,6 +75,7 @@
 
     <!-- which accent color to use by default -->
     <string name="config_default_accent_color" translatable="false">no_default</string>
+    <string name="config_default_color_style" translatable="false">tonal_spot</string>
 
     <!-- which notification dot color to use by default -->
     <string name="config_default_notification_dot_color" translatable="false">default</string>

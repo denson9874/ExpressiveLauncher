@@ -97,6 +97,7 @@ import app.lawnchair.ui.preferences.navigation.Smartspace
 import app.lawnchair.ui.preferences.navigation.WidgetPreferencesRoute
 import app.lawnchair.ui.preferences.pro.ProBannerPreference
 import app.lawnchair.ui.preferences.pro.rememberIsPro
+import app.lawnchair.ui.theme.ExpressiveGroupShape
 import app.lawnchair.ui.util.addIf
 import app.lawnchair.util.isDefaultLauncher
 import app.lawnchair.util.productStringId
@@ -458,7 +459,7 @@ fun PreferencesSetDefaultLauncherWarning(
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(context)
     Surface(
         modifier = modifier.padding(horizontal = 16.dp),
-        shape = MaterialTheme.shapes.large,
+        shape = ExpressiveGroupShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         PreferenceTemplate(

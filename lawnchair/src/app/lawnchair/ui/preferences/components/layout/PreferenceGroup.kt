@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.lawnchair.ui.theme.ExpressiveGroupShape
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -55,7 +56,7 @@ fun PreferenceGroup(
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
-                .clip(MaterialTheme.shapes.large),
+                .clip(ExpressiveGroupShape),
             verticalArrangement = Arrangement.spacedBy(itemSpacing),
         ) {
             content()

@@ -16,22 +16,25 @@
 
 package app.lawnchair.ui.preferences.components.layout
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import app.lawnchair.ui.theme.preferenceGroupColor
+import app.lawnchair.ui.theme.ExpressiveGroupInnerCornerRadius
+import app.lawnchair.ui.theme.ExpressiveGroupOuterCornerRadius
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 fun LazyListScope.preferenceGroupItems(
     count: Int,
     isFirstChild: Boolean,
@@ -52,17 +55,11 @@ fun LazyListScope.preferenceGroupItems(
         PreferenceGroupHeading(heading?.let { it() })
     }
     items(count, key, contentType) {
+        if (showDividers && it > 0) {
+            Spacer(modifier = Modifier.requiredHeight(ListItemDefaults.SegmentedGap))
+        }
         PreferenceGroupItem(cutTop = it > 0, cutBottom = it < count - 1) {
-            Column {
-                if (showDividers && it > 0) {
-                    HorizontalDivider(
-                        modifier = Modifier,
-                        thickness = 3.dp,
-                        color = MaterialTheme.colorScheme.surface,
-                    )
-                }
-                itemContent(it)
-            }
+            itemContent(it)
         }
     }
 }
@@ -92,6 +89,15 @@ inline fun <T> LazyListScope.preferenceGroupItems(
     }
 }
 
+internal fun preferenceGroupItemCornerRadii(
+    cutTop: Boolean,
+    cutBottom: Boolean,
+): Pair<Dp, Dp> {
+    val top = if (cutTop) ExpressiveGroupInnerCornerRadius else ExpressiveGroupOuterCornerRadius
+    val bottom = if (cutBottom) ExpressiveGroupInnerCornerRadius else ExpressiveGroupOuterCornerRadius
+    return top to bottom
+}
+
 @Composable
 fun PreferenceGroupItem(
     modifier: Modifier = Modifier,
@@ -100,13 +106,13 @@ fun PreferenceGroupItem(
     content: @Composable () -> Unit,
 ) {
     val shape = remember(cutTop, cutBottom) {
-        val top = if (cutTop) 0.dp else 16.dp
-        val bottom = if (cutBottom) 0.dp else 16.dp
+        val (top, bottom) = preferenceGroupItemCornerRadii(cutTop = cutTop, cutBottom = cutBottom)
         RoundedCornerShape(top, top, bottom, bottom)
     }
     Surface(
         modifier = modifier.padding(horizontal = 16.dp),
         shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         content()
     }

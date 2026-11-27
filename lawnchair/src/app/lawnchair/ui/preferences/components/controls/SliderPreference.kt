@@ -53,11 +53,94 @@ import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.google.android.msdl.data.model.MSDLToken
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private enum class SliderThreshold {
+internal enum class SliderThreshold {
     START,
     END,
+}
+
+internal enum class SliderHapticOutcome {
+    NONE,
+    STEP_DISCRETE,
+    STEP_CONTINUOUS,
+    LIMIT_START,
+    LIMIT_END,
+}
+
+internal data class SliderHapticDecision(
+    val outcome: SliderHapticOutcome,
+    val nextThreshold: SliderThreshold?,
+    val nextLastHapticValue: Float,
+    val scale: Float,
+)
+
+internal fun evaluateSliderHaptic(
+    newValue: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+    previousThreshold: SliderThreshold?,
+    lastHapticValue: Float,
+): SliderHapticDecision {
+    val range = valueRange.endInclusive - valueRange.start
+    val scale = if (range <= 0f) {
+        1f
+    } else {
+        ((newValue - valueRange.start) / range).coerceIn(0f, 1f)
+    }
+    val threshold = when {
+        newValue <= valueRange.start -> SliderThreshold.START
+        newValue >= valueRange.endInclusive -> SliderThreshold.END
+        else -> null
+    }
+    val snapped = snapSliderValue(valueRange.start, newValue, step)
+    if (threshold != null) {
+        val outcome = if (threshold != previousThreshold) {
+            if (threshold == SliderThreshold.START) SliderHapticOutcome.LIMIT_START else SliderHapticOutcome.LIMIT_END
+        } else {
+            SliderHapticOutcome.NONE
+        }
+        return SliderHapticDecision(
+            outcome = outcome,
+            nextThreshold = threshold,
+            nextLastHapticValue = snapped,
+            scale = scale,
+        )
+    }
+    if (step > 0f) {
+        return if (abs(snapped - lastHapticValue) >= step * 0.5f) {
+            SliderHapticDecision(
+                outcome = SliderHapticOutcome.STEP_DISCRETE,
+                nextThreshold = null,
+                nextLastHapticValue = snapped,
+                scale = scale,
+            )
+        } else {
+            SliderHapticDecision(
+                outcome = SliderHapticOutcome.NONE,
+                nextThreshold = null,
+                nextLastHapticValue = lastHapticValue,
+                scale = scale,
+            )
+        }
+    }
+    val minContinuousDelta = if (range > 0f) range * 0.02f else 0f
+    return if (abs(newValue - lastHapticValue) >= minContinuousDelta) {
+        SliderHapticDecision(
+            outcome = SliderHapticOutcome.STEP_CONTINUOUS,
+            nextThreshold = null,
+            nextLastHapticValue = newValue,
+            scale = scale,
+        )
+    } else {
+        SliderHapticDecision(
+            outcome = SliderHapticOutcome.NONE,
+            nextThreshold = null,
+            nextLastHapticValue = lastHapticValue,
+            scale = scale,
+        )
+    }
 }
 
 @Composable
@@ -131,16 +214,13 @@ private fun SliderPreference(
 ) {
     var sliderValue by remember { mutableFloatStateOf(value) }
     var thresholdReached by remember { mutableStateOf<SliderThreshold?>(null) }
+    var lastHapticValue by remember { mutableFloatStateOf(snapSliderValue(valueRange.start, value, step)) }
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
-    val getAppropriateHaptic = if (step == 0f) {
-        MSDLToken.DRAG_INDICATOR_CONTINUOUS
-    } else {
-        MSDLToken.DRAG_INDICATOR_DISCRETE
-    }
 
-    DisposableEffect(value) {
+    DisposableEffect(value, step) {
         sliderValue = value
         thresholdReached = null
+        lastHapticValue = snapSliderValue(valueRange.start, value, step)
         onDispose { }
     }
 
@@ -159,7 +239,9 @@ private fun SliderPreference(
                 )
                 CompositionLocalProvider(
                     LocalContentColor provides MaterialTheme.colorScheme.onSurface,
-                    LocalTextStyle provides MaterialTheme.typography.bodyLarge,
+                    LocalTextStyle provides MaterialTheme.typography.bodyLarge.copy(
+                        fontFeatureSettings = "tnum",
+                    ),
                 ) {
                     val value = snapSliderValue(valueRange.start, sliderValue, step)
                     Text(
@@ -182,35 +264,45 @@ private fun SliderPreference(
                 value = sliderValue,
                 onValueChange = { newValue ->
                     sliderValue = newValue
-                    val threshold = when {
-                        newValue <= valueRange.start -> SliderThreshold.START
-                        newValue >= valueRange.endInclusive -> SliderThreshold.END
-                        else -> null
-                    }
-                    if (threshold != null) {
-                        if (threshold != thresholdReached) {
-                            thresholdReached = threshold
-                            mMSDLPlayerWrapper.playToken(
-                                MSDLToken.DRAG_THRESHOLD_INDICATOR_LIMIT,
-                            )
+                    val decision = evaluateSliderHaptic(
+                        newValue = newValue,
+                        valueRange = valueRange,
+                        step = step,
+                        previousThreshold = thresholdReached,
+                        lastHapticValue = lastHapticValue,
+                    )
+                    thresholdReached = decision.nextThreshold
+                    lastHapticValue = decision.nextLastHapticValue
+                    when (decision.outcome) {
+                        SliderHapticOutcome.LIMIT_START,
+                        SliderHapticOutcome.LIMIT_END,
+                        -> mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_THRESHOLD_INDICATOR_LIMIT)
+
+                        SliderHapticOutcome.STEP_DISCRETE -> {
+                            if (Utilities.ATLEAST_S) {
+                                playScaledSliderHaptic(
+                                    mMSDLPlayerWrapper,
+                                    MSDLToken.DRAG_INDICATOR_DISCRETE,
+                                    decision.scale,
+                                )
+                            } else {
+                                mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_INDICATOR_DISCRETE)
+                            }
                         }
-                    } else {
-                        thresholdReached = null
-                        val range = valueRange.endInclusive - valueRange.start
-                        val scale = if (range == 0f) {
-                            1f
-                        } else {
-                            ((newValue - valueRange.start) / range).coerceIn(0f, 1f)
+
+                        SliderHapticOutcome.STEP_CONTINUOUS -> {
+                            if (Utilities.ATLEAST_S) {
+                                playScaledSliderHaptic(
+                                    mMSDLPlayerWrapper,
+                                    MSDLToken.DRAG_INDICATOR_CONTINUOUS,
+                                    decision.scale,
+                                )
+                            } else {
+                                mMSDLPlayerWrapper.playToken(MSDLToken.DRAG_INDICATOR_CONTINUOUS)
+                            }
                         }
-                        if (Utilities.ATLEAST_S) {
-                            playScaledSliderHaptic(
-                                mMSDLPlayerWrapper,
-                                getAppropriateHaptic,
-                                scale,
-                            )
-                        } else {
-                            mMSDLPlayerWrapper.playToken(getAppropriateHaptic)
-                        }
+
+                        SliderHapticOutcome.NONE -> Unit
                     }
                 },
                 onValueChangeFinished = { onValueChangeFinished(sliderValue) },
